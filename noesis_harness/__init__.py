@@ -82,8 +82,8 @@ from .isolation_holdouts import CrossAgentLeakageSuite, IsolationHoldoutResult
 __all__.extend(["CodingSuiteSummary", "CodingVerification", "PINNED_TASKS", "PinnedCodingTask", "PinnedCodingTaskAdapter", "CrossAgentLeakageSuite", "IsolationHoldoutResult"])
 from .ui_contract import CONTRACT_VERSION, UIContractError, UIEnvelope, failure, health_payload, model_payload, new_request_id, success
 from .health_server import HealthServer
-from .provider_registry import ModelDescriptor, ProviderDescriptor, ProviderRegistry, ProviderRegistryError, SUPPORTED_PROVIDER_KINDS
+from .provider_registry import CAPABILITY_KEYS, ModelDescriptor, ProviderAdapterSpec, ProviderDescriptor, ProviderRegistry, ProviderRegistryError, SUPPORTED_PROVIDER_KINDS, adapter_spec
 from .bridge_discovery import BridgeCandidate, BridgeDiscovery, BridgeStatus
 from .runtime_supervisor import ChildRuntimeSupervisor, RuntimeStatus
 from .user_data import UserDataPaths, user_data_paths
-__all__.extend(["CONTRACT_VERSION", "UIContractError", "UIEnvelope", "failure", "health_payload", "model_payload", "new_request_id", "success", "HealthServer", "ModelDescriptor", "ProviderDescriptor", "ProviderRegistry", "ProviderRegistryError", "SUPPORTED_PROVIDER_KINDS", "BridgeCandidate", "BridgeDiscovery", "BridgeStatus", "ChildRuntimeSupervisor", "RuntimeStatus", "UserDataPaths", "user_data_paths"])
+__all__.extend(["CONTRACT_VERSION", "UIContractError", "UIEnvelope", "failure", "health_payload", "model_payload", "new_request_id", "success", "HealthServer", "CAPABILITY_KEYS", "ModelDescriptor", "ProviderAdapterSpec", "ProviderDescriptor", "ProviderRegistry", "ProviderRegistryError", "SUPPORTED_PROVIDER_KINDS", "adapter_spec", "BridgeCandidate", "BridgeDiscovery", "BridgeStatus", "ChildRuntimeSupervisor", "RuntimeStatus", "UserDataPaths", "user_data_paths"])

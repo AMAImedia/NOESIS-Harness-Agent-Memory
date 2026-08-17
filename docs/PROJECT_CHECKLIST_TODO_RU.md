@@ -110,7 +110,7 @@
 
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P2-01 | Provider adapter registry | Агент | `TODO` | OpenAI-compatible, Ollama, llama.cpp, vLLM и LM Studio are represented as adapters |
+| P2-01 | Provider adapter registry | Агент | `DONE / LOCAL VERIFIED` | Canonical declarative specs for OpenAI-compatible, Ollama, llama.cpp, vLLM, LM Studio plus bridge kinds; capability schema and auth modes; no network calls/credentials; 8/8 focused provider tests; commit/remote verification pending |
 | P2-02 | Hermes gateway adapter | Агент | `TODO` | Explicit endpoint/key mapping, tool-scope declaration, no remote/local confusion |
 | P2-03 | DeepSeek Harness adapter | Агент | `TODO` | Version-pinned optional bridge, plugin capability mapping and fail-soft compatibility |
 | P2-04 | Capability-aware model selector | Агент | `TODO` | UI показывает tool/context/vision/structured-output capabilities, unsupported features fail-soft |

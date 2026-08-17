@@ -4,7 +4,7 @@ import urllib.error
 import urllib.request
 
 from noesis_harness.health_server import HealthServer
-from noesis_harness.provider_registry import ModelDescriptor, ProviderDescriptor, ProviderRegistry, ProviderRegistryError
+from noesis_harness.provider_registry import CAPABILITY_KEYS, ModelDescriptor, ProviderDescriptor, ProviderRegistry, ProviderRegistryError, SUPPORTED_PROVIDER_KINDS, adapter_spec
 
 
 FIXTURES = (
@@ -53,6 +53,20 @@ class ProviderRegistryTests(unittest.TestCase):
             ProviderRegistry((ProviderDescriptor(provider_id="x", kind="ollama"), ProviderDescriptor(provider_id="x", kind="ollama")))
         with self.assertRaises(ProviderRegistryError):
             ProviderRegistry.validate_public_metadata({"api_key": "secret"})
+
+    def test_adapter_specs_are_static_and_capability_complete(self):
+        for kind in SUPPORTED_PROVIDER_KINDS:
+            spec = adapter_spec(kind)
+            self.assertEqual(spec.kind, kind)
+            self.assertTrue(spec.health_path.startswith("/"))
+            self.assertTrue(spec.models_path.startswith("/"))
+            self.assertEqual(set(spec.default_capabilities), set(CAPABILITY_KEYS))
+            self.assertNotIn("token", repr(spec).lower())
+            self.assertNotIn("secret", repr(spec).lower())
+
+    def test_unknown_capability_is_rejected(self):
+        with self.assertRaises(ProviderRegistryError):
+            ModelDescriptor(model_id="x", provider="ollama", capabilities={"execute_code": True}).to_record()
 
     def test_partial_provider_status_is_degraded(self):
         registry = ProviderRegistry((ProviderDescriptor(provider_id="hermes", kind="hermes_webui", status="unavailable"),))
