@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+_example_state/
+*.db
+*.db-shm
+*.db-wal
+*.jsonl
+
+# Build artifacts
+build/
+dist/
+# Local/private state
+.env
+.env.*
+!.env.example
+*.log
+_archive/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+node_modules/
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
