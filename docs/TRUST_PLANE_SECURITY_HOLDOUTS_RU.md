@@ -92,3 +92,18 @@ Lineage parent references теперь проверяются по event identit
 | Security holdout target | Gatekeeper security denial precedes approval and child execution | `PASS` |
 
 На Python 3.14.7 Trust Plane matrix: **4/4 passed**. Полный suite после T-06: **306/306 passed**; `ResourceWarning`: **0**. Public success не означает обход sandbox: child runtime сохраняет shell-free, allowlist, workspace, timeout и output gates.
+
+
+## Phase 5 T-07 — Trust Plane decision audit chain
+
+`TrustPlane` теперь может писать отдельный `noesis.trust-plane-decision.v1` audit stream. Decision payload содержит только policy metadata: context digest, item/resource IDs, redacted/truncated IDs, egress/gate/execution status и reason codes. Raw context text и restricted content не записываются.
+
+| Holdout | Ожидаемое поведение | Фактический статус |
+|---|---|---|
+| Denied decision audit | Lineage/gate denial оставляет durable explainable event | `PASS` |
+| Approved decision audit | Approved child path оставляет gate/execution status и reason | `PASS` |
+| Chain ordering | `prev_hash` начинается с zero hash и связывает последующие decisions | `PASS` |
+| Event integrity | `event_hash` проверяется по canonical payload; `verify_audit_chain()` fail-closed при tamper | `PASS` |
+| Raw-content exclusion | Restricted context text отсутствует в audit JSONL; только IDs/digests | `PASS` |
+
+На Python 3.14.7 Trust Plane audit focused suite: **5/5 passed**. Полный suite после T-07: **307/307 passed**; `ResourceWarning`: **0**.

@@ -565,3 +565,15 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-109 | Cross-component regression | `DONE / LOCAL VERIFIED` | Focused tests: **4/4 passed**; full Python 3.14.7 suite: **306/306 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: audit/provenance event chain для end-to-end decision, включая denied/approved ordering и отсутствие raw restricted content.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-07
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-110 | Durable decision audit | `DONE / LOCAL VERIFIED` | TrustPlane пишет `noesis.trust-plane-decision.v1` для denied и approved paths |
+| DONE-111 | Hash-linked ordering | `DONE / LOCAL VERIFIED` | Audit stream начинается zero hash и связывает каждый event через `prev_hash`/`event_hash` |
+| DONE-112 | Raw restricted-content exclusion | `DONE / LOCAL VERIFIED` | В JSONL сохраняются только digest, IDs и reason/status metadata; raw context отсутствует |
+| DONE-113 | Audit-chain regression | `DONE / LOCAL VERIFIED` | Focused tests: **5/5 passed**; full Python 3.14.7 suite: **307/307 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: audit tamper/replay recovery и cross-session decision provenance.

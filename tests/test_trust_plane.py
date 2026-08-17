@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -21,7 +22,8 @@ class TrustPlaneTests(unittest.TestCase):
         (self.workspace / "ok.py").write_text("print('trust-plane-ok')\n", encoding="utf-8")
         self.gate = Gatekeeper(str(root / "gate.jsonl"))
         self.lineage = ObservationLedger(str(root / "lineage.jsonl"))
-        self.plane = TrustPlane(self.gate, self.lineage, child_runtime=ChildExecutionRuntime(self.gate))
+        self.audit_path = root / "trust-audit.jsonl"
+        self.plane = TrustPlane(self.gate, self.lineage, child_runtime=ChildExecutionRuntime(self.gate), audit_path=str(self.audit_path))
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -63,6 +65,21 @@ class TrustPlaneTests(unittest.TestCase):
         self.assertFalse(decision.allowed)
         self.assertIn("gatekeeper_denied:security_policy_denied", decision.reason)
         self.assertIsNone(decision.execution)
+
+    def test_audit_chain_records_denied_and_approved_without_raw_context(self):
+        denied_request, denied_execution = self._case(capability="skill.execute", action="run", side_effect="write", request_id="denied")
+        denied = self.plane.run_skill(session_id="s", task_id="t", agent_id="agent-a", context_items=(ContextItem("secret", "RAW-RESTRICTED-CONTENT", "restricted", resource_id="secret-1"),), request=denied_request, execution=denied_execution)
+        self.assertFalse(denied.allowed)
+        approved_request, approved_execution = self._case(capability="skill.execute", action="run", side_effect="write", request_id="approved")
+        approved = self.plane.run_skill(session_id="s2", task_id="t2", agent_id="agent-a", context_items=(ContextItem("public", "safe", "public", resource_id="public-1"),), request=approved_request, execution=approved_execution, explicit_approval=True)
+        self.assertTrue(approved.allowed)
+        serialized = self.audit_path.read_text(encoding="utf-8")
+        self.assertNotIn("RAW-RESTRICTED-CONTENT", serialized)
+        self.assertEqual(serialized.count("trust_plane_decision"), 2)
+        self.assertTrue(self.plane.verify_audit_chain())
+        lines = [json.loads(line) for line in serialized.splitlines()]
+        self.assertEqual([line["payload"]["prev_hash"] for line in lines][0], "0" * 64)
+        self.assertNotEqual(lines[0]["payload"]["event_hash"], lines[1]["payload"]["event_hash"])
 
 
 if __name__ == "__main__":
