@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `d7844be` — `feat: add strict noesisskill manifest format`
+Последний подтверждённый remote commit: `ca59e18` — `feat: add safe staged skill import pipeline`
 
-Текущий рабочий этап: **P3-02 safe import pipeline локально verified; следующий gate — private remote verification и P3-03 skill rollback**
+Текущий рабочий этап: **P3-02 safe import pipeline remote verified; следующий gate — P3-03 skill rollback**
 
 ## Как мы используем этот документ
 
@@ -120,7 +120,7 @@
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
 | P3-01 | `.noesisskill` manifest format | Агент | `DONE / REMOTE VERIFIED` | Strict format v1.0 with ID/version/digest/capabilities/platforms/provenance; canonical JSON; traversal/symlink/secret-key rejection; 6 tests passed, symlink case skipped only when Windows cannot create symlink; remote SHA `d7844be5cf41653ceef08e5414ba5282d9d78bde`; repository remains private |
-| P3-02 | Safe import pipeline | Агент | `DONE / LOCAL VERIFIED` | Stage → scan → test hook → approve; rejects missing/tampered digest, traversal, symlinks and oversize; never imports/executes entrypoint; 5/5 focused tests; 175/175 full tests; commit/remote verification pending |
+| P3-02 | Safe import pipeline | Агент | `DONE / REMOTE VERIFIED` | Stage → scan → test hook → approve; rejects missing/tampered digest, traversal, symlinks and oversize; never imports/executes entrypoint; 5/5 focused tests; 175/175 full tests; commit `ca59e18`; remote SHA `ca59e1850282c8ec2c3841a7cda272ed95be2ef5`; repository remains private |
 | P3-03 | Skill rollback | Агент | `TODO` | Failed install leaves prior verified skill intact; audit event recorded |
 | P3-04 | Hermes/DSH metadata translator | Агент | `TODO` | Only declarative metadata; no silent execution/import of foreign presets |
 
