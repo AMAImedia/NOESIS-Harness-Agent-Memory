@@ -83,4 +83,5 @@ __all__.extend(["CodingSuiteSummary", "CodingVerification", "PINNED_TASKS", "Pin
 from .ui_contract import CONTRACT_VERSION, UIContractError, UIEnvelope, failure, health_payload, model_payload, new_request_id, success
 from .health_server import HealthServer
 from .provider_registry import ModelDescriptor, ProviderDescriptor, ProviderRegistry, ProviderRegistryError, SUPPORTED_PROVIDER_KINDS
-__all__.extend(["CONTRACT_VERSION", "UIContractError", "UIEnvelope", "failure", "health_payload", "model_payload", "new_request_id", "success", "HealthServer", "ModelDescriptor", "ProviderDescriptor", "ProviderRegistry", "ProviderRegistryError", "SUPPORTED_PROVIDER_KINDS"])
+from .bridge_discovery import BridgeCandidate, BridgeDiscovery, BridgeStatus
+__all__.extend(["CONTRACT_VERSION", "UIContractError", "UIEnvelope", "failure", "health_payload", "model_payload", "new_request_id", "success", "HealthServer", "ModelDescriptor", "ProviderDescriptor", "ProviderRegistry", "ProviderRegistryError", "SUPPORTED_PROVIDER_KINDS", "BridgeCandidate", "BridgeDiscovery", "BridgeStatus"])

@@ -88,6 +88,45 @@ The provider registry returns model metadata only:
 
 A missing or incompatible provider returns `status=unavailable` with an empty model list and a reason. Provider URLs, API keys and authorization headers are not part of this response schema.
 
+## P0-06 launch examples
+
+From the repository root, run the metadata-only local control plane:
+
+```text
+python examples/run_control_plane.py --host 127.0.0.1 --port 8765
+```
+
+The server listens only on loopback by default. In a second terminal, the following commands are read-only and do not send provider credentials:
+
+**Windows PowerShell**
+
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:8765/health -Method Get | ConvertTo-Json -Depth 10
+Invoke-RestMethod -Uri http://127.0.0.1:8765/models -Method Get | ConvertTo-Json -Depth 10
+```
+
+**Windows `curl.exe`**
+
+```text
+curl.exe http://127.0.0.1:8765/health
+curl.exe http://127.0.0.1:8765/models
+```
+
+**macOS/Linux**
+
+```text
+curl http://127.0.0.1:8765/health
+curl http://127.0.0.1:8765/models
+```
+
+To verify fail-soft behavior with no configured provider models, start with:
+
+```text
+python examples/run_control_plane.py --host 127.0.0.1 --port 8765 --empty-registry
+```
+
+The examples use only declarative demo metadata. They do not start Hermes, DeepSeek, Ollama, LM Studio or any model process.
+
 ## Adapter boundary
 
 Hermes WebUI and DeepSeek Harness are optional child-runtime adapters. The UI contract normalizes their model/profile/session metadata, but it does not merge their private memory implicitly. Tool execution remains in the selected runtime workspace and its location is recorded as capability metadata. Remote runtime access must never be described as local hands.
