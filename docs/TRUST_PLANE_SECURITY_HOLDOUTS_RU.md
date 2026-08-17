@@ -37,3 +37,16 @@
 | Context budget | Текст не превышает `max_chars`; overflow item получает `truncated` | `PASS` |
 
 На Python 3.14.7 Context Firewall focused suite: **6/6 passed**. Полный suite после T-02: **297/297 passed**; `ResourceWarning`: **0**. Digest намеренно покрывает assembled text, а provenance IDs доступны отдельным полем и не подменяются текстовой hash-записью.
+
+
+## Phase 5 T-03 — Resource lineage parent-chain
+
+| Holdout | Ожидаемое поведение | Фактический статус |
+|---|---|---|
+| Parent identity | `parent_observation` должен существовать в той же session; неизвестный или cross-session parent отклоняется | `PASS` |
+| Sensitivity non-downgrade | Derived observation не может объявить меньшую sensitivity, чем parent | `PASS` |
+| Cross-agent derivation | Derived resource сохраняет taint для другого agent в той же session | `PASS` |
+| Scope-confusion egress | Agent не может вывести derived sensitive/restricted resource без explicit approval | `PASS` |
+| Idempotent observation | Повтор одинакового observation не создаёт новую запись и не сохраняет raw content | `PASS` |
+
+Lineage parent references теперь проверяются по event identity; `observations()` возвращает проверяемый `event_id`, а payload не содержит raw content. На Python 3.14.7 focused lineage suite: **5/5 passed**. Полный suite после T-03: **299/299 passed**; `ResourceWarning`: **0**.

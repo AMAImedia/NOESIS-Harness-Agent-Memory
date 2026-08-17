@@ -12,6 +12,7 @@ from .event_store import EventStore
 
 LINEAGE_SCHEMA = "noesis.resource-lineage.v1"
 SENSITIVITIES = frozenset({"public", "internal", "sensitive", "restricted"})
+_SENSITIVITY_LEVEL = {"public": 0, "internal": 1, "sensitive": 2, "restricted": 3}
 
 
 class LineageError(ValueError):
@@ -56,6 +57,13 @@ class ObservationLedger:
             raise LineageError("observation identity is required")
         if observation.sensitivity not in SENSITIVITIES:
             raise LineageError("invalid_sensitivity")
+        if observation.parent_observation:
+            parent = next((row for row in self.observations(observation.session_id) if row.get("event_id") == observation.parent_observation or row.get("observation_id") == observation.parent_observation), None)
+            if parent is None:
+                raise LineageError("parent_observation_not_found_in_session")
+            parent_sensitivity = str(parent.get("sensitivity", "restricted"))
+            if _SENSITIVITY_LEVEL.get(observation.sensitivity, -1) < _SENSITIVITY_LEVEL.get(parent_sensitivity, 99):
+                raise LineageError("parent_sensitivity_downgrade")
         digest = observation.content_digest or self.digest_content(observation.resource_id)
         payload = {"schema_version": LINEAGE_SCHEMA, "session_id": observation.session_id, "agent_id": observation.agent_id, "resource_id": observation.resource_id, "source": observation.source, "sensitivity": observation.sensitivity, "content_digest": digest, "parent_observation": observation.parent_observation, "observed_at": time.time()}
         identity = {key: payload[key] for key in ("session_id", "agent_id", "resource_id", "source", "sensitivity", "content_digest", "parent_observation")}
@@ -67,7 +75,8 @@ class ObservationLedger:
         for event in self.events.iter_events() or ():
             if event.get("type") != "resource_observed":
                 continue
-            payload = event.get("payload") or {}
+            payload = dict(event.get("payload") or {})
+            payload.setdefault("event_id", event.get("event_id"))
             if payload.get("session_id") != session_id:
                 continue
             if agent_id is not None and payload.get("agent_id") != agent_id:

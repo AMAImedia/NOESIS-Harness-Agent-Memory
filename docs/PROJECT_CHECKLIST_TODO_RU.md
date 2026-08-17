@@ -515,3 +515,15 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-91 | Phase 5 firewall regression | `DONE / LOCAL VERIFIED` | Focused tests: **6/6 passed**; full Python 3.14.7 suite: **297/297 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: resource lineage parent-chain и scope-confusion holdouts.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-03
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-92 | Parent identity validation | `DONE / LOCAL VERIFIED` | `parent_observation` должен существовать в той же session; неизвестный/cross-session parent отклоняется |
+| DONE-93 | Sensitivity non-downgrade | `DONE / LOCAL VERIFIED` | Derived observation не может понизить sensitivity parent |
+| DONE-94 | Cross-agent taint propagation | `DONE / LOCAL VERIFIED` | Derived sensitive resource другого agent блокирует egress без explicit approval |
+| DONE-95 | Lineage holdout regression | `DONE / LOCAL VERIFIED` | Focused tests: **5/5 passed**; full Python 3.14.7 suite: **299/299 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: Gatekeeper audit redaction и approval/request scope-confusion holdouts.

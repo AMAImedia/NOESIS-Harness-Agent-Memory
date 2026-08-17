@@ -35,6 +35,23 @@ class ResourceLineageTests(unittest.TestCase):
         with self.assertRaises(LineageError):
             self.ledger.record(Observation("s", "agent-a", "x", "source", "secret"))
 
+    def test_parent_chain_requires_same_session_and_cannot_downgrade(self):
+        parent = self.ledger.record(Observation("s", "agent-a", "vault:row", "vault", "restricted"))
+        child = self.ledger.record(Observation("s", "agent-b", "derived:row", "transform", "restricted", parent_observation=parent))
+        self.assertTrue(child)
+        with self.assertRaises(LineageError):
+            self.ledger.record(Observation("s", "agent-b", "leak:row", "transform", "public", parent_observation=parent))
+        with self.assertRaises(LineageError):
+            self.ledger.record(Observation("other", "agent-b", "derived:row", "transform", "restricted", parent_observation=parent))
+
+    def test_cross_agent_derived_taint_blocks_egress(self):
+        parent = self.ledger.record(Observation("s", "agent-a", "vault:row", "vault", "sensitive"))
+        self.ledger.record(Observation("s", "agent-b", "derived:row", "transform", "sensitive", parent_observation=parent))
+        decision = self.ledger.decide_egress("s", "agent-b", "external:webhook")
+        self.assertFalse(decision.allowed)
+        self.assertEqual(decision.reason, "tainted_by_observed_resource")
+        self.assertIn("derived:row", decision.observed_resources)
+
 
 if __name__ == "__main__":
     unittest.main()
