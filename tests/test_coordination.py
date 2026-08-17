@@ -87,6 +87,14 @@ class TestActions(_Tmp):
         self.assertFalse(A.claim(a, "worker-2"))
         self.assertFalse(A.claim(a, "worker-1"))  # already active
 
+    def test_requeue_requires_current_owner(self):
+        A = Actions(os.path.join(self.dir, "a.db"))
+        aid = A.create("recoverable")
+        self.assertTrue(A.claim(aid, "agent-a"))
+        self.assertFalse(A.requeue(aid, "agent-b"))
+        self.assertTrue(A.requeue(aid, "agent-a"))
+        self.assertTrue(A.claim(aid, "agent-b"))
+
     def test_complete_idempotent(self):
         A = Actions(os.path.join(self.dir, "a.db"))
         a = A.create("task")

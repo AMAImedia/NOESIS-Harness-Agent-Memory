@@ -300,6 +300,14 @@ class Actions:
                 "WHERE id=? AND status='pending'", (agent, aid))
             return cur.rowcount > 0
 
+    def requeue(self, aid: str, agent: str) -> bool:
+        """Return an active action to pending only for its current assignee."""
+        with self._lock, self._conn() as c:
+            cur = c.execute(
+                "UPDATE actions SET status='pending', assigned_to='' "
+                "WHERE id=? AND status='active' AND assigned_to=?", (aid, agent))
+            return cur.rowcount > 0
+
     def counts(self) -> Dict[str, int]:
         with self._conn() as c:
             rows = c.execute("SELECT status, COUNT(*) FROM actions GROUP BY status").fetchall()

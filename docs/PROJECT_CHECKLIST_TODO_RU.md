@@ -644,3 +644,28 @@ Phase 5 закрыт только как локально проверенный
 | Process safety | Во время smoke verification ни один external process не запускался |
 
 Это только control-plane smoke verification с локальными dry-run revisions и не является external A/B evidence.
+
+
+## 2026-08-18 — Safe parallel multi-agent execution
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| MA-01 | Bounded parallel orchestration layer | `DONE / LOCAL VERIFIED` | `noesis_harness/parallel_agent.py`; concurrency cap 1…8, fail-isolated results |
+| MA-02 | Per-agent workspace isolation | `DONE / LOCAL VERIFIED` | Unique child directories, traversal and symlink checks |
+| MA-03 | Capability and approval gate | `DONE / LOCAL VERIFIED` | Safe capability allowlist; credentials/cross-agent/shared-workspace/shell/inline-code deny; writes require approval |
+| MA-04 | Provenance-bearing lane context | `DONE / LOCAL VERIFIED` | `session_id`, `task_id`, `agent_id`, workspace and capabilities are immutable context fields |
+| MA-05 | Focused parallel security tests | `DONE / LOCAL VERIFIED` | `tests/test_parallel_agent.py`: **8/8 passed** on Python 3.14.7; coordination integration **19/19** |
+| MA-06 | OS boundary honesty | `DONE / DOCUMENTED` | `docs/MULTI_AGENT_EXECUTION_SECURITY_RU.md`; scheduler is not an OS sandbox; executable tools/skills remain behind ChildExecutionRuntime |
+
+Full regression после lease integration: **317/317 passed**, `ResourceWarning: 0`. Следующий шаг: интеграция parallel orchestration с durable action/task ledger и recovery coordinator без обхода Trust Plane.
+
+
+## 2026-08-18 — Durable action recovery integration
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| MA-07 | Owner-only action requeue | `DONE / LOCAL VERIFIED` | `Actions.requeue(aid, agent)` возвращает только текущий active owner в pending |
+| MA-08 | Lease-aware parallel execution | `DONE / LOCAL VERIFIED` | Held task получает `blocked` без callback; свободная task выполняется и lease освобождается |
+| MA-09 | Parallel/recovery regression | `DONE / LOCAL VERIFIED` | Focused **20/20 passed**; full Python 3.14.7 suite **318/318 passed**, `ResourceWarning: 0` |
+
+Безопасная граница сохраняется: parallel scheduler не выполняет model-generated code и не заменяет OS sandbox; executable tools/skills идут через ChildExecutionRuntime.

@@ -32,6 +32,7 @@ from .session import extract_session
 from .mcp_stdio import McpServer
 from .context_pack import ContextPack, estimate_tokens
 from .agent_loop import AgentLoop
+from .parallel_agent import AgentLane, AgentLaneContext, AgentLaneResult, ALWAYS_DENIED_CAPABILITIES, ParallelExecutionError, SAFE_CAPABILITIES, SafeParallelExecutor
 
 __all__ = [
     "EventStore", "project_chain",
@@ -49,6 +50,7 @@ __all__ = [
     "ContextVfs", "vfs_uri", "parse_uri",
     "extract_session", "McpServer",
     "ContextPack", "estimate_tokens", "AgentLoop",
+    "AgentLane", "AgentLaneContext", "AgentLaneResult", "ALWAYS_DENIED_CAPABILITIES", "ParallelExecutionError", "SAFE_CAPABILITIES", "SafeParallelExecutor",
 ]
 
 __version__ = "0.5.0"
