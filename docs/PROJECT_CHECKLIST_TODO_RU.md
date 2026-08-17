@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `9471acb` — `feat: add version-pinned DeepSeek Harness boundary`
+Последний подтверждённый remote commit: `e02fbbf` — `feat: add capability-aware model selector`
 
-Текущий рабочий этап: **P2-03 DeepSeek Harness adapter remote verified; следующий gate — P2-04 capability-aware model selector**
+Текущий рабочий этап: **P2-04 capability-aware model selector remote verified; следующий gate — P3 skills/portable bundles или дальнейшая platform hardening**
 
 ## Как мы используем этот документ
 
@@ -113,7 +113,7 @@
 | P2-01 | Provider adapter registry | Агент | `DONE / REMOTE VERIFIED` | Canonical declarative specs for OpenAI-compatible, Ollama, llama.cpp, vLLM, LM Studio plus bridge kinds; capability schema and auth modes; no network calls/credentials; 8/8 focused provider tests; 149/149 full tests; commit `052a0cf`; remote SHA `052a0cfa976c273bde3989e8dcaa622c3c627af2`; repository remains private |
 | P2-02 | Hermes gateway adapter | Агент | `DONE / REMOTE VERIFIED` | Version-pinned declarative adapter; explicit local/remote separation; credential reference only; bounded tool scopes; no network/model execution; 4/4 focused tests; 153/153 full tests; commit `130d51e`; remote SHA `130d51ea80046821f42478d2522385bb3b2180a6`; repository remains private |
 | P2-03 | DeepSeek Harness adapter | Агент | `DONE / REMOTE VERIFIED` | Version-pinned optional bridge/plugin; explicit local/remote separation; credential reference only; canonical plugin capability mapping; degraded/incompatible/unavailable states; 6/6 focused tests; 159/159 full tests; commit `9471acb`; remote SHA `9471acbf77141daa2843e97dac9fde029082a7a3`; repository remains private |
-| P2-04 | Capability-aware model selector | Агент | `DONE / LOCAL VERIFIED` | Deterministic metadata-only selector; preferred-provider tie-break; ready/degraded/incompatible/unavailable states; UI capability badges with invocation disabled; 5/5 focused tests; commit/remote verification pending |
+| P2-04 | Capability-aware model selector | Агент | `DONE / REMOTE VERIFIED` | Deterministic metadata-only selector; preferred-provider tie-break; ready/degraded/incompatible/unavailable states; UI capability badges with invocation disabled; 5/5 focused tests; 164/164 full tests; commit `e02fbbf`; remote SHA `e02fbbf24b2df461136ddb3c28ca9273251c8bcc`; repository remains private |
 
 ### P3 — Skills и portable bundles
 
