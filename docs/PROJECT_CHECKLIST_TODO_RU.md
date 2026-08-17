@@ -155,6 +155,8 @@
 
 ## 5. Release-readiness audit 2026-08-17
 
+Итоговый отчёт: `docs/FINAL_SECURITY_RELIABILITY_PACKAGING_AUDIT_2026-08-17.md`. Локальный RC verified: 234/234 tests, 10/10 contract benchmark cases, AST eval/exec audit clean, local/remote SHA совпадают. Python 3.14 и native Windows/macOS evidence пока заблокированы отсутствием соответствующей среды; hardened OS sandbox и external A/B также не заявляются как готовые.
+
 | Проверка | Результат |
 |---|---:|
 | Local/remote SHA consistency | `PASS`; current remote commit `d3694dd26f4fdc8eacb95428417d8645d12c02a8` |
