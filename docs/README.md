@@ -25,3 +25,4 @@ The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-o
 
 | [`ARXIV_2608_13417_DECISION_MEMO.md`](ARXIV_2608_13417_DECISION_MEMO.md) | Decision memo applying the long-horizon process, experience-reuse and harness-evaluation findings from arXiv:2608.13417. |
 | [`PORTABLE_UI_INTEGRATION_ROADMAP.md`](PORTABLE_UI_INTEGRATION_ROADMAP.md) | Verified plan for an optional Windows/macOS Portable Control Plane, model/provider adapters, safe skill bundles and Hermes/DeepSeek bridge boundaries. |
+| [`PROJECT_CHECKLIST_TODO_RU.md`](PROJECT_CHECKLIST_TODO_RU.md) | Shared Russian checklist/TODO with completed work, active tasks, owners, evidence, user approvals and the next action gate. |
