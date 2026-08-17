@@ -8,7 +8,7 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `2485269` — `docs: add release readiness audit`
+Последний подтверждённый remote commit: `c97e416` — `docs: finalize release readiness checklist`
 
 Текущий рабочий этап: **release-readiness audit remote verified; следующий gate — owner decisions по branch protection, native runners, wrapper и public release**
 
@@ -141,7 +141,7 @@
 
 | Проверка | Результат |
 |---|---:|
-| Local/remote SHA consistency | `PASS`; release audit commit `24852697d39d905daaf1879bcbdfa367d4cd6e86` после final checklist sync |
+| Local/remote SHA consistency | `PASS`; final checklist commit `c97e416192a3edb3813c14ac1ff49feed4a35b44` |
 | Private visibility | `PASS`; repository remains private |
 | Full regression | `200/200 passed` |
 | Recall benchmark | `20/20`, accuracy `1.00` |
