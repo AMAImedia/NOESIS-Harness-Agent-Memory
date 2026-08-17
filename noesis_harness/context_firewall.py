@@ -24,6 +24,7 @@ class ContextDecision:
     redacted_ids: Tuple[str, ...]
     truncated_ids: Tuple[str, ...]
     digest: str
+    included_resource_ids: Tuple[str, ...] = ()
 
 
 class ContextFirewall:
@@ -34,12 +35,14 @@ class ContextFirewall:
             raise ValueError("max_chars must be positive")
         if not set(allowed_sensitivities).issubset(SENSITIVITIES):
             raise ValueError("unknown sensitivity")
+        if not allowed_scopes or any(not isinstance(scope, str) or not scope.strip() for scope in allowed_scopes):
+            raise ValueError("invalid allowed_scopes")
         allowed = set(allowed_sensitivities)
         scopes = set(allowed_scopes)
-        included, redacted, truncated, chunks = [], [], [], []
+        included, redacted, truncated, included_resources, chunks = [], [], [], [], []
         used = 0
         for item in items:
-            if not item.item_id or item.sensitivity not in SENSITIVITIES:
+            if not item.item_id or not item.scope or item.sensitivity not in SENSITIVITIES:
                 raise ValueError("invalid context item")
             if item.sensitivity not in allowed or item.scope not in scopes:
                 if not explicit_approval:
@@ -54,15 +57,17 @@ class ContextFirewall:
             if len(fragment) > remaining:
                 chunks.append(separator + fragment[:remaining])
                 included.append(item.item_id)
+                included_resources.append(item.resource_id)
                 truncated.append(item.item_id)
                 used = max_chars
                 continue
             chunks.append(separator + fragment)
             included.append(item.item_id)
+            included_resources.append(item.resource_id)
             used += len(separator) + len(fragment)
         text = "".join(chunks)
         digest = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-        return ContextDecision(text, tuple(included), tuple(redacted), tuple(truncated), digest)
+        return ContextDecision(text, tuple(included), tuple(redacted), tuple(truncated), digest, tuple(included_resources))
 
 
 __all__ = ["ContextDecision", "ContextFirewall", "ContextItem"]

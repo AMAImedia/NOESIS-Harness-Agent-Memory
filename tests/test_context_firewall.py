@@ -27,6 +27,31 @@ class ContextFirewallTests(unittest.TestCase):
         self.assertIn("a", result.included_ids)
         self.assertIn("b", result.truncated_ids)
 
+    def test_mixed_scope_ordering_redacts_only_blocked_items(self):
+        items = (
+            ContextItem("public-a", "A", "public", resource_id="res-a"),
+            ContextItem("remote-secret", "SECRET", "sensitive", scope="remote", resource_id="res-secret"),
+            ContextItem("public-b", "B", "public", resource_id="res-b"),
+        )
+        result = self.firewall.build(items)
+        self.assertEqual(result.included_ids, ("public-a", "public-b"))
+        self.assertEqual(result.included_resource_ids, ("res-a", "res-b"))
+        self.assertEqual(result.redacted_ids, ("remote-secret",))
+        self.assertEqual(result.digest, self.firewall.build(items).digest)
+        self.assertNotIn("SECRET", result.text)
+
+    def test_explicit_approval_includes_restricted_item_and_preserves_provenance(self):
+        item = ContextItem("restricted", "approved", "restricted", scope="vault", resource_id="vault-7")
+        result = self.firewall.build((item,), allowed_sensitivities=("restricted",), allowed_scopes=("local",), explicit_approval=True)
+        self.assertEqual(result.included_ids, ("restricted",))
+        self.assertEqual(result.included_resource_ids, ("vault-7",))
+
+    def test_invalid_scope_configuration_fails_closed(self):
+        with self.assertRaises(ValueError):
+            self.firewall.build((ContextItem("a", "x", "public"),), allowed_scopes=())
+        with self.assertRaises(ValueError):
+            self.firewall.build((ContextItem("a", "x", "public", scope=""),))
+
 
 if __name__ == "__main__":
     unittest.main()

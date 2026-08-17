@@ -22,3 +22,18 @@
 ## Evidence
 
 На Python 3.14.7 focused child-runtime suite: **9/9 passed**. Полный suite: **294/294 passed**. `ResourceWarning`: **0**. Raw credential-like output не сохраняется в `ExecutionResult`; security decision фиксирует только bounded redacted output и reason code.
+
+
+## Phase 5 T-02 — Context Firewall
+
+| Holdout | Ожидаемое поведение | Фактический статус |
+|---|---|---|
+| Mixed-scope ordering | Разрешённые элементы сохраняют порядок; заблокированные redacted и не сдвигают provenance | `PASS` |
+| Restricted content by default | Без explicit approval restricted/sensitive item не попадает в model context | `PASS` |
+| Explicit approval | Approval позволяет включить явно запрошенный item, но решение остаётся отдельным и проверяемым | `PASS` |
+| Resource provenance | `included_resource_ids` сохраняются в том же порядке, что и included items | `PASS` |
+| Stable redaction digest | Одинаковый разрешённый текст даёт одинаковый `sha256:` digest независимо от повторного вызова | `PASS` |
+| Invalid scope configuration | Пустой `allowed_scopes` или item без scope отклоняются fail-closed | `PASS` |
+| Context budget | Текст не превышает `max_chars`; overflow item получает `truncated` | `PASS` |
+
+На Python 3.14.7 Context Firewall focused suite: **6/6 passed**. Полный suite после T-02: **297/297 passed**; `ResourceWarning`: **0**. Digest намеренно покрывает assembled text, а provenance IDs доступны отдельным полем и не подменяются текстовой hash-записью.

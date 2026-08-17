@@ -502,3 +502,16 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-86 | Phase 5 child-runtime regression | `DONE / LOCAL VERIFIED` | Focused tests: **9/9 passed**; full Python 3.14.7 suite: **294/294 passed**; `ResourceWarning`: **0** |
 
 Trust Plane boundary: child runtime остаётся process boundary, а не заявлением о полном OS sandbox; network без verified sandbox adapter по-прежнему fail-closed.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-02
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-87 | Mixed-scope Context Firewall holdout | `DONE / LOCAL VERIFIED` | Разрешённые items сохраняют порядок; restricted item redacted без explicit approval |
+| DONE-88 | Provenance/resource IDs | `DONE / LOCAL VERIFIED` | `ContextDecision.included_resource_ids` сохраняет resource IDs включённых items в том же порядке |
+| DONE-89 | Stable digest and budget | `DONE / LOCAL VERIFIED` | Повторный assembled text даёт одинаковый SHA-256 digest; `max_chars` не превышается |
+| DONE-90 | Invalid scope fail-closed | `DONE / LOCAL VERIFIED` | Пустой allowed scope и item без scope отклоняются `ValueError` |
+| DONE-91 | Phase 5 firewall regression | `DONE / LOCAL VERIFIED` | Focused tests: **6/6 passed**; full Python 3.14.7 suite: **297/297 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: resource lineage parent-chain и scope-confusion holdouts.
