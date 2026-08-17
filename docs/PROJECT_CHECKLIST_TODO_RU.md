@@ -477,3 +477,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-77 | Phase 4 outcome regression | `DONE / LOCAL VERIFIED` | Focused tests: **12/12 passed**; full Python 3.14.7 suite: **288/288 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Фактический Hermes/OpenCode execution остаётся `not_run` без exact pinned config и explicit approval.
+
+
+## 2026-08-17 — Phase 4 checkpoint A-08 / closeout
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-78 | Local A/B release report | `DONE / LOCAL VERIFIED` | `noesis.local-ab-release.v1` содержит evaluation, provenance, evidence source digests и `external_processes_started=false` |
+| DONE-79 | Hash-linked audit trail | `DONE / LOCAL VERIFIED` | Три audit events с sequence, `prev_hash` и `event_hash`; tampered payload fail-closed |
+| DONE-80 | Report integrity | `DONE / LOCAL VERIFIED` | HMAC signature и `verify_report()` подтверждают целостность report; runtime key не сохраняется |
+| DONE-81 | Phase 4 closeout regression | `DONE / LOCAL VERIFIED` | Focused report tests: **7/7 passed**; full Python 3.14.7 suite: **290/290 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Phase 4 закрыт для локального evidence plumbing. Hermes/OpenCode фактический execution и ranking остаются `not_run` до pinned native/external environments и explicit approval. Следующий master gate — **Phase 5: Trust Plane и security holdouts**.

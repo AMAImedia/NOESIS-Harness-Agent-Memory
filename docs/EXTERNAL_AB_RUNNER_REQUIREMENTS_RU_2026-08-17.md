@@ -64,3 +64,8 @@ Simulated evaluator использует expanded 13-metric schema. Локаль
 ## Structured outcome → evidence
 
 `outcome_to_result()` преобразует только structured adapter outcome в canonical runner result. `execution=started` создаёт observed `task_success`; `denied`, `not_started` и иные неисполненные outcomes создают explicit `status=not_run` и только not_run metrics. Unified evaluator дополнительно требует минимум два accepted signed records со статусом не `not_run` и общим protocol fingerprint; поэтому denied/not_run records никогда не превращаются в external comparison.
+
+
+## Local A/B release report
+
+` scripts/build_local_ab_release_report.py` собирает `noesis.local-ab-release.v1` из fixture lane. Report содержит task-manifest SHA-256, source-result digests каждого evidence, flag `external_processes_started`, unified evaluation, три hash-linked audit events (`fixture_created`, `evidence_ingested`, `evaluation_completed`) и HMAC integrity envelope. `verify_report()` проверяет sequence, previous hash, event hash и подпись. Report является reproducible local plumbing evidence и не заявляет реальный Hermes/OpenCode execution.
