@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence, Tuple
 
+from .user_data import user_data_paths
+
 
 @dataclass(frozen=True)
 class RuntimeStatus:
@@ -37,7 +39,7 @@ class ChildRuntimeSupervisor:
         self,
         command_factory: Callable[[str, int], Sequence[str]],
         *,
-        runtime_dir: str,
+        runtime_dir: Optional[str] = None,
         host: str = "127.0.0.1",
         readiness_path: str = "/health",
         startup_timeout: float = 5.0,
@@ -54,7 +56,7 @@ class ChildRuntimeSupervisor:
         if max_restarts < 0:
             raise ValueError("max_restarts must be non-negative")
         self.command_factory = command_factory
-        self.runtime_dir = Path(runtime_dir).expanduser().resolve()
+        self.runtime_dir = Path(runtime_dir).expanduser().resolve() if runtime_dir else user_data_paths(create=False).runtime
         self.host = host
         self.readiness_path = readiness_path
         self.startup_timeout = float(startup_timeout)
