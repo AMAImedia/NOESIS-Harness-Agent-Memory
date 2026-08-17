@@ -141,7 +141,7 @@
 
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P7-01 | Versioned task/session command API | Агент | `PLANNED` | Task/session envelopes, plan/approve/execute/review/commit/rollback/resume states, idempotency and audit |
+| P7-01 | Versioned task/session command API | Агент | `IMPLEMENTED / LOCAL VERIFIED` | `task_session_api.py`: schema `noesis.task-session.v1`, append-only idempotent commands, state transitions, resume, message redaction; 4 focused tests; 204/204 full tests on local Python 3.12; Python 3.14 verification pending |
 | P7-02 | Interactive chat/streaming contract | Агент | `PLANNED` | Streaming events, reconnect/resume, bounded payloads, cancellation and no-secret guarantees |
 | P8-01 | Provider invocation adapters | Агент | `PLANNED` | Capability-aware model calls, credential references only, approval gates and fail-soft unavailable states |
 | P9-01 | Isolated child execution runtime | Агент | `PLANNED / SECURITY GATE` | Request envelope, argv allowlist, workspace/mount policy, network policy, timeout/output budgets, structured result, kill/recovery and explicit sandbox strength |
@@ -186,6 +186,7 @@
 | 8 | `docs/NOESIS_RUNTIME_STATUS_AND_GAP_ANALYSIS_2026-08-17.md` | Фактическая граница portable control plane, Python policy, Web UI, skills и interactive runtime gaps |
 | 9 | `docs/PYTHON_314_ONLY_MIGRATION_2026-08-17.md` | Python 3.14-only policy, CI/native/package release gates и последствия breaking compatibility change |
 | 10 | `docs/EXTERNAL_AGENT_OS_INTEGRATION_AUDIT_2026-08-17.md` | License/provenance/security audit Cloudflare OS, Cloudflare Sandbox SDK, Hermes, OpenCode и правила интеграции |
+| 11 | `THIRD_PARTY_NOTICES.md` и `docs/third_party_provenance.json` | Обязательные notices, provenance manifest и запрет неаудированного vendoring |
 
 Правило: текущий статус и следующий шаг всегда смотрим в checklist; детали реализации — в профильном документе; факты завершения — в implementation report/audit. Поэтому объединять всё в один гигантский Markdown-файл не нужно.
 

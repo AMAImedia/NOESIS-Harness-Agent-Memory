@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "project": "NOESIS-Harness-Agent-Memory",
+  "policy": "No upstream source is vendored unless license, notices, modifications, dependency tree, and security review are recorded.",
+  "upstreams": [
+    {
+      "name": "cloudflare-os",
+      "source": "https://github.com/cloudflare/cloudflare-os",
+      "license": "Apache-2.0",
+      "status": "reference_only",
+      "planned_adoption": ["capability_gatekeepers", "delayed_approval_simulation", "workspace_isolation"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "cloudflare-sandbox-sdk",
+      "source": "https://github.com/cloudflare/sandbox-sdk",
+      "license": "Apache-2.0",
+      "license_file": "https://github.com/cloudflare/sandbox-sdk/blob/main/packages/sandbox/LICENSE",
+      "status": "optional_adapter_candidate",
+      "planned_adoption": ["remote_container_execution", "streaming_process_api", "workspace_files"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "hermes-agent",
+      "source": "https://github.com/NousResearch/hermes-agent",
+      "license": "MIT",
+      "status": "reference_and_benchmark",
+      "planned_adoption": ["session_search", "skills_surface", "gateway_interop", "parallel_delegates"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "opencode",
+      "source": "https://github.com/anomalyco/opencode",
+      "license": "MIT",
+      "status": "reference_and_benchmark",
+      "planned_adoption": ["plan_build_modes", "diff_review", "undo_redo", "terminal_desktop_surface", "subagents"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "claude-code",
+      "source": "https://code.claude.com/docs/en/overview",
+      "license": "proprietary_product",
+      "status": "black_box_benchmark_only",
+      "planned_adoption": ["user_experience_comparison", "task_benchmark_reference"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": false
+    }
+  ]
+}
