@@ -47,3 +47,8 @@ Simulated evaluator использует expanded 13-metric schema. Локаль
 ## Reproducible local signed fixture lane
 
 ` scripts/run_local_signed_ab_fixture.py` выполняет только plumbing lane: создаёт deterministic task-manifest, два synthetic pinned specs (`hermes` и `opencode`), подписывает их, прогоняет ingestion и unified evaluator и сохраняет `noesis.local-signed-ab-fixture.v1`. В lane не запускаются внешние процессы, модели, shell commands или пользовательские credentials. Comparable result в этом lane доказывает корректность ingestion/evaluation pipeline, но не качество Hermes/OpenCode и не внешний A/B ranking.
+
+
+## Connector-neutral execution adapter
+
+` scripts/pinned_runner_adapter.py` является единственным optional execution boundary для pinned external runners. По умолчанию выполнение запрещено; требуется явный `approval=True`. Команда передаётся только как argv-массив с `shell=False`, workspace должен существовать и иметь policy `disposable/deny/credentials=absent`, environment ограничивается `PATH` и `NOESIS_EXTERNAL_RUNNER`, timeout возвращается как структурированный failed outcome. Adapter redacts credential-like output и не исполняет model-generated code в core control plane.
