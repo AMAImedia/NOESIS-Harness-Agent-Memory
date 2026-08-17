@@ -30,3 +30,9 @@ The Web UI and terminal client expose the same versioned session API. Provider i
 ## Release disposition
 
 This is a **private release candidate for local contract verification**, not a final native desktop release and not evidence that NOESIS is the world's best agent system. The next owner gates are: provide a Python 3.14 environment, provide native Windows/macOS runners or bind a real desktop folder, complete hardened sandbox review, run external benchmark lanes, and explicitly approve any repository governance or visibility change.
+
+## Competitive strategy re-audit addendum
+
+Local verification completed: 240/240 regression tests passed; contract benchmark 10/10 passed; documentation security audit reported 0 high and 0 medium findings; AST eval/exec audit remained clean; native build orchestrator correctly fails closed on Linux/CPython 3.12.3 for Windows/macOS Python 3.14 targets.
+
+GitHub remote verification is currently blocked by authentication infrastructure, not by repository code. `gh auth status` reports both the active `GH_TOKEN` and stored AMAImedia token as invalid; GitHub REST returns HTTP 401 Bad credentials and git push/ls-remote returns authentication failure. No credential was written into the repository, no visibility/settings change was attempted, and no claim of remote synchronization is made until the owner re-authenticates the GitHub connector/CLI.

@@ -242,3 +242,13 @@ External sources: Cloudflare OS blog, Cloudflare Sandbox security model, Cloudfl
 | UI telemetry | `IMPLEMENTED / LOCAL VERIFIED` | Provider health, policy/lineage, runtime telemetry and audit timeline sections are present in the Cloudflare-style operator console |
 
 Latest uncommitted gateway checkpoint is not release-ready until local/remote SHA are synchronized again.
+
+### Competitive benchmark / native packaging / remote status
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Local benchmark | `PASS` | `docs/COMPETITIVE_BENCHMARK_RESULT_2026-08-17.md`; 10/10 contract cases, 240/240 full tests |
+| External Hermes/OpenCode A/B | `NOT RUN` | Protocol prepared, but no external process substituted or simulated |
+| Native packaging | `SCAFFOLD READY / NATIVE BLOCKED` | `scripts/build_native.py`, `packaging/noesis_portable.spec`, `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`; Linux/3.12 fails closed for Windows/macOS/3.14 |
+| Docs security | `PASS` | 0 high, 0 medium fenced-code findings |
+| GitHub remote | `AUTH BLOCKED` | `gh auth status` and REST return invalid credentials / HTTP 401; local work may continue, remote publish waits for connector/CLI re-authentication |
