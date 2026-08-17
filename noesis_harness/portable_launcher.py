@@ -36,7 +36,7 @@ class PortableLayout:
         return self
 
 
-def resolve_layout(install_root: str, data_root: Optional[str] = None, env: Optional[Mapping[str, str]] = None) -> PortableLayout:
+def resolve_layout(install_root: str, data_root: Optional[str] = None, env: Optional[Mapping[str, str]] = None, platform: Optional[str] = None, home: Optional[str] = None) -> PortableLayout:
     install = Path(install_root).expanduser().resolve()
     if not install.is_dir() and install.exists():
         raise PortableLaunchError("install_root must be a directory")
@@ -44,6 +44,8 @@ def resolve_layout(install_root: str, data_root: Optional[str] = None, env: Opti
     selected = data_root or environment.get("NOESIS_HOME")
     if selected:
         data = Path(selected).expanduser().resolve()
+    elif platform in {"darwin", "win32"}:
+        data = user_data_paths(env=environment, platform=platform, home=home, create=False).root
     else:
         data = install / "data"
     if data == install or install in data.parents:
