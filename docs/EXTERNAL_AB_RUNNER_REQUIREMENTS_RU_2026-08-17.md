@@ -52,3 +52,10 @@ Simulated evaluator использует expanded 13-metric schema. Локаль
 ## Connector-neutral execution adapter
 
 ` scripts/pinned_runner_adapter.py` является единственным optional execution boundary для pinned external runners. По умолчанию выполнение запрещено; требуется явный `approval=True`. Команда передаётся только как argv-массив с `shell=False`, workspace должен существовать и иметь policy `disposable/deny/credentials=absent`, environment ограничивается `PATH` и `NOESIS_EXTERNAL_RUNNER`, timeout возвращается как структурированный failed outcome. Adapter redacts credential-like output и не исполняет model-generated code в core control plane.
+
+
+## Operator runbook bridge
+
+` scripts/run_external_lane.py` связывает pinned spec с adapter и evidence pipeline в безопасном режиме. Без `--execute` создаётся только plan с `execution=not_started`; `--execute` без `--approve` возвращает `denied/not_run`. Только `--execute --approve` может начать процесс, после чего результат фиксируется как structured `started` outcome с status, return code, timeout и redacted output.
+
+Для Hermes/OpenCode оператор сначала должен получить exact revision, model/provider, task-manifest SHA-256, protocol fingerprint и disposable workspace, затем выполнить dry-run и проверить plan. Нельзя подставлять shell string, shared workspace, credentials или неподтверждённый executable. Публикация evidence выполняется отдельным ingestion/signing шагом.

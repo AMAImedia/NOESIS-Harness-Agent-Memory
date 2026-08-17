@@ -453,3 +453,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-69 | Phase 4 adapter regression | `DONE / LOCAL VERIFIED` | Focused tests: **13/13 passed**; full Python 3.14.7 suite: **283/283 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Adapter не запускается без явного approval и не превращает отсутствие Hermes/OpenCode configuration в `not_run`-подмену.
+
+
+## 2026-08-17 — Phase 4 checkpoint A-06
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-70 | Dry-run operator bridge | `DONE / LOCAL VERIFIED` | `scripts/run_external_lane.py` создаёт plan `execution=not_started` без запуска процесса |
+| DONE-71 | Approval bridge | `DONE / LOCAL VERIFIED` | `--execute` без `--approve` возвращает `denied/not_run`; запуск возможен только при явном approval |
+| DONE-72 | Structured external outcome | `DONE / LOCAL VERIFIED` | Approved controlled fixture возвращает `started`, status, return code, timeout и redacted output |
+| DONE-73 | Phase 4 lane regression | `DONE / LOCAL VERIFIED` | Focused tests: **12/12 passed**; full Python 3.14.7 suite: **286/286 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Hermes/OpenCode остаются `not_run`, пока оператор не предоставит exact pinned configuration и явно не подтвердит execution.

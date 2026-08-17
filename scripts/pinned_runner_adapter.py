@@ -35,12 +35,10 @@ def _redact(value: str) -> str:
     return _SECRET.sub(r"\1=[REDACTED]", value)
 
 
-def prepare(spec: Mapping[str, object], workspace: str, approval: bool = False) -> tuple[list[str], Path, dict[str, str]]:
+def _validate_spec(spec: Mapping[str, object], workspace: str) -> tuple[list[str], Path, dict[str, str]]:
     missing = [field for field in REQUIRED_FIELDS if field not in spec]
     if missing:
         raise RunnerConfigurationError("missing spec fields: " + ",".join(missing))
-    if not approval:
-        raise RunnerExecutionDenied("explicit runner approval is required")
     root = Path(workspace).expanduser().resolve()
     if not root.is_dir():
         raise RunnerConfigurationError("disposable workspace must already exist")
@@ -54,6 +52,17 @@ def prepare(spec: Mapping[str, object], workspace: str, approval: bool = False) 
     return list(argv), root, environment
 
 
+def validate(spec: Mapping[str, object], workspace: str) -> tuple[list[str], Path, dict[str, str]]:
+    """Validate a runner plan without granting execution approval."""
+    return _validate_spec(spec, workspace)
+
+
+def prepare(spec: Mapping[str, object], workspace: str, approval: bool = False) -> tuple[list[str], Path, dict[str, str]]:
+    if not approval:
+        raise RunnerExecutionDenied("explicit runner approval is required")
+    return _validate_spec(spec, workspace)
+
+
 def execute(spec: Mapping[str, object], workspace: str, approval: bool = False, timeout: float = 120.0) -> RunnerOutcome:
     argv, root, environment = prepare(spec, workspace, approval)
     try:
@@ -63,4 +72,4 @@ def execute(spec: Mapping[str, object], workspace: str, approval: bool = False, 
     return RunnerOutcome("passed" if completed.returncode == 0 else "failed", completed.returncode, _redact(completed.stdout), _redact(completed.stderr), False)
 
 
-__all__ = ["RunnerConfigurationError", "RunnerExecutionDenied", "RunnerOutcome", "execute", "prepare"]
+__all__ = ["RunnerConfigurationError", "RunnerExecutionDenied", "RunnerOutcome", "execute", "prepare", "validate"]
