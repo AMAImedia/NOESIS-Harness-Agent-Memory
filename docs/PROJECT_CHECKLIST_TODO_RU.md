@@ -167,6 +167,7 @@
 | `docs/UI_CONTRACT_V1.md` | Точная versioned схема envelope, `/health`, `/models`, errors и redaction |
 | 5 | `docs/ARCHITECTURE_1.0_NEXTGEN.md` и `docs/EVALUATION_PROTOCOL.md` | Детали архитектуры и измерений |
 | 6 | `docs/IMPLEMENTATION_REPORT_2026-08.md` и `docs/RELEASE_READINESS_AUDIT_2026-08.md` | Фактические результаты, commits, tests и release gates |
+| 7 | `docs/GITHUB_FREE_PRIVATE_LIMITS_AND_NEXT_TASKS_2026-08-17.md` | Ограничения GitHub Free/private и порядок задач, не зависящих от платных функций |
 
 Правило: текущий статус и следующий шаг всегда смотрим в checklist; детали реализации — в профильном документе; факты завершения — в implementation report/audit. Поэтому объединять всё в один гигантский Markdown-файл не нужно.
 
@@ -184,9 +185,9 @@
 
 ## 6. Ближайший action gate
 
-**Следующее действие агента:** после owner confirmation проверить имена check-runs на одном pull request и только затем подготовить команду/изменение для P6-01; branch protection пока не включать.
+**Следующее действие агента:** продолжить доступное без оплаты continuous hardening: расширить security holdout и cross-agent leakage corpus, добавить локальные Windows/macOS verification scripts и подготовить компактный release manifest с SHA-256; P6-01 остаётся platform blocked.
 
-**Следующее действие владельца:** подтвердить required reviews/checks для P6-01: минимум один approving review, dismiss stale approvals, conversation resolution, четыре Python test checks, lint и build; отдельно указать, требуются ли signed commits и up-to-date branches.
+**Следующее действие владельца:** при желании выбрать порядок из доступных задач; отдельно решить, нужен ли будущий upgrade/organization plan для branch protection. До этого никаких public visibility или billing changes не требуется.
 
 ## 7. Правило обновления
 
