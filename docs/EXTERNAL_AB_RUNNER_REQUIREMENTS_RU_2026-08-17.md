@@ -30,3 +30,10 @@ External execution cannot be claimed from documentation alone. Hermes/OpenCode m
 ` scripts/external_runner_contract.py` формирует `noesis.external-runner.v1`: команда хранится как argv-массив, а не shell string; фиксируются exact revision, SHA-256 task manifest, model/provider, disposable workspace, deny outside access и отсутствие credentials. Contract builder только создаёт spec и не запускает Hermes/OpenCode. Validator принимает только `passed`, `failed`, `unsupported` или `not_run` и fail-closed отклоняет shared workspace или shell-string command.
 
 Simulated evaluator использует expanded 13-metric schema. Локальная contract lane может наблюдать только deterministic contract metrics; patch correctness, context retention, provider cost, egress, credential exposure, approval bypass, workspace escape, kill/timeout recovery и operator burden остаются `not_run`, пока не появится pinned external runner.
+
+
+## Evidence ingestion и подпись
+
+` scripts/ingest_runner_result.py` принимает только result, совпадающий с pinned runner spec по system, revision, task-manifest SHA-256, argv и disposable workspace. Metric status ограничен `passed`, `failed`, `unsupported`, `not_run`; credential-like content, shared workspace и identity mismatch отклоняются.
+
+Принятый evidence record имеет schema `noesis.runner-evidence.v1` и HMAC-SHA256 integrity envelope. Ключ передаётся только во время запуска и не попадает в JSON. Это operator integrity/authenticity mechanism, а не замена публичной release-подписи; для внешней публикации дополнительно потребуются защищённое хранение ключа, provenance и platform signing.

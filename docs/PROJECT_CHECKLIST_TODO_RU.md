@@ -405,3 +405,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-53 | Python 3.14 test fixture lifecycle hygiene | `DONE / LOCAL VERIFIED` | `tests/test_fibers.py` больше не полагается на SQLite context manager как на close; explicit `db.close()` устраняет allocation-traced warnings |
 
 Синхронный runner policy: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Hermes/OpenCode реальные execution lanes остаются `not_run` до pinned revisions/native runners; текущий report не выдаёт ranking.
+
+
+## 2026-08-17 — Phase 4 checkpoint A-02
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-54 | Runner-result ingestion | `DONE / LOCAL VERIFIED` | `scripts/ingest_runner_result.py` проверяет spec/result identity: system, revision, task-manifest SHA-256, argv и workspace |
+| DONE-55 | Signed evidence manifest | `DONE / LOCAL VERIFIED` | Создаётся `noesis.runner-evidence.v1` с HMAC-SHA256; runtime key не сохраняется в JSON; `verify_evidence()` ловит tampering |
+| DONE-56 | Evidence security gates | `DONE / LOCAL VERIFIED` | Credential-like content, shared workspace, invalid metric status и identity mismatch fail-closed; `not_run` остаётся валидным явным статусом |
+| DONE-57 | Phase 4 evidence regression | `DONE / LOCAL VERIFIED` | Focused tests: **8/8 passed**; full Python 3.14.7 suite: **274/274 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. HMAC envelope является operator integrity mechanism и не заявляется как публичная release signature. Hermes/OpenCode фактические evidence records всё ещё `not_run` до pinned execution.
