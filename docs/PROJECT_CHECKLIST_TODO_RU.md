@@ -8,7 +8,7 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `c97e416` — `docs: finalize release readiness checklist`
+Последний подтверждённый remote commit: `66eb5be` — `docs: record desktop wrapper decision memo`
 
 Текущий рабочий этап: **release-readiness audit remote verified; P4-03 decision memo ready; следующий gate — owner decisions по branch protection, native runners, wrapper и public release**
 
