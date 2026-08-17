@@ -102,7 +102,7 @@
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
 | P1-01 | Минимальный browser UI: health, models, sessions | Агент | `DONE / REMOTE VERIFIED` | `/` и `/ui` self-contained HTML; health/models fetch; sessions panel read-only; 2/2 focused tests; CSP/no-store/no-secret assertions; commit `573ba90`; remote SHA `573ba909df7d9b0d8b1cd7d2c2b2805b1885da99`; repository remains private |
-| P1-02 | Child-runtime supervisor | Агент | `TODO` | Random loopback port, readiness check, log path, clean stop, crash recovery |
+| P1-02 | Child-runtime supervisor | Агент | `DONE / LOCAL VERIFIED` | `runtime_supervisor.py`: random loopback port, readiness GET, per-runtime append log, clean stop, bounded crash recovery; 3/3 focused Windows tests; no model-generated code execution; commit/remote verification pending |
 | P1-03 | User-data separation | Агент | `TODO` | Runtime files отделены от `%LOCALAPPDATA%\\NOESIS`, `~/Library/Application Support/NOESIS` и `NOESIS_HOME` |
 | P1-04 | Auth и LAN warning | Агент | `TODO` | Loopback default, token for non-loopback, explicit warning and negative tests |
 
