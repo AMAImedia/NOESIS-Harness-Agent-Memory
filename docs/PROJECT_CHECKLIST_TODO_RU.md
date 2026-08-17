@@ -122,7 +122,7 @@
 | P3-01 | `.noesisskill` manifest format | Агент | `DONE / REMOTE VERIFIED` | Strict format v1.0 with ID/version/digest/capabilities/platforms/provenance; canonical JSON; traversal/symlink/secret-key rejection; 6 tests passed, symlink case skipped only when Windows cannot create symlink; remote SHA `d7844be5cf41653ceef08e5414ba5282d9d78bde`; repository remains private |
 | P3-02 | Safe import pipeline | Агент | `DONE / REMOTE VERIFIED` | Stage → scan → test hook → approve; rejects missing/tampered digest, traversal, symlinks and oversize; never imports/executes entrypoint; 5/5 focused tests; 175/175 full tests; commit `ca59e18`; remote SHA `ca59e1850282c8ec2c3841a7cda272ed95be2ef5`; repository remains private |
 | P3-03 | Skill rollback | Агент | `DONE / REMOTE VERIFIED` | Transactional versioned install/upgrade; failed approval/install leaves active verified version unchanged; rollback selects previous verified version; append-only audit JSONL; 3/3 focused tests; 178/178 full tests; commit `f103503`; remote SHA `f1035035ccfe1fbcb96c7691885f6d796766c428`; repository remains private |
-| P3-04 | Hermes/DSH metadata translator | Агент | `TODO` | Only declarative metadata; no silent execution/import of foreign presets |
+| P3-04 | Hermes/DSH metadata translator | Агент | `DONE / LOCAL VERIFIED` | Whitelist-only declarative translation for Hermes/DeepSeek; config re-validation; dropped-field reporting; rejects presets/commands/system prompts/secrets/unsafe scopes; 5/5 focused tests; commit/remote verification pending |
 
 ### P4–P6 — Desktop, bridges и release
 
