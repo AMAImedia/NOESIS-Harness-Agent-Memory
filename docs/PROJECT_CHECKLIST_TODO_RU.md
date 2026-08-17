@@ -380,3 +380,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-44 | Native evidence regression | `DONE / LOCAL VERIFIED` | Focused native/packaging tests: **6/6 passed**; full Python 3.14.7 suite: **265/265 passed**; `ResourceWarning`: **0** |
 
 Синхронный runbook: `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`; синхронные manifests: `packaging/windows_manifest.json`, `packaging/macos_manifest.json`. Следующий Phase 3 gate — native CI/runbook smoke contract и artifact evidence schema audit; фактические Windows/macOS builds остаются `not_run` до target hosts.
+
+
+## 2026-08-17 — Phase 3 packaging checkpoint P-03
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-45 | Static native packaging contract auditor | `DONE / LOCAL VERIFIED` | `scripts/verify_packaging_contract.py` проверяет Windows/macOS manifests, Python 3.14-only policy, verifier/SHA-256/SBOM/signature gates |
+| DONE-46 | CI packaging-contract smoke job | `DONE / LOCAL VERIFIED` | `.github/workflows/ci.yml` добавлен job на Python 3.14: manifest audit, source artifact SBOM build и expected Linux native mismatch assertion |
+| DONE-47 | Artifact evidence schema audit | `DONE / LOCAL VERIFIED` | Contract report: оба manifests `passed`, `native_builds_executed=false`, schema `noesis.packaging-contract.v1` |
+| DONE-48 | Phase 3 contract regression | `DONE / LOCAL VERIFIED` | Focused packaging contract tests: **7/7 passed**; full Python 3.14.7 suite: **266/266 passed**; `ResourceWarning`: **0** |
+
+Синхронный runbook: `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`. Phase 3 native target-host evidence всё ещё `not_run`; CI contract не подменяет реальный Windows/macOS build, signing или notarization.

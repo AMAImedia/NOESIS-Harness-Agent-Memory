@@ -45,3 +45,8 @@ Focused verification: `tests.test_packaging_artifact`; полный suite дол
 После target-host сборки запускается `scripts/verify_native_artifact.py`. Для Windows он проверяет Python 3.14, Windows host, `.exe` shape, SHA-256 и Authenticode через `signtool`; для macOS — Python 3.14, macOS host, `.app` bundle, SHA-256, `codesign --verify --deep --strict` и `spctl` assessment. Скрипт не запускает приложение и не подменяет native build.
 
 Статусы имеют строгое значение: `verified` означает выполненные release signing gates; `development_unsigned` разрешён только для локальной разработки с явным флагом; `not_run` означает отсутствие target host, инструмента подписи или runner evidence. Linux execution с `--target windows` или `--target macos` обязан завершаться `target_host_or_python_mismatch`.
+
+
+## CI packaging-contract smoke
+
+CI job `packaging-contract` выполняется на Python 3.14 и проверяет оба static native manifest, строит source-portable ZIP с SHA-256/SBOM, затем намеренно запускает Windows native verifier на Linux и требует `exit 2` с причиной `target_host_or_python_mismatch`. Это проверяет honesty boundary и artifact evidence schema, но не является Windows/macOS native build evidence.

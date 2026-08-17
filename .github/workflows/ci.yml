@@ -84,6 +84,36 @@ jobs:
           name: dist
           path: dist/*
 
+  packaging-contract:
+    name: Packaging Contract (Python 3.14)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Audit static native contracts
+        run: |
+          python scripts/verify_packaging_contract.py --output /tmp/packaging-contract.json
+
+      - name: Build source-portable artifact with SHA-256 manifest and SPDX SBOM
+        run: |
+          python scripts/build_portable_artifact.py --root . --output /tmp/noesis-portable.zip
+
+      - name: Verify Linux never claims Windows native evidence
+        run: |
+          set +e
+          python scripts/verify_native_artifact.py --target windows --artifact /tmp/noesis-portable.zip --output /tmp/native-evidence.json
+          code=$?
+          set -e
+          test "$code" -eq 2
+          grep -q 'target_host_or_python_mismatch' /tmp/native-evidence.json
+
   lint:
     name: Lint (pyflakes)
     runs-on: ubuntu-latest
