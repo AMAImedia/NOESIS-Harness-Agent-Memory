@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `27bb5d6` — `feat: add declarative bridge metadata translator`
+Последний подтверждённый remote commit: `75fcd87` — `feat: add stdlib portable launcher boundary`
 
-Текущий рабочий этап: **P3-04 Hermes/DeepSeek metadata translator remote verified; следующий gate — P4 desktop portability/platform hardening**
+Текущий рабочий этап: **P4-01 Windows portable launch boundary remote verified; следующий gate — P4-02 macOS arm64 portability**
 
 ## Как мы используем этот документ
 
@@ -128,7 +128,7 @@
 
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P4-01 | Windows x64 portable artifact | Агент | `DONE / LOCAL VERIFIED` | Stdlib-only portable launcher; separate install/data roots; explicit NOESIS_HOME override; loopback startup probe; data sentinel survives clean stop; external bind rejected; 4/4 focused tests; commit/remote verification pending |
+| P4-01 | Windows x64 portable artifact | Агент | `DONE / REMOTE VERIFIED` | Stdlib-only portable launcher; separate install/data roots; explicit NOESIS_HOME override; loopback startup probe; data sentinel survives clean stop; external bind rejected; 4/4 focused tests; 187/187 full tests; commit `75fcd87`; remote SHA `75fcd8729eb0d5e3fe75eb2176bd50a83cb4db2a`; repository remains private |
 | P4-02 | macOS arm64 portable artifact | Агент | `TODO` | Launch, loopback, data preservation and clean shutdown smoke test on macOS runner |
 | P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `WAITING FOR USER` | Choose wrapper only after P0–P3 prove the contract; no premature framework lock-in |
 | P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `TODO` | Optional adapters use the versioned UI contract; Hermes and DeepSeek runtime remain child processes; local loopback, auth, model capability mapping, scope mapping and unavailable paths tested |
