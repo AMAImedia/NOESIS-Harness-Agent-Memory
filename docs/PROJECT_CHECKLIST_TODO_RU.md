@@ -539,3 +539,16 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-99 | Phase 5 Gatekeeper regression | `DONE / LOCAL VERIFIED` | Focused tests: **7/7 passed**; full Python 3.14.7 suite: **301/301 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: security corpus expansion и cross-component approval-bypass holdouts.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-05
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-100 | Security corpus expansion | `DONE / LOCAL VERIFIED` | Добавлены shell injection, path traversal и environment-secret holdouts; corpus расширен до **21 case** |
+| DONE-101 | Gatekeeper cross-component scanner | `DONE / LOCAL VERIFIED` | Action/target сканируются до approval; findings возвращают `security_policy_denied` |
+| DONE-102 | Safe argument handling | `DONE / LOCAL VERIFIED` | Arguments проходят redaction перед scanner serialization; credential values не блокируют безопасную audit redaction и не сохраняются |
+| DONE-103 | Approval-bypass regression | `DONE / LOCAL VERIFIED` | Shell/path/env holdouts не достигают approval/commit transition |
+| DONE-104 | Phase 5 security corpus regression | `DONE / LOCAL VERIFIED` | Focused tests: **11/11 passed**; full Python 3.14.7 suite: **302/302 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: cross-component end-to-end policy matrix для ContextFirewall → Gatekeeper → ChildExecutionRuntime.

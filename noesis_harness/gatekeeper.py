@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
 from .event_store import EventStore
+from .security import SecurityScanner
 
 GATE_SCHEMA = "noesis.gatekeeper.v1"
 CAPABILITIES = frozenset({
@@ -69,8 +70,9 @@ class GateDecision:
 class Gatekeeper:
     """Durable prepare/approve/reject/commit gate with no embedded executor."""
 
-    def __init__(self, event_path: str):
+    def __init__(self, event_path: str, *, scanner: Optional[SecurityScanner] = None):
         self.events = EventStore(event_path)
+        self.scanner = scanner or SecurityScanner()
 
     @staticmethod
     def _safe(value: Any) -> Any:
@@ -116,6 +118,10 @@ class Gatekeeper:
             raise GatekeeperError("invalid_side_effect")
         if request.capability == "network.write" and request.side_effect != "external":
             raise GatekeeperError("network.write_requires_external_side_effect")
+        security_text = json.dumps({"action": request.action, "target": request.target, "arguments": self._safe(request.arguments)}, ensure_ascii=False, default=str)
+        findings = self.scanner.scan(security_text)
+        if findings:
+            raise GatekeeperError("security_policy_denied:" + ",".join(sorted({finding.rule for finding in findings})))
         rid = request.normalized_id()
         existing = self._state().get(rid)
         if existing:

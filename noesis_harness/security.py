@@ -33,6 +33,9 @@ class SecurityScanner:
         ("capability_bypass", "high", re.compile(r"(?i)(?:bypass|disable|skip)\s+(?:the\s+)?(?:capability|approval|permission|security)")),
         ("cross_agent_scope_request", "high", re.compile(r"(?i)(?:read|copy|share|expose).{0,60}(?:another|other|all)\s+agent(?:'s|s)?\s+(?:memory|scope|secrets?)")),
         ("shell_secret_access", "high", re.compile(r"(?i)(?:cat|type|grep|find|read).{0,80}(?:\.env|id_rsa|credentials|secret)")),
+        ("shell_command_injection", "high", re.compile(r"(?i)(?:;\s*(?:curl|wget|rm|cat)|\|\|?\s*(?:sh|bash)|\$\([^)]*\)|`[^`]+`)")),
+        ("path_traversal", "high", re.compile(r"(?i)(?:\.\.[\\/]|/etc/passwd|~/.ssh[\\/])")),
+        ("environment_secret_access", "high", re.compile(r"(?i)\b(?:printenv|env|os\.environ(?:\.get)?)\b.{0,40}(?:token|secret|key|password)")),
     )
 
     def scan(self, text: str) -> List[SecurityFinding]:

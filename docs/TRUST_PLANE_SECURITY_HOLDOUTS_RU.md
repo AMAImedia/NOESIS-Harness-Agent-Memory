@@ -64,3 +64,17 @@ Lineage parent references теперь проверяются по event identit
 | Approval boundary | `commit` остаётся permission-only и не выполняет side effect | `PASS` |
 
 На Python 3.14.7 Gatekeeper focused suite: **7/7 passed**. Полный suite после T-04: **301/301 passed**; `ResourceWarning`: **0**. Audit redaction не является доказательством удаления секретов из внешних систем: policy гарантирует, что Gatekeeper не пишет их в собственный event log.
+
+
+## Phase 5 T-05 — Security corpus и cross-component approval bypass
+
+| Holdout | Ожидаемое поведение | Фактический статус |
+|---|---|---|
+| Shell command injection | Pipeline/command substitution patterns блокируются scanner и Gatekeeper до approval | `PASS` |
+| Path traversal | `../`, `/etc/passwd` и `~/.ssh/` patterns блокируются до approval | `PASS` |
+| Environment secret access | `printenv`, `env` и `os.environ.get(API_TOKEN)` блокируются; underscore names покрыты | `PASS` |
+| Approval bypass | Security findings из action/target отклоняются до `waiting_approval`; approval не может превратить holdout в committed request | `PASS` |
+| Safe argument redaction | Credential-like argument values redacted перед scanner serialization и не попадают в audit log | `PASS` |
+| Corpus stability | Все 21 default holdout cases проходят с pass rate 1.0 | `PASS` |
+
+На Python 3.14.7 security corpus + Gatekeeper focused suite: **11/11 passed**. Полный suite после T-05: **302/302 passed**; `ResourceWarning`: **0**. SecurityScanner остаётся detector/policy layer; он не выполняет найденные команды и не заменяет OS sandbox.
