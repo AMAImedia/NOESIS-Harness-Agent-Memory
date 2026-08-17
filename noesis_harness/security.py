@@ -29,6 +29,10 @@ class SecurityScanner:
         ("private_key", "critical", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
         ("invisible_unicode", "high", re.compile(r"[\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]")),
         ("dangerous_eval", "high", re.compile(r"(?i)\b(eval|exec)\s*\(")),
+        ("unsafe_deserialization", "high", re.compile(r"(?i)\b(?:pickle\.loads|yaml\.load|marshal\.loads)\s*\(")),
+        ("capability_bypass", "high", re.compile(r"(?i)(?:bypass|disable|skip)\s+(?:the\s+)?(?:capability|approval|permission|security)")),
+        ("cross_agent_scope_request", "high", re.compile(r"(?i)(?:read|copy|share|expose).{0,60}(?:another|other|all)\s+agent(?:'s|s)?\s+(?:memory|scope|secrets?)")),
+        ("shell_secret_access", "high", re.compile(r"(?i)(?:cat|type|grep|find|read).{0,80}(?:\.env|id_rsa|credentials|secret)")),
     )
 
     def scan(self, text: str) -> List[SecurityFinding]:

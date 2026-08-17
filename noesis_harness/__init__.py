@@ -71,3 +71,9 @@ __all__.extend(["ContextAssembly", "ContextItem", "BudgetedContextAssembler"])
 from .best_state import BestStateStore, CandidateDecision, DecisionStatus, RecoveryResult, RecoveryStatus, StateRecord
 from .recovery import DurableRecoveryReport, RecoveryCoordinator
 __all__.extend(["BestStateStore", "CandidateDecision", "DecisionStatus", "RecoveryResult", "RecoveryStatus", "StateRecord", "DurableRecoveryReport", "RecoveryCoordinator"])
+from .trajectory_eval import TrajectoryCheckpoint, TrajectoryEvaluator, TrajectoryMetrics, peak_retention
+__all__.extend(["TrajectoryCheckpoint", "TrajectoryEvaluator", "TrajectoryMetrics", "peak_retention"])
+from .memory_ab import ControlledMemoryEvaluator, MemoryABCase, MemoryABOutcome
+__all__.extend(["ControlledMemoryEvaluator", "MemoryABCase", "MemoryABOutcome"])
+from .security_holdouts import DEFAULT_HOLDOUTS, SecurityHoldoutCase, SecurityHoldoutResult, SecurityHoldoutSuite
+__all__.extend(["DEFAULT_HOLDOUTS", "SecurityHoldoutCase", "SecurityHoldoutResult", "SecurityHoldoutSuite"])

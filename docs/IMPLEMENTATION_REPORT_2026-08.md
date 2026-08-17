@@ -92,3 +92,25 @@ Added `FiberStore.restore` and `RecoveryCoordinator`, joining `BestStateStore`, 
 | Average cycle | **111.852 ms** |
 
 The benchmark uses deterministic local SQLite state and fault-shaped late regressions. It measures the recovery control plane only; it does not claim process isolation, hardened sandboxing or universal agent quality.
+
+## Controlled memory A/B, trajectory evaluation and security holdouts — 2026-08-17
+
+Added `ControlledMemoryEvaluator` for a same-budget legacy stable-prefix baseline versus provenance-aware next-generation assembly. The evaluator reports source recall, transfer gain, selected/dropped IDs and hard-cap compliance. Added deterministic `TrajectoryEvaluator` with C1 Solution Framing, C2 Execution and C3 Feedback Control proxies from recorded checkpoints; it reports peak retention, dips, recovery credit, delivery rate and build-error rate. Core metrics do not use an LLM judge.
+
+| Check | Result |
+|---|---:|
+| Controlled memory A/B tests | **3/3 passed** |
+| Memory A/B n=100 legacy source recall | **0.000000** |
+| Memory A/B n=100 nextgen source recall | **1.000000** |
+| Memory A/B n=100 transfer gain | **+1.000000** |
+| Memory A/B hard-cap rate | **1.000000** |
+| Memory assembly time, n=100 | **1.382 ms** |
+| Trajectory avg@3 | **0.800000** |
+| Trajectory best@3 | **0.900000** |
+| Trajectory C1/C2/C3 | **0.511111 / 1.000000 / 1.000000** |
+| Security holdout cases | **12** |
+| Security holdout pass rate, n=100 | **1.000000** |
+| Security holdout mean scan time | **0.381847 ms** |
+| Full regression after all additions | **112/112 passed in 2.947 s** |
+
+The A/B fixture is deliberately fixed and diagnostic, not a claim of universal memory superiority. Negative transfer remains observable and is tested explicitly. The security corpus tests deny/allow behavior, while hardened OS-level isolation remains unavailable unless an external sandbox is explicitly provided.
