@@ -1,8 +1,9 @@
-﻿import tempfile
+﻿import sqlite3
+import tempfile
 import unittest
 from pathlib import Path
 
-from noesis_harness.fibers import FiberStore
+from noesis_harness.fibers import FiberCorrupt, FiberStore
 
 
 class FiberTests(unittest.TestCase):
@@ -31,6 +32,20 @@ class FiberTests(unittest.TestCase):
             with self.assertRaises(ValueError): store.checkpoint(fid, 2, {})
             self.assertIn(fid, [x.fiber_id for x in store.recoverable()])
             self.assertEqual(store.get(fid).step, 3)
+
+    def test_corrupt_checkpoint_is_quarantined_and_not_resumed(self):
+        with tempfile.TemporaryDirectory() as d:
+            db_path = str(Path(d) / "fibers.db")
+            store = FiberStore(db_path)
+            fid = store.register("corruptible")
+            with sqlite3.connect(db_path) as db:
+                db.execute("UPDATE fibers SET state=? WHERE fiber_id=?", ("{not-json", fid))
+            with self.assertRaisesRegex(FiberCorrupt, "checkpoint_corrupt"):
+                store.resume(fid, lambda step, state, payload: {"step": step + 1, "state": {}, "done": True})
+            self.assertEqual(store.recoverable(), [])
+            with sqlite3.connect(db_path) as db:
+                status, error = db.execute("SELECT status,error FROM fibers WHERE fiber_id=?", (fid,)).fetchone()
+            self.assertEqual((status, error), ("corrupted", "checkpoint_corrupt"))
 
 
 if __name__ == "__main__": unittest.main()

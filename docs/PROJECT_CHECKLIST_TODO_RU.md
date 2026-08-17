@@ -333,3 +333,14 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-29 | Phase 2 regression after provider fault gate | `DONE / LOCAL VERIFIED` | Focused provider tests: **5/5 passed**; full Python 3.14.7 suite: **256/256 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ acceptance criteria: `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — provider boundary`. Следующий незавершённый Phase 2 gate — расширить fault injection на session resume/rollback и повреждённое durable state, после чего перейти к native packaging evidence.
+
+
+## 2026-08-17 — Phase 2 fault-injection checkpoint F-02
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-30 | Повреждённый durable Fiber checkpoint | `DONE / LOCAL VERIFIED` | `FiberStore` распознаёт malformed/non-object JSON как `FiberCorrupt`; runner не вызывается |
+| DONE-31 | Quarantine повреждённого checkpoint | `DONE / LOCAL VERIFIED` | Запись переводится в `status='corrupted'`, `error='checkpoint_corrupt'`; `recoverable()` исключает её, другие fibers продолжают recovery |
+| DONE-32 | Phase 2 resume/corruption regression | `DONE / LOCAL VERIFIED` | Fiber + chaos focused tests: **7/7 passed**; full Python 3.14.7 suite: **257/257 passed**; полный suite `ResourceWarning`: **0** |
+
+Синхронный acceptance criteria добавлен в `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — durable checkpoint corruption`. Следующий незавершённый Phase 2 gate — fault injection на session/task resume и rollback boundary; после завершения Phase 2 активируется packaging evidence gate.

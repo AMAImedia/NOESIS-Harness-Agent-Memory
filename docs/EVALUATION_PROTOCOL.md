@@ -42,3 +42,8 @@ A change is rejected if it increases private-memory leakage, unauthorized side e
 ## Phase 2 fault-injection gate — provider boundary
 
 Provider interruption is evaluated as a lifecycle event, not as a successful empty response. An injected timeout must produce the deterministic `provider_timeout` error, while a truncated or malformed response body must produce `provider_invalid_json` or the relevant bounded-response error. Neither path may emit a committed invocation result or bypass the queue/recovery layer. The focused regression is `tests.test_provider_invocation`; the full suite must remain green and must not introduce `ResourceWarning`.
+
+
+## Phase 2 fault-injection gate — durable checkpoint corruption
+
+A malformed durable checkpoint is not treated as an empty state and is never passed to a runner. `FiberStore` raises `FiberCorrupt`, quarantines the record with `status='corrupted'` and `error='checkpoint_corrupt'`, and excludes it from `recoverable()`. Recovery may continue for other fibers, but the corrupted fiber requires an explicit operator repair or restore path.
