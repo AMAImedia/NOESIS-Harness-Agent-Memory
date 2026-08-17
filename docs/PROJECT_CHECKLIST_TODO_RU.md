@@ -261,3 +261,12 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | Context firewall | `IMPLEMENTED / LOCAL VERIFIED` | `noesis_harness/context_firewall.py`: sensitivity redaction, scope enforcement, bounded context, explicit approval; 3 focused tests |
 | Provenance-aware memory | `IMPLEMENTED / LOCAL VERIFIED` | Observation ledger and taint-aware gateway egress are active primitives |
 | Full current suite | `PASS` | 243/243 tests after context firewall |
+
+### Execution assurance checkpoint
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Tamper-evident execution receipts | `IMPLEMENTED / LOCAL VERIFIED` | `noesis_harness/execution_assurance.py` hashes request, policy, workspace before/after, outcome, side effects and rollback availability |
+| Receipt verification | `IMPLEMENTED / TESTED` | Tampering changes verification result; invalid outcomes fail closed |
+| Recovery claim discipline | `DOCUMENTED` | Receipts record rollback availability but do not claim OS-level isolation or automatic recovery without backend evidence |
+| Current local suite | `PASS` | 246/246 tests |
