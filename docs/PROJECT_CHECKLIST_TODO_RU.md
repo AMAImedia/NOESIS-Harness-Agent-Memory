@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `ba9ccce` — `docs: add portable UI integration roadmap`
+Последний подтверждённый remote commit: `f1e1c91` — `feat: add P0 UI contract and health endpoint`
 
-Текущий рабочий этап: **P0-01/P0-02 реализованы локально; ожидается commit и private remote verification**
+Текущий рабочий этап: **P0-01/P0-02 verified на private remote; P0-03 следующий**
 
 ## Как мы используем этот документ
 
@@ -87,12 +87,12 @@
 
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P0-01 | Описать versioned `NOESIS UI Contract v1` | Агент | `DONE` | `noesis_harness/ui_contract.py`, `docs/UI_CONTRACT_V1.md`, 6 focused tests |
-| P0-02 | Добавить read-only `/health` endpoint | Агент | `DONE` | `noesis_harness/health_server.py`, 6 focused tests, n=100 benchmark |
+| P0-01 | Описать versioned `NOESIS UI Contract v1` | Агент | `DONE / REMOTE VERIFIED` | `noesis_harness/ui_contract.py`, `docs/UI_CONTRACT_V1.md`, 6 focused tests, commit `f1e1c91` |
+| P0-02 | Добавить read-only `/health` endpoint | Агент | `DONE / REMOTE VERIFIED` | `noesis_harness/health_server.py`, 6 focused tests, n=100 benchmark, commit `f1e1c91` |
 | P0-03 | Добавить read-only `/models` endpoint | Агент | `NEXT` | Contract schema exists; HTTP endpoint remains next substage |
 | P0-04 | Сделать stdlib HTTP adapter без обязательного Node/npm | Агент | `TODO` | `http.server` или эквивалент stdlib, deterministic tests и clean shutdown |
 | P0-05 | Contract fixtures и no-secret response scan | Агент | `TODO` | JSON fixtures, schema tests, secret scan и invalid-input tests |
-| P0-06 | Документация запуска и пример curl/PowerShell | Агент | `TODO` | Команды проверены на Windows-friendly syntax; без PowerShell here-strings |
+| P0-06 | Документация запуска и пример curl/PowerShell | Агент | `NEXT` | P0-01/P0-02 docs published; endpoint command examples will be added with P0-03 |
 
 ### P1 — Browser UI и runtime supervisor
 
