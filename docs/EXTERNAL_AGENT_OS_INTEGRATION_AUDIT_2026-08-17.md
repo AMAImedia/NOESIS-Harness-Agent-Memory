@@ -50,3 +50,24 @@ The first implementation should support a local restricted profile and report li
 [4]: https://github.com/anomalyco/opencode "OpenCode repository"
 
 [5]: https://code.claude.com/docs/en/overview "Claude Code overview"
+
+## License verification details
+
+The official Cloudflare OS `LICENSE` file is Apache License 2.0. Its redistribution conditions include providing the license, marking modified files, retaining copyright/patent/trademark/attribution notices and including any applicable `NOTICE` attribution. Apache-2.0 also includes a patent grant with a termination clause for patent litigation against the work.
+
+The official Hermes Agent `LICENSE` file is MIT. It permits use, copying, modification, merging, publication, distribution, sublicensing and sale, provided the copyright and permission notice are included in copies or substantial portions; it is provided without warranty.
+
+The official OpenCode `LICENSE` file is MIT with the same core notice-preservation requirement. The Cloudflare Sandbox SDK repository points from its top-level `LICENSE` to `packages/sandbox/LICENSE`; the package-level license must be inspected and preserved before vendoring any code. The repository README identifies the SDK as Apache License 2.0, but package-level provenance still controls the exact files reused.
+
+These permissions do not make all projects equivalent: Apache-2.0 and MIT have different notice, patent and redistribution wording, and each repository may contain separately licensed dependencies, assets, examples or generated files. A final NOESIS distribution must ship a third-party attribution inventory and must not use upstream trademarks to imply endorsement.
+
+Sources verified:
+
+- https://github.com/cloudflare/cloudflare-os/blob/main/LICENSE
+- https://github.com/cloudflare/sandbox-sdk/blob/main/LICENSE
+- https://github.com/NousResearch/hermes-agent/blob/main/LICENSE
+- https://github.com/anomalyco/opencode/blob/dev/LICENSE
+
+The package-level `packages/sandbox/LICENSE` was also verified directly and is Apache License 2.0. Therefore, the Sandbox SDK code itself is reusable under Apache-2.0 terms, subject to preserving notices, checking its dependency tree, and separating Cloudflare-specific runtime assumptions from NOESIS local execution.
+
+Additional verified source: https://github.com/cloudflare/sandbox-sdk/blob/main/packages/sandbox/LICENSE
