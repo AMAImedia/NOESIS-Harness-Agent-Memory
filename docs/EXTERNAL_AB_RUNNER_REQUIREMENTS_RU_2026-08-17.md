@@ -42,3 +42,8 @@ Simulated evaluator использует expanded 13-metric schema. Локаль
 ## Unified signed-evidence evaluation
 
 ` scripts/evaluate_signed_ab.py` сравнивает только evidence records, у которых валидна HMAC-подпись, `accepted=true` и совпадает `protocol_fingerprint`. Fingerprint включает task-manifest SHA-256, model/provider и workspace policy. При mismatch evaluator сохраняет диагностические records, но каждый metric получает `comparable=false`; ranking не создаётся. Metric `observed` допускается только внутри record, а top-level status остаётся ограниченным (`passed`, `failed`, `unsupported`, `not_run`).
+
+
+## Reproducible local signed fixture lane
+
+` scripts/run_local_signed_ab_fixture.py` выполняет только plumbing lane: создаёт deterministic task-manifest, два synthetic pinned specs (`hermes` и `opencode`), подписывает их, прогоняет ingestion и unified evaluator и сохраняет `noesis.local-signed-ab-fixture.v1`. В lane не запускаются внешние процессы, модели, shell commands или пользовательские credentials. Comparable result в этом lane доказывает корректность ingestion/evaluation pipeline, но не качество Hermes/OpenCode и не внешний A/B ranking.

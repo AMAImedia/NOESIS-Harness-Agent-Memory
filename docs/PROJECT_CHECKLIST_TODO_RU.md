@@ -429,3 +429,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-61 | Phase 4 evaluation regression | `DONE / LOCAL VERIFIED` | Focused tests: **11/11 passed**; full Python 3.14.7 suite: **277/277 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Фактические Hermes/OpenCode records всё ещё `not_run`; evaluator не создаёт сравнительный результат без pinned protocol fingerprint.
+
+
+## 2026-08-17 — Phase 4 checkpoint A-04
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-62 | Reproducible local task fixture | `DONE / LOCAL VERIFIED` | `run_local_signed_ab_fixture.py` создаёт deterministic task-manifest и общий protocol fingerprint |
+| DONE-63 | End-to-end evidence pipeline | `DONE / LOCAL VERIFIED` | Synthetic Hermes/OpenCode records проходят ingestion → HMAC verification → unified evaluator → JSON report artifact |
+| DONE-64 | Local comparability proof | `DONE / LOCAL VERIFIED` | Два accepted signed records, `comparable=true`, **6 metric records**, `external_processes_started=false` |
+| DONE-65 | Phase 4 fixture regression | `DONE / LOCAL VERIFIED` | Focused tests: **8/8 passed**; full Python 3.14.7 suite: **278/278 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Этот lane доказывает только correctness plumbing/evidence pipeline; он не является реальным Hermes/OpenCode execution или quality ranking.
