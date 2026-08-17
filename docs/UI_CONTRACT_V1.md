@@ -1,6 +1,6 @@
 # NOESIS UI Contract v1
 
-Status: **implemented as a stdlib contract module; endpoint integration is P0-02**
+Status: **implemented; P0-01/P0-02/P0-03 verified locally**
 
 Version: `1.0`
 
@@ -94,4 +94,4 @@ Hermes WebUI and DeepSeek Harness are optional child-runtime adapters. The UI co
 
 ## Contract tests
 
-The contract is tested for deterministic serialization, secret redaction, valid/invalid statuses, required model fields, unsupported contract versions and fail-soft unavailable responses. P0-02 adds HTTP tests for loopback binding, read-only methods, unknown paths, bounded requests and clean shutdown.
+The contract is tested for deterministic serialization, secret redaction, valid/invalid statuses, required model fields, unsupported contract versions and fail-soft unavailable responses. P0-02 adds HTTP tests for loopback binding, read-only methods, unknown paths, bounded requests and clean shutdown. P0-03 adds provider registry fixtures for Ollama, LM Studio, llama.cpp, vLLM and OpenAI-compatible endpoints, plus `/models` HTTP tests for ready metadata and explicit unavailable state.

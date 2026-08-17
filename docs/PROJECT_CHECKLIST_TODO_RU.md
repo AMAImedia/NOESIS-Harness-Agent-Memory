@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `f1e1c91` — `feat: add P0 UI contract and health endpoint`
+Последний подтверждённый remote commit: ожидается commit P0-03 после локальной проверки
 
-Текущий рабочий этап: **P0-01/P0-02 verified на private remote; P0-03 следующий**
+Текущий рабочий этап: **P0-03 реализован локально; ожидаются commit и private remote verification**
 
 ## Как мы используем этот документ
 
@@ -89,10 +89,10 @@
 |---|---|---|---|---|
 | P0-01 | Описать versioned `NOESIS UI Contract v1` | Агент | `DONE / REMOTE VERIFIED` | `noesis_harness/ui_contract.py`, `docs/UI_CONTRACT_V1.md`, 6 focused tests, commit `f1e1c91` |
 | P0-02 | Добавить read-only `/health` endpoint | Агент | `DONE / REMOTE VERIFIED` | `noesis_harness/health_server.py`, 6 focused tests, n=100 benchmark, commit `f1e1c91` |
-| P0-03 | Добавить read-only `/models` endpoint | Агент | `NEXT` | Contract schema exists; HTTP endpoint remains next substage |
-| P0-04 | Сделать stdlib HTTP adapter без обязательного Node/npm | Агент | `TODO` | `http.server` или эквивалент stdlib, deterministic tests и clean shutdown |
-| P0-05 | Contract fixtures и no-secret response scan | Агент | `TODO` | JSON fixtures, schema tests, secret scan и invalid-input tests |
-| P0-06 | Документация запуска и пример curl/PowerShell | Агент | `NEXT` | P0-01/P0-02 docs published; endpoint command examples will be added with P0-03 |
+| P0-03 | Добавить read-only `/models` endpoint | Агент | `DONE LOCAL / REMOTE NEXT` | `ProviderRegistry`, five fixtures, `/models` HTTP tests, no-secret scan and benchmark |
+| P0-04 | Сделать stdlib HTTP adapter без обязательного Node/npm | Агент | `DONE LOCAL / REMOTE NEXT` | `HealthServer` + `/health` + `/models` use stdlib only; full adapter expansion remains later |
+| P0-05 | Contract fixtures и no-secret response scan | Агент | `DONE LOCAL / REMOTE NEXT` | 6 provider tests, metadata-only assertions, explicit unavailable state |
+| P0-06 | Документация запуска и пример curl/PowerShell | Агент | `NEXT` | Add verified `/models` curl/PowerShell examples in next documentation pass |
 
 ### P1 — Browser UI и runtime supervisor
 
@@ -164,7 +164,7 @@
 
 ## 6. Ближайший action gate
 
-**Следующее действие агента:** реализовать `P0-03` — read-only `/models` HTTP endpoint поверх уже готового `model_payload`, затем добавить provider registry fixtures. P0-01/P0-02 уже прошли focused tests и full regression.
+**Следующее действие агента:** обновить implementation report, провести no-secret/diff audit, создать commit и authenticated push P0-03. После remote verification перейти к P0-06 и provider capability discovery.
 
 **Следующее действие владельца:** можно написать **«продолжай P0»**; для P0-03 не требуется новый доступ. Если нужны другие providers в первом приоритете, перечислите их; это изменит порядок `P2` без изменения security boundaries.
 

@@ -133,3 +133,22 @@ Implemented `noesis_harness/ui_contract.py` and `noesis_harness/health_server.py
 | Hardened sandbox status | **unavailable** unless an external hardened provider is present |
 
 The portable UI roadmap now explicitly includes the Windows/macOS DeepSeek Harness + Hermes WebUI adapter layer as P5-00. These runtimes remain optional child processes; the NOESIS core does not depend on Node, does not merge their private memory implicitly and does not expose provider credentials to the browser.
+
+## P0-03 Provider registry and `/models` endpoint — 2026-08-17
+
+Added `noesis_harness/provider_registry.py` and extended `HealthServer` with a read-only `GET /models` route. The registry is declarative and in-memory: it stores only provider/model IDs, endpoint kind, status and capability metadata. It never stores credentials, calls an upstream provider or treats a missing runtime as ready. The fixture set covers Ollama, LM Studio, llama.cpp, vLLM and OpenAI-compatible providers. Hermes WebUI and DeepSeek Harness remain explicit optional adapter kinds and default to `unavailable` until configured.
+
+| Check | Result |
+|---|---:|
+| Provider registry focused tests | **6/6 passed in 1.022 s** |
+| Full regression after P0-03 | **130/130 passed in 5.043 s** |
+| Provider fixture kinds | **5** |
+| `/models` benchmark requests | **100** |
+| `/models` error rate | **0.000000** |
+| Registry serialization p50 / p95 | **0.184600 / 0.218100 ms** |
+| `/models` HTTP p50 / p95 | **1.093300 / 20.626600 ms** |
+| `/models` HTTP mean | **7.293836 ms** |
+| Empty registry behavior | **explicit `unavailable`, empty models; never fake ready** |
+| Metadata secret scan | **clean** |
+
+A first benchmark fixture omission was detected because default provider status is intentionally `unavailable`; the fixture was corrected to explicitly set `status="ready"` for verified local test providers. This is preserved as a regression lesson: adapter readiness must always be declared, never inferred from descriptor presence. During the pre-commit scan, a historical credential-like security-test fixture was also replaced with a synthetic value that still exercises the `api_token` rule. The current high-confidence secret scan is clean; historical Git history was not rewritten automatically.

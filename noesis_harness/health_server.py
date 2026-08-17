@@ -6,7 +6,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Mapping, Sequence, Tuple
 
-from .ui_contract import CONTRACT_VERSION, UIEnvelope, failure, health_payload
+from .provider_registry import ProviderRegistry
+from .ui_contract import UIEnvelope, failure, health_payload
 
 
 class _HealthHTTPServer(ThreadingHTTPServer):
@@ -17,7 +18,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Mapping[str, str] | None = None, unavailable_reasons: Sequence[str] = (), host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Mapping[str, str] | None = None, unavailable_reasons: Sequence[str] = (), provider_registry: ProviderRegistry | None = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096):
         if host not in {"127.0.0.1", "localhost", "::1"}:
             raise ValueError("health server defaults to loopback; non-loopback requires an explicit external adapter")
         if not (0 <= int(port) <= 65535):
@@ -27,6 +28,7 @@ class HealthServer:
         self.runtime_version = str(runtime_version)
         self.capabilities = dict(capabilities or {"ui_contract": "ready", "provider_registry": "unavailable", "hermes_adapter": "unavailable", "deepseek_adapter": "unavailable", "hardened_sandbox": "unavailable"})
         self.unavailable_reasons = tuple(str(item) for item in unavailable_reasons) or tuple(f"{key}_unavailable" for key, value in self.capabilities.items() if value == "unavailable")
+        self.provider_registry = provider_registry or ProviderRegistry()
         self.host = host
         self.port = int(port)
         self.max_request_bytes = int(max_request_bytes)
@@ -35,6 +37,9 @@ class HealthServer:
 
     def envelope(self) -> UIEnvelope:
         return health_payload(runtime_version=self.runtime_version, readiness="ready", binding=f"{self.host}:{self.bound_port}", capabilities=self.capabilities, unavailable_reasons=self.unavailable_reasons)
+
+    def models_envelope(self) -> UIEnvelope:
+        return self.provider_registry.envelope()
 
     @property
     def bound_port(self) -> int:
@@ -68,10 +73,12 @@ class HealthServer:
             def do_GET(self) -> None:  # noqa: N802
                 if self.path == "/health":
                     self._send(parent.envelope(), 200)
+                elif self.path == "/models":
+                    self._send(parent.models_envelope(), 200)
                 elif self.path == "/":
                     self._send(parent.envelope(), 200)
                 else:
-                    self._send(failure("invalid_request", "not_found", "only GET /health is supported"), 404)
+                    self._send(failure("invalid_request", "not_found", "only GET /health and /models are supported"), 404)
 
             def do_POST(self) -> None:  # noqa: N802
                 self._send(failure("denied", "read_only", "health endpoint is read-only"), 405)
