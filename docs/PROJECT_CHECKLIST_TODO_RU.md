@@ -137,6 +137,21 @@
 | P6-01 | Branch protection | Владелец + агент | `AUDIT READY / PLATFORM BLOCKED / WAITING FOR USER` | Audit `docs/P6-01_BRANCH_PROTECTION_AUDIT_2026-08-17.md`; proposed checks: four Python matrix checks + lint + build; benchmark and PyPI publish are not required; owner confirms review policy; private repository remains unchanged |
 | P6-02 | Public release decision | Владелец | `WAITING FOR USER` | Explicit owner approval after release audit; no automatic visibility change |
 
+### P7–P13 — Python 3.14 execution-layer roadmap
+
+| ID | Задача | Владелец | Статус | Критерий готовности |
+|---|---|---|---|---|
+| P7-01 | Versioned task/session command API | Агент | `PLANNED` | Task/session envelopes, plan/approve/execute/review/commit/rollback/resume states, idempotency and audit |
+| P7-02 | Interactive chat/streaming contract | Агент | `PLANNED` | Streaming events, reconnect/resume, bounded payloads, cancellation and no-secret guarantees |
+| P8-01 | Provider invocation adapters | Агент | `PLANNED` | Capability-aware model calls, credential references only, approval gates and fail-soft unavailable states |
+| P9-01 | Isolated child execution runtime | Агент | `PLANNED / SECURITY GATE` | Request envelope, argv allowlist, workspace/mount policy, network policy, timeout/output budgets, structured result, kill/recovery and explicit sandbox strength |
+| P9-02 | Executable skill runtime | Агент | `PLANNED / SECURITY GATE` | Verified skill digest, immutable version, child process isolation, capability allowlist, approval/rollback and no execution in parent process |
+| P10-01 | Diff/patch review and per-agent workspaces | Агент | `PLANNED` | Snapshot lineage, patch proposal, human review, conflict-free merge and rollback |
+| P10-02 | Session resume and real multi-agent execution | Агент | `PLANNED` | Durable session transcript, isolated agent identities, leases, handoffs, budgets, cancellation and recovery |
+| P11-01 | Terminal/Web/desktop surfaces | Агент | `PLANNED` | One versioned session API exposed through stdlib Web UI, terminal client and optional native shell |
+| P12-01 | Native Python 3.14 packaging | Агент | `PLANNED / NATIVE GATE` | Windows `.exe`, macOS `.app`, checksums, startup/upgrade/uninstall tests and native runner evidence |
+| P13-01 | Comparative A/B and task benchmarks | Агент | `PLANNED` | Reproducible protocol against Hermes/OpenCode/other systems with identical tasks, models, budgets and safety metrics |
+
 ## 5. Release-readiness audit 2026-08-17
 
 | Проверка | Результат |
@@ -169,6 +184,8 @@
 | 6 | `docs/IMPLEMENTATION_REPORT_2026-08.md` и `docs/RELEASE_READINESS_AUDIT_2026-08.md` | Фактические результаты, commits, tests и release gates |
 | 7 | `docs/GITHUB_FREE_PRIVATE_LIMITS_AND_NEXT_TASKS_2026-08-17.md` | Ограничения GitHub Free/private и порядок задач, не зависящих от платных функций |
 | 8 | `docs/NOESIS_RUNTIME_STATUS_AND_GAP_ANALYSIS_2026-08-17.md` | Фактическая граница portable control plane, Python policy, Web UI, skills и interactive runtime gaps |
+| 9 | `docs/PYTHON_314_ONLY_MIGRATION_2026-08-17.md` | Python 3.14-only policy, CI/native/package release gates и последствия breaking compatibility change |
+| 10 | `docs/EXTERNAL_AGENT_OS_INTEGRATION_AUDIT_2026-08-17.md` | License/provenance/security audit Cloudflare OS, Cloudflare Sandbox SDK, Hermes, OpenCode и правила интеграции |
 
 Правило: текущий статус и следующий шаг всегда смотрим в checklist; детали реализации — в профильном документе; факты завершения — в implementation report/audit. Поэтому объединять всё в один гигантский Markdown-файл не нужно.
 
@@ -186,7 +203,7 @@
 
 ## 6. Ближайший action gate
 
-**Следующее действие агента:** продолжить доступное без оплаты hardening и начать отдельный product-layer design: versioned task/session command API, interactive chat/streaming contract, approval-aware tool execution и isolated executable-skill runtime; Python 3.14 добавить как дополнительный compatibility target после native verification.
+**Следующее действие агента:** зафиксировать integration boundaries по external audit и начать P7-01 versioned task/session command API; затем перейти к P8 provider approval gates и P9 child execution runtime. Python 3.14 теперь является единственным целевым runtime; native verification остаётся release gate.
 
 **Следующее действие владельца:** при желании выбрать порядок из доступных задач; отдельно решить, нужен ли будущий upgrade/organization plan для branch protection. До этого никаких public visibility или billing changes не требуется.
 

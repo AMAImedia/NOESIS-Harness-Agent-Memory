@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-76B900.svg)](LICENSE)
 [![Platform: Windows%20%7C%20Linux%20%7C%20macOS](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-111827.svg)](#portability)
-[![Python: 3.9%2B](https://img.shields.io/badge/python-3.9%2B-76B900.svg)](#requirements-and-runtime)
+[![Python: 3.14](https://img.shields.io/badge/python-3.14-76B900.svg)](#requirements-and-runtime)
 [![Core: stdlib-only](https://img.shields.io/badge/core-stdlib--only-111827.svg)](#requirements-and-runtime)
 
 > **A local-first durable memory and coordination kernel for multi-agent systems.**
@@ -44,7 +44,7 @@ This repository is inspired by the capability and durability ideas described by 
 
 ## Quick start
 
-1. Install Python 3.9 or newer. Python 3.11 on Windows is the currently verified development runtime.
+1. Install Python 3.14. Python 3.14 is the sole target runtime for the next NOESIS agent-OS generation; native Windows/macOS verification remains a release gate until runners are available.
 2. Clone or copy the complete repository and open a terminal in its root directory.
 3. Run the full regression suite:
 
@@ -64,7 +64,7 @@ This repository is inspired by the capability and durability ideas described by 
    python benchmarks/coordination_context_bench.py --n 100
    ```
 
-No system-wide installation is required for the core tests. An isolated virtual environment is recommended for optional adapters. The repository is not a web application and has no fixed local port or automatic browser launch.
+No system-wide installation is required for the core tests. An isolated virtual environment is recommended for optional adapters. The repository now contains a stdlib read-only control-plane Web UI at `/` and `/ui`; it is not yet the full interactive agent surface. Model invocation, session mutation and executable skill entrypoints remain gated future layers.
 
 ## How the workflow works
 
@@ -86,17 +86,17 @@ The deterministic core intentionally has no mandatory third-party runtime depend
 |---|---|
 | Operating system | Windows workflow verified; the core uses portable Python and SQLite APIs |
 | Hardware | CPU is sufficient for the core; model inference requires separate local or remote infrastructure |
-| Runtime | Python `>=3.9`; Python 3.11 is the current verified laptop runtime |
+| Runtime | Python `3.14` only; native Windows/macOS verification pending |
 | Local assets | No model is required for deterministic tests, memory, coordination or governance benchmarks |
 | Disk space | Small for the core; generated SQLite state, logs, model files and optional adapters are user-managed |
 
 ## Portability
 
-Run commands from the repository root so that package imports, examples and benchmark paths resolve consistently. SQLite connections are managed explicitly and temporary database files are excluded from public commits. The package does not require a daemon, browser, cloud account or fixed port.
+Run commands from the repository root so that package imports, examples and benchmark paths resolve consistently. SQLite connections are managed explicitly and temporary database files are excluded from public commits. The core does not require a daemon, cloud account or fixed port; the portable launcher exposes a local read-only Web UI, while the interactive agent runtime is being built as an isolated next layer.
 
 The execution ladder reports `unavailable` when a hardened sandbox is not configured. This is deliberate: the project does not present an in-process guard as a secure OS-level sandbox. The core also does not execute model-generated Python through `eval` or `exec`.
 
-Heavy models, downloaded binaries, runtime environments, generated output, local databases, logs, caches and private integration credentials must remain outside the public Git repository. Use `.env.example` only as a variable-name reference; never commit a populated `.env` file.
+Heavy models, downloaded binaries, runtime environments, generated output, local databases, logs, caches and private integration credentials must remain outside the Git repository. The portable `.exe`/`.app` bundling pipeline is a future Python 3.14 release gate. Use `.env.example` only as a variable-name reference; never commit a populated `.env` file.
 
 ## Privacy and security
 
