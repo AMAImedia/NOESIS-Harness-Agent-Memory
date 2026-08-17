@@ -29,3 +29,7 @@ node_modules/
 *.sqlite3
 *.sqlite-shm
 *.sqlite-wal
+
+# Local downloaded/build runtimes and generated benchmark outputs
+runtime/
+benchmark_contracts.json
