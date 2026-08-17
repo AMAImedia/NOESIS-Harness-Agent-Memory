@@ -128,7 +128,7 @@
 
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P4-01 | Windows x64 portable artifact | Агент | `TODO` | Install/launch/upgrade/data-preservation smoke test on Windows runner |
+| P4-01 | Windows x64 portable artifact | Агент | `DONE / LOCAL VERIFIED` | Stdlib-only portable launcher; separate install/data roots; explicit NOESIS_HOME override; loopback startup probe; data sentinel survives clean stop; external bind rejected; 4/4 focused tests; commit/remote verification pending |
 | P4-02 | macOS arm64 portable artifact | Агент | `TODO` | Launch, loopback, data preservation and clean shutdown smoke test on macOS runner |
 | P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `WAITING FOR USER` | Choose wrapper only after P0–P3 prove the contract; no premature framework lock-in |
 | P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `TODO` | Optional adapters use the versioned UI contract; Hermes and DeepSeek runtime remain child processes; local loopback, auth, model capability mapping, scope mapping and unavailable paths tested |
