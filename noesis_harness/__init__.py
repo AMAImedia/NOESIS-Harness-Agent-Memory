@@ -67,3 +67,6 @@ __all__.extend(["WorkClaim", "WorkCoordinator"])
 
 from .context_engine import ContextAssembly, ContextItem, BudgetedContextAssembler
 __all__.extend(["ContextAssembly", "ContextItem", "BudgetedContextAssembler"])
+
+from .best_state import BestStateStore, CandidateDecision, DecisionStatus, RecoveryResult, RecoveryStatus, StateRecord
+__all__.extend(["BestStateStore", "CandidateDecision", "DecisionStatus", "RecoveryResult", "RecoveryStatus", "StateRecord"])

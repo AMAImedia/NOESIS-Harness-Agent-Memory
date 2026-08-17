@@ -59,3 +59,21 @@ The design borrows interfaces and principles rather than copying Cloudflare OS s
 [3]: https://hermes-agent.nousresearch.com/docs/user-guide/features/memory "Hermes Agent persistent memory"
 [4]: https://github.com/badlogic/pi-mono "Pi Agent Harness repository"
 [5]: https://www.letta.com/blog/agent-memory/ "Letta Agent Memory engineering overview"
+
+## Best-state protection and rollback — 2026-08-17
+
+Added `noesis_harness/best_state.py` with SQLite-durable verified-state history, monotonic best-score tracking, verifier rejection, explicit rollback, automatic recovery, rollback audit events and fail-soft unavailable status for missing runs. The layer records candidate payload digests but never executes artifacts or claims OS-level isolation.
+
+| Check | Result |
+|---|---:|
+| Focused best-state tests | **6/6 passed** |
+| Full regression after addition | **98/98 passed in 2.692 s** |
+| Candidate recording benchmark, n=100 | **793.404 ms** |
+| Regessions kept out of best-state | **20** |
+| Late regression before recovery | **0.05** |
+| Best score after recovery | **0.98** |
+| Rollback events | **1** |
+| Recovery status | **recovered** |
+| Recovery latency | **7.320 ms** |
+
+The benchmark intentionally ends with a verified late regression. `recover()` restores the best accepted state, records one rollback event, and becomes a no-op when invoked again. This is a local measurement, not a universal performance claim.
