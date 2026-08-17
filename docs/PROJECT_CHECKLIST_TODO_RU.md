@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `8f1e5b5` — `docs: mark coding corpus remotely verified`
+Последний подтверждённый remote commit: `2485269` — `docs: add release readiness audit`
 
-Текущий рабочий этап: **release-readiness audit локально verified; следующий gate — owner decisions по branch protection, native runners, wrapper и public release**
+Текущий рабочий этап: **release-readiness audit remote verified; следующий gate — owner decisions по branch protection, native runners, wrapper и public release**
 
 ## Как мы используем этот документ
 
@@ -141,7 +141,7 @@
 
 | Проверка | Результат |
 |---|---:|
-| Local/remote SHA consistency | `PASS`; `8f1e5b53f3c3f6efbf0042341a553dfc332175dc` |
+| Local/remote SHA consistency | `PASS`; release audit commit `24852697d39d905daaf1879bcbdfa367d4cd6e86` после final checklist sync |
 | Private visibility | `PASS`; repository remains private |
 | Full regression | `200/200 passed` |
 | Recall benchmark | `20/20`, accuracy `1.00` |
