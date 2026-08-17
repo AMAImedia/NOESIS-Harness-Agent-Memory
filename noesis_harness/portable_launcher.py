@@ -16,6 +16,7 @@ from typing import Mapping, Optional, Tuple
 
 from .health_server import HealthServer
 from .provider_registry import ProviderRegistry
+from .task_session_api import TaskSessionStore
 from .user_data import user_data_paths
 
 
@@ -63,7 +64,8 @@ def startup_probe(layout: PortableLayout, *, host: str = "127.0.0.1", port: int 
     sentinel = layout.data_root / "state" / "portable-startup.sentinel"
     sentinel.parent.mkdir(parents=True, exist_ok=True)
     sentinel.write_text("noesis-portable-started\n", encoding="utf-8")
-    with HealthServer(host=host, port=port, provider_registry=ProviderRegistry()) as server:
+    session_store = TaskSessionStore(str(layout.data_root / "state" / "session_events.jsonl"))
+    with HealthServer(host=host, port=port, provider_registry=ProviderRegistry(), session_store=session_store) as server:
         address = server.address
     if not sentinel.is_file() or sentinel.read_text(encoding="utf-8") != "noesis-portable-started\n":
         raise PortableLaunchError("data-preservation sentinel missing")
@@ -71,7 +73,7 @@ def startup_probe(layout: PortableLayout, *, host: str = "127.0.0.1", port: int 
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Run NOESIS portable read-only control plane")
+    parser = argparse.ArgumentParser(description="Run NOESIS portable local-first agent control plane")
     parser.add_argument("--install-root", default=str(Path(__file__).resolve().parents[1]))
     parser.add_argument("--data-root", default=None)
     parser.add_argument("--host", default="127.0.0.1")
@@ -79,7 +81,8 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     layout = resolve_layout(args.install_root, args.data_root)
     layout.ensure()
-    server = HealthServer(host=args.host, port=args.port, provider_registry=ProviderRegistry())
+    session_store = TaskSessionStore(str(layout.data_root / "state" / "session_events.jsonl"))
+    server = HealthServer(host=args.host, port=args.port, provider_registry=ProviderRegistry(), session_store=session_store)
     server.start()
     print("NOESIS portable control plane listening at http://%s:%d" % server.address, flush=True)
     print("Install root: %s" % layout.install_root, flush=True)

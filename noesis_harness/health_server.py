@@ -3,13 +3,16 @@ from __future__ import annotations
 
 import hmac
 import json
+from dataclasses import asdict, is_dataclass
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from .provider_registry import ProviderRegistry
 from .ui_assets import CONTROL_PLANE_HTML
-from .ui_contract import UIEnvelope, failure, health_payload
+from .session_stream import SessionEventBuffer, StreamContractError
+from .task_session_api import TaskSessionError, TaskSessionStore
+from .ui_contract import UIEnvelope, failure, health_payload, success
 
 
 class _HealthHTTPServer(ThreadingHTTPServer):
@@ -20,7 +23,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -36,6 +39,8 @@ class HealthServer:
         self.capabilities = dict(capabilities or {"ui_contract": "ready", "provider_registry": "unavailable", "hermes_adapter": "unavailable", "deepseek_adapter": "unavailable", "hardened_sandbox": "unavailable"})
         self.unavailable_reasons = tuple(str(item) for item in unavailable_reasons) or tuple(f"{key}_unavailable" for key, value in self.capabilities.items() if value == "unavailable")
         self.provider_registry = provider_registry or ProviderRegistry()
+        self.session_store = session_store
+        self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self.host = host
         self.port = int(port)
         self.max_request_bytes = int(max_request_bytes)
@@ -103,6 +108,36 @@ class HealthServer:
             def _send_unauthorized(self) -> None:
                 self._send(failure("denied", "authentication_required", "valid bearer authentication is required"), 401)
 
+            def _body(self) -> Mapping[str, Any]:
+                length = int(self.headers.get("Content-Length", "0") or "0")
+                if length < 0 or length > parent.max_request_bytes:
+                    raise TaskSessionError("request_body_too_large")
+                raw = self.rfile.read(length) if length else b"{}"
+                if len(raw) > parent.max_request_bytes:
+                    raise TaskSessionError("request_body_too_large")
+                try:
+                    value = json.loads(raw.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    raise TaskSessionError("invalid_json") from exc
+                if not isinstance(value, Mapping):
+                    raise TaskSessionError("request_object_required")
+                return value
+
+            @staticmethod
+            def _jsonable(value: Any) -> Any:
+                if is_dataclass(value):
+                    return Handler._jsonable(asdict(value))
+                if isinstance(value, Mapping):
+                    return {str(key): Handler._jsonable(item) for key, item in value.items()}
+                if isinstance(value, (list, tuple)):
+                    return [Handler._jsonable(item) for item in value]
+                return value
+
+            def _session_buffer(self, session_id: str) -> SessionEventBuffer:
+                if session_id not in parent._stream_buffers:
+                    parent._stream_buffers[session_id] = SessionEventBuffer(session_id)
+                return parent._stream_buffers[session_id]
+
             def do_GET(self) -> None:  # noqa: N802
                 if not self._authorized():
                     self._send_unauthorized()
@@ -113,14 +148,51 @@ class HealthServer:
                     self._send(parent.models_envelope(), 200)
                 elif self.path in {"/", "/ui"}:
                     self._send_html(CONTROL_PLANE_HTML, 200)
+                elif self.path.startswith("/api/sessions/") and parent.session_store is not None:
+                    suffix = self.path[len("/api/sessions/"):]
+                    if suffix.endswith("/events"):
+                        session_id = suffix[:-len("/events")].rstrip("/")
+                        last_id = int(self.headers.get("Last-Event-ID", "0") or "0")
+                        body = self._session_buffer(session_id).sse_since(last_id).encode("utf-8")
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                        self.send_header("Cache-Control", "no-store")
+                        self.send_header("Content-Length", str(len(body)))
+                        self.end_headers()
+                        self.wfile.write(body)
+                    else:
+                        try:
+                            self._send(success(self._jsonable(parent.session_store.resume(suffix))), 200)
+                        except TaskSessionError as exc:
+                            self._send(failure("invalid_request", "session_unavailable", str(exc)), 404)
                 else:
-                    self._send(failure("invalid_request", "not_found", "only GET /, /ui, /health and /models are supported"), 404)
+                    self._send(failure("invalid_request", "not_found", "unsupported route or session API unavailable"), 404)
 
             def do_POST(self) -> None:  # noqa: N802
                 if not self._authorized():
                     self._send_unauthorized()
                     return
-                self._send(failure("denied", "read_only", "health endpoint is read-only"), 405)
+                if parent.session_store is None:
+                    self._send(failure("denied", "read_only", "session API is not enabled"), 405)
+                    return
+                try:
+                    payload = self._body()
+                    if self.path == "/api/sessions":
+                        record = parent.session_store.create_session(str(payload.get("owner", "")), session_id=payload.get("session_id"))
+                        self._session_buffer(record.session_id).publish("session_started", {"state": record.state})
+                        self._send(success({"session": self._jsonable(record)}), 201)
+                        return
+                    prefix = "/api/sessions/"
+                    if self.path.startswith(prefix) and self.path.endswith("/messages"):
+                        session_id = self.path[len(prefix):-len("/messages")].rstrip("/")
+                        event_id = parent.session_store.append_message(session_id, str(payload.get("role", "user")), str(payload.get("content", "")), command_id=payload.get("command_id"))
+                        event = self._session_buffer(session_id).publish("message", {"role": str(payload.get("role", "user")), "event_id": event_id, "content": str(payload.get("content", ""))})
+                        self._send(success({"event_id": event_id, "sequence": event.sequence}), 201)
+                        return
+                except (TaskSessionError, StreamContractError, ValueError) as exc:
+                    self._send(failure("invalid_request", "session_command_rejected", str(exc)), 400)
+                    return
+                self._send(failure("invalid_request", "not_found", "unsupported session command"), 404)
 
             def log_message(self, *_args: Any) -> None:
                 return
