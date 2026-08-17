@@ -24,9 +24,11 @@
     "python --version starts with Python 3.14",
     "scripts\\verify_python314.py",
     "python -m unittest discover -s tests -q",
+    "python scripts/verify_native_artifact.py --target windows --artifact dist\\noesis-harness.exe --output dist\\native-evidence.json",
     "sha256 manifest generated after build",
     "PORTABLE_SBOM.spdx.json is present and references every shipped file",
     "no credentials or model weights included"
   ],
+  "signature_policy": "Authenticode verification required for release; --development-unsigned is local-only",
   "evidence_status": "static-manifest-only-until-built-on-windows"
 }

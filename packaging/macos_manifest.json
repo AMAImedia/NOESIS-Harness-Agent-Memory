@@ -24,10 +24,12 @@
     "python3.14 --version starts with Python 3.14",
     "python3.14 scripts/verify_python314.py",
     "python3.14 -m unittest discover -s tests -q",
+    "python3.14 scripts/verify_native_artifact.py --target macos --artifact dist/NOESIS-Harness-Agent-Memory.app --output dist/native-evidence.json",
     "codesign and notarization are performed by the operator on the target host",
     "sha256 manifest generated after build",
     "PORTABLE_SBOM.spdx.json is present and references every shipped file",
     "no credentials or model weights included"
   ],
+  "signature_policy": "codesign --verify --deep --strict and spctl assessment required for release; --development-unsigned is local-only",
   "evidence_status": "static-manifest-only-until-built-on-macos"
 }

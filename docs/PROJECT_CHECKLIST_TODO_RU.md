@@ -368,3 +368,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-40 | Windows/macOS manifest synchronization | `DONE / LOCAL VERIFIED` | `packaging/windows_manifest.json` и `packaging/macos_manifest.json` теперь требуют SHA-256 manifest и `PORTABLE_SBOM.spdx.json` |
 
 Синхронный runbook: `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`. Linux sandbox всё ещё не является доказательством native `.exe`/`.app`; следующий Phase 3 gate — target-host verification contract и signed/notarized artifact evidence path.
+
+
+## 2026-08-17 — Phase 3 packaging checkpoint P-02
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-41 | Target-host native evidence verifier | `DONE / LOCAL VERIFIED` | Добавлен `scripts/verify_native_artifact.py`: Python 3.14/OS gate, `.exe`/`.app` shape, deterministic SHA-256 и platform signing checks; приложение не запускается |
+| DONE-42 | Signed/notarized evidence policy | `DONE / LOCAL VERIFIED` | Windows требует Authenticode; macOS требует `codesign` и `spctl`; `development_unsigned` допускается только с явным флагом и не является release evidence |
+| DONE-43 | Linux honesty gate | `DONE / LOCAL VERIFIED` | Linux при Windows/macOS target возвращает `not_run` + `target_host_or_python_mismatch`, без false native claim |
+| DONE-44 | Native evidence regression | `DONE / LOCAL VERIFIED` | Focused native/packaging tests: **6/6 passed**; full Python 3.14.7 suite: **265/265 passed**; `ResourceWarning`: **0** |
+
+Синхронный runbook: `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`; синхронные manifests: `packaging/windows_manifest.json`, `packaging/macos_manifest.json`. Следующий Phase 3 gate — native CI/runbook smoke contract и artifact evidence schema audit; фактические Windows/macOS builds остаются `not_run` до target hosts.
