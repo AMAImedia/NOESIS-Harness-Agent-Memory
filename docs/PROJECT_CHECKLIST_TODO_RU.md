@@ -119,7 +119,7 @@
 
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P3-01 | `.noesisskill` manifest format | Агент | `TODO` | Format version, ID, digest, declared capabilities, platform constraints and source |
+| P3-01 | `.noesisskill` manifest format | Агент | `DONE / LOCAL VERIFIED` | Strict format v1.0 with ID/version/digest/capabilities/platforms/provenance; canonical JSON; traversal/symlink/secret-key rejection; 6 tests passed, symlink case skipped only when Windows cannot create symlink; commit/remote verification pending |
 | P3-02 | Safe import pipeline | Агент | `TODO` | Stage → scan → test → approve; rejects absolute paths, traversal, symlinks and oversize |
 | P3-03 | Skill rollback | Агент | `TODO` | Failed install leaves prior verified skill intact; audit event recorded |
 | P3-04 | Hermes/DSH metadata translator | Агент | `TODO` | Only declarative metadata; no silent execution/import of foreign presets |
