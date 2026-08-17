@@ -47,3 +47,8 @@ Provider interruption is evaluated as a lifecycle event, not as a successful emp
 ## Phase 2 fault-injection gate — durable checkpoint corruption
 
 A malformed durable checkpoint is not treated as an empty state and is never passed to a runner. `FiberStore` raises `FiberCorrupt`, quarantines the record with `status='corrupted'` and `error='checkpoint_corrupt'`, and excludes it from `recoverable()`. Recovery may continue for other fibers, but the corrupted fiber requires an explicit operator repair or restore path.
+
+
+## Phase 2 fault-injection gate — session resume and rollback boundary
+
+A session interrupted during append may lose only the malformed final JSONL record. On reopen, `EventStore` repairs that tail, rebuilds the task projection, and preserves the last committed rollback state. A malformed record before a later valid record is treated as `EventStoreCorrupt` and stops replay rather than silently skipping history. A rollback transition remains resumable only through its explicit state-machine edge and a new command identifier; idempotency must not suppress a legitimate retry.

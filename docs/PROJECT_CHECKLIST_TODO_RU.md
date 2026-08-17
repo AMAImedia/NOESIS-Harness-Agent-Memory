@@ -344,3 +344,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-32 | Phase 2 resume/corruption regression | `DONE / LOCAL VERIFIED` | Fiber + chaos focused tests: **7/7 passed**; full Python 3.14.7 suite: **257/257 passed**; полный suite `ResourceWarning`: **0** |
 
 Синхронный acceptance criteria добавлен в `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — durable checkpoint corruption`. Следующий незавершённый Phase 2 gate — fault injection на session/task resume и rollback boundary; после завершения Phase 2 активируется packaging evidence gate.
+
+
+## 2026-08-17 — Phase 2 fault-injection checkpoint F-03
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-33 | Session resume после interrupted JSONL append | `DONE / LOCAL VERIFIED` | Последний malformed tail автоматически обрезается; `TaskSessionStore.resume()` восстанавливает последний committed task state |
+| DONE-34 | Rollback boundary после reopen | `DONE / LOCAL VERIFIED` | `review → rolled_back` сохраняется после reopen; повторный `rolled_back → planned` разрешён только с новым command ID |
+| DONE-35 | Middle-line event corruption | `DONE / LOCAL VERIFIED` | `EventStoreCorrupt` fail-closed останавливает replay, malformed history не пропускается молча |
+| DONE-36 | Phase 2 session/replay regression | `DONE / LOCAL VERIFIED` | Focused session/projection tests: **13/13 passed**; full Python 3.14.7 suite: **259/259 passed**; `ResourceWarning`: **0** |
+
+Синхронные критерии добавлены в `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — session resume and rollback boundary`. Phase 2 fault-injection gates завершены; следующий master gate — **Phase 3: Windows/macOS Python 3.14 packaging evidence**.

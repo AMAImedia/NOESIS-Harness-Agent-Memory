@@ -29,6 +29,10 @@ def _fingerprint(event_type: str, payload: Any) -> str:
     return hashlib.sha256(f"{event_type}\x00{canon}".encode("utf-8")).hexdigest()
 
 
+class EventStoreCorrupt(RuntimeError):
+    """A non-tail event-log record is malformed and cannot be replayed safely."""
+
+
 class EventStore:
     """Append-only JSONL event log + deterministic replay projection.
 
@@ -45,25 +49,38 @@ class EventStore:
         self._seq = 0
         self._load_seen()
 
-    def _load_seen(self) -> None:
+    def _read_records(self, repair_tail: bool = False) -> Iterable[Dict[str, Any]]:
         if not os.path.exists(self.path):
             return
-        try:
-            max_seq = 0
-            with open(self.path, "r", encoding="utf-8") as fh:
-                for line in fh:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    rec = json.loads(line)
-                    self._seen.add(rec.get("event_id", ""))
-                    seq = rec.get("seq")
-                    if isinstance(seq, int) and seq > max_seq:
-                        max_seq = seq
-            self._seq = max_seq
-        except Exception:
-            # Corrupt tail line is tolerated: we just lose its idempotency guard.
-            pass
+        with open(self.path, "rb") as source:
+            raw_lines = source.read().splitlines(keepends=True)
+        valid_offset = 0
+        for index, raw_line in enumerate(raw_lines):
+            if not raw_line.strip():
+                valid_offset += len(raw_line)
+                continue
+            try:
+                record = json.loads(raw_line.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
+                if index == len(raw_lines) - 1:
+                    if repair_tail:
+                        with open(self.path, "r+b") as fh:
+                            fh.truncate(valid_offset)
+                    return
+                raise EventStoreCorrupt("event log corruption before tail") from exc
+            if not isinstance(record, dict):
+                raise EventStoreCorrupt("event record must be an object")
+            valid_offset += len(raw_line)
+            yield record
+
+    def _load_seen(self) -> None:
+        max_seq = 0
+        for record in self._read_records(repair_tail=True) or ():
+            self._seen.add(record.get("event_id", ""))
+            seq = record.get("seq")
+            if isinstance(seq, int) and seq > max_seq:
+                max_seq = seq
+        self._seq = max_seq
 
     def register_reducer(self, event_type: str, reducer: Callable) -> None:
         """Register a reducer: (state, payload) -> state for a given event type."""
@@ -88,14 +105,8 @@ class EventStore:
             return ident
 
     def iter_events(self) -> Iterable[Dict[str, Any]]:
-        """Yield every event in append order."""
-        if not os.path.exists(self.path):
-            return
-        with open(self.path, "r", encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if line:
-                    yield json.loads(line)
+        """Yield every event in append order, repairing only a malformed tail."""
+        yield from (self._read_records(repair_tail=True) or ())
 
     def project(self, initial: Any = None) -> Any:
         """Deterministic replay: fold all events through reducers into a state."""
@@ -120,3 +131,6 @@ def project_chain(reducers: Dict[str, Callable]) -> Callable:
                 state = r(state, ev.get("payload"))
         return state
     return run
+
+
+__all__ = ["EventStore", "EventStoreCorrupt", "project_chain"]

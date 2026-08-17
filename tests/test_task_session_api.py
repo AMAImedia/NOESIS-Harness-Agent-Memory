@@ -40,6 +40,19 @@ class TaskSessionApiTests(unittest.TestCase):
         self.assertNotIn("should-drop", serialized)
         self.assertIn("safe", serialized)
 
+    def test_resume_after_interrupted_tail_preserves_rollback_boundary(self):
+        for target in ("planned", "waiting_approval", "executing", "review", "rolled_back"):
+            self.store.transition_task("task-test", target)
+        event_path = Path(self.tmp.name, "events.jsonl")
+        with event_path.open("ab") as stream:
+            stream.write(b'{"event_id":"partial","type":"task_state_changed","payload":')
+        reopened = TaskSessionStore(str(event_path))
+        resumed = reopened.resume("sess-test")
+        self.assertEqual(resumed["tasks"][0].state, "rolled_back")
+        self.assertEqual(reopened.events.count(), self.store.events.count())
+        reopened.transition_task("task-test", "planned", reason="retry-after-rollback", command_id="retry-after-rollback")
+        self.assertEqual(reopened.task("task-test").state, "planned")
+
 
 if __name__ == "__main__":
     unittest.main()
