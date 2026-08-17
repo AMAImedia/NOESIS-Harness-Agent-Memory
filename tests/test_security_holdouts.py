@@ -7,7 +7,7 @@ class SecurityHoldoutTests(unittest.TestCase):
     def test_default_corpus_is_fully_detected(self):
         suite = SecurityHoldoutSuite()
         results = suite.evaluate()
-        self.assertEqual(len(results), 12)
+        self.assertEqual(len(results), 18)
         self.assertTrue(all(result.passed for result in results), results)
         self.assertEqual(suite.pass_rate(), 1.0)
 

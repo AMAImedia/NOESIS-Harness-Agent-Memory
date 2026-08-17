@@ -163,7 +163,7 @@
 | AST syntax errors | `0` |
 | Actual AST `eval`/`exec` calls in core | `0` |
 | Non-fixture secret-like hits | `0` |
-| Synthetic security holdout markers | `1 expected fixture` in `security_holdouts.py` |
+| Synthetic security holdout markers | `1 expected fixture` in `security_holdouts.py`; corpus expanded to 18 cases; pass rate `1.00` |
 | Native macOS arm64 runner | `UNAVAILABLE`; simulated verification only |
 | Hardened OS-level sandbox | `UNAVAILABLE`; not claimed |
 
