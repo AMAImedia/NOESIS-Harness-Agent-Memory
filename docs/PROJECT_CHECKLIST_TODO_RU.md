@@ -214,3 +214,18 @@
 ## 7. Правило обновления
 
 После каждого этапа агент обновляет этот файл в том же commit, где находится изменение, и указывает: что сделано, какой тест прошёл, какой benchmark выполнен, какой статус fail-soft проверен, какой commit опубликован в private remote и какой следующий gate активен.
+
+## 6. Competitive strategy update 2026-08-17
+
+| Новый gate | Статус | Фактический результат |
+|---|---|---|
+| Cloudflare/OpenCode/Hermes research | `RESEARCHED / ROADMAP UPDATED` | Сохранены официальные findings и источники в `docs/COMPETITIVE_RESEARCH_CLOUDFLARE_OPENCODE_HERMES_2026-08-17.md`; стратегический roadmap — `docs/STRATEGIC_ROADMAP_BEYOND_COMPETITORS_RU_2026-08-17.md` |
+| Cloudflare-style operator UI | `IMPLEMENTED / LOCAL VERIFIED` | `ui_assets.py` получил workspace rail, policy/lineage, provider health, agents/workspaces, runtime telemetry и audit timeline; 237/237 tests после redesign; hidden side effects не добавлены |
+| Observation/taint lineage | `IMPLEMENTED / LOCAL VERIFIED` | `resource_lineage.py`: append-only observations, sensitivity labels, stable idempotency, taint-aware egress deny и explicit approval; 3 focused tests |
+| Documentation supply-chain safety | `IMPLEMENTED / CLEAN` | `docs_security_audit.py` scans Markdown fences; текущий tree: 0 high, 0 medium findings; policy: `docs/DOCUMENTATION_SECURITY_POLICY_RU.md` |
+| Native packaging scaffolding | `PREPARED / NATIVE GATE BLOCKED` | `packaging/noesis_portable.spec`, `scripts/build_native.py`, `scripts/noesis_portable_entry.py`; dry-run correctly blocks Linux/CPython 3.12.3 for Windows/macOS Python 3.14 targets; no signing/elevation bypass |
+| Cloudflare isolation integration | `INTERFACE REQUIRED / NOT CLAIMED` | Cloudflare Sandbox SDK is a TypeScript/Workers VM/container runtime, not a local Python dependency. NOESIS will integrate contracts/adapters and optional backend only after license, dependency and native isolation conformance review |
+
+Current strategic differentiation target: observation-aware policy follows what the agent has seen; zero-access startup; explicit typed capabilities; recovery-first memory/workspaces; Cloudflare-style operator explainability; OpenCode-style Plan/Build/Explore/Review modes; Hermes-style persistent memory/skills/gateway reach; honest external benchmark evidence.
+
+External sources: Cloudflare OS blog, Cloudflare Sandbox security model, Cloudflare Sandbox SDK, OpenCode agents/tools docs, PyInstaller operating mode/usage docs and Briefcase macOS docs are preserved in the competitive research note.
