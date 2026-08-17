@@ -101,7 +101,7 @@
 
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P1-01 | Минимальный browser UI: health, models, sessions | Агент | `TODO` | Работает поверх UI Contract, не содержит agent logic и не получает provider secrets |
+| P1-01 | Минимальный browser UI: health, models, sessions | Агент | `DONE / LOCAL VERIFIED` | `/` и `/ui` self-contained HTML; health/models fetch; sessions panel read-only; 2/2 focused tests; CSP/no-store/no-secret assertions; commit/remote verification pending |
 | P1-02 | Child-runtime supervisor | Агент | `TODO` | Random loopback port, readiness check, log path, clean stop, crash recovery |
 | P1-03 | User-data separation | Агент | `TODO` | Runtime files отделены от `%LOCALAPPDATA%\\NOESIS`, `~/Library/Application Support/NOESIS` и `NOESIS_HOME` |
 | P1-04 | Auth и LAN warning | Агент | `TODO` | Loopback default, token for non-loopback, explicit warning and negative tests |

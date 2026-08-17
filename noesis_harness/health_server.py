@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Mapping, Sequence, Tuple
 
 from .provider_registry import ProviderRegistry
+from .ui_assets import CONTROL_PLANE_HTML
 from .ui_contract import UIEnvelope, failure, health_payload
 
 
@@ -56,6 +57,17 @@ class HealthServer:
             server_version = "NOESISHealth/1"
             protocol_version = "HTTP/1.1"
 
+            def _send_html(self, body: str, code: int = 200) -> None:
+                payload = body.encode("utf-8")
+                self.send_response(code)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(payload)))
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'")
+                self.end_headers()
+                self.wfile.write(payload)
+
             def _send(self, envelope: UIEnvelope, code: int = 200) -> None:
                 body = envelope.to_json().encode("utf-8")
                 if len(body) > parent.max_request_bytes * 4:
@@ -75,10 +87,10 @@ class HealthServer:
                     self._send(parent.envelope(), 200)
                 elif self.path == "/models":
                     self._send(parent.models_envelope(), 200)
-                elif self.path == "/":
-                    self._send(parent.envelope(), 200)
+                elif self.path in {"/", "/ui"}:
+                    self._send_html(CONTROL_PLANE_HTML, 200)
                 else:
-                    self._send(failure("invalid_request", "not_found", "only GET /health and /models are supported"), 404)
+                    self._send(failure("invalid_request", "not_found", "only GET /, /ui, /health and /models are supported"), 404)
 
             def do_POST(self) -> None:  # noqa: N802
                 self._send(failure("denied", "read_only", "health endpoint is read-only"), 405)
