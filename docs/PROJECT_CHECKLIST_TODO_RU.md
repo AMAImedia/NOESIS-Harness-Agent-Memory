@@ -606,3 +606,17 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 Phase 5 закрыт только как локально проверенный Private Release Candidate. Реальные pinned Hermes/OpenCode runs, native Windows/macOS builds, Authenticode/codesign/notarization и публичная release signature остаются `NOT RUN`. Заявление «лучший в мире» до этих external evidence gates запрещено.
 
 Следующий приоритет мастер-плана: **Phase 6 External Evidence** — pinned runner execution against Hermes/OpenCode, signed evidence ingestion, reproducible A/B metrics and target-host native artifact evidence.
+
+
+## 2026-08-18 — Phase 6 External Evidence boundary
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| P6-01 | Зафиксировать NOESIS/Hermes/OpenCode architectural boundary | `DONE / LOCAL VERIFIED` | Hermes/OpenCode — только black-box baselines; core NOESIS самостоятельный и не зависит от их runtime |
+| P6-02 | Зафиксировать reproducible external A/B manifest | `DONE / LOCAL VERIFIED` | `benchmarks/external_ab_manifest_v1.json`; exact revision, same-model policy, disposable workspace, deny-by-default network |
+| P6-03 | Проверить connector-neutral runner plumbing | `DONE / LOCAL VERIFIED` | **7/7** external contract tests; dry-run, approval gate, shell-safe argv, structured outcomes |
+| P6-04 | Проверить synthetic evaluator plumbing | `DONE / LOCAL VERIFIED` | NOESIS local contract lane **10/10**, test pass rate `1.0`; synthetic-only, ranking запрещён |
+| P6-05 | Реальный pinned Hermes/OpenCode execution | `BLOCKED / EXTERNAL ENV REQUIRED` | `not_run`; exact revisions, disposable runners и operator-approved environments ещё не предоставлены |
+| P6-06 | Comparative quality report | `BLOCKED / DEPENDS ON P6-05` | Не строить ranking до signed evidence всех трёх систем |
+
+Синхронный протокол: `docs/PHASE6_EXTERNAL_EVIDENCE_PROTOCOL_RU.md`. Формулировка статуса: **NOESIS имеет подготовленный и локально проверенный external benchmark plumbing; превосходство над Hermes/OpenCode пока не доказано**.
