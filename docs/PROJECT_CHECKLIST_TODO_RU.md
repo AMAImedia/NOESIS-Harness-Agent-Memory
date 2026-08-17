@@ -620,3 +620,14 @@ Phase 5 закрыт только как локально проверенный
 | P6-06 | Comparative quality report | `BLOCKED / DEPENDS ON P6-05` | Не строить ranking до signed evidence всех трёх систем |
 
 Синхронный протокол: `docs/PHASE6_EXTERNAL_EVIDENCE_PROTOCOL_RU.md`. Формулировка статуса: **NOESIS имеет подготовленный и локально проверенный external benchmark plumbing; превосходство над Hermes/OpenCode пока не доказано**.
+
+
+## 2026-08-18 — Phase 6 pinned lane operations
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| P6-07 | Operator runbook для pinned lanes | `DONE / LOCAL VERIFIED` | `docs/PHASE6_PINNED_LANE_RUNBOOK_RU.md`: generate → validate → explicit execute → signed ingestion |
+| P6-08 | Placeholder/false-evidence prevention | `DONE / LOCAL VERIFIED` | Exact revision, manifest SHA-256, disposable workspace и HMAC key объявлены обязательными; placeholders не принимаются как evidence |
+| P6-09 | Реальный запуск lanes | `BLOCKED / EXTERNAL ENV REQUIRED` | Hermes/OpenCode exact revisions и disposable operator environments отсутствуют; статус остаётся `not_run` |
+
+Операторский runbook не включает Hermes/OpenCode в NOESIS core. Он нужен только для независимых reproducible baseline runs.
