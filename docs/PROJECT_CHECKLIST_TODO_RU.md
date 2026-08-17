@@ -552,3 +552,16 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-104 | Phase 5 security corpus regression | `DONE / LOCAL VERIFIED` | Focused tests: **11/11 passed**; full Python 3.14.7 suite: **302/302 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: cross-component end-to-end policy matrix для ContextFirewall → Gatekeeper → ChildExecutionRuntime.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-06
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-105 | TrustPlane orchestration boundary | `DONE / LOCAL VERIFIED` | Новый `noesis_harness/trust_plane.py` последовательно связывает Firewall → Lineage → Gatekeeper → Child Runtime |
+| DONE-106 | Public-path matrix | `DONE / LOCAL VERIFIED` | Public context + read capability проходят все четыре слоя и завершаются `completed` |
+| DONE-107 | Restricted-path matrix | `DONE / LOCAL VERIFIED` | Без approval restricted context останавливается на lineage и не достигает Gatekeeper/child |
+| DONE-108 | Explicit-approval matrix | `DONE / LOCAL VERIFIED` | Approval включает restricted context, но child boundary и security gates остаются обязательными |
+| DONE-109 | Cross-component regression | `DONE / LOCAL VERIFIED` | Focused tests: **4/4 passed**; full Python 3.14.7 suite: **306/306 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: audit/provenance event chain для end-to-end decision, включая denied/approved ordering и отсутствие raw restricted content.

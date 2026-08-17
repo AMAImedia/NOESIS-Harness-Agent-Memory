@@ -78,3 +78,17 @@ Lineage parent references теперь проверяются по event identit
 | Corpus stability | Все 21 default holdout cases проходят с pass rate 1.0 | `PASS` |
 
 На Python 3.14.7 security corpus + Gatekeeper focused suite: **11/11 passed**. Полный suite после T-05: **302/302 passed**; `ResourceWarning`: **0**. SecurityScanner остаётся detector/policy layer; он не выполняет найденные команды и не заменяет OS sandbox.
+
+
+## Phase 5 T-06 — End-to-end Trust Plane policy matrix
+
+`TrustPlane` теперь связывает четыре boundary последовательно: ContextFirewall → ResourceLineage egress → Gatekeeper → ChildExecutionRuntime.
+
+| Matrix case | Expected result | Фактический статус |
+|---|---|---|
+| Public context + read capability | Context included, lineage allowed, gate committed, child completed | `PASS` |
+| Restricted context without approval | Restricted item redacted; lineage egress denied; gate and child не вызываются | `PASS` |
+| Restricted context with explicit approval | Context/provenance included, egress approved, Gatekeeper approval committed, child boundary still enforced | `PASS` |
+| Security holdout target | Gatekeeper security denial precedes approval and child execution | `PASS` |
+
+На Python 3.14.7 Trust Plane matrix: **4/4 passed**. Полный suite после T-06: **306/306 passed**; `ResourceWarning`: **0**. Public success не означает обход sandbox: child runtime сохраняет shell-free, allowlist, workspace, timeout и output gates.
