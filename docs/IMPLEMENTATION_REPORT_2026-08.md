@@ -77,3 +77,18 @@ Added `noesis_harness/best_state.py` with SQLite-durable verified-state history,
 | Recovery latency | **7.320 ms** |
 
 The benchmark intentionally ends with a verified late regression. `recover()` restores the best accepted state, records one rollback event, and becomes a no-op when invoked again. This is a local measurement, not a universal performance claim.
+
+## Fiber/lease recovery integration — 2026-08-17
+
+Added `FiberStore.restore` and `RecoveryCoordinator`, joining `BestStateStore`, `FiberStore` and `WorkCoordinator`. Recovery restores only the verified best state, records an explicit fiber restore event, reclaims expired leases, and leaves live leases untouched. Missing best state or fiber is reported fail-soft rather than treated as success.
+
+| Check | Result |
+|---|---:|
+| Recovery integration tests | **2/2 passed** |
+| Full regression after integration | **100/100 passed in 2.866 s** |
+| Crash cycles benchmark | **100/100 recovered** |
+| Expired leases reclaimed | **100/100** |
+| Recovery benchmark total | **11185.187 ms** |
+| Average cycle | **111.852 ms** |
+
+The benchmark uses deterministic local SQLite state and fault-shaped late regressions. It measures the recovery control plane only; it does not claim process isolation, hardened sandboxing or universal agent quality.

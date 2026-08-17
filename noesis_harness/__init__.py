@@ -69,4 +69,5 @@ from .context_engine import ContextAssembly, ContextItem, BudgetedContextAssembl
 __all__.extend(["ContextAssembly", "ContextItem", "BudgetedContextAssembler"])
 
 from .best_state import BestStateStore, CandidateDecision, DecisionStatus, RecoveryResult, RecoveryStatus, StateRecord
-__all__.extend(["BestStateStore", "CandidateDecision", "DecisionStatus", "RecoveryResult", "RecoveryStatus", "StateRecord"])
+from .recovery import DurableRecoveryReport, RecoveryCoordinator
+__all__.extend(["BestStateStore", "CandidateDecision", "DecisionStatus", "RecoveryResult", "RecoveryStatus", "StateRecord", "DurableRecoveryReport", "RecoveryCoordinator"])

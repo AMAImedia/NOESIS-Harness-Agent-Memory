@@ -78,6 +78,26 @@ class FiberStore:
             self.audit.append("fiber", "fiber_checkpoint", {"fiber_id": fiber_id, "step": step, "status": status})
         return record
 
+    def restore(self, fiber_id: str, step: int, state: Dict[str, Any]) -> FiberRecord:
+        """Restore an explicitly verified state after a crash or late regression.
+
+        Unlike checkpoint(), restore may move to an older step, but only through
+        this explicit recovery path. The action is auditable and increments the
+        attempt counter so recovery cannot masquerade as normal progress.
+        """
+        current = self._row(fiber_id)
+        if step < 0:
+            raise ValueError("restore step cannot be negative")
+        with self._conn() as db:
+            db.execute(
+                "UPDATE fibers SET status='restored',step=?,state=?,attempt=attempt+1,error='',updated_at=? WHERE fiber_id=?",
+                (step, canonical_json(state), time.time(), fiber_id),
+            )
+        record = self._row(fiber_id)
+        if self.audit:
+            self.audit.append("fiber", "fiber_restored", {"fiber_id": fiber_id, "from_step": current.step, "to_step": step})
+        return record
+
     def recoverable(self) -> List[FiberRecord]:
         with self._conn() as db:
             ids = [r["fiber_id"] for r in db.execute("SELECT fiber_id FROM fibers WHERE status IN ('running','interrupted','checkpointed') ORDER BY updated_at")]
