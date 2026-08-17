@@ -252,3 +252,12 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | Native packaging | `SCAFFOLD READY / NATIVE BLOCKED` | `scripts/build_native.py`, `packaging/noesis_portable.spec`, `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`; Linux/3.12 fails closed for Windows/macOS/3.14 |
 | Docs security | `PASS` | 0 high, 0 medium fenced-code findings |
 | GitHub remote | `AUTH BLOCKED` | `gh auth status` and REST return invalid credentials / HTTP 401; local work may continue, remote publish waits for connector/CLI re-authentication |
+
+### World-class differentiation checkpoint
+
+| Bet | Status | Evidence |
+|---|---|---|
+| Measurable differentiation/anti-claims | `DOCUMENTED` | `docs/WORLD_CLASS_DIFFERENTIATION_BETS_RU_2026-08-17.md` defines metrics and forbids unsupported superiority claims |
+| Context firewall | `IMPLEMENTED / LOCAL VERIFIED` | `noesis_harness/context_firewall.py`: sensitivity redaction, scope enforcement, bounded context, explicit approval; 3 focused tests |
+| Provenance-aware memory | `IMPLEMENTED / LOCAL VERIFIED` | Observation ledger and taint-aware gateway egress are active primitives |
+| Full current suite | `PASS` | 243/243 tests after context firewall |
