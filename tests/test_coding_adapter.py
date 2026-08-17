@@ -25,19 +25,35 @@ def canonical_json(value):
     return json.dumps(value, sort_keys=True)
 """
 
+PARSE_ROWS = """
+import csv
+
+def parse_rows(text):
+    return list(csv.reader(text.splitlines()))
+"""
+
+REDACT = """
+import re
+
+def redact_secrets(text):
+    return re.sub(r"(?:token|secret)=[^\\s]+", "\\1=[REDACTED]", text, flags=re.I)
+"""
+
 
 class PinnedCodingAdapterTests(unittest.TestCase):
     def test_pinned_tasks_are_stable_and_all_valid_submissions_pass(self):
         adapter = PinnedCodingTaskAdapter()
         self.assertEqual(tuple(task.task_id for task in PINNED_TASKS), (
-            "normalize-words-v1", "safe-join-v1", "canonical-json-v1"
+            "normalize-words-v1", "safe-join-v1", "canonical-json-v1", "parse-csv-v1", "redact-secrets-v1"
         ))
         results = adapter.evaluate((
             ("normalize-words-v1", NORMALIZE),
             ("safe-join-v1", SAFE_JOIN),
             ("canonical-json-v1", CANONICAL),
+            ("parse-csv-v1", PARSE_ROWS),
+            ("redact-secrets-v1", REDACT),
         ))
-        self.assertEqual([result.status for result in results], ["passed", "passed", "passed"])
+        self.assertEqual([result.status for result in results], ["passed"] * 5)
         self.assertTrue(all(result.execution_status == "unavailable" for result in results))
         self.assertTrue(all(len(result.artifact_digest) == 64 for result in results))
 
@@ -49,6 +65,13 @@ class PinnedCodingAdapterTests(unittest.TestCase):
         self.assertIn("call:split", missing.failed_checks)
         self.assertEqual(forbidden.status, "failed")
         self.assertTrue(any(item.startswith("forbidden_calls:") for item in forbidden.failed_checks))
+
+    def test_forbidden_import_fails_without_execution(self):
+        adapter = PinnedCodingTaskAdapter()
+        result = adapter.verify("normalize-words-v1", "import subprocess\ndef normalize_words(text): return subprocess.run(text)")
+        self.assertEqual(result.status, "failed")
+        self.assertIn("forbidden_imports:subprocess", result.failed_checks)
+        self.assertEqual(result.execution_status, "unavailable")
 
     def test_parse_and_unknown_task_fail_soft(self):
         adapter = PinnedCodingTaskAdapter()
