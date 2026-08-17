@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -48,8 +49,10 @@ class HealthSessionApiTests(unittest.TestCase):
         with HealthServer(port=0) as server:
             base = "http://127.0.0.1:%d" % server.address[1]
             request = urllib.request.Request(base + "/api/sessions", data=b"{}", method="POST")
-            with self.assertRaises(Exception):
+            with self.assertRaises(urllib.error.HTTPError) as context:
                 urllib.request.urlopen(request, timeout=2)
+            self.assertEqual(context.exception.code, 405)
+            context.exception.close()
 
 
 if __name__ == "__main__":

@@ -35,6 +35,7 @@ class ControlPlaneUITests(unittest.TestCase):
             except urllib.error.HTTPError as error:
                 self.assertEqual(error.code, 405)
                 payload = json.loads(error.read().decode("utf-8"))
+                error.close()
                 self.assertEqual(payload["status"], "denied")
             else:
                 self.fail("POST / must remain denied")

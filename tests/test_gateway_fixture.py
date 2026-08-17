@@ -20,6 +20,7 @@ class GatewayFixtureTests(unittest.TestCase):
                 with self.assertRaises(urllib.error.HTTPError) as context:
                     urllib.request.urlopen(unauth, timeout=2)
                 self.assertEqual(context.exception.code, 401)
+                context.exception.close()
                 status = BridgeDiscovery((candidate,)).probe(candidate)
                 self.assertEqual(status.status, "unavailable")
                 auth = {"Authorization": "Bearer fixture-token-123456", "X-NOESIS-Agent": "agent-a"}

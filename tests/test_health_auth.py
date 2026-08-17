@@ -30,6 +30,7 @@ class HealthAuthTests(unittest.TestCase):
                 except urllib.error.HTTPError as error:
                     self.assertEqual(error.code, 401)
                     payload = error.read().decode("utf-8")
+                    error.close()
                     self.assertNotIn(TOKEN, payload)
                     self.assertEqual(json.loads(payload)["error"]["code"], "authentication_required")
                 else:

@@ -48,7 +48,9 @@ class HealthServerTests(unittest.TestCase):
             with urllib.request.urlopen(request, timeout=2) as response:
                 return response.status, json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
-            return error.code, json.loads(error.read().decode("utf-8"))
+            payload = json.loads(error.read().decode("utf-8"))
+            error.close()
+            return error.code, payload
 
     def test_loopback_health_response_and_clean_shutdown(self):
         server = HealthServer(runtime_version="test", port=0)

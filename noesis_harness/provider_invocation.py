@@ -94,6 +94,7 @@ class OpenAICompatibleInvocationAdapter:
                 return int(response.status), body
         except urllib.error.HTTPError as exc:
             body = exc.read(MAX_RESPONSE_BYTES + 1)
+            exc.close()
             return int(exc.code), body
         except (OSError, urllib.error.URLError) as exc:
             raise ProviderInvocationError("provider_unreachable:%s" % type(exc).__name__) from exc

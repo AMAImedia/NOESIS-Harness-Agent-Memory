@@ -311,3 +311,14 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 2. Подготовить connector-neutral runner contract для Hermes/OpenCode; фактические external runs остаются `not_run` до pinned environments.
 3. После появления Windows/macOS host evidence выполнить native build, startup/auth/shutdown smoke tests и SHA-256 artifact audit.
 4. Удалить или отдельно классифицировать оставшиеся HTTPError `ResourceWarning` в тестовых сетевых fixtures; SQLite lifecycle warnings считать закрытыми.
+
+
+## 2026-08-17 — reliability gate R-01 closure
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-24 | HTTPError lifecycle в тестовых HTTP fixtures | `DONE / LOCAL VERIFIED` | `test_control_plane_ui.py`, `test_gateway_fixture.py`, `test_health_auth.py`, `test_health_session_api.py` и `test_ui_contract_health.py` явно читают и закрывают ожидаемые HTTPError bodies |
+| DONE-25 | HTTPError lifecycle в provider/bridge transports | `DONE / LOCAL VERIFIED` | `provider_invocation.py` и `bridge_discovery.py` закрывают HTTPError после bounded read; fail-soft status contract сохранён |
+| DONE-26 | Полный reliability regression | `DONE / LOCAL VERIFIED` | Python 3.14.7: **254/254 passed**, `ResourceWarning` count: **0**, `git diff --check`: clean |
+
+**Следующий активный gate:** перейти к phase 2 master-плана — расширить fault-injection coverage для interrupted provider response, corrupted receipt, rollback/session resume и kill-at-checkpoint; код, focused tests и этот checklist обновляются в одном execution cycle.
