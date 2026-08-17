@@ -50,3 +50,17 @@
 | Idempotent observation | Повтор одинакового observation не создаёт новую запись и не сохраняет raw content | `PASS` |
 
 Lineage parent references теперь проверяются по event identity; `observations()` возвращает проверяемый `event_id`, а payload не содержит raw content. На Python 3.14.7 focused lineage suite: **5/5 passed**. Полный suite после T-03: **299/299 passed**; `ResourceWarning`: **0**.
+
+
+## Phase 5 T-04 — Gatekeeper audit and request scope
+
+| Holdout | Ожидаемое поведение | Фактический статус |
+|---|---|---|
+| Nested credential redaction | Token-like, bearer и provider credential patterns не сохраняются в audit JSONL | `PASS` |
+| Secret-key redaction | Sensitive argument keys (`token`, `api_key`, `authorization`, `password`, `secret`) исключаются из persisted payload | `PASS` |
+| Explicit request identity | Request identity включает session/task/agent/capability/action/target/side-effect digest | `PASS` |
+| Request ID collision | Один explicit `request_id` не может быть переиспользован в другой scope identity | `PASS` |
+| Idempotent replay | Повтор того же request identity возвращает текущее durable status без duplicate prepare event | `PASS` |
+| Approval boundary | `commit` остаётся permission-only и не выполняет side effect | `PASS` |
+
+На Python 3.14.7 Gatekeeper focused suite: **7/7 passed**. Полный suite после T-04: **301/301 passed**; `ResourceWarning`: **0**. Audit redaction не является доказательством удаления секретов из внешних систем: policy гарантирует, что Gatekeeper не пишет их в собственный event log.

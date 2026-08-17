@@ -55,6 +55,23 @@ class GatekeeperTests(unittest.TestCase):
         self.assertNotIn("secret-value", serialized)
         self.assertEqual(decision.status, "waiting_approval")
 
+    def test_nested_secret_patterns_are_redacted_in_audit(self):
+        value = "sk_live_12345678901234 bearer abcdefghijklmnop github_pat_123456789012345678"
+        request = CapabilityRequest("s", "t", "a", "tool.invoke", "call", "provider", "external", {"metadata": value})
+        self.gate.prepare(request)
+        serialized = Path(self.tmp.name, "gate.jsonl").read_text(encoding="utf-8")
+        self.assertNotIn("sk_live_12345678901234", serialized)
+        self.assertNotIn("abcdefghijklmnop", serialized)
+        self.assertNotIn("github_pat_123456789012345678", serialized)
+        self.assertIn("[REDACTED_SECRET]", serialized)
+
+    def test_explicit_request_id_cannot_cross_scope_identity(self):
+        first = CapabilityRequest("session-a", "task-a", "agent-a", "tool.invoke", "call", "provider", "external", {}, request_id="shared-request")
+        self.gate.prepare(first)
+        conflicting = CapabilityRequest("session-b", "task-b", "agent-b", "tool.invoke", "call", "provider", "external", {}, request_id="shared-request")
+        with self.assertRaisesRegex(GatekeeperError, "request_identity_conflict"):
+            self.gate.prepare(conflicting)
+
 
 if __name__ == "__main__":
     unittest.main()

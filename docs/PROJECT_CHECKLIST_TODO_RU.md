@@ -527,3 +527,15 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-95 | Lineage holdout regression | `DONE / LOCAL VERIFIED` | Focused tests: **5/5 passed**; full Python 3.14.7 suite: **299/299 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: Gatekeeper audit redaction и approval/request scope-confusion holdouts.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-04
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-96 | Gatekeeper credential redaction | `DONE / LOCAL VERIFIED` | Nested token/bearer/provider patterns и sensitive argument keys не сохраняются в audit JSONL |
+| DONE-97 | Request identity binding | `DONE / LOCAL VERIFIED` | Persisted `identity_digest` связывает request с session/task/agent/capability/action/target/side-effect |
+| DONE-98 | Request scope-confusion holdout | `DONE / LOCAL VERIFIED` | Повторное использование explicit `request_id` в другой identity отклоняется `request_identity_conflict` |
+| DONE-99 | Phase 5 Gatekeeper regression | `DONE / LOCAL VERIFIED` | Focused tests: **7/7 passed**; full Python 3.14.7 suite: **301/301 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: security corpus expansion и cross-component approval-bypass holdouts.

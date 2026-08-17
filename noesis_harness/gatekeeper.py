@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 import uuid
 from dataclasses import dataclass
@@ -23,6 +24,11 @@ CAPABILITIES = frozenset({
 SIDE_EFFECTS = frozenset({"none", "read", "write", "external"})
 _APPROVAL_REQUIRED = frozenset({"workspace.write", "tool.invoke", "skill.execute", "network.read", "network.write"})
 _TERMINAL = frozenset({"rejected", "committed", "expired"})
+_SECRET_PATTERNS = (
+    re.compile(r"(?i)\b(?:hf|sk|ghp|github_pat)_[A-Za-z0-9_-]{12,}\b"),
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._-]{12,}"),
+    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", re.DOTALL),
+)
 
 
 class GatekeeperError(ValueError):
@@ -47,6 +53,10 @@ class CapabilityRequest:
         seed = "\x00".join((self.session_id, self.task_id, self.agent_id, self.capability, self.action, self.target))
         return "req_" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
 
+    def identity_digest(self) -> str:
+        seed = "\x00".join((self.session_id, self.task_id, self.agent_id, self.capability, self.action, self.target, self.side_effect))
+        return "sha256:" + hashlib.sha256(seed.encode("utf-8")).hexdigest()
+
 
 @dataclass(frozen=True)
 class GateDecision:
@@ -69,7 +79,10 @@ class Gatekeeper:
         if isinstance(value, (list, tuple)):
             return [Gatekeeper._safe(item) for item in value]
         if isinstance(value, str):
-            return value.replace("ghp_", "[REDACTED]ghp_").replace("hf_", "[REDACTED]hf_")[:8192]
+            redacted = value
+            for pattern in _SECRET_PATTERNS:
+                redacted = pattern.sub("[REDACTED_SECRET]", redacted)
+            return redacted.replace("ghp_", "[REDACTED]ghp_").replace("hf_", "[REDACTED]hf_")[:8192]
         if value is None or isinstance(value, (bool, int, float)):
             return value
         return repr(value)[:8192]
@@ -106,12 +119,15 @@ class Gatekeeper:
         rid = request.normalized_id()
         existing = self._state().get(rid)
         if existing:
+            if existing.get("identity_digest") != request.identity_digest():
+                raise GatekeeperError("request_identity_conflict")
             return GateDecision(rid, existing["status"], existing.get("reason", "idempotent_replay"), existing.get("simulated", {}))
         status = "waiting_approval" if request.capability in _APPROVAL_REQUIRED or request.side_effect in {"write", "external"} else "prepared"
         reason = "human_approval_required" if status == "waiting_approval" else "read_only_capability"
         simulated = {"simulated": True, "action": request.action, "target": request.target, "side_effect": request.side_effect, "note": "No external side effect was performed."}
         now = time.time()
-        self._append("gate_prepared", {"request_id": rid, "session_id": request.session_id, "task_id": request.task_id, "agent_id": request.agent_id, "capability": request.capability, "action": request.action, "target": request.target, "side_effect": request.side_effect, "arguments": request.arguments, "status": status, "reason": reason, "simulated": simulated, "created_at": now, "updated_at": now}, rid + ":prepare")
+        self._append("gate_prepared", {"request_id": rid, "session_id": request.session_id, "task_id": request.task_id, "agent_id": request.agent_id, "capability": request.capability, "action": request.action, "target": request.target, "side_effect": request.side_effect, "arguments": request.arguments, "identity_digest": request.identity_digest(), "status": status,
+ "reason": reason, "simulated": simulated, "created_at": now, "updated_at": now}, rid + ":prepare")
         return GateDecision(rid, status, reason, simulated)
 
     def _transition(self, request_id: str, status: str, reason: str, command_id: Optional[str] = None) -> GateDecision:
