@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `8fc6561` — `feat: add macos portable data branch`
+Последний подтверждённый remote commit: `a487e4c` — `feat: add safe bridge integration coordinator`
 
-Текущий рабочий этап: **P4-02 macOS portability simulated verified; следующий gate — P4-03 wrapper decision или P5 bridge integration; macOS arm64 runner остаётся отдельным verification requirement**
+Текущий рабочий этап: **P5-00 bridge integration layer remote verified; следующий gate — P5-01 Hermes/DeepSeek integration fixtures, auth, audit и leakage tests**
 
 ## Как мы используем этот документ
 
@@ -131,7 +131,7 @@
 | P4-01 | Windows x64 portable artifact | Агент | `DONE / REMOTE VERIFIED` | Stdlib-only portable launcher; separate install/data roots; explicit NOESIS_HOME override; loopback startup probe; data sentinel survives clean stop; external bind rejected; 4/4 focused tests; 187/187 full tests; commit `75fcd87`; remote SHA `75fcd8729eb0d5e3fe75eb2176bd50a83cb4db2a`; repository remains private |
 | P4-02 | macOS arm64 portable artifact | Агент | `DONE / SIMULATED VERIFIED` | macOS `~/Library/Application Support/NOESIS` branch; explicit NOESIS_HOME override; loopback startup; data preservation; clean shutdown; 4/4 platform-simulated tests; 191/191 full tests; actual macOS arm64 runner still unavailable; commit `8fc6561`; remote SHA `8fc65612af2cefbbc1e2bb974a5b493a9c5484de`; repository remains private |
 | P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `WAITING FOR USER` | Choose wrapper only after P0–P3 prove the contract; no premature framework lock-in |
-| P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `DONE / LOCAL VERIFIED` | `BridgeIntegrationCoordinator` registers validated Hermes/DeepSeek declarations; discovery is explicit read-only; loopback/auth/capability/scope mapping and unavailable paths are fail-soft; child runtime is never started implicitly; 4/4 focused tests; commit/remote verification pending |
+| P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `DONE / REMOTE VERIFIED` | `BridgeIntegrationCoordinator` registers validated Hermes/DeepSeek declarations; discovery is explicit read-only; loopback/auth/capability/scope mapping and unavailable paths are fail-soft; child runtime is never started implicitly; 4/4 focused tests; 195/195 full tests; commit `a487e4c`; remote SHA `a487e4cd5333fcb2c5d4b1edcf72c763ede00a1a`; repository remains private |
 | P5-01 | Hermes/DeepSeek integration tests | Агент | `TODO` | Local gateway fixtures, scope mapping, auth, audit and leakage tests |
 | P5-02 | Pinned coding-task expansion | Агент | `TODO` | Expand only after the current 3-task adapter remains stable under repeated regression |
 | P6-01 | Branch protection | Владелец + агент | `WAITING FOR USER` | Owner confirms required checks/review policy; private repository remains unchanged |
