@@ -18,6 +18,7 @@ from typing import Any, Mapping
 from scripts.external_runner_contract import ALLOWED_STATUS, REQUIRED_FIELDS, validate_result
 
 SCHEMA = "noesis.runner-evidence.v1"
+METRIC_STATUS = ALLOWED_STATUS | {"observed"}
 _CREDENTIAL_PATTERNS = (
     re.compile(r"(?i)\b(?:api[_-]?key|token|password|secret)\s*[:=]\s*[^\s,;]+"),
     re.compile(r"\b(?:sk|hf|ghp|github_pat)_[A-Za-z0-9_\-]{12,}\b"),
@@ -51,7 +52,7 @@ def ingest(spec: Mapping[str, Any], result: Mapping[str, Any], key: str) -> dict
     errors.extend(result_errors)
     if spec.get("schema_version") != "noesis.external-runner.v1":
         errors.append("invalid:spec_schema")
-    for field in ("system", "revision", "task_manifest_sha256"):
+    for field in ("system", "revision", "model_provider", "task_manifest_sha256", "protocol_fingerprint"):
         if spec.get(field) != result.get(field):
             errors.append("identity_mismatch:" + field)
     if spec.get("workspace") != result.get("workspace"):
@@ -63,7 +64,7 @@ def ingest(spec: Mapping[str, Any], result: Mapping[str, Any], key: str) -> dict
         errors.append("metrics_required")
     else:
         for name, record in metrics.items():
-            if not isinstance(name, str) or not isinstance(record, Mapping) or record.get("status") not in ALLOWED_STATUS:
+            if not isinstance(name, str) or not isinstance(record, Mapping) or record.get("status") not in METRIC_STATUS:
                 errors.append("invalid:metric:" + str(name))
     if contains_credential_like(result):
         errors.append("credential_like_content")
@@ -75,6 +76,8 @@ def ingest(spec: Mapping[str, Any], result: Mapping[str, Any], key: str) -> dict
         "system": result.get("system"),
         "revision": result.get("revision"),
         "task_manifest_sha256": result.get("task_manifest_sha256"),
+        "model_provider": result.get("model_provider"),
+        "protocol_fingerprint": result.get("protocol_fingerprint"),
         "workspace": result.get("workspace"),
         "status": result.get("status", "not_run"),
         "metrics": result.get("metrics", {}),

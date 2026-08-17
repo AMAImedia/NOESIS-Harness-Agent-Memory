@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 REQUIRED_SYSTEMS = ("noesis", "hermes", "opencode")
-REQUIRED_FIELDS = ("system", "revision", "model_provider", "task_manifest_sha256", "environment", "workspace", "argv")
+REQUIRED_FIELDS = ("system", "revision", "model_provider", "task_manifest_sha256", "protocol_fingerprint", "environment", "workspace", "argv")
 ALLOWED_STATUS = frozenset({"passed", "failed", "unsupported", "not_run"})
 
 
@@ -36,12 +36,21 @@ def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha
         raise ValueError("argv must be a non-empty list of strings")
     if workspace_mode != "disposable":
         raise ValueError("workspace must be disposable")
+    protocol = {
+        "task_manifest_sha256": task_manifest_sha256,
+        "model_provider": model_provider,
+        "workspace_mode": workspace_mode,
+        "outside_access": "deny",
+        "credentials": "absent",
+    }
+    protocol_fingerprint = hashlib.sha256(json.dumps(protocol, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     return {
         "schema_version": "noesis.external-runner.v1",
         "system": system,
         "revision": revision,
         "model_provider": model_provider,
         "task_manifest_sha256": task_manifest_sha256,
+        "protocol_fingerprint": protocol_fingerprint,
         "environment": {"python": "%d.%d.%d" % sys.version_info[:3], "platform": platform.platform()},
         "workspace": {"mode": "disposable", "outside_access": "deny", "credentials": "absent"},
         "argv": list(argv),

@@ -37,3 +37,8 @@ Simulated evaluator использует expanded 13-metric schema. Локаль
 ` scripts/ingest_runner_result.py` принимает только result, совпадающий с pinned runner spec по system, revision, task-manifest SHA-256, argv и disposable workspace. Metric status ограничен `passed`, `failed`, `unsupported`, `not_run`; credential-like content, shared workspace и identity mismatch отклоняются.
 
 Принятый evidence record имеет schema `noesis.runner-evidence.v1` и HMAC-SHA256 integrity envelope. Ключ передаётся только во время запуска и не попадает в JSON. Это operator integrity/authenticity mechanism, а не замена публичной release-подписи; для внешней публикации дополнительно потребуются защищённое хранение ключа, provenance и platform signing.
+
+
+## Unified signed-evidence evaluation
+
+` scripts/evaluate_signed_ab.py` сравнивает только evidence records, у которых валидна HMAC-подпись, `accepted=true` и совпадает `protocol_fingerprint`. Fingerprint включает task-manifest SHA-256, model/provider и workspace policy. При mismatch evaluator сохраняет диагностические records, но каждый metric получает `comparable=false`; ranking не создаётся. Metric `observed` допускается только внутри record, а top-level status остаётся ограниченным (`passed`, `failed`, `unsupported`, `not_run`).

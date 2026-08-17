@@ -417,3 +417,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-57 | Phase 4 evidence regression | `DONE / LOCAL VERIFIED` | Focused tests: **8/8 passed**; full Python 3.14.7 suite: **274/274 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. HMAC envelope является operator integrity mechanism и не заявляется как публичная release signature. Hermes/OpenCode фактические evidence records всё ещё `not_run` до pinned execution.
+
+
+## 2026-08-17 — Phase 4 checkpoint A-03
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-58 | Protocol fingerprint | `DONE / LOCAL VERIFIED` | Runner spec/evidence теперь содержит fingerprint из task-manifest SHA-256, model/provider и workspace policy |
+| DONE-59 | Unified signed-evidence evaluator | `DONE / LOCAL VERIFIED` | `scripts/evaluate_signed_ab.py` принимает только accepted evidence с валидной HMAC-подписью |
+| DONE-60 | Comparable-metric gate | `DONE / LOCAL VERIFIED` | При общем fingerprint numeric `observed` metrics могут сравниваться; при mismatch или tamper все metrics получают `comparable=false`, ranking не создаётся |
+| DONE-61 | Phase 4 evaluation regression | `DONE / LOCAL VERIFIED` | Focused tests: **11/11 passed**; full Python 3.14.7 suite: **277/277 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Фактические Hermes/OpenCode records всё ещё `not_run`; evaluator не создаёт сравнительный результат без pinned protocol fingerprint.
