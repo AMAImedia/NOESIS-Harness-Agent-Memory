@@ -12,7 +12,7 @@ This note records the current release-gate state for the private repository `AMA
 | Visibility | Private (`isPrivate=true`, `visibility=PRIVATE`) |
 | Default branch | `main` |
 | Local branch | `main`, clean working tree |
-| Local/remote SHA | `d5b7b4c646b50465b40e2b3f093915ee442eb3ed` on both |
+| Local/remote SHA | `d3694dd26f4fdc8eacb95428417d8645d12c02a8` on both |
 | Remote | `https://github.com/AMAImedia/NOESIS-Harness-Agent-Memory.git` |
 
 ## Existing CI gates
@@ -43,6 +43,10 @@ Recommended baseline settings are: require a pull request before merging; requir
 | Benchmark required on PR | No, unless workflow trigger is changed | Waiting for owner |
 | PyPI publish required on PR | No | Waiting for owner |
 
+## Current platform limitation
+
+A read-only GitHub API check for `branches/main/protection` returned HTTP 403 with the message: `Upgrade to GitHub Pro or make this repository public to enable this feature.` No setting was changed. Therefore, branch protection cannot be enabled for this private repository under the currently available plan. The repository remains private by policy; making it public is a separate owner decision and is not an acceptable workaround without explicit approval.
+
 ## Next safe action
 
-The next safe action is to obtain owner confirmation for the table above, then inspect one real pull request’s check-run names before applying protection. Applying branch protection is intentionally deferred because it changes repository governance settings and can block merges if check names or review rules are incorrect.
+The next safe action is to obtain owner confirmation for the table above, keep the policy documented, and inspect one real pull request’s check-run names if/when branch protection becomes available. Applying branch protection is intentionally deferred because the current GitHub plan rejects it and because governance settings must not be changed without owner approval.

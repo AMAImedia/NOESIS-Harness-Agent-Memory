@@ -55,7 +55,7 @@
 | Secret-pattern scan | **clean** |
 | Actual AST `eval`/`exec` calls in core | **0** |
 | Current GitHub visibility | **Private** |
-| Branch protection | **Не включена** |
+| Branch protection | **Не включена; GitHub API HTTP 403: plan upgrade or public repository required** |
 
 ## 3. Активный TODO: Portable Control Plane
 
@@ -134,14 +134,14 @@
 | P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `DONE / REMOTE VERIFIED` | `BridgeIntegrationCoordinator` registers validated Hermes/DeepSeek declarations; discovery is explicit read-only; loopback/auth/capability/scope mapping and unavailable paths are fail-soft; child runtime is never started implicitly; 4/4 focused tests; 195/195 full tests; commit `a487e4c`; remote SHA `a487e4cd5333fcb2c5d4b1edcf72c763ede00a1a`; repository remains private |
 | P5-01 | Hermes/DeepSeek integration tests | Агент | `DONE / REMOTE VERIFIED` | Local stdlib gateway fixtures for Hermes/DeepSeek; auth and readiness probes; audit JSONL without credential/payload leakage; per-agent audit identity; 4/4 focused tests; 199/199 full tests; commit `36c5d2d`; remote SHA `36c5d2dfe6a23ec863344fe273ef1f2c20eece60`; repository remains private |
 | P5-02 | Pinned coding-task expansion | Агент | `DONE / REMOTE VERIFIED` | Expanded static AST corpus from 3 to 5 pinned tasks; added CSV parsing and secret redaction tasks; forbidden imports (`subprocess`, `ctypes`, `pickle`, `marshal`, `socket`) denied; dynamic execution remains `unavailable`; 5/5 focused tests; 200/200 full tests; commit `228d1b3`; remote SHA `228d1b35bef2fb27c5cfa0f4ec6573a3bbb57803`; repository remains private |
-| P6-01 | Branch protection | Владелец + агент | `AUDIT READY / WAITING FOR USER` | Audit `docs/P6-01_BRANCH_PROTECTION_AUDIT_2026-08-17.md`; proposed checks: four Python matrix checks + lint + build; benchmark and PyPI publish are not required; owner confirms review policy; private repository remains unchanged |
+| P6-01 | Branch protection | Владелец + агент | `AUDIT READY / PLATFORM BLOCKED / WAITING FOR USER` | Audit `docs/P6-01_BRANCH_PROTECTION_AUDIT_2026-08-17.md`; proposed checks: four Python matrix checks + lint + build; benchmark and PyPI publish are not required; owner confirms review policy; private repository remains unchanged |
 | P6-02 | Public release decision | Владелец | `WAITING FOR USER` | Explicit owner approval after release audit; no automatic visibility change |
 
 ## 5. Release-readiness audit 2026-08-17
 
 | Проверка | Результат |
 |---|---:|
-| Local/remote SHA consistency | `PASS`; current remote commit `d5b7b4c646b50465b40e2b3f093915ee442eb3ed` |
+| Local/remote SHA consistency | `PASS`; current remote commit `d3694dd26f4fdc8eacb95428417d8645d12c02a8` |
 | Private visibility | `PASS`; repository remains private |
 | Full regression | `200/200 passed` |
 | Recall benchmark | `20/20`, accuracy `1.00` |
