@@ -392,3 +392,16 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-48 | Phase 3 contract regression | `DONE / LOCAL VERIFIED` | Focused packaging contract tests: **7/7 passed**; full Python 3.14.7 suite: **266/266 passed**; `ResourceWarning`: **0** |
 
 Синхронный runbook: `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`. Phase 3 native target-host evidence всё ещё `not_run`; CI contract не подменяет реальный Windows/macOS build, signing или notarization.
+
+
+## 2026-08-17 — Phase 4 checkpoint A-01
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-49 | Expanded deterministic A/B metric schema | `DONE / LOCAL VERIFIED` | Evaluator теперь различает `observed` и `not_run` для task success, test pass rate, latency, patch correctness, context retention, budget, egress, credentials, approval bypass, workspace escape, recovery и human review/operator burden |
+| DONE-50 | Connector-neutral pinned runner contract | `DONE / LOCAL VERIFIED` | Добавлен `scripts/external_runner_contract.py`: exact revision, task-manifest SHA-256, model/provider, argv array без shell interpolation, disposable workspace, no credentials и explicit status enum |
+| DONE-51 | External result validation | `DONE / LOCAL VERIFIED` | `passed`, `failed`, `unsupported`, `not_run` принимаются явно; shared workspace и shell-string command fail-closed |
+| DONE-52 | Phase 4 evaluator/runner regression | `DONE / LOCAL VERIFIED` | Focused tests: **8/8 passed**; simulated report содержит **13 metric records**; full Python 3.14.7 suite: **270/270 passed**; `ResourceWarning`: **0** |
+| DONE-53 | Python 3.14 test fixture lifecycle hygiene | `DONE / LOCAL VERIFIED` | `tests/test_fibers.py` больше не полагается на SQLite context manager как на close; explicit `db.close()` устраняет allocation-traced warnings |
+
+Синхронный runner policy: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Hermes/OpenCode реальные execution lanes остаются `not_run` до pinned revisions/native runners; текущий report не выдаёт ranking.

@@ -36,7 +36,7 @@ def run_noesis_contract_lane() -> dict:
         "test_pass_rate": {"status": "observed", "value": round(passed / total, 6) if total else 0.0},
         "latency_ms": {"status": "observed", "value": latency_ms},
     }
-    for metric in ("patch_correctness", "token_or_cost_budget", "unauthorized_egress", "credential_exposure", "approval_bypass", "workspace_escape", "kill_timeout_recovery", "human_review_seconds"):
+    for metric in ("patch_correctness", "context_retention", "token_or_cost_budget", "unauthorized_egress", "credential_exposure", "approval_bypass", "workspace_escape", "kill_timeout_recovery", "human_review_seconds", "operator_error_rate"):
         observed[metric] = {"status": "not_run", "reason": "not measured by deterministic contract lane"}
     return {"execution": "observed_local", "status": status, "metrics": {"contract_cases_passed": passed, "contract_cases_failed": failed, "contract_cases_not_run": int(summary.get("not_run", 0)), "metric_records": observed}}
 

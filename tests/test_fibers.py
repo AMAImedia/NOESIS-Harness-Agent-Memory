@@ -38,13 +38,20 @@ class FiberTests(unittest.TestCase):
             db_path = str(Path(d) / "fibers.db")
             store = FiberStore(db_path)
             fid = store.register("corruptible")
-            with sqlite3.connect(db_path) as db:
+            db = sqlite3.connect(db_path)
+            try:
                 db.execute("UPDATE fibers SET state=? WHERE fiber_id=?", ("{not-json", fid))
+                db.commit()
+            finally:
+                db.close()
             with self.assertRaisesRegex(FiberCorrupt, "checkpoint_corrupt"):
                 store.resume(fid, lambda step, state, payload: {"step": step + 1, "state": {}, "done": True})
             self.assertEqual(store.recoverable(), [])
-            with sqlite3.connect(db_path) as db:
+            db = sqlite3.connect(db_path)
+            try:
                 status, error = db.execute("SELECT status,error FROM fibers WHERE fiber_id=?", (fid,)).fetchone()
+            finally:
+                db.close()
             self.assertEqual((status, error), ("corrupted", "checkpoint_corrupt"))
 
 

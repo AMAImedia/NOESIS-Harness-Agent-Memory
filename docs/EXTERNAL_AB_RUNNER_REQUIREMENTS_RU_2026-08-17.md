@@ -23,3 +23,10 @@ External execution cannot be claimed from documentation alone. Hermes/OpenCode m
 [1]: https://github.com/NousResearch/hermes-agent "NousResearch Hermes Agent repository and CLI documentation"
 [2]: https://opencode.ai/docs/ "OpenCode official getting started documentation"
 [3]: https://opencode.ai/docs/agents/ "OpenCode official agents and permissions documentation"
+
+
+## Реализованный connector-neutral contract
+
+` scripts/external_runner_contract.py` формирует `noesis.external-runner.v1`: команда хранится как argv-массив, а не shell string; фиксируются exact revision, SHA-256 task manifest, model/provider, disposable workspace, deny outside access и отсутствие credentials. Contract builder только создаёт spec и не запускает Hermes/OpenCode. Validator принимает только `passed`, `failed`, `unsupported` или `not_run` и fail-closed отклоняет shared workspace или shell-string command.
+
+Simulated evaluator использует expanded 13-metric schema. Локальная contract lane может наблюдать только deterministic contract metrics; patch correctness, context retention, provider cost, egress, credential exposure, approval bypass, workspace escape, kill/timeout recovery и operator burden остаются `not_run`, пока не появится pinned external runner.
