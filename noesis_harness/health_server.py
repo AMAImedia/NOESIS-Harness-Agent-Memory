@@ -1,10 +1,11 @@
 """Small read-only stdlib HTTP health endpoint for the NOESIS control plane."""
 from __future__ import annotations
 
+import hmac
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Mapping, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from .provider_registry import ProviderRegistry
 from .ui_assets import CONTROL_PLANE_HTML
@@ -19,9 +20,14 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Mapping[str, str] | None = None, unavailable_reasons: Sequence[str] = (), provider_registry: ProviderRegistry | None = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096):
-        if host not in {"127.0.0.1", "localhost", "::1"}:
-            raise ValueError("health server defaults to loopback; non-loopback requires an explicit external adapter")
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False):
+        loopback = host in {"127.0.0.1", "localhost", "::1"}
+        if not loopback and not allow_non_loopback:
+            raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
+        if not loopback and (not auth_token or len(str(auth_token)) < 16):
+            raise ValueError("non-loopback adapter requires an auth token of at least 16 characters")
+        if not loopback and not acknowledge_lan_warning:
+            raise ValueError("non-loopback adapter requires explicit LAN warning acknowledgement")
         if not (0 <= int(port) <= 65535):
             raise ValueError("port must be in 0..65535")
         if not (256 <= int(max_request_bytes) <= 1_048_576):
@@ -33,6 +39,9 @@ class HealthServer:
         self.host = host
         self.port = int(port)
         self.max_request_bytes = int(max_request_bytes)
+        self.allow_non_loopback = bool(allow_non_loopback)
+        self._auth_token = str(auth_token) if auth_token else None
+        self.lan_warning = "authenticated non-loopback adapter; do not expose to untrusted networks" if not loopback else "loopback-only"
         self._server: _HealthHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -64,6 +73,7 @@ class HealthServer:
                 self.send_header("Content-Length", str(len(payload)))
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("X-NOESIS-Network-Warning", parent.lan_warning)
                 self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'")
                 self.end_headers()
                 self.wfile.write(payload)
@@ -79,10 +89,24 @@ class HealthServer:
                 self.send_header("Content-Length", str(len(body)))
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("X-NOESIS-Network-Warning", parent.lan_warning)
                 self.end_headers()
                 self.wfile.write(body)
 
+            def _authorized(self) -> bool:
+                if parent._auth_token is None:
+                    return True
+                supplied = self.headers.get("Authorization", "")
+                expected = "Bearer " + parent._auth_token
+                return hmac.compare_digest(supplied, expected)
+
+            def _send_unauthorized(self) -> None:
+                self._send(failure("denied", "authentication_required", "valid bearer authentication is required"), 401)
+
             def do_GET(self) -> None:  # noqa: N802
+                if not self._authorized():
+                    self._send_unauthorized()
+                    return
                 if self.path == "/health":
                     self._send(parent.envelope(), 200)
                 elif self.path == "/models":
@@ -93,6 +117,9 @@ class HealthServer:
                     self._send(failure("invalid_request", "not_found", "only GET /, /ui, /health and /models are supported"), 404)
 
             def do_POST(self) -> None:  # noqa: N802
+                if not self._authorized():
+                    self._send_unauthorized()
+                    return
                 self._send(failure("denied", "read_only", "health endpoint is read-only"), 405)
 
             def log_message(self, *_args: Any) -> None:
