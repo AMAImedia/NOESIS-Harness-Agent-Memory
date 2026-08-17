@@ -293,3 +293,21 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | Bubblewrap Linux backend | `PASS — LINUX SUBSET` | Network deny, host project path blocked, workspace-only write binding |
 | Native Windows/macOS evidence | `NOT RUN` | Requires matching native hosts/runners |
 | External Hermes/OpenCode execution | `NOT RUN` | Requires pinned runners, exact revisions and same model/provider |
+
+
+## 2026-08-17 — reliability и packaging checkpoint
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-19 | SQLite lifecycle cleanup для Memory/Budget/Coordination/Graph/HITL/Queue | `DONE / LOCAL VERIFIED` | Все `with self._conn()` stores переведены на `_ManagedConnection`; Python 3.14 full suite больше не показывает SQLite connection warnings; оставшиеся 6 предупреждений относятся к cleanup HTTPError в `tempfile`, не к SQLite |
+| DONE-20 | Chaos/recovery regression suite | `DONE / LOCAL VERIFIED` | `tests/test_chaos_recovery.py`: kill during write, interrupted provider response/requeue, corrupted receipt fail-closed, idempotent best-state recovery; 4/4 passed |
+| DONE-21 | Full regression after reliability changes | `DONE / LOCAL VERIFIED` | Python 3.14.7: **254/254 passed**; `git diff --check` clean |
+| DONE-22 | Static Windows/macOS native packaging manifests | `DONE / LOCAL VERIFIED` | `packaging/windows_manifest.json`, `packaging/macos_manifest.json`; explicit Python 3.14, target-host build, checksum and no-secret gates |
+| DONE-23 | Native builder dry-run honesty gate | `DONE / LOCAL VERIFIED` | `scripts/build_native.py`: Python 3.14 gate passes; Linux host correctly returns target mismatch for Windows/macOS, therefore no false native artifact claim |
+
+### Следующий execution order
+
+1. Расширить локальный A/B evaluator метриками patch correctness, recovery, egress, credential leakage, approval bypass и human-review time.
+2. Подготовить connector-neutral runner contract для Hermes/OpenCode; фактические external runs остаются `not_run` до pinned environments.
+3. После появления Windows/macOS host evidence выполнить native build, startup/auth/shutdown smoke tests и SHA-256 artifact audit.
+4. Удалить или отдельно классифицировать оставшиеся HTTPError `ResourceWarning` в тестовых сетевых fixtures; SQLite lifecycle warnings считать закрытыми.

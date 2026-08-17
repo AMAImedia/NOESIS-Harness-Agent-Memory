@@ -1,0 +1,32 @@
+{
+  "schema_version": "noesis.native-packaging-manifest.v1",
+  "product": "NOESIS-Harness-Agent-Memory",
+  "target": "macos",
+  "artifact": "NOESIS-Harness-Agent-Memory.app",
+  "runtime": {
+    "python": "3.14.x",
+    "policy": "python-3.14-only",
+    "bundled": true
+  },
+  "backends": [
+    {
+      "name": "pyinstaller",
+      "command": "python3.14 scripts/build_native.py --backend pyinstaller --target macos --run",
+      "mode": "onedir"
+    },
+    {
+      "name": "briefcase",
+      "command": "python3.14 scripts/build_native.py --backend briefcase --target macos --run",
+      "mode": "native-package"
+    }
+  ],
+  "verification": [
+    "python3.14 --version starts with Python 3.14",
+    "python3.14 scripts/verify_python314.py",
+    "python3.14 -m unittest discover -s tests -q",
+    "codesign and notarization are performed by the operator on the target host",
+    "sha256 manifest generated after build",
+    "no credentials or model weights included"
+  ],
+  "evidence_status": "static-manifest-only-until-built-on-macos"
+}

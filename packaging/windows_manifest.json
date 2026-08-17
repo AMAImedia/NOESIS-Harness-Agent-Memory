@@ -1,0 +1,31 @@
+{
+  "schema_version": "noesis.native-packaging-manifest.v1",
+  "product": "NOESIS-Harness-Agent-Memory",
+  "target": "windows",
+  "artifact": "noesis-harness.exe",
+  "runtime": {
+    "python": "3.14.x",
+    "policy": "python-3.14-only",
+    "bundled": true
+  },
+  "backends": [
+    {
+      "name": "pyinstaller",
+      "command": "py -3.14 scripts\\build_native.py --backend pyinstaller --target windows --run",
+      "mode": "onedir"
+    },
+    {
+      "name": "briefcase",
+      "command": "py -3.14 scripts\\build_native.py --backend briefcase --target windows --run",
+      "mode": "native-package"
+    }
+  ],
+  "verification": [
+    "python --version starts with Python 3.14",
+    "scripts\\verify_python314.py",
+    "python -m unittest discover -s tests -q",
+    "sha256 manifest generated after build",
+    "no credentials or model weights included"
+  ],
+  "evidence_status": "static-manifest-only-until-built-on-windows"
+}

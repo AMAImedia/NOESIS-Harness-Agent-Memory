@@ -31,6 +31,11 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from .nextgen import _ManagedConnection
+except ImportError:
+    from nextgen import _ManagedConnection
+
 log = __import__("logging").getLogger(__name__)
 
 
@@ -70,7 +75,7 @@ class Memory:
         self._init()
 
     def _conn(self):
-        c = sqlite3.connect(self.db_path, timeout=10)
+        c = sqlite3.connect(self.db_path, timeout=10, factory=_ManagedConnection)
         c.row_factory = sqlite3.Row
         c.execute("PRAGMA journal_mode=WAL")
         return c

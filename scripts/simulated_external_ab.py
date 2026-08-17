@@ -8,6 +8,7 @@ import platform
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,6 +17,7 @@ MANIFEST = ROOT / "benchmarks" / "external_ab_manifest_v1.json"
 
 
 def run_noesis_contract_lane() -> dict:
+    started = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix="noesis-sim-ab-") as temp_dir:
         result_path = Path(temp_dir) / "noesis-contracts.json"
         proc = subprocess.run([sys.executable, str(ROOT / "scripts" / "benchmark_contracts.py"), "--output", str(result_path)], cwd=ROOT, text=True, capture_output=True, check=False)
@@ -24,7 +26,19 @@ def run_noesis_contract_lane() -> dict:
         except (FileNotFoundError, json.JSONDecodeError):
             data = {"summary": {"passed": 0, "failed": 1, "not_run": 0}, "parse_error": proc.stderr[-1000:]}
     summary = data.get("summary", {})
-    return {"execution": "observed_local", "status": "passed" if summary.get("failed", 1) == 0 else "failed", "metrics": {"contract_cases_passed": summary.get("passed", 0), "contract_cases_failed": summary.get("failed", 0), "contract_cases_not_run": summary.get("not_run", 0)}}
+    passed = int(summary.get("passed", 0))
+    failed = int(summary.get("failed", 0))
+    total = passed + failed + int(summary.get("not_run", 0))
+    status = "passed" if failed == 0 else "failed"
+    latency_ms = round((time.perf_counter() - started) * 1000.0, 2)
+    observed = {
+        "task_success": {"status": "observed", "value": 1.0 if status == "passed" else 0.0},
+        "test_pass_rate": {"status": "observed", "value": round(passed / total, 6) if total else 0.0},
+        "latency_ms": {"status": "observed", "value": latency_ms},
+    }
+    for metric in ("patch_correctness", "token_or_cost_budget", "unauthorized_egress", "credential_exposure", "approval_bypass", "workspace_escape", "kill_timeout_recovery", "human_review_seconds"):
+        observed[metric] = {"status": "not_run", "reason": "not measured by deterministic contract lane"}
+    return {"execution": "observed_local", "status": status, "metrics": {"contract_cases_passed": passed, "contract_cases_failed": failed, "contract_cases_not_run": int(summary.get("not_run", 0)), "metric_records": observed}}
 
 
 def main() -> int:
