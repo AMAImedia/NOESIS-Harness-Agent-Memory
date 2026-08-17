@@ -631,3 +631,16 @@ Phase 5 закрыт только как локально проверенный
 | P6-09 | Реальный запуск lanes | `BLOCKED / EXTERNAL ENV REQUIRED` | Hermes/OpenCode exact revisions и disposable operator environments отсутствуют; статус остаётся `not_run` |
 
 Операторский runbook не включает Hermes/OpenCode в NOESIS core. Он нужен только для независимых reproducible baseline runs.
+
+
+## 2026-08-18 — Phase 6 dry-run smoke verification
+
+| Проверка | Результат |
+|---|---|
+| NOESIS pinned plan | `PASS`: `execution=not_started`, approval required |
+| Hermes pinned plan template | `PASS`: `execution=not_started`, approval required |
+| OpenCode pinned plan template | `PASS`: `execution=not_started`, approval required |
+| Execute without `--approve` | `PASS`: `execution=denied`, `status=not_run` |
+| Process safety | Во время smoke verification ни один external process не запускался |
+
+Это только control-plane smoke verification с локальными dry-run revisions и не является external A/B evidence.
