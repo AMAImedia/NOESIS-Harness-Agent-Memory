@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `75fcd87` — `feat: add stdlib portable launcher boundary`
+Последний подтверждённый remote commit: `8fc6561` — `feat: add macos portable data branch`
 
-Текущий рабочий этап: **P4-01 Windows portable launch boundary remote verified; следующий gate — P4-02 macOS arm64 portability**
+Текущий рабочий этап: **P4-02 macOS portability simulated verified; следующий gate — P4-03 wrapper decision или P5 bridge integration; macOS arm64 runner остаётся отдельным verification requirement**
 
 ## Как мы используем этот документ
 
@@ -129,7 +129,7 @@
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
 | P4-01 | Windows x64 portable artifact | Агент | `DONE / REMOTE VERIFIED` | Stdlib-only portable launcher; separate install/data roots; explicit NOESIS_HOME override; loopback startup probe; data sentinel survives clean stop; external bind rejected; 4/4 focused tests; 187/187 full tests; commit `75fcd87`; remote SHA `75fcd8729eb0d5e3fe75eb2176bd50a83cb4db2a`; repository remains private |
-| P4-02 | macOS arm64 portable artifact | Агент | `DONE / SIMULATED VERIFIED` | macOS `~/Library/Application Support/NOESIS` branch; explicit NOESIS_HOME override; loopback startup; data preservation; clean shutdown; 4/4 platform-simulated tests; actual macOS arm64 runner still unavailable; commit/remote verification pending |
+| P4-02 | macOS arm64 portable artifact | Агент | `DONE / SIMULATED VERIFIED` | macOS `~/Library/Application Support/NOESIS` branch; explicit NOESIS_HOME override; loopback startup; data preservation; clean shutdown; 4/4 platform-simulated tests; 191/191 full tests; actual macOS arm64 runner still unavailable; commit `8fc6561`; remote SHA `8fc65612af2cefbbc1e2bb974a5b493a9c5484de`; repository remains private |
 | P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `WAITING FOR USER` | Choose wrapper only after P0–P3 prove the contract; no premature framework lock-in |
 | P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `TODO` | Optional adapters use the versioned UI contract; Hermes and DeepSeek runtime remain child processes; local loopback, auth, model capability mapping, scope mapping and unavailable paths tested |
 | P5-01 | Hermes/DeepSeek integration tests | Агент | `TODO` | Local gateway fixtures, scope mapping, auth, audit and leakage tests |
