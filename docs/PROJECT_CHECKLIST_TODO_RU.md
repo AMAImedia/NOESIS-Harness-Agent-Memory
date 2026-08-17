@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `36c5d2d` — `test: add local gateway auth and leakage fixtures`
+Последний подтверждённый remote commit: `228d1b3` — `feat: expand pinned static coding corpus`
 
-Текущий рабочий этап: **P5-01 gateway fixtures/auth/audit/leakage remote verified; следующий gate — P5-02 pinned coding-task expansion**
+Текущий рабочий этап: **P5-02 expanded static coding corpus remote verified; следующий gate — release-readiness audit и owner decisions по branch protection/wrapper/public release**
 
 ## Как мы используем этот документ
 
@@ -133,7 +133,7 @@
 | P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `WAITING FOR USER` | Choose wrapper only after P0–P3 prove the contract; no premature framework lock-in |
 | P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `DONE / REMOTE VERIFIED` | `BridgeIntegrationCoordinator` registers validated Hermes/DeepSeek declarations; discovery is explicit read-only; loopback/auth/capability/scope mapping and unavailable paths are fail-soft; child runtime is never started implicitly; 4/4 focused tests; 195/195 full tests; commit `a487e4c`; remote SHA `a487e4cd5333fcb2c5d4b1edcf72c763ede00a1a`; repository remains private |
 | P5-01 | Hermes/DeepSeek integration tests | Агент | `DONE / REMOTE VERIFIED` | Local stdlib gateway fixtures for Hermes/DeepSeek; auth and readiness probes; audit JSONL without credential/payload leakage; per-agent audit identity; 4/4 focused tests; 199/199 full tests; commit `36c5d2d`; remote SHA `36c5d2dfe6a23ec863344fe273ef1f2c20eece60`; repository remains private |
-| P5-02 | Pinned coding-task expansion | Агент | `DONE / LOCAL VERIFIED` | Expanded static AST corpus from 3 to 5 pinned tasks; added CSV parsing and secret redaction tasks; forbidden imports (`subprocess`, `ctypes`, `pickle`, `marshal`, `socket`) denied; dynamic execution remains `unavailable`; 5/5 focused tests; commit/remote verification pending |
+| P5-02 | Pinned coding-task expansion | Агент | `DONE / REMOTE VERIFIED` | Expanded static AST corpus from 3 to 5 pinned tasks; added CSV parsing and secret redaction tasks; forbidden imports (`subprocess`, `ctypes`, `pickle`, `marshal`, `socket`) denied; dynamic execution remains `unavailable`; 5/5 focused tests; 200/200 full tests; commit `228d1b3`; remote SHA `228d1b35bef2fb27c5cfa0f4ec6573a3bbb57803`; repository remains private |
 | P6-01 | Branch protection | Владелец + агент | `WAITING FOR USER` | Owner confirms required checks/review policy; private repository remains unchanged |
 | P6-02 | Public release decision | Владелец | `WAITING FOR USER` | Explicit owner approval after release audit; no automatic visibility change |
 
