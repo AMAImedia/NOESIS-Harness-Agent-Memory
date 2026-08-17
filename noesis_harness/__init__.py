@@ -77,3 +77,6 @@ from .memory_ab import ControlledMemoryEvaluator, MemoryABCase, MemoryABOutcome
 __all__.extend(["ControlledMemoryEvaluator", "MemoryABCase", "MemoryABOutcome"])
 from .security_holdouts import DEFAULT_HOLDOUTS, SecurityHoldoutCase, SecurityHoldoutResult, SecurityHoldoutSuite
 __all__.extend(["DEFAULT_HOLDOUTS", "SecurityHoldoutCase", "SecurityHoldoutResult", "SecurityHoldoutSuite"])
+from .coding_adapter import CodingSuiteSummary, CodingVerification, PINNED_TASKS, PinnedCodingTask, PinnedCodingTaskAdapter
+from .isolation_holdouts import CrossAgentLeakageSuite, IsolationHoldoutResult
+__all__.extend(["CodingSuiteSummary", "CodingVerification", "PINNED_TASKS", "PinnedCodingTask", "PinnedCodingTaskAdapter", "CrossAgentLeakageSuite", "IsolationHoldoutResult"])
