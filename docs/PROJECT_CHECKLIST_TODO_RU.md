@@ -229,3 +229,16 @@
 Current strategic differentiation target: observation-aware policy follows what the agent has seen; zero-access startup; explicit typed capabilities; recovery-first memory/workspaces; Cloudflare-style operator explainability; OpenCode-style Plan/Build/Explore/Review modes; Hermes-style persistent memory/skills/gateway reach; honest external benchmark evidence.
 
 External sources: Cloudflare OS blog, Cloudflare Sandbox security model, Cloudflare Sandbox SDK, OpenCode agents/tools docs, PyInstaller operating mode/usage docs and Briefcase macOS docs are preserved in the competitive research note.
+
+### Gateway and isolation implementation checkpoint
+
+| Capability | Status | Boundary |
+|---|---|---|
+| Provider route registry | `IMPLEMENTED / TESTED` | Typed provider/model/capability pins; health snapshot is redacted and JSON-safe |
+| External network gateway | `IMPLEMENTED / FAIL-CLOSED` | External route requires explicit approval; no injected transport means `not_run`; no hidden network call |
+| Payload guard | `IMPLEMENTED / TESTED` | Bounded serialized request body; oversized payload is denied |
+| Observation-aware egress | `IMPLEMENTED / TESTED` | Gateway consults observation ledger and denies tainted egress without approval |
+| Cloudflare Sandbox integration | `ADAPTER ROADMAP` | Local code uses contracts and telemetry patterns; Cloudflare SDK remains optional TypeScript/Workers backend, not copied as a fake local VM |
+| UI telemetry | `IMPLEMENTED / LOCAL VERIFIED` | Provider health, policy/lineage, runtime telemetry and audit timeline sections are present in the Cloudflare-style operator console |
+
+Latest uncommitted gateway checkpoint is not release-ready until local/remote SHA are synchronized again.
