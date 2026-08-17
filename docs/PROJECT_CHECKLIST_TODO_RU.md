@@ -280,3 +280,16 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | Same budgets/permissions | `DEFINED` | 300s wall time, 20 steps, 32K context, 64K tool output, network deny-by-default |
 | Evaluator metrics | `DEFINED` | Success, patch correctness, latency, cost, unauthorized egress, credential exposure, approval bypass, workspace escape, recovery and human review |
 | Evidence rules | `FAIL-CLOSED` | `not_run` is not passed; unsupported is not zero failure; missing revision/seed digest blocks run |
+
+### Python 3.14 / simulated A/B / hardened sandbox evidence
+
+| Gate | Status | Note |
+|---|---|---|
+| Official CPython 3.14.7 Linux runtime | `PASS` | Source tarball SHA-256 verified; isolated runtime built under `runtime/python-3.14.7/` |
+| NOESIS suite on 3.14.7 | `PASS` | 250/250 tests |
+| Contract benchmark on 3.14.7 | `PASS` | 10/10 cases |
+| Simulated external A/B | `SIMULATION ONLY` | NOESIS observed locally; Hermes/OpenCode explicitly `not_run` |
+| Native build guard | `FAIL-CLOSED PASS` | 3.14 accepted; Linux correctly blocks Windows/macOS target packaging |
+| Bubblewrap Linux backend | `PASS — LINUX SUBSET` | Network deny, host project path blocked, workspace-only write binding |
+| Native Windows/macOS evidence | `NOT RUN` | Requires matching native hosts/runners |
+| External Hermes/OpenCode execution | `NOT RUN` | Requires pinned runners, exact revisions and same model/provider |
