@@ -10,6 +10,8 @@
 
 Последний подтверждённый remote commit: `ba9ccce` — `docs: add portable UI integration roadmap`
 
+Текущий рабочий этап: **P0-01/P0-02 реализованы локально; ожидается commit и private remote verification**
+
 ## Как мы используем этот документ
 
 Этот файл является общей доской управления проектом. В нём видно, **что уже сделано, что делает агент, что должен подтвердить владелец и по какому доказательству этап считается завершённым**.
@@ -59,11 +61,35 @@
 
 ### P0 — UI Contract и минимальный local API
 
+#### P0-01 — подробный checklist: versioned UI Contract v1
+
+| Подшаг | Действие | Статус | Доказательство/критерий |
+|---|---|---|---|
+| P0-01.a | Зафиксировать `contract_version` и совместимость v1 | `DONE` | `CONTRACT_VERSION=1.0`; unsupported version rejected |
+| P0-01.b | Описать общую envelope-схему | `DONE` | `UIEnvelope` implements required fields and deterministic JSON |
+| P0-01.c | Описать `/health` response schema | `DONE` | `health_payload` plus `docs/UI_CONTRACT_V1.md`; no-secret fields |
+| P0-01.d | Описать `/models` response schema | `DONE` | `model_payload` validates id/provider/capabilities and redacts secret-shaped keys |
+| P0-01.e | Описать adapter errors | `DONE` | Contract rejects invalid status and distinguishes failure statuses |
+| P0-01.f | Добавить JSON fixtures и contract tests | `DONE` | 6 focused P0 tests passed; deterministic serialization and invalid inputs covered |
+| P0-01.g | Добавить integration boundary docs | `DONE` | `UI_CONTRACT_V1.md` and Portable UI roadmap define optional Hermes/DeepSeek adapters |
+
+#### P0-02 — подробный checklist: stdlib read-only `/health`
+
+| Подшаг | Действие | Статус | Доказательство/критерий |
+|---|---|---|---|
+| P0-02.a | Реализовать stdlib HTTP server | `DONE` | `HealthServer` uses `http.server`; no model/tool execution |
+| P0-02.b | Bind default to loopback | `DONE` | Default `127.0.0.1`; non-loopback rejected by constructor |
+| P0-02.c | Add readiness and capability statuses | `DONE` | Optional Hermes/DeepSeek/sandbox default to `unavailable`; core reports `degraded` |
+| P0-02.d | Add request IDs and bounded responses | `DONE` | Request IDs, bounded response guard, no-store/security headers and redaction |
+| P0-02.e | Add clean shutdown | `DONE` | Context manager, stop/join and duplicate start tests passed |
+| P0-02.f | Add negative tests | `DONE` | POST denied, unknown path invalid_request, invalid binding and duplicate start covered |
+| P0-02.g | Add latency benchmark | `DONE` | n=100: error 0.000000; p50 0.744900 ms; p95 22.139500 ms; mean 4.868805 ms |
+
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
-| P0-01 | Описать versioned `NOESIS UI Contract v1` | Агент | `NEXT` | Реальный документ со схемами запросов/ответов и version field; без секретов |
-| P0-02 | Добавить read-only `/health` endpoint | Агент | `TODO` | Возвращает version, status, capabilities и `unavailable` fields; loopback-only test |
-| P0-03 | Добавить read-only `/models` endpoint | Агент | `TODO` | Возвращает provider/model IDs и capability metadata, но не credentials; malformed provider fail-soft |
+| P0-01 | Описать versioned `NOESIS UI Contract v1` | Агент | `DONE` | `noesis_harness/ui_contract.py`, `docs/UI_CONTRACT_V1.md`, 6 focused tests |
+| P0-02 | Добавить read-only `/health` endpoint | Агент | `DONE` | `noesis_harness/health_server.py`, 6 focused tests, n=100 benchmark |
+| P0-03 | Добавить read-only `/models` endpoint | Агент | `NEXT` | Contract schema exists; HTTP endpoint remains next substage |
 | P0-04 | Сделать stdlib HTTP adapter без обязательного Node/npm | Агент | `TODO` | `http.server` или эквивалент stdlib, deterministic tests и clean shutdown |
 | P0-05 | Contract fixtures и no-secret response scan | Агент | `TODO` | JSON fixtures, schema tests, secret scan и invalid-input tests |
 | P0-06 | Документация запуска и пример curl/PowerShell | Агент | `TODO` | Команды проверены на Windows-friendly syntax; без PowerShell here-strings |
@@ -102,16 +128,33 @@
 | P4-01 | Windows x64 portable artifact | Агент | `TODO` | Install/launch/upgrade/data-preservation smoke test on Windows runner |
 | P4-02 | macOS arm64 portable artifact | Агент | `TODO` | Launch, loopback, data preservation and clean shutdown smoke test on macOS runner |
 | P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `WAITING FOR USER` | Choose wrapper only after P0–P3 prove the contract; no premature framework lock-in |
+| P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `TODO` | Optional adapters use the versioned UI contract; Hermes and DeepSeek runtime remain child processes; local loopback, auth, model capability mapping, scope mapping and unavailable paths tested |
 | P5-01 | Hermes/DeepSeek integration tests | Агент | `TODO` | Local gateway fixtures, scope mapping, auth, audit and leakage tests |
 | P5-02 | Pinned coding-task expansion | Агент | `TODO` | Expand only after the current 3-task adapter remains stable under repeated regression |
 | P6-01 | Branch protection | Владелец + агент | `WAITING FOR USER` | Owner confirms required checks/review policy; private repository remains unchanged |
 | P6-02 | Public release decision | Владелец | `WAITING FOR USER` | Explicit owner approval after release audit; no automatic visibility change |
 
-## 4. Что нужно от владельца
+## 4. Как устроена документация проекта
+
+Чтобы не потеряться среди документов, используется не один огромный файл, а короткая иерархия с одним индексом:
+
+| Уровень | Файл | Назначение |
+|---|---|---|
+| 1 | `docs/PROJECT_CHECKLIST_TODO_RU.md` | Главный operational checklist: что делать сейчас, кто отвечает и какое доказательство нужно |
+| 2 | `docs/README.md` | Навигационный индекс всех документов |
+| 3 | `docs/PLAN_NOESIS_1.0_MASTER.md` | Архитектурные фазы и долгосрочные gates |
+| 4 | `docs/PORTABLE_UI_INTEGRATION_ROADMAP.md` | Отдельный план Portable Control Plane и Hermes/DeepSeek adapters |
+| `docs/UI_CONTRACT_V1.md` | Точная versioned схема envelope, `/health`, `/models`, errors и redaction |
+| 5 | `docs/ARCHITECTURE_1.0_NEXTGEN.md` и `docs/EVALUATION_PROTOCOL.md` | Детали архитектуры и измерений |
+| 6 | `docs/IMPLEMENTATION_REPORT_2026-08.md` и `docs/RELEASE_READINESS_AUDIT_2026-08.md` | Фактические результаты, commits, tests и release gates |
+
+Правило: текущий статус и следующий шаг всегда смотрим в checklist; детали реализации — в профильном документе; факты завершения — в implementation report/audit. Поэтому объединять всё в один гигантский Markdown-файл не нужно.
+
+## 5. Что нужно от владельца
 
 | ID | Вопрос/решение | Статус |
 |---|---|---|
-| USER-01 | Подтвердить приоритет P0: сначала local API contract, а не сразу большой desktop UI | `NEXT CONFIRMATION` |
+| USER-01 | Подтвердить приоритет P0: сначала local API contract, а не сразу большой desktop UI | `CONFIRMED BY CONTINUATION` |
 | USER-02 | Выбрать первыми provider targets: Ollama, LM Studio, llama.cpp, vLLM, Hermes или DeepSeek Harness | `OPTIONAL INPUT` |
 | USER-03 | Позже выбрать Electron или Tauri после P0–P3 | `WAITING` |
 | USER-04 | Отдельно подтвердить branch protection | `WAITING` |
@@ -119,12 +162,12 @@
 
 Отсутствие ответа владельца не блокирует P0-01 и P0-02. Агент может продолжать безопасные локальные работы, но не должен самостоятельно менять visibility, подключать коммерчески ограниченный код, публиковать секреты или объявлять hardened sandbox.
 
-## 5. Ближайший action gate
+## 6. Ближайший action gate
 
-**Следующее действие агента:** реализовать `P0-01` и `P0-02` — versioned UI Contract v1 и минимальный read-only `/health` endpoint. После этого агент покажет focused tests, пример ответа, security scan и предложит переход к `P0-03`.
+**Следующее действие агента:** реализовать `P0-03` — read-only `/models` HTTP endpoint поверх уже готового `model_payload`, затем добавить provider registry fixtures. P0-01/P0-02 уже прошли focused tests и full regression.
 
-**Следующее действие владельца:** если нет возражений, достаточно написать **«продолжай P0»**. Если нужны другие providers в первом приоритете, перечислите их; это изменит порядок `P2` без изменения security boundaries.
+**Следующее действие владельца:** можно написать **«продолжай P0»**; для P0-03 не требуется новый доступ. Если нужны другие providers в первом приоритете, перечислите их; это изменит порядок `P2` без изменения security boundaries.
 
-## 6. Правило обновления
+## 7. Правило обновления
 
 После каждого этапа агент обновляет этот файл в том же commit, где находится изменение, и указывает: что сделано, какой тест прошёл, какой benchmark выполнен, какой статус fail-soft проверен, какой commit опубликован в private remote и какой следующий gate активен.

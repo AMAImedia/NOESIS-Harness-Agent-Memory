@@ -55,8 +55,17 @@ NOESIS skills should use a format inspired by Hermes skills and DSH presets, but
 | P2 | Provider registry and model capability discovery | Ollama/llama.cpp/LM Studio/OpenAI-compatible fixtures, unavailable paths and redacted secrets |
 | P3 | Safe `.noesisskill` package manager | Traversal/symlink/oversize tests, digest verification, SkillGate approval and rollback |
 | P4 | Portable desktop wrapper | Windows x64 and macOS arm64 smoke artifacts; user-data migration and crash recovery |
+| P5-00 | DeepSeek Harness + Hermes WebUI integration for Windows/macOS | Optional child-process adapters behind UI Contract v1; loopback/auth, provider/model capability mapping, profile/skill scope mapping, unavailable paths and clean shutdown |
 | P5 | Hermes/DeepSeek bridge adapters | Local gateway fixtures, explicit tool-scope mapping, cross-agent leakage tests and audit events |
 | P6 | Release-readiness | Full regression, fixed coding tasks, security corpus, clean secret scan, license inventory and owner approval |
+
+## DeepSeek Harness and Hermes WebUI integration boundary
+
+The integration is intentionally an adapter layer, not a fork of either runtime. The NOESIS control plane will discover an explicitly configured local Hermes API/WebUI gateway or DeepSeek Harness endpoint, validate its version and capabilities, and expose only normalized model/profile/session metadata through UI Contract v1. Runtime tools continue to execute in the selected child runtime's workspace; the browser does not receive raw provider keys or hidden memory.
+
+On Windows, the first target is a native loopback child process with explicit path normalization and clean shutdown. WSL2 remains an optional compatibility mode for Hermes WebUI, not a requirement. On macOS, the target is a native child process with a random loopback port and user-data under the platform application-support directory. The adapter must return `unavailable` when the external runtime is absent, incompatible or cannot provide the requested capability.
+
+The first supported bridge modes are: Hermes OpenAI-compatible API, DeepSeek Harness local Web UI/API where its versioned contract permits, and pure provider mode for Ollama, llama.cpp, vLLM or LM Studio. The adapter will not silently treat a remote API as local hands; tool execution location is shown in the capability metadata and audit log.
 
 ## Non-goals and safety boundaries
 

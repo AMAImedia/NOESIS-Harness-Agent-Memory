@@ -114,3 +114,22 @@ Added `ControlledMemoryEvaluator` for a same-budget legacy stable-prefix baselin
 | Full regression after all additions | **112/112 passed in 2.947 s** |
 
 The A/B fixture is deliberately fixed and diagnostic, not a claim of universal memory superiority. Negative transfer remains observable and is tested explicitly. The security corpus tests deny/allow behavior, while hardened OS-level isolation remains unavailable unless an external sandbox is explicitly provided.
+
+## P0 UI Contract and health endpoint — 2026-08-17
+
+Implemented `noesis_harness/ui_contract.py` and `noesis_harness/health_server.py` as stdlib-only control-plane foundations. UI Contract v1 defines deterministic envelopes, request IDs, health/model metadata, adapter failure statuses and recursive secret redaction. The read-only `HealthServer` defaults to `127.0.0.1`, supports a random loopback port, reports `ready` versus `degraded` when optional Hermes/DeepSeek/sandbox capabilities are unavailable, rejects non-loopback construction, denies POST requests, returns structured unknown-path errors and shuts down cleanly.
+
+| Check | Result |
+|---|---:|
+| Focused P0 contract/health tests | **6/6 passed in 1.553 s** |
+| Full regression after P0 code | **124/124 passed in 4.623 s** |
+| Health benchmark requests | **100** |
+| Health benchmark error rate | **0.000000** |
+| Health p50 / p95 | **0.744900 / 22.139500 ms** |
+| Health mean latency | **4.868805 ms** |
+| Mean response size | **517 bytes** |
+| Default Hermes adapter status | **unavailable** until optional bridge is configured |
+| Default DeepSeek adapter status | **unavailable** until optional bridge is configured |
+| Hardened sandbox status | **unavailable** unless an external hardened provider is present |
+
+The portable UI roadmap now explicitly includes the Windows/macOS DeepSeek Harness + Hermes WebUI adapter layer as P5-00. These runtimes remain optional child processes; the NOESIS core does not depend on Node, does not merge their private memory implicitly and does not expose provider credentials to the browser.
