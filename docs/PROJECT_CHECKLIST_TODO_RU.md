@@ -356,3 +356,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-36 | Phase 2 session/replay regression | `DONE / LOCAL VERIFIED` | Focused session/projection tests: **13/13 passed**; full Python 3.14.7 suite: **259/259 passed**; `ResourceWarning`: **0** |
 
 Синхронные критерии добавлены в `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — session resume and rollback boundary`. Phase 2 fault-injection gates завершены; следующий master gate — **Phase 3: Windows/macOS Python 3.14 packaging evidence**.
+
+
+## 2026-08-17 — Phase 3 packaging checkpoint P-01
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-37 | Deterministic portable SHA-256 manifest | `DONE / LOCAL VERIFIED` | `build_portable_artifact.py` создаёт `PORTABLE_MANIFEST.json` с размером и SHA-256 каждого shipped file; `.env`, models, secrets и virtual environments исключаются |
+| DONE-38 | SPDX file SBOM | `DONE / LOCAL VERIFIED` | Artifact содержит `PORTABLE_SBOM.spdx.json` в SPDX 2.3; SBOM file list и checksums совпадают с manifest |
+| DONE-39 | Packaging evidence regression | `DONE / LOCAL VERIFIED` | Focused packaging tests: **10/10 passed**; real project artifact: **9,076 files**, SPDX 2.3, ZIP 264,521,172 bytes; full Python 3.14.7 suite: **261/261 passed**, `ResourceWarning`: **0** |
+| DONE-40 | Windows/macOS manifest synchronization | `DONE / LOCAL VERIFIED` | `packaging/windows_manifest.json` и `packaging/macos_manifest.json` теперь требуют SHA-256 manifest и `PORTABLE_SBOM.spdx.json` |
+
+Синхронный runbook: `docs/NATIVE_PACKAGING_RUNBOOK_RU.md`. Linux sandbox всё ещё не является доказательством native `.exe`/`.app`; следующий Phase 3 gate — target-host verification contract и signed/notarized artifact evidence path.

@@ -26,6 +26,7 @@
     "python3.14 -m unittest discover -s tests -q",
     "codesign and notarization are performed by the operator on the target host",
     "sha256 manifest generated after build",
+    "PORTABLE_SBOM.spdx.json is present and references every shipped file",
     "no credentials or model weights included"
   ],
   "evidence_status": "static-manifest-only-until-built-on-macos"

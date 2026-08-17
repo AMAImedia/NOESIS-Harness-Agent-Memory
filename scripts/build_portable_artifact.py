@@ -23,6 +23,29 @@ def should_include(path: Path, root: Path) -> bool:
     return relative.as_posix() not in {".env", ".env.local"}
 
 
+def build_sbom(entries: list[dict]) -> dict:
+    """Create a deterministic SPDX 2.3 file inventory for the artifact."""
+    canonical = json.dumps(entries, sort_keys=True, separators=(",", ":"))
+    namespace = "https://noesis.local/spdx/" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    files = []
+    for index, entry in enumerate(entries, start=1):
+        files.append({
+            "SPDXID": "SPDXRef-File-%06d" % index,
+            "fileName": entry["path"],
+            "checksums": [{"algorithm": "SHA256", "checksumValue": entry["sha256"]}],
+            "licenseConcluded": "NOASSERTION",
+        })
+    return {
+        "spdxVersion": "SPDX-2.3",
+        "SPDXID": "SPDXRef-DOCUMENT",
+        "name": "NOESIS-Harness-Agent-Memory portable artifact",
+        "documentNamespace": namespace,
+        "creationInfo": {"created": "1970-01-01T00:00:00Z", "creators": ["Tool: NOESIS build_portable_artifact.py"]},
+        "dataLicense": "CC0-1.0",
+        "files": files,
+    }
+
+
 def build(root: str, output: str) -> dict:
     source = Path(root).expanduser().resolve()
     target = Path(output).expanduser().resolve()
@@ -33,13 +56,15 @@ def build(root: str, output: str) -> dict:
     for path in files:
         data = path.read_bytes()
         entries.append({"path": path.relative_to(source).as_posix(), "size": len(data), "sha256": hashlib.sha256(data).hexdigest()})
-    manifest = {"schema_version": "noesis.portable-artifact.v1", "runtime": "python-3.14-only", "created_by": "scripts/build_portable_artifact.py", "files": entries}
+    manifest = {"schema_version": "noesis.portable-artifact.v1", "runtime": "python-3.14-only", "created_by": "scripts/build_portable_artifact.py", "files": entries, "sbom": {"format": "SPDX-2.3", "path": "PORTABLE_SBOM.spdx.json"}}
+    sbom = build_sbom(entries)
     target.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in files:
             archive.write(path, path.relative_to(source).as_posix())
         archive.writestr("PORTABLE_MANIFEST.json", json.dumps(manifest, sort_keys=True, indent=2) + "\n")
-    return {"output": str(target), "file_count": len(entries), "manifest": manifest}
+        archive.writestr("PORTABLE_SBOM.spdx.json", json.dumps(sbom, sort_keys=True, indent=2) + "\n")
+    return {"output": str(target), "file_count": len(entries), "manifest": manifest, "sbom": sbom}
 
 
 def main(argv=None) -> int:

@@ -31,3 +31,10 @@ python3 scripts/build_native.py --backend briefcase --target macos --run
 Перед публикацией нужно проверить install/uninstall в чистой системе, loopback binding, data-root separation, session persistence, child timeout/recovery, no-network mode, UI CSP, redacted logs, license/provenance artifacts, SHA-256 manifest и SBOM. На macOS дополнительно проверяются signing, notarization, entitlements и quarantine behavior. На Windows проверяются Authenticode signing, SmartScreen metadata, отсутствие неожиданного UAC и clean user data path.
 
 Текущая sandbox-среда — Linux/CPython 3.12.3, поэтому native commands здесь намеренно завершаются fail-closed и не являются native evidence.
+
+
+## Реализованный checksum/SBOM gate
+
+`python3 scripts/build_portable_artifact.py --root . --output dist/noesis-portable.zip` создаёт `PORTABLE_MANIFEST.json` с Python 3.14-only runtime policy, размером и SHA-256 каждого включённого файла, а также `PORTABLE_SBOM.spdx.json` в формате SPDX 2.3. SBOM содержит только фактически упакованные файлы и повторяет их SHA-256; `.env`, credential-like key files, model weights и virtual environments исключаются builder policy. Этот source-portable artifact gate не заменяет native Windows/macOS build evidence.
+
+Focused verification: `tests.test_packaging_artifact`; полный suite должен пройти без `ResourceWarning`. Target-host `.exe`/`.app` evidence по-прежнему требует запуска `scripts/build_native.py` на соответствующей Windows/macOS машине с Python 3.14.
