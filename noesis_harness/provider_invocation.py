@@ -142,7 +142,12 @@ class OpenAICompatibleInvocationAdapter:
             raise ProviderInvocationError("request_exceeds_bounded_payload")
         request_obj = urllib.request.Request(urljoin(self.base_url, "v1/chat/completions"), data=encoded, method="POST", headers=self._headers())
         started = time.perf_counter()
-        status, body = self._transport(request_obj, self.timeout_seconds)
+        try:
+            status, body = self._transport(request_obj, self.timeout_seconds)
+        except TimeoutError as exc:
+            raise ProviderInvocationError("provider_timeout") from exc
+        except OSError as exc:
+            raise ProviderInvocationError("provider_unreachable:%s" % type(exc).__name__) from exc
         latency_ms = (time.perf_counter() - started) * 1000.0
         if len(body) > MAX_RESPONSE_BYTES:
             raise ProviderInvocationError("response_exceeds_bounded_payload")

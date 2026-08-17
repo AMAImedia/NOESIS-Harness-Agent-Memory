@@ -322,3 +322,14 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-26 | Полный reliability regression | `DONE / LOCAL VERIFIED` | Python 3.14.7: **254/254 passed**, `ResourceWarning` count: **0**, `git diff --check`: clean |
 
 **Следующий активный gate:** перейти к phase 2 master-плана — расширить fault-injection coverage для interrupted provider response, corrupted receipt, rollback/session resume и kill-at-checkpoint; код, focused tests и этот checklist обновляются в одном execution cycle.
+
+
+## 2026-08-17 — Phase 2 fault-injection checkpoint F-01
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-27 | Provider timeout boundary | `DONE / LOCAL VERIFIED` | Injected `TimeoutError` преобразуется в `ProviderInvocationError("provider_timeout")`; committed invocation result не создаётся |
+| DONE-28 | Interrupted/partial provider response | `DONE / LOCAL VERIFIED` | Truncated JSON body fail-closed с `provider_invalid_json`; bounded response and side-effect contract сохранены |
+| DONE-29 | Phase 2 regression after provider fault gate | `DONE / LOCAL VERIFIED` | Focused provider tests: **5/5 passed**; full Python 3.14.7 suite: **256/256 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ acceptance criteria: `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — provider boundary`. Следующий незавершённый Phase 2 gate — расширить fault injection на session resume/rollback и повреждённое durable state, после чего перейти к native packaging evidence.

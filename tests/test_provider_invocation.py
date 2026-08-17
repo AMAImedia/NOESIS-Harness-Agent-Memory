@@ -41,6 +41,22 @@ class ProviderInvocationTests(unittest.TestCase):
         with self.assertRaises(ProviderInvocationError):
             adapter.invoke(InvocationRequest("s", "t", "m", ({"role": "user", "content": "x" * 300000},)))
 
+    def test_interrupted_provider_timeout_fails_closed(self):
+        def interrupted_transport(request, timeout):
+            raise TimeoutError("provider response interrupted")
+
+        adapter = OpenAICompatibleInvocationAdapter("p", "http://127.0.0.1:9000", "m", {}, transport=interrupted_transport)
+        with self.assertRaisesRegex(ProviderInvocationError, "provider_timeout"):
+            adapter.invoke(InvocationRequest("s", "t", "m", ({"role": "user", "content": "x"},)))
+
+    def test_partial_provider_body_is_rejected_without_side_effect(self):
+        def partial_transport(request, timeout):
+            return 200, b'{"id":"partial","choices":['
+
+        adapter = OpenAICompatibleInvocationAdapter("p", "http://127.0.0.1:9000", "m", {}, transport=partial_transport)
+        with self.assertRaisesRegex(ProviderInvocationError, "provider_invalid_json"):
+            adapter.invoke(InvocationRequest("s", "t", "m", ({"role": "user", "content": "x"},)))
+
 
 if __name__ == "__main__":
     unittest.main()

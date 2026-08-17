@@ -37,3 +37,8 @@ A change is rejected if it increases private-memory leakage, unauthorized side e
 [1]: https://snap-research.github.io/locomo/ "LoCoMo long-term conversational memory benchmark"
 [2]: https://arxiv.org/abs/2406.12045 "τ-bench tool-agent-user interaction benchmark"
 [3]: https://www.swebench.com/verified.html "SWE-bench Verified"
+
+
+## Phase 2 fault-injection gate — provider boundary
+
+Provider interruption is evaluated as a lifecycle event, not as a successful empty response. An injected timeout must produce the deterministic `provider_timeout` error, while a truncated or malformed response body must produce `provider_invalid_json` or the relevant bounded-response error. Neither path may emit a committed invocation result or bypass the queue/recovery layer. The focused regression is `tests.test_provider_invocation`; the full suite must remain green and must not introduce `ResourceWarning`.
