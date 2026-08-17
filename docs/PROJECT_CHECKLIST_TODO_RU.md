@@ -577,3 +577,15 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-113 | Audit-chain regression | `DONE / LOCAL VERIFIED` | Focused tests: **5/5 passed**; full Python 3.14.7 suite: **307/307 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: audit tamper/replay recovery и cross-session decision provenance.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-08
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-114 | Interrupted audit tail recovery | `DONE / LOCAL VERIFIED` | Reopen ремонтирует malformed final JSONL tail без потери валидного decision |
+| DONE-115 | Middle corruption fail-closed | `DONE / LOCAL VERIFIED` | Corruption до последующих events вызывает `EventStoreCorrupt`; replay не пропускает историю |
+| DONE-116 | Cross-session decision provenance | `DONE / LOCAL VERIFIED` | Audit events сохраняют session/task/agent identity и hash-linked ordering |
+| DONE-117 | Phase 5 audit recovery regression | `DONE / LOCAL VERIFIED` | Focused tests: **7/7 passed**; full Python 3.14.7 suite: **309/309 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: final security holdout report и Phase 5 closeout audit.

@@ -37,7 +37,7 @@ class TrustPlane:
     def _canonical(value: Mapping[str, Any]) -> bytes:
         return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=str).encode("utf-8")
 
-    def _audit_decision(self, decision: TrustPlaneDecision) -> None:
+    def _audit_decision(self, decision: TrustPlaneDecision, *, session_id: str, task_id: str, agent_id: str) -> None:
         if self.audit is None:
             return
         previous = "0" * 64
@@ -45,6 +45,9 @@ class TrustPlane:
             previous = str((event.get("payload") or {}).get("event_hash", previous))
         payload = {
             "schema_version": "noesis.trust-plane-decision.v1",
+            "session_id": session_id,
+            "task_id": task_id,
+            "agent_id": agent_id,
             "allowed": decision.allowed,
             "reason": decision.reason,
             "context_digest": decision.context.digest,
@@ -80,25 +83,25 @@ class TrustPlane:
         egress = self.lineage.decide_egress(session_id, agent_id, "child:" + execution.request_id, explicit_approval=explicit_approval)
         if not egress.allowed:
             decision = TrustPlaneDecision(False, "lineage_egress_denied:" + egress.reason, context, egress=egress)
-            self._audit_decision(decision)
+            self._audit_decision(decision, session_id=session_id, task_id=task_id, agent_id=agent_id)
             return decision
         try:
             gate = self.gatekeeper.prepare(request)
         except Exception as exc:
             decision = TrustPlaneDecision(False, "gatekeeper_denied:" + str(exc), context, egress=egress)
-            self._audit_decision(decision)
+            self._audit_decision(decision, session_id=session_id, task_id=task_id, agent_id=agent_id)
             return decision
         if gate.status == "waiting_approval":
             if not explicit_approval:
                 decision = TrustPlaneDecision(False, "approval_required", context, egress=egress, gate=gate)
-                self._audit_decision(decision)
+                self._audit_decision(decision, session_id=session_id, task_id=task_id, agent_id=agent_id)
                 return decision
             gate = self.gatekeeper.approve(gate.request_id)
         if gate.status != "committed":
             gate = self.gatekeeper.commit(gate.request_id)
         result = self.child_runtime.run(execution)
         decision = TrustPlaneDecision(result.status in {"completed"}, "child_execution:" + result.reason, context, egress=egress, gate=gate, execution=result)
-        self._audit_decision(decision)
+        self._audit_decision(decision, session_id=session_id, task_id=task_id, agent_id=agent_id)
         return decision
 
 

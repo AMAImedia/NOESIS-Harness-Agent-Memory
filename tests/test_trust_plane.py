@@ -80,6 +80,27 @@ class TrustPlaneTests(unittest.TestCase):
         lines = [json.loads(line) for line in serialized.splitlines()]
         self.assertEqual([line["payload"]["prev_hash"] for line in lines][0], "0" * 64)
         self.assertNotEqual(lines[0]["payload"]["event_hash"], lines[1]["payload"]["event_hash"])
+        self.assertEqual(lines[0]["payload"]["session_id"], "s")
+        self.assertEqual(lines[1]["payload"]["session_id"], "s2")
+
+    def test_audit_reopen_repairs_interrupted_tail(self):
+        request, execution = self._case()
+        self.plane.run_skill(session_id="s", task_id="t", agent_id="agent-a", context_items=(ContextItem("public", "safe", "public"),), request=request, execution=execution)
+        with self.audit_path.open("a", encoding="utf-8") as handle:
+            handle.write('{"partial":')
+        reopened = TrustPlane(self.gate, self.lineage, child_runtime=ChildExecutionRuntime(self.gate), audit_path=str(self.audit_path))
+        self.assertTrue(reopened.verify_audit_chain())
+        self.assertEqual(len(list(reopened.audit.iter_events())), 1)
+
+    def test_audit_middle_corruption_fails_closed(self):
+        request, execution = self._case(request_id="first")
+        self.plane.run_skill(session_id="s", task_id="t", agent_id="agent-a", context_items=(ContextItem("public", "safe", "public"),), request=request, execution=execution)
+        request2, execution2 = self._case(request_id="second")
+        self.plane.run_skill(session_id="s2", task_id="t2", agent_id="agent-b", context_items=(ContextItem("public", "safe2", "public"),), request=request2, execution=execution2)
+        lines = self.audit_path.read_text(encoding="utf-8").splitlines()
+        self.audit_path.write_text(lines[0] + "\n{malformed-middle}\n" + lines[1] + "\n", encoding="utf-8")
+        with self.assertRaises(RuntimeError):
+            self.plane.verify_audit_chain()
 
 
 if __name__ == "__main__":

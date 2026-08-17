@@ -107,3 +107,16 @@ Lineage parent references теперь проверяются по event identit
 | Raw-content exclusion | Restricted context text отсутствует в audit JSONL; только IDs/digests | `PASS` |
 
 На Python 3.14.7 Trust Plane audit focused suite: **5/5 passed**. Полный suite после T-07: **307/307 passed**; `ResourceWarning`: **0**.
+
+
+## Phase 5 T-08 — Audit replay/recovery и cross-session provenance
+
+| Holdout | Ожидаемое поведение | Фактический статус |
+|---|---|---|
+| Interrupted audit tail | Последний malformed JSONL tail ремонтируется при reopen; валидные decisions сохраняются | `PASS` |
+| Middle corruption | Malformed event перед последующими decisions вызывает fail-closed `EventStoreCorrupt` | `PASS` |
+| Cross-session identity | Каждое decision event сохраняет session/task/agent identity; replay не смешивает sessions | `PASS` |
+| Decision replay | Reopened TrustPlane повторно проверяет hash chain без повторного исполнения child | `PASS` |
+| Audit provenance | `prev_hash`/`event_hash` chain сохраняет порядок denied/approved decisions | `PASS` |
+
+На Python 3.14.7 audit recovery focused suite: **7/7 passed**. Полный suite после T-08: **309/309 passed**; `ResourceWarning`: **0**.
