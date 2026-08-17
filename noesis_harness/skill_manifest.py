@@ -15,7 +15,7 @@ from typing import Any, Mapping, Optional, Sequence, Tuple
 
 MANIFEST_FORMAT_VERSION = "1.0"
 MANIFEST_FILENAME = ".noesisskill"
-ALLOWED_CAPABILITIES = frozenset({"health.read", "models.read", "chat", "tools.invoke", "memory.read", "memory.write"})
+ALLOWED_CAPABILITIES = frozenset({"health.read", "models.read", "chat", "tools.invoke", "skill.execute", "memory.read", "memory.write"})
 ALLOWED_PLATFORMS = frozenset({"windows", "macos", "linux", "any"})
 _FORBIDDEN_KEYS = frozenset({"token", "secret", "password", "credential", "authorization", "api_key", "private_key"})
 
