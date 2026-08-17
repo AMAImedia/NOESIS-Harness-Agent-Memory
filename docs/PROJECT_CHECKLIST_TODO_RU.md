@@ -168,6 +168,7 @@
 | 5 | `docs/ARCHITECTURE_1.0_NEXTGEN.md` и `docs/EVALUATION_PROTOCOL.md` | Детали архитектуры и измерений |
 | 6 | `docs/IMPLEMENTATION_REPORT_2026-08.md` и `docs/RELEASE_READINESS_AUDIT_2026-08.md` | Фактические результаты, commits, tests и release gates |
 | 7 | `docs/GITHUB_FREE_PRIVATE_LIMITS_AND_NEXT_TASKS_2026-08-17.md` | Ограничения GitHub Free/private и порядок задач, не зависящих от платных функций |
+| 8 | `docs/NOESIS_RUNTIME_STATUS_AND_GAP_ANALYSIS_2026-08-17.md` | Фактическая граница portable control plane, Python policy, Web UI, skills и interactive runtime gaps |
 
 Правило: текущий статус и следующий шаг всегда смотрим в checklist; детали реализации — в профильном документе; факты завершения — в implementation report/audit. Поэтому объединять всё в один гигантский Markdown-файл не нужно.
 
@@ -185,7 +186,7 @@
 
 ## 6. Ближайший action gate
 
-**Следующее действие агента:** продолжить доступное без оплаты continuous hardening: расширить security holdout и cross-agent leakage corpus, добавить локальные Windows/macOS verification scripts и подготовить компактный release manifest с SHA-256; P6-01 остаётся platform blocked.
+**Следующее действие агента:** продолжить доступное без оплаты hardening и начать отдельный product-layer design: versioned task/session command API, interactive chat/streaming contract, approval-aware tool execution и isolated executable-skill runtime; Python 3.14 добавить как дополнительный compatibility target после native verification.
 
 **Следующее действие владельца:** при желании выбрать порядок из доступных задач; отдельно решить, нужен ли будущий upgrade/organization plan для branch protection. До этого никаких public visibility или billing changes не требуется.
 
