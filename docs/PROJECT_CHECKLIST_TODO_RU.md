@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `052a0cf` — `feat: add declarative provider capability specs`
+Последний подтверждённый remote commit: `130d51e` — `feat: add version-pinned Hermes gateway boundary`
 
-Текущий рабочий этап: **P2-01 provider registry remote verified; следующий gate — P2-02 Hermes gateway adapter**
+Текущий рабочий этап: **P2-02 Hermes gateway adapter remote verified; следующий gate — P2-03 DeepSeek Harness adapter**
 
 ## Как мы используем этот документ
 
@@ -111,7 +111,7 @@
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
 | P2-01 | Provider adapter registry | Агент | `DONE / REMOTE VERIFIED` | Canonical declarative specs for OpenAI-compatible, Ollama, llama.cpp, vLLM, LM Studio plus bridge kinds; capability schema and auth modes; no network calls/credentials; 8/8 focused provider tests; 149/149 full tests; commit `052a0cf`; remote SHA `052a0cfa976c273bde3989e8dcaa622c3c627af2`; repository remains private |
-| P2-02 | Hermes gateway adapter | Агент | `DONE / LOCAL VERIFIED` | Version-pinned declarative adapter; explicit local/remote separation; credential reference only; bounded tool scopes; no network/model execution; 4/4 focused tests; commit/remote verification pending |
+| P2-02 | Hermes gateway adapter | Агент | `DONE / REMOTE VERIFIED` | Version-pinned declarative adapter; explicit local/remote separation; credential reference only; bounded tool scopes; no network/model execution; 4/4 focused tests; 153/153 full tests; commit `130d51e`; remote SHA `130d51ea80046821f42478d2522385bb3b2180a6`; repository remains private |
 | P2-03 | DeepSeek Harness adapter | Агент | `TODO` | Version-pinned optional bridge, plugin capability mapping and fail-soft compatibility |
 | P2-04 | Capability-aware model selector | Агент | `TODO` | UI показывает tool/context/vision/structured-output capabilities, unsupported features fail-soft |
 
