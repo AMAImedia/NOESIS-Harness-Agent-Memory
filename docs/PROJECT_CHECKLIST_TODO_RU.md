@@ -270,3 +270,13 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | Receipt verification | `IMPLEMENTED / TESTED` | Tampering changes verification result; invalid outcomes fail closed |
 | Recovery claim discipline | `DOCUMENTED` | Receipts record rollback availability but do not claim OS-level isolation or automatic recovery without backend evidence |
 | Current local suite | `PASS` | 246/246 tests |
+
+### Mandatory evidence gates: external A/B manifest
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Exact pinned runner protocol | `DEFINED` | `benchmarks/external_ab_manifest_v1.json` requires exact revisions before run |
+| Same task fixtures | `DEFINED` | 6 fixed tasks: planning, exploration, coding, recovery, taint egress and multi-agent scope |
+| Same budgets/permissions | `DEFINED` | 300s wall time, 20 steps, 32K context, 64K tool output, network deny-by-default |
+| Evaluator metrics | `DEFINED` | Success, patch correctness, latency, cost, unauthorized egress, credential exposure, approval bypass, workspace escape, recovery and human review |
+| Evidence rules | `FAIL-CLOSED` | `not_run` is not passed; unsupported is not zero failure; missing revision/seed digest blocks run |
