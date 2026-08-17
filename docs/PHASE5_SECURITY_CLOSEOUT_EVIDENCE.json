@@ -1,0 +1,36 @@
+{
+  "schema_version": "noesis.phase5-security-closeout.v1",
+  "runtime": "CPython 3.14.7 Linux",
+  "commit": "d032a82bd32752f4a926e5017c0c445ab8aa2c68",
+  "status": "local_verified_private_release_candidate",
+  "focused_tests": {
+    "security_child_firewall_lineage_gatekeeper_trust_plane": 38,
+    "passed": 38
+  },
+  "full_regression": {
+    "tests": 309,
+    "passed": 309,
+    "resource_warnings": 0
+  },
+  "holdouts": {
+    "security_corpus_cases": 21,
+    "security_corpus_pass_rate": 1.0,
+    "child_execution": "passed",
+    "context_firewall": "passed",
+    "resource_lineage": "passed",
+    "gatekeeper": "passed",
+    "trust_plane_matrix": "passed"
+  },
+  "integrity": {
+    "git_diff_check": "passed",
+    "working_tree_at_audit": "clean"
+  },
+  "not_run": [
+    "real_pinned_hermes_opencode_execution",
+    "native_windows_exe_build",
+    "native_macos_app_build",
+    "authenticode_codesign_notarization",
+    "public_release_signature"
+  ],
+  "claim_policy": "No world-best claim before external pinned A/B and target-host evidence"
+}

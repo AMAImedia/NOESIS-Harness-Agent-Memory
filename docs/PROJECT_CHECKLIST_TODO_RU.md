@@ -589,3 +589,20 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-117 | Phase 5 audit recovery regression | `DONE / LOCAL VERIFIED` | Focused tests: **7/7 passed**; full Python 3.14.7 suite: **309/309 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: final security holdout report и Phase 5 closeout audit.
+
+
+## 2026-08-18 — Phase 5 FINAL CLOSEOUT
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-118 | Security holdout closeout audit | `DONE / LOCAL VERIFIED` | `docs/PHASE5_SECURITY_CLOSEOUT_RU.md` |
+| DONE-119 | Machine-readable evidence manifest | `DONE / LOCAL VERIFIED` | `docs/PHASE5_SECURITY_CLOSEOUT_EVIDENCE.json` |
+| DONE-120 | Focused Trust Plane/security regression | `DONE / LOCAL VERIFIED` | **38/38 passed** on CPython 3.14.7 |
+| DONE-121 | Full regression and warning hygiene | `DONE / LOCAL VERIFIED` | **309/309 passed**, `ResourceWarning: 0` |
+| DONE-122 | Git/diff integrity closeout | `DONE / LOCAL VERIFIED` | `git diff --check` passed; working tree clean at audit |
+
+### Phase 5 boundary
+
+Phase 5 закрыт только как локально проверенный Private Release Candidate. Реальные pinned Hermes/OpenCode runs, native Windows/macOS builds, Authenticode/codesign/notarization и публичная release signature остаются `NOT RUN`. Заявление «лучший в мире» до этих external evidence gates запрещено.
+
+Следующий приоритет мастер-плана: **Phase 6 External Evidence** — pinned runner execution against Hermes/OpenCode, signed evidence ingestion, reproducible A/B metrics and target-host native artifact evidence.
