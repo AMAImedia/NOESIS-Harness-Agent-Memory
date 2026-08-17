@@ -142,7 +142,7 @@
 | ID | Задача | Владелец | Статус | Критерий готовности |
 |---|---|---|---|---|
 | P7-01 | Versioned task/session command API | Агент | `IMPLEMENTED / LOCAL VERIFIED` | `task_session_api.py`: schema `noesis.task-session.v1`, append-only idempotent commands, state transitions, resume, message redaction; 4 focused tests; 204/204 full tests on local Python 3.12; Python 3.14 verification pending |
-| P7-02 | Interactive chat/streaming contract | Агент | `PLANNED` | Streaming events, reconnect/resume, bounded payloads, cancellation and no-secret guarantees |
+| P7-02 | Interactive chat/streaming contract | Агент | `IMPLEMENTED / LOCAL VERIFIED` | `session_stream.py`: schema `noesis.session-stream.v1`, bounded SSE events, Last-Event-ID reconnect cursor, cancellation token; 4 focused tests; 208/208 full tests on local Python 3.12; Python 3.14 verification pending |
 | P8-01 | Provider invocation adapters | Агент | `PLANNED` | Capability-aware model calls, credential references only, approval gates and fail-soft unavailable states |
 | P9-01 | Isolated child execution runtime | Агент | `PLANNED / SECURITY GATE` | Request envelope, argv allowlist, workspace/mount policy, network policy, timeout/output budgets, structured result, kill/recovery and explicit sandbox strength |
 | P9-02 | Executable skill runtime | Агент | `PLANNED / SECURITY GATE` | Verified skill digest, immutable version, child process isolation, capability allowlist, approval/rollback and no execution in parent process |
