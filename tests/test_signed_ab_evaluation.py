@@ -39,6 +39,18 @@ class SignedABEvaluationTests(unittest.TestCase):
         self.assertTrue(report["metrics"])
         self.assertTrue(all(item["comparable"] is False for item in report["metrics"].values()))
 
+    def test_not_run_records_cannot_establish_external_comparison(self):
+        first = evidence_for("hermes", "h1", "a" * 64)
+        second = evidence_for("opencode", "o1", "a" * 64)
+        first["status"] = "not_run"
+        second["status"] = "not_run"
+        from scripts.ingest_runner_result import signature
+        first["signature"] = signature({name: value for name, value in first.items() if name != "signature"}, KEY)
+        second["signature"] = signature({name: value for name, value in second.items() if name != "signature"}, KEY)
+        report = evaluate((first, second), KEY)
+        self.assertFalse(report["comparable"])
+        self.assertEqual(report["reason"], "not_run evidence cannot establish an external comparison")
+
     def test_tampered_signature_is_not_comparable(self):
         first = evidence_for("hermes", "h1", "a" * 64)
         second = dict(evidence_for("opencode", "o1", "a" * 64))

@@ -22,8 +22,14 @@ def evaluate(evidence: Sequence[Mapping[str, Any]], key: str) -> dict:
     accepted = [row for row in rows if row.get("accepted") is True and row.get("signature_valid")]
     fingerprints = {row.get("protocol_fingerprint") for row in accepted}
     systems = {row.get("system") for row in accepted}
-    comparable = len(accepted) >= 2 and len(fingerprints) == 1
-    reason = "protocol_fingerprint_match" if comparable else "signed evidence incomplete or protocol fingerprints differ"
+    executable_records = [row for row in accepted if row.get("status") in {"passed", "failed", "unsupported"}]
+    comparable = len(executable_records) >= 2 and len(fingerprints) == 1
+    if comparable:
+        reason = "protocol_fingerprint_match"
+    elif len(fingerprints) != 1:
+        reason = "signed evidence incomplete or protocol fingerprints differ"
+    else:
+        reason = "not_run evidence cannot establish an external comparison"
     metric_names = sorted({name for row in accepted for name in (row.get("metrics") or {})})
     metrics: dict[str, dict[str, Any]] = {}
     for name in metric_names:

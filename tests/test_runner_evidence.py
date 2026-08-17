@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from scripts.external_runner_contract import make_spec
-from scripts.ingest_runner_result import ingest, verify_evidence
+from scripts.ingest_runner_result import ingest, outcome_to_result, verify_evidence
 
 
 KEY = "local-test-evidence-key-2026"
@@ -49,6 +49,16 @@ class RunnerEvidenceTests(unittest.TestCase):
         evidence = ingest(self.spec, tampered, KEY)
         self.assertFalse(evidence["accepted"])
         self.assertIn("invalid:metric:task_success", evidence["errors"])
+
+    def test_outcome_conversion_preserves_not_run_and_observes_approved_run(self):
+        denied = outcome_to_result(self.spec, {"execution": "denied", "status": "not_run", "reason": "approval_required"})
+        denied_evidence = ingest(self.spec, denied, KEY)
+        self.assertTrue(denied_evidence["accepted"])
+        self.assertEqual(denied["status"], "not_run")
+        self.assertEqual(denied["metrics"]["task_success"]["status"], "not_run")
+        approved = outcome_to_result(self.spec, {"execution": "started", "status": "passed", "returncode": 0, "timed_out": False})
+        self.assertEqual(approved["metrics"]["task_success"], {"status": "observed", "value": 1.0})
+        self.assertTrue(ingest(self.spec, approved, KEY)["accepted"])
 
 
 if __name__ == "__main__":

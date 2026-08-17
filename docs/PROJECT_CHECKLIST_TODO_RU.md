@@ -465,3 +465,15 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-73 | Phase 4 lane regression | `DONE / LOCAL VERIFIED` | Focused tests: **12/12 passed**; full Python 3.14.7 suite: **286/286 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Hermes/OpenCode остаются `not_run`, пока оператор не предоставит exact pinned configuration и явно не подтвердит execution.
+
+
+## 2026-08-17 — Phase 4 checkpoint A-07
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-74 | Structured outcome → canonical result | `DONE / LOCAL VERIFIED` | `outcome_to_result()` превращает approved `started` outcome в observed task metric, а denied/not_started — в explicit `not_run` |
+| DONE-75 | Evidence signing bridge | `DONE / LOCAL VERIFIED` | Converted result проходит существующий ingestion/HMAC verification contract |
+| DONE-76 | Not-run comparison exclusion | `DONE / LOCAL VERIFIED` | Unified evaluator требует минимум два accepted signed non-`not_run` records и общий fingerprint; denied/not_run не сравниваются |
+| DONE-77 | Phase 4 outcome regression | `DONE / LOCAL VERIFIED` | Focused tests: **12/12 passed**; full Python 3.14.7 suite: **288/288 passed**; `ResourceWarning`: **0** |
+
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Фактический Hermes/OpenCode execution остаётся `not_run` без exact pinned config и explicit approval.

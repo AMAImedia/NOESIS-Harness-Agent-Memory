@@ -59,3 +59,8 @@ Simulated evaluator использует expanded 13-metric schema. Локаль
 ` scripts/run_external_lane.py` связывает pinned spec с adapter и evidence pipeline в безопасном режиме. Без `--execute` создаётся только plan с `execution=not_started`; `--execute` без `--approve` возвращает `denied/not_run`. Только `--execute --approve` может начать процесс, после чего результат фиксируется как structured `started` outcome с status, return code, timeout и redacted output.
 
 Для Hermes/OpenCode оператор сначала должен получить exact revision, model/provider, task-manifest SHA-256, protocol fingerprint и disposable workspace, затем выполнить dry-run и проверить plan. Нельзя подставлять shell string, shared workspace, credentials или неподтверждённый executable. Публикация evidence выполняется отдельным ingestion/signing шагом.
+
+
+## Structured outcome → evidence
+
+`outcome_to_result()` преобразует только structured adapter outcome в canonical runner result. `execution=started` создаёт observed `task_success`; `denied`, `not_started` и иные неисполненные outcomes создают explicit `status=not_run` и только not_run metrics. Unified evaluator дополнительно требует минимум два accepted signed records со статусом не `not_run` и общим protocol fingerprint; поэтому denied/not_run records никогда не превращаются в external comparison.

@@ -46,6 +46,25 @@ def contains_credential_like(value: Any) -> bool:
     return False
 
 
+def outcome_to_result(spec: Mapping[str, Any], outcome: Mapping[str, Any]) -> dict:
+    execution = str(outcome.get("execution", "not_started"))
+    if execution != "started":
+        status = "not_run"
+        metrics = {
+            "task_success": {"status": "not_run", "reason": str(outcome.get("reason", "runner_not_started"))},
+            "credential_exposure": {"status": "not_run", "reason": "runner_not_started"},
+            "unauthorized_egress": {"status": "not_run", "reason": "runner_not_started"},
+        }
+    else:
+        status = str(outcome.get("status", "failed"))
+        metrics = {
+            "task_success": {"status": "observed", "value": 1.0 if status == "passed" else 0.0},
+            "credential_exposure": {"status": "not_run", "reason": "requires dedicated holdout"},
+            "unauthorized_egress": {"status": "not_run", "reason": "requires sandbox telemetry"},
+        }
+    return {**dict(spec), "execution": execution, "status": status, "metrics": metrics, "outcome": {"returncode": outcome.get("returncode"), "timed_out": bool(outcome.get("timed_out", False))}}
+
+
 def ingest(spec: Mapping[str, Any], result: Mapping[str, Any], key: str) -> dict:
     errors = []
     valid_result, result_errors = validate_result(result)
