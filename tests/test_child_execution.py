@@ -15,6 +15,14 @@ class ChildExecutionTests(unittest.TestCase):
         self.workspace.mkdir()
         (self.workspace / "ok.py").write_text("print('child-ok')\n", encoding="utf-8")
         (self.workspace / "slow.py").write_text("import time\ntime.sleep(2)\n", encoding="utf-8")
+        (self.workspace / "leak.py").write_text("print('token=hf_TEST_SECRET_VALUE_123456')\n", encoding="utf-8")
+        (self.workspace / "noisy.py").write_text("print('x' * 1000)\n", encoding="utf-8")
+        try:
+            (self.workspace / "link.py").symlink_to(self.workspace / "ok.py")
+        except (OSError, NotImplementedError):
+            self.link_supported = False
+        else:
+            self.link_supported = True
         self.gate = Gatekeeper(str(root / "gate.jsonl"))
         self.runtime = ChildExecutionRuntime(self.gate)
 
@@ -59,6 +67,37 @@ class ChildExecutionTests(unittest.TestCase):
         result = self.runtime.run(self._request(request_id, script="slow.py", timeout=0.1))
         self.assertEqual(result.status, "timeout")
         self.assertEqual(result.reason, "timeout_budget_exceeded")
+
+    def test_environment_allowlist_is_fail_closed(self):
+        request_id = self._approved_request()
+        request = ExecutionRequest(request_id, (sys.executable, "ok.py"), str(self.workspace), (Path(sys.executable).name,), environment={"NOESIS_SECRET": "blocked"})
+        result = self.runtime.run(request)
+        self.assertEqual(result.status, "denied")
+        self.assertIn("environment_key_not_allowlisted", result.reason)
+
+    def test_symlink_entrypoint_is_denied(self):
+        if not self.link_supported:
+            self.skipTest("symlink unsupported on this host")
+        request_id = self._approved_request(target="link.py")
+        result = self.runtime.run(self._request(request_id, script="link.py"))
+        self.assertEqual(result.status, "denied")
+        self.assertEqual(result.reason, "entrypoint_missing_or_symlink")
+
+    def test_output_budget_is_bounded(self):
+        request_id = self._approved_request(target="noisy.py")
+        request = ExecutionRequest(request_id, (sys.executable, "noisy.py"), str(self.workspace), (Path(sys.executable).name,), output_limit=64)
+        result = self.runtime.run(request)
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.reason, "output_budget_exceeded")
+        self.assertLessEqual(len(result.stdout.encode("utf-8")), 64)
+
+    def test_credential_like_output_is_redacted_and_blocked(self):
+        request_id = self._approved_request(target="leak.py")
+        result = self.runtime.run(self._request(request_id, script="leak.py"))
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.reason, "credential_like_output_blocked")
+        self.assertNotIn("hf_TEST_SECRET_VALUE_123456", result.stdout)
+        self.assertIn("[REDACTED_CREDENTIAL]", result.stdout)
 
     def test_executable_allowlist_and_workspace_boundary(self):
         request_id = self._approved_request()

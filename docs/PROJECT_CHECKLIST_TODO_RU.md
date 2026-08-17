@@ -489,3 +489,16 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-81 | Phase 4 closeout regression | `DONE / LOCAL VERIFIED` | Focused report tests: **7/7 passed**; full Python 3.14.7 suite: **290/290 passed**; `ResourceWarning`: **0** |
 
 Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Phase 4 закрыт для локального evidence plumbing. Hermes/OpenCode фактический execution и ranking остаются `not_run` до pinned native/external environments и explicit approval. Следующий master gate — **Phase 5: Trust Plane и security holdouts**.
+
+
+## 2026-08-18 — Phase 5 checkpoint T-01
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DONE-82 | Child environment holdout | `DONE / LOCAL VERIFIED` | Неallowlisted environment key отклоняется до запуска child |
+| DONE-83 | Symlink entrypoint holdout | `DONE / LOCAL VERIFIED` | Raw symlink проверяется до `resolve()`; ссылка на разрешённый файл не обходит workspace boundary |
+| DONE-84 | Output budget holdout | `DONE / LOCAL VERIFIED` | stdout/stderr ограничены `output_limit`; превышение возвращает `output_budget_exceeded` |
+| DONE-85 | Credential-like output holdout | `DONE / LOCAL VERIFIED` | Token-like output redacts to `[REDACTED_CREDENTIAL]` и возвращает `credential_like_output_blocked`; raw value не попадает в result |
+| DONE-86 | Phase 5 child-runtime regression | `DONE / LOCAL VERIFIED` | Focused tests: **9/9 passed**; full Python 3.14.7 suite: **294/294 passed**; `ResourceWarning`: **0** |
+
+Trust Plane boundary: child runtime остаётся process boundary, а не заявлением о полном OS sandbox; network без verified sandbox adapter по-прежнему fail-closed.

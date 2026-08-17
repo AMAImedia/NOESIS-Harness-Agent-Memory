@@ -8,6 +8,7 @@ The parent never evaluates child/model output.
 from __future__ import annotations
 
 import os
+import re
 import signal
 import subprocess
 import time
@@ -20,6 +21,11 @@ from .security import safe_path
 
 MAX_OUTPUT_BYTES = 256 * 1024
 MAX_ARG_COUNT = 64
+_CREDENTIAL_OUTPUT_PATTERNS = (
+    re.compile(r"(?i)\b(?:api[_-]?key|token|password|secret)\s*[:=]\s*[^\s,;]+"),
+    re.compile(r"\b(?:hf|sk|ghp|github_pat)_[A-Za-z0-9_-]{12,}\b"),
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._-]{12,}"),
+)
 
 
 class ChildExecutionError(ValueError):
@@ -88,6 +94,9 @@ class ChildExecutionRuntime:
         # If the command references a path argument, it must remain inside the workspace.
         for item in request.argv[1:]:
             if item.endswith((".py", ".pyz", ".sh", ".cmd", ".ps1")):
+                raw_candidate = workspace / item
+                if raw_candidate.is_symlink():
+                    raise ChildExecutionError("entrypoint_missing_or_symlink")
                 try:
                     candidate = safe_path(str(workspace), item)
                 except PermissionError as exc:
@@ -100,6 +109,14 @@ class ChildExecutionRuntime:
     def _decode_bounded(data: bytes, limit: int) -> str:
         truncated = data[:limit]
         return truncated.decode("utf-8", "replace")
+
+    @staticmethod
+    def _redact_credential_like(text: str) -> tuple[str, bool]:
+        found = False
+        for pattern in _CREDENTIAL_OUTPUT_PATTERNS:
+            text, count = pattern.subn("[REDACTED_CREDENTIAL]", text)
+            found = found or bool(count)
+        return text, found
 
     def run(self, request: ExecutionRequest) -> ExecutionResult:
         decision = self.gatekeeper.get(request.request_id)
@@ -136,6 +153,10 @@ class ChildExecutionRuntime:
             return ExecutionResult("failed", request.request_id, None, "", "", (time.perf_counter() - started) * 1000.0, "launch_failed:%s" % type(exc).__name__)
         stdout_text = self._decode_bounded(stdout, request.output_limit)
         stderr_text = self._decode_bounded(stderr, request.output_limit)
+        stdout_text, stdout_secret = self._redact_credential_like(stdout_text)
+        stderr_text, stderr_secret = self._redact_credential_like(stderr_text)
+        if stdout_secret or stderr_secret:
+            return ExecutionResult("failed", request.request_id, process.returncode, stdout_text, stderr_text, (time.perf_counter() - started) * 1000.0, "credential_like_output_blocked")
         if len(stdout) > request.output_limit or len(stderr) > request.output_limit:
             return ExecutionResult("failed", request.request_id, process.returncode, stdout_text, stderr_text, (time.perf_counter() - started) * 1000.0, "output_budget_exceeded")
         status = "completed" if process.returncode == 0 else "failed"
