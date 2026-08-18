@@ -930,3 +930,14 @@ Machine evidence: `docs/PARALLEL_AGENT_TRACKS_2_EVIDENCE.json`; English contract
 | STAGE3-C02 | Dashboard safety boundary | `DONE / LOCAL VERIFIED` | Read-only telemetry; no provider/tool invocation; loopback/auth gates inherited |
 
 Machine artifacts: `docs/PYTHON314_TEST_PERFORMANCE_PROFILE.json`, `docs/STAGE3_EXTERNAL_READINESS_PREFLIGHT.json`, `docs/STAGE3_CROSS_PLATFORM_PREFLIGHT.json`. English contract: `docs/OPERATOR_TELEMETRY_DASHBOARD.md`; Russian localization: `docs/locales/ru/OPERATOR_TELEMETRY_DASHBOARD_RU.md`.
+
+## 2026-08-18 — Parallel Stage 4
+
+| ID | Track/gate | Статус | Доказательство |
+|---|---|---|---|
+| STAGE4-A01 | Performance repeatability | `DONE / LOCAL VERIFIED` | 383 tests; wall-time 19.481825 s; in-process 19.756480 s; RSS 43196 KiB; tracemalloc 3159784 bytes; warnings 0 |
+| STAGE4-B01 | Telemetry robustness | `DONE / LOCAL VERIFIED` | 12 UI/health/auth tests; docs security `CLEAN`; SSE glob coverage recorded neutral because no dedicated matching file exists |
+| STAGE4-C01 | Packaging/evidence honesty | `DONE / LOCAL VERIFIED` | Native/build-policy validators, JSON evidence and release metadata passed; external readiness `not_run` |
+| STAGE4-C02 | Claim boundary | `DONE / LOCAL VERIFIED` | Network/credentials disabled; no native or external process started |
+
+Machine evidence: `docs/PARALLEL_STAGE4_EVIDENCE.json`; English report: `docs/PARALLEL_STAGE4.md`; Russian localization: `docs/locales/ru/PARALLEL_STAGE4_RU.md`.

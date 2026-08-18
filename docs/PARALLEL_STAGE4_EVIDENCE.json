@@ -1,0 +1,36 @@
+{
+  "schema_version": "noesis.parallel-stage4.v1",
+  "execution_mode": "isolated_local_processes",
+  "network_allowed": false,
+  "credentials_available": false,
+  "external_processes_started": false,
+  "tracks": {
+    "A_performance_repeatability": {
+      "status": "passed",
+      "tests_run_subprocess": 383,
+      "wall_seconds": 19.481825,
+      "in_process_wall_seconds": 19.75648,
+      "child_max_rss_kib": 43196,
+      "peak_tracemalloc_bytes": 3159784,
+      "warning_count": 0,
+      "focused_tests": 10
+    },
+    "B_telemetry_robustness": {
+      "status": "passed",
+      "focused_tests": 12,
+      "sse_matching_tests": 0,
+      "docs_security": "CLEAN",
+      "note": "No matching test_*sse*.py filename glob existed; zero coverage is recorded as neutral."
+    },
+    "C_packaging_evidence_honesty": {
+      "status": "passed",
+      "native_evidence_validator": "passed",
+      "build_policy_validator": "passed",
+      "json_evidence_audit": "passed",
+      "release_metadata": "passed",
+      "external_readiness": "not_run",
+      "comparative_ready": false
+    }
+  },
+  "claim_boundary": "Local repeatability and policy checks do not create native Windows/macOS or external Hermes/OpenCode/DeepSeek execution evidence."
+}
