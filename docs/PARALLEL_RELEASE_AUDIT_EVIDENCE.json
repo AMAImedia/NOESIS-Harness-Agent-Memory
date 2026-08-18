@@ -1,0 +1,76 @@
+{
+  "credentials_available": false,
+  "event_kinds": [
+    "lane_completed",
+    "lane_started"
+  ],
+  "mode": "offline",
+  "model_generated_code_executed": false,
+  "network_allowed": false,
+  "remote_parity_checked": false,
+  "results": [
+    {
+      "agent_id": "audit-git",
+      "error": "",
+      "output": {
+        "changed_entries": 0,
+        "check": "git_integrity",
+        "diff_check": true,
+        "status": "passed",
+        "working_tree_clean": true
+      },
+      "status": "passed",
+      "task_id": "git-integrity",
+      "workspace": "/tmp/parallel_release_audit_workspaces/git-integrity"
+    },
+    {
+      "agent_id": "audit-exports",
+      "error": "",
+      "output": {
+        "check": "package_exports",
+        "export_count": 8,
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "package-exports",
+      "workspace": "/tmp/parallel_release_audit_workspaces/package-exports"
+    },
+    {
+      "agent_id": "audit-checklist",
+      "error": "",
+      "output": {
+        "check": "ru_checklist",
+        "line_count": 780,
+        "markers": [
+          "NAT-",
+          "CI-",
+          "REL-",
+          "EXEC-",
+          "API-",
+          "MA-"
+        ],
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "ru-checklist",
+      "workspace": "/tmp/parallel_release_audit_workspaces/ru-checklist"
+    },
+    {
+      "agent_id": "audit-security",
+      "error": "",
+      "output": {
+        "check": "secret_ast_audit",
+        "eval_exec_calls": 0,
+        "secret_hits": 0,
+        "status": "passed",
+        "syntax_errors": 0,
+        "working_tree_clean": true
+      },
+      "status": "passed",
+      "task_id": "secret-ast-audit",
+      "workspace": "/tmp/parallel_release_audit_workspaces/secret-ast-audit"
+    }
+  ],
+  "schema_version": "noesis.parallel-release-audit.v1",
+  "workspace_count": 4
+}
