@@ -18,6 +18,7 @@ from typing import Mapping, Optional, Sequence
 
 from .gatekeeper import Gatekeeper
 from .security import safe_path
+from .sandbox_backend import SandboxBackend
 
 MAX_OUTPUT_BYTES = 256 * 1024
 MAX_ARG_COUNT = 64
@@ -60,9 +61,10 @@ class ExecutionResult:
 class ChildExecutionRuntime:
     """Run only explicitly approved, bounded, shell-free child processes."""
 
-    def __init__(self, gatekeeper: Gatekeeper, *, environment_allowlist: Sequence[str] = ()):
+    def __init__(self, gatekeeper: Gatekeeper, *, environment_allowlist: Sequence[str] = (), sandbox_backend: SandboxBackend | None = None):
         self.gatekeeper = gatekeeper
         self.environment_allowlist = frozenset(str(key) for key in environment_allowlist)
+        self.sandbox_backend = sandbox_backend
 
     @staticmethod
     def _basename(executable: str) -> str:
@@ -126,6 +128,24 @@ class ChildExecutionRuntime:
             workspace = self._validate(request)
         except ChildExecutionError as exc:
             return ExecutionResult("denied", request.request_id, None, "", "", 0.0, str(exc))
+        if self.sandbox_backend is not None:
+            if not self.sandbox_backend.available:
+                return ExecutionResult("denied", request.request_id, None, "", "", 0.0, "sandbox_backend_unavailable")
+            if request.environment:
+                return ExecutionResult("denied", request.request_id, None, "", "", 0.0, "sandbox_backend_environment_unsupported")
+            started = time.perf_counter()
+            try:
+                sandbox_result = self.sandbox_backend.run(request.argv, workspace, timeout_seconds=request.timeout_seconds)
+            except Exception as exc:
+                return ExecutionResult("failed", request.request_id, None, "", "", (time.perf_counter() - started) * 1000.0, "sandbox_launch_failed:%s" % type(exc).__name__, True)
+            stdout_text, stdout_secret = self._redact_credential_like(sandbox_result.stdout)
+            stderr_text, stderr_secret = self._redact_credential_like(sandbox_result.stderr)
+            if stdout_secret or stderr_secret:
+                return ExecutionResult("failed", request.request_id, sandbox_result.returncode, stdout_text, stderr_text, (time.perf_counter() - started) * 1000.0, "credential_like_output_blocked", True)
+            if len(sandbox_result.stdout.encode("utf-8")) > request.output_limit or len(sandbox_result.stderr.encode("utf-8")) > request.output_limit:
+                return ExecutionResult("failed", request.request_id, sandbox_result.returncode, stdout_text, stderr_text, (time.perf_counter() - started) * 1000.0, "output_budget_exceeded", True)
+            status = "completed" if sandbox_result.status == "passed" else "timeout" if sandbox_result.status == "timed_out" else "failed"
+            return ExecutionResult(status, request.request_id, sandbox_result.returncode, stdout_text, stderr_text, (time.perf_counter() - started) * 1000.0, sandbox_result.reason or "sandbox_%s" % status, True)
         environment = {key: os.environ[key] for key in self.environment_allowlist if key in os.environ}
         environment.update({key: str(value) for key, value in request.environment.items()})
         started = time.perf_counter()

@@ -1,3 +1,4 @@
+import shutil
 import sys
 import tempfile
 import unittest
@@ -5,6 +6,7 @@ from pathlib import Path
 
 from noesis_harness.child_execution import ChildExecutionRuntime, ExecutionRequest
 from noesis_harness.gatekeeper import CapabilityRequest, Gatekeeper
+from noesis_harness.sandbox_bwrap import BubblewrapBackend
 
 
 class ChildExecutionTests(unittest.TestCase):
@@ -105,6 +107,31 @@ class ChildExecutionTests(unittest.TestCase):
         self.assertEqual(self.runtime.run(bad_exe).reason, "executable_not_allowlisted")
         traversal = ExecutionRequest(request_id, (sys.executable, "../ok.py"), str(self.workspace), (Path(sys.executable).name,))
         self.assertEqual(self.runtime.run(traversal).reason, "entrypoint_outside_workspace")
+
+    def test_bubblewrap_backend_is_explicitly_sandboxed(self):
+        backend = BubblewrapBackend()
+        if not backend.available:
+            self.skipTest("bubblewrap unavailable")
+        request_id = self._approved_request()
+        runtime = ChildExecutionRuntime(self.gate, sandbox_backend=backend)
+        python3 = shutil.which("python3") or "/usr/bin/python3"
+        request = ExecutionRequest(request_id, (python3, "ok.py"), str(self.workspace), (Path(python3).name,))
+        result = runtime.run(request)
+        self.assertEqual(result.status, "completed")
+        self.assertTrue(result.sandboxed)
+        self.assertIn("child-ok", result.stdout)
+
+    def test_unavailable_backend_fails_closed(self):
+        class Unavailable:
+            available = False
+            backend_id = "test-unavailable"
+            host_platform = "test"
+        request_id = self._approved_request()
+        runtime = ChildExecutionRuntime(self.gate, sandbox_backend=Unavailable())
+        result = runtime.run(self._request(request_id))
+        self.assertEqual(result.status, "denied")
+        self.assertEqual(result.reason, "sandbox_backend_unavailable")
+        self.assertFalse(result.sandboxed)
 
 
 if __name__ == "__main__":

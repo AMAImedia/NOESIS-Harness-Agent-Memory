@@ -28,6 +28,9 @@ class SandboxResult:
 
 
 class BubblewrapBackend:
+    backend_id = "linux-bubblewrap"
+    host_platform = "linux"
+
     def __init__(self, *, executable: str = "bwrap", max_output_bytes: int = 64 * 1024):
         self.executable = shutil.which(executable)
         self.max_output_bytes = max_output_bytes
@@ -49,6 +52,7 @@ class BubblewrapBackend:
             "--die-with-parent",
             "--new-session",
             "--unshare-all",
+            "--unshare-net",
             "--clearenv",
             "--ro-bind", "/usr", "/usr",
             "--ro-bind", "/bin", "/bin",
