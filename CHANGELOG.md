@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Trust Plane provenance, lineage, Gatekeeper and child-runtime security closeout evidence.
+- Versioned task/session command API, bounded SSE stream contract and approval-gated TaskExecutionBridge.
+- SafeParallelExecutor with per-agent workspaces, durable Actions lifecycle and RecoveryCoordinator requeue.
+- Portable artifact manifest/SBOM verifier and native Windows/macOS dry-run/signing-policy evidence lanes.
+
+### Changed
+- Python 3.14 is the sole target runtime; CI packaging gates now verify portable SHA-256/SPDX coverage and both native target mismatch paths.
+
+### Security
+- Offline release audit is network-off-by-default and checks credential-like strings, AST eval/exec calls, package exports and clean Git state.
+
+### Verification snapshot — 2026-08-18
+- Python 3.14.7 full regression and local release evidence remain verified; native target builds and external A/B are still unreleased gates.
+
 ## [0.5.0] - 2026-08-14
 
 ### Added

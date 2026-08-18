@@ -13,7 +13,7 @@ This directory contains the technical documentation for the local-first NOESIS a
 | [`why.md`](why.md) | Motivation and design rationale. |
 | [`recipes/`](recipes/) | Focused examples for DAG actions, event sourcing, human-in-the-loop governance, memory tiers and multi-agent work. |
 
-The repository is currently maintained as a **local Git project**. Documentation is written for safe review before any future public publication; no GitHub push is implied by the presence of these files.
+The repository is currently maintained in a **private GitHub repository**. Documentation is written for safe review; public visibility and publication remain owner-approved gates.
 
 ## Security boundary
 
@@ -27,3 +27,7 @@ The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-o
 | [`PORTABLE_UI_INTEGRATION_ROADMAP.md`](PORTABLE_UI_INTEGRATION_ROADMAP.md) | Verified plan for an optional Windows/macOS Portable Control Plane, model/provider adapters, safe skill bundles and Hermes/DeepSeek bridge boundaries. |
 | [`PROJECT_CHECKLIST_TODO_RU.md`](PROJECT_CHECKLIST_TODO_RU.md) | Shared Russian checklist/TODO with completed work, active tasks, owners, evidence, user approvals and the next action gate. |
 | [`UI_CONTRACT_V1.md`](UI_CONTRACT_V1.md) | Versioned stdlib-only boundary for health, models, errors, redaction and optional Hermes/DeepSeek adapters. |
+| [`NATIVE_PACKAGING_RUNBOOK_RU.md`](NATIVE_PACKAGING_RUNBOOK_RU.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |
+| [`PARALLEL_RELEASE_AUDIT_RU.md`](PARALLEL_RELEASE_AUDIT_RU.md) | Offline release audit, secret/AST/export/Git cleanliness gates. |
+| [`PARALLEL_CI_CONSISTENCY_RU.md`](PARALLEL_CI_CONSISTENCY_RU.md) | CI/runbook consistency and portable artifact evidence. |
+| [`third_party_provenance.json`](third_party_provenance.json) | Machine-readable upstream reference/license/provenance manifest. |

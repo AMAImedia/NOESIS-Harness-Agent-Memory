@@ -134,7 +134,7 @@ For technical details, see [`docs/README.md`](docs/README.md), [`docs/ARCHITECTU
 
 ## License and third-party components
 
-NOESIS-Harness-Agent-Memory is licensed under the [MIT License](LICENSE).
+NOESIS-Harness-Agent-Memory is licensed under the [MIT License](LICENSE). Third-party reference and provenance boundaries are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [`docs/third_party_provenance.json`](docs/third_party_provenance.json).
 
 The project is informed by publicly available design discussions and open-source projects, including Cloudflare OS and Project Think, Hermes Agent memory practices, Pi’s minimal harness and Letta’s memory-tier concepts. These references are design inputs, not bundled runtime dependencies. Their names, source code and licenses remain governed by their respective repositories. See the [evaluation protocol](docs/EVALUATION_PROTOCOL.md) and [architecture notes](docs/ARCHITECTURE_1.0_NEXTGEN.md) for the boundary between inspiration and implemented behavior.
 
@@ -151,4 +151,4 @@ The project is informed by publicly available design discussions and open-source
 
 Before any public push, confirm that all placeholders are absent; `LICENSE` and the README license badge agree; every relative link resolves; `.env`, databases, logs, caches, archives and model payloads are ignored; secret-pattern scans are clean; the test suite passes on the intended Python versions; and the owner has explicitly approved the remote repository, branch and first push.
 
-This repository currently has a **local Git baseline only**. No GitHub remote or publication is implied by this README.
+This repository is maintained in a **private GitHub repository** for now. Public visibility, first public release and any irreversible publication remain owner-approved gates; private remote presence does not imply a public release.

@@ -783,3 +783,16 @@ Summary: `docs/PARALLEL_RELEASE_AUDIT_RU.md`. Remote Git parity, native target b
 ### AUD-06 evidence result
 
 Offline release audit на committed checkpoint завершён: **4/4 lanes passed**, secret hits `0`, syntax errors `0`, AST `eval/exec` calls `0`, package exports `8/8`, `git diff --check=true`, `working_tree_clean=true`, unique workspaces `4`, `remote_parity_checked=false`. Machine-readable evidence: `docs/PARALLEL_RELEASE_AUDIT_EVIDENCE.json`; SHA-256 `462b32364cfe9f4d34017c26278f9d81626c73b93d1172879a57c2437a45b944`.
+
+
+## 2026-08-18 — Release metadata, licensing и provenance coverage
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| META-01 | Required release metadata files | `DONE / LOCAL VERIFIED` | LICENSE, README, CHANGELOG, THIRD_PARTY_NOTICES, pyproject, docs index и provenance manifest: 7/7 |
+| META-02 | Python/license/private-release alignment | `DONE / LOCAL VERIFIED` | 9/9 metadata checks passed; Python 3.14, MIT, private GitHub и owner-approved public gate согласованы |
+| META-03 | Third-party provenance parity | `DONE / LOCAL VERIFIED` | 5 upstreams; NOTICE↔JSON parity; `code_copied=false`, `runtime_dependency=false` |
+| META-04 | CHANGELOG/docs navigation freshness | `DONE / LOCAL VERIFIED` | Unreleased 2026-08-18 snapshot, new evidence docs linked, missing markers `[]` |
+| META-05 | Parallel metadata/SBOM evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; evidence SHA-256 `c3a3e2dc041b203c923ab48c97ce8e193a0673e9e864695a68aea0592dfe9d81` |
+
+Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage закрыта локально; license review при будущем vendoring и external/native gates остаются отдельными задачами.

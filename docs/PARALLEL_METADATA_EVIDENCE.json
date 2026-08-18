@@ -1,0 +1,68 @@
+{
+  "credentials_available": false,
+  "event_kinds": [
+    "lane_completed",
+    "lane_started"
+  ],
+  "model_generated_code_executed": false,
+  "native_builds_executed": false,
+  "network_allowed": false,
+  "results": [
+    {
+      "agent_id": "changelog",
+      "error": "",
+      "output": {
+        "changelog_unreleased": true,
+        "check": "changelog_docs",
+        "missing": [],
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "changelog-docs",
+      "workspace": "/tmp/parallel_metadata_workspaces/changelog-docs"
+    },
+    {
+      "agent_id": "provenance",
+      "error": "",
+      "output": {
+        "check": "license_provenance",
+        "code_copied": false,
+        "runtime_dependency": false,
+        "status": "passed",
+        "upstreams": 5
+      },
+      "status": "passed",
+      "task_id": "license-provenance",
+      "workspace": "/tmp/parallel_metadata_workspaces/license-provenance"
+    },
+    {
+      "agent_id": "sbom",
+      "error": "",
+      "output": {
+        "artifact_sha256": "febcfbe4e964f5d34e94229eb3079782869526662ef36f6f1cf34440b9f95bce",
+        "check": "portable_sbom",
+        "file_count": 2,
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "portable-sbom",
+      "workspace": "/tmp/parallel_metadata_workspaces/portable-sbom"
+    },
+    {
+      "agent_id": "metadata",
+      "error": "",
+      "output": {
+        "check": "release_metadata",
+        "checks": 9,
+        "required_files": 7,
+        "status": "passed",
+        "upstreams": 5
+      },
+      "status": "passed",
+      "task_id": "release-metadata",
+      "workspace": "/tmp/parallel_metadata_workspaces/release-metadata"
+    }
+  ],
+  "schema_version": "noesis.parallel-metadata-coverage.v1",
+  "workspace_count": 4
+}
