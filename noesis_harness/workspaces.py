@@ -47,6 +47,16 @@ class WorkspaceSnapshot:
 
 
 @dataclass(frozen=True)
+class MergeAuthorization:
+    proposal_id: str
+    workspace_id: str
+    base_snapshot_id: str
+    head_snapshot_id: str
+    reviewer: str
+    authorization_digest: str
+
+
+@dataclass(frozen=True)
 class PatchProposal:
     proposal_id: str
     workspace_id: str
@@ -156,5 +166,18 @@ class WorkspaceManager:
             raise WorkspaceError("invalid_patch_review")
         return PatchProposal(proposal.proposal_id, proposal.workspace_id, proposal.base_snapshot_id, proposal.head_snapshot_id, proposal.changes, decision)
 
+    @staticmethod
+    def authorize_merge(proposal: PatchProposal, *, reviewer: str, current_base_snapshot_id: str) -> MergeAuthorization:
+        """Authorize a reviewed patch; never applies or publishes file changes."""
+        if proposal.status != "approved":
+            raise WorkspaceError("merge_review_approval_required")
+        if not reviewer or reviewer == proposal.workspace_id:
+            raise WorkspaceError("independent_reviewer_required")
+        if current_base_snapshot_id != proposal.base_snapshot_id:
+            raise WorkspaceError("merge_base_stale")
+        payload = "%s|%s|%s|%s|%s" % (proposal.proposal_id, proposal.workspace_id, proposal.base_snapshot_id, proposal.head_snapshot_id, reviewer)
+        digest = "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        return MergeAuthorization(proposal.proposal_id, proposal.workspace_id, proposal.base_snapshot_id, proposal.head_snapshot_id, reviewer, digest)
 
-__all__ = ["WORKSPACE_SCHEMA", "FileEntry", "WorkspaceSnapshot", "PatchProposal", "WorkspaceManager", "WorkspaceError"]
+
+__all__ = ["WORKSPACE_SCHEMA", "FileEntry", "MergeAuthorization", "PatchProposal", "WorkspaceManager", "WorkspaceError"]

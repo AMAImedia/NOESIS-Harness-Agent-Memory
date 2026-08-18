@@ -48,6 +48,28 @@ class WorkspaceManagerTests(unittest.TestCase):
         with self.assertRaises(WorkspaceError):
             self.manager.propose_patch(left.snapshot_id, right.snapshot_id)
 
+    def test_merge_authorization_requires_review_independent_reviewer_and_fresh_base(self):
+        self.manager.write_text(self.workspace, "README.md", "draft\n")
+        base = self.manager.snapshot(self.workspace)
+        self.manager.write_text(self.workspace, "README.md", "approved\n")
+        head = self.manager.snapshot(self.workspace, parent_snapshot_id=base.snapshot_id)
+        proposal = self.manager.review(self.manager.propose_patch(base.snapshot_id, head.snapshot_id), "approved")
+        receipt = self.manager.authorize_merge(proposal, reviewer="reviewer-1", current_base_snapshot_id=base.snapshot_id)
+        self.assertEqual(receipt.reviewer, "reviewer-1")
+        self.assertTrue(receipt.authorization_digest.startswith("sha256:"))
+        with self.assertRaisesRegex(WorkspaceError, "merge_base_stale"):
+            self.manager.authorize_merge(proposal, reviewer="reviewer-1", current_base_snapshot_id=head.snapshot_id)
+
+    def test_merge_authorization_does_not_apply_changes(self):
+        self.manager.write_text(self.workspace, "README.md", "draft\n")
+        base = self.manager.snapshot(self.workspace)
+        self.manager.write_text(self.workspace, "README.md", "new\n")
+        head = self.manager.snapshot(self.workspace, parent_snapshot_id=base.snapshot_id)
+        proposal = self.manager.review(self.manager.propose_patch(base.snapshot_id, head.snapshot_id), "approved")
+        before = Path(self.tmp.name, self.workspace, "README.md").read_text()
+        self.manager.authorize_merge(proposal, reviewer="reviewer-1", current_base_snapshot_id=base.snapshot_id)
+        self.assertEqual(Path(self.tmp.name, self.workspace, "README.md").read_text(), before)
+
 
 if __name__ == "__main__":
     unittest.main()

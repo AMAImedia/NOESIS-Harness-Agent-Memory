@@ -40,8 +40,8 @@
       "error": "",
       "output": {
         "check": "markdown_links",
-        "local_links": 31,
-        "markdown_files": 70,
+        "local_links": 32,
+        "markdown_files": 71,
         "missing": 0,
         "status": "passed"
       },

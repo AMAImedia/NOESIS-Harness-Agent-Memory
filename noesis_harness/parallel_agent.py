@@ -11,13 +11,38 @@ from __future__ import annotations
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from threading import Lock
+from threading import Event, Lock, Timer
+import time
 from typing import Callable, Iterable, Mapping, Optional, Sequence
 from uuid import uuid4
 
 
 class ParallelExecutionError(ValueError):
     """Raised when a multi-agent plan violates the local safety contract."""
+
+
+class CancellationToken:
+    """Cooperative cancellation state shared with one lane callback."""
+
+    def __init__(self):
+        self._event = Event()
+        self._reason = ""
+
+    def cancel(self, reason: str = "cancelled") -> None:
+        self._reason = reason or "cancelled"
+        self._event.set()
+
+    @property
+    def cancelled(self) -> bool:
+        return self._event.is_set()
+
+    @property
+    def reason(self) -> str:
+        return self._reason or "cancelled"
+
+    def check(self) -> None:
+        if self.cancelled:
+            raise ParallelExecutionError("lane_cancelled:" + self.reason)
 
 
 SAFE_CAPABILITIES = frozenset({
@@ -61,8 +86,18 @@ class AgentLaneContext:
     agent_id: str
     workspace: Path
     capabilities: frozenset[str]
+    cancellation: CancellationToken | None = None
+    deadline: float | None = None
     network_allowed: bool = False
     credentials_available: bool = False
+
+    def check_cancelled(self) -> None:
+        if self.cancellation is None:
+            return
+        self.cancellation.check()
+        if self.deadline is not None and time.monotonic() >= self.deadline:
+            self.cancellation.cancel("deadline_exceeded")
+            self.cancellation.check()
 
     def path(self, relative: str) -> Path:
         """Resolve a relative path and reject traversal/symlink escapes."""
@@ -176,6 +211,8 @@ class SafeParallelExecutor:
         lease_store: object | None = None,
         action_store: object | None = None,
         event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
+        max_duration_seconds: float | None = None,
+        cancellation: CancellationToken | None = None,
     ) -> list[AgentLaneResult]:
         """Execute callbacks with bounded concurrency and isolated failures."""
         if not callable(callback):
@@ -188,9 +225,13 @@ class SafeParallelExecutor:
             required = ("claim", "complete", "requeue")
             if any(not callable(getattr(action_store, name, None)) for name in required):
                 raise ParallelExecutionError("action_store_invalid")
+        if max_duration_seconds is not None and max_duration_seconds <= 0:
+            raise ParallelExecutionError("max_duration_seconds_must_be_positive")
         sid = session_id or uuid4().hex
+        token = cancellation or CancellationToken()
+        deadline = time.monotonic() + max_duration_seconds if max_duration_seconds is not None else None
         contexts = self._validate_lanes(lane_list, approval)
-        contexts = [AgentLaneContext(sid, c.task_id, c.agent_id, c.workspace, c.capabilities) for c in contexts]
+        contexts = [AgentLaneContext(sid, c.task_id, c.agent_id, c.workspace, c.capabilities, token, deadline) for c in contexts]
         results: list[AgentLaneResult] = []
 
         def emit(kind: str, context: AgentLaneContext, error: str = "") -> None:
@@ -225,13 +266,21 @@ class SafeParallelExecutor:
                 action_claimed = True
                 emit("lane_claimed", context)
             try:
+                context.check_cancelled()
                 output = callback(context)
+                context.check_cancelled()
                 if action_claimed:
                     completion = action_store.complete(context.task_id)
                     if completion is False:
                         raise ParallelExecutionError("action_completion_rejected")
                     action_claimed = False
             except Exception as exc:  # fail one lane without cancelling unrelated lanes
+                if isinstance(exc, ParallelExecutionError) and str(exc).startswith("lane_cancelled:"):
+                    emit("lane_cancelled", context, str(exc))
+                    if action_claimed:
+                        action_store.requeue(context.task_id, context.agent_id)
+                        action_claimed = False
+                    return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "cancelled", error=str(exc))
                 emit("lane_failed", context, type(exc).__name__)
                 if action_claimed:
                     action_store.requeue(context.task_id, context.agent_id)
@@ -252,6 +301,7 @@ class SafeParallelExecutor:
 
 __all__ = [
     "AgentLane",
+    "CancellationToken",
     "AgentLaneContext",
     "AgentLaneResult",
     "ALWAYS_DENIED_CAPABILITIES",

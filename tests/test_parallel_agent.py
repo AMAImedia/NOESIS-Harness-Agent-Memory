@@ -138,6 +138,26 @@ class SafeParallelExecutorTests(unittest.TestCase):
         self.assertEqual(by_agent["bad"].error, "RuntimeError: expected")
         self.assertEqual(sorted(e["event"] for e in executor.audit), sorted(["lane_started", "lane_started", "lane_completed", "lane_failed"]))
 
+    def test_cooperative_cancellation_isolated_and_reported(self):
+        from noesis_harness.parallel_agent import CancellationToken
+        token = CancellationToken()
+        executor = SafeParallelExecutor(self.root)
+
+        def callback(ctx):
+            token.cancel("operator_stop")
+            ctx.check_cancelled()
+
+        result = executor.execute([AgentLane("a", "cancel-task", "cancel")], callback, cancellation=token)[0]
+        self.assertEqual(result.status, "cancelled")
+        self.assertIn("operator_stop", result.error)
+        self.assertIn("lane_cancelled", [event["event"] for event in executor.audit])
+
+    def test_deadline_cancellation_is_reported(self):
+        executor = SafeParallelExecutor(self.root)
+        result = executor.execute([AgentLane("a", "deadline-task", "deadline")], lambda ctx: ctx.check_cancelled(), max_duration_seconds=0.000001)[0]
+        self.assertEqual(result.status, "cancelled")
+        self.assertIn("deadline_exceeded", result.error)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
