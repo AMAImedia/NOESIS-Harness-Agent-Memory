@@ -13,7 +13,7 @@ from .provider_registry import ProviderRegistry
 from .ui_assets import CONTROL_PLANE_HTML
 from .session_stream import SessionEventBuffer, StreamContractError
 from .task_session_api import TaskSessionError, TaskSessionStore
-from .promotion_integration import PromotionApprovalAction
+from .promotion_integration import OperatorAuthContext, PromotionApprovalAction
 from .ui_contract import UIEnvelope, failure, health_payload, success
 
 
@@ -25,7 +25,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction], Mapping[str, Any]]] = None):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -44,6 +44,7 @@ class HealthServer:
         self.session_store = session_store
         self.promotion_telemetry = promotion_telemetry
         self.promotion_action_handler = promotion_action_handler
+        self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
         self._telemetry: dict[str, Any] = {
@@ -244,8 +245,11 @@ class HealthServer:
                         if parent.promotion_action_handler is None:
                             self._send(failure("denied", "promotion_actions_unavailable", "promotion action handler is not enabled"), 405)
                             return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
                         action = PromotionApprovalAction.from_mapping(payload)
-                        result = parent.promotion_action_handler(action)
+                        result = parent.promotion_action_handler(action, parent.operator_auth_context)
                         if not isinstance(result, Mapping):
                             raise TaskSessionError("promotion_action_handler_must_return_object")
                         self._send(success({"action": action.to_mapping(), "result": dict(result)}), 202)

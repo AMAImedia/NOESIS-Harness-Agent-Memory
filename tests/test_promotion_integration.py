@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import EvaluatorRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionEventBridge, PromotionIntegration
+from noesis_harness.promotion_integration import EvaluatorRegistry, OperatorAuthContext, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -120,15 +120,16 @@ class PromotionIntegrationTests(unittest.TestCase):
         return integration.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="skill-" + task_id, content="# skill\n")
 
     def test_operator_action_executor_approves_with_signed_idempotent_receipt(self):
-        from noesis_harness.promotion_integration import PromotionActionExecutor
         integration = self.integration()
         proposal = self._proposal(integration)
         executor = PromotionActionExecutor(integration, tempfile.mktemp(), approval_tests=lambda: True)
+        context = OperatorAuthContext("independent-reviewer", "session-operator")
         action = PromotionApprovalAction("action-approve", "approve", proposal.proposal_id, "independent-reviewer")
-        first = executor.handle(action)
-        replay = executor.handle(action)
+        first = executor.handle(action, context)
+        replay = executor.handle(action, context)
         self.assertEqual(first["status"], "applied")
         self.assertEqual(replay["status"], "replayed")
+        self.assertEqual(integration.snapshot()["counts"]["promotion_action_replayed"], 1)
         receipt = first["receipt"]
         self.assertEqual(receipt["new_state"], "approved")
         signature_payload = {key: receipt[key] for key in ("action_id", "proposal_id", "action", "operator_id", "previous_state", "new_state")}
@@ -137,24 +138,24 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertEqual(integration.pipeline.active_version(proposal.skill_name), "")
 
     def test_operator_action_executor_rejects_self_review_and_supports_reject(self):
-        from noesis_harness.promotion_integration import PromotionActionExecutor
         integration = self.integration()
         proposal = self._proposal(integration, "task-reject")
         executor = PromotionActionExecutor(integration, tempfile.mktemp())
         with self.assertRaisesRegex(PermissionError, "independent_reviewer_required"):
-            executor.handle(PromotionApprovalAction("action-self", "approve", proposal.proposal_id, "agent-owner"))
-        rejected = executor.handle(PromotionApprovalAction("action-reject", "reject", proposal.proposal_id, "independent-reviewer"))
+            executor.handle(PromotionApprovalAction("action-self", "approve", proposal.proposal_id, "agent-owner"), OperatorAuthContext("agent-owner", "session-operator"))
+        self.assertEqual(integration.snapshot()["counts"]["promotion_action_denied"], 1)
+        rejected = executor.handle(PromotionApprovalAction("action-reject", "reject", proposal.proposal_id, "independent-reviewer"), OperatorAuthContext("independent-reviewer", "session-operator"))
         self.assertEqual(rejected["receipt"]["new_state"], "rejected")
 
     def test_operator_action_executor_rolls_back_only_explicitly_promoted_proposal(self):
-        from noesis_harness.promotion_integration import PromotionActionExecutor
         integration = self.integration()
         proposal = self._proposal(integration, "task-rollback")
         executor = PromotionActionExecutor(integration, tempfile.mktemp())
-        executor.handle(PromotionApprovalAction("action-approve-r", "approve", proposal.proposal_id, "independent-reviewer"))
+        context = OperatorAuthContext("independent-reviewer", "session-operator")
+        executor.handle(PromotionApprovalAction("action-approve-r", "approve", proposal.proposal_id, "independent-reviewer"), context)
         promoted, _ = integration.promote(proposal.proposal_id, content="# skill\n", verify=lambda path: path.is_file(), activate=False)
         self.assertEqual(promoted.state, "promoted")
-        rolled = executor.handle(PromotionApprovalAction("action-rollback", "rollback", proposal.proposal_id, "independent-reviewer", expected_state="promoted"))
+        rolled = executor.handle(PromotionApprovalAction("action-rollback", "rollback", proposal.proposal_id, "independent-reviewer", expected_state="promoted"), context)
         self.assertEqual(rolled["receipt"]["new_state"], "rolled_back")
         self.assertEqual(integration.pipeline.active_version(proposal.skill_name), "")
 

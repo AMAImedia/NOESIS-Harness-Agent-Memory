@@ -1031,3 +1031,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-ACTION-07 | Full operator proposal workflow | `NEXT LOCAL GATE` | Bind handler to operator session/auth identity and independent reviewer policy in production UI lifecycle |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Operator Authorization Context and Audit Telemetry
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-AUTH-01 | Operator identity/session context | `DONE / LOCAL VERIFIED` | `OperatorAuthContext` must match action operator identity and configured session |
+| LEARN-AUTH-02 | Optional scope authorization | `DONE / LOCAL VERIFIED` | Action scope is accepted only when present in configured operator scopes |
+| LEARN-AUTH-03 | HealthServer request binding | `DONE / LOCAL VERIFIED` | `/api/promotion-actions` delegates action plus configured context; token-only/anonymous context is denied |
+| LEARN-AUTH-04 | Conflict and denial telemetry | `DONE / LOCAL VERIFIED` | Identity/session/scope/reviewer/state conflicts emit bounded `promotion_action_denied` events |
+| LEARN-AUTH-05 | Replay audit | `DONE / LOCAL VERIFIED` | Replayed `action_id` emits `promotion_action_replayed` without duplicate state transition |
+| LEARN-AUTH-06 | Production operator identity source | `NEXT LOCAL GATE` | Bind context to authenticated operator session lifecycle and independent reviewer authorization store |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

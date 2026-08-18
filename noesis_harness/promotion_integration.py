@@ -130,21 +130,32 @@ class PromotionActionExecutor:
                 return PromotionActionReceipt(**{key: payload[key] for key in ("action_id", "proposal_id", "action", "operator_id", "previous_state", "new_state", "signed_receipt")})
         return None
 
-    def handle(self, action: PromotionApprovalAction) -> Mapping[str, Any]:
+    def _deny(self, action: PromotionApprovalAction | None, reason: str, error_type: type[Exception]) -> None:
+        self.integration.telemetry.record("promotion_action_denied", action_id=action.action_id if action else "", proposal_id=action.proposal_id if action else "", reason=reason)
+        raise error_type(reason)
+
+    def handle(self, action: PromotionApprovalAction, auth_context: OperatorAuthContext | None = None) -> Mapping[str, Any]:
         if not isinstance(action, PromotionApprovalAction):
             raise ValueError("promotion_action_required")
+        if auth_context is None:
+            self._deny(action, "operator_auth_context_required", PermissionError)
+        try:
+            auth_context.authorize(action)
+        except PermissionError as exc:
+            self._deny(action, str(exc), PermissionError)
         existing = self._existing(action.action_id)
         if existing is not None:
+            self.integration.telemetry.record("promotion_action_replayed", action_id=action.action_id, proposal_id=action.proposal_id)
             return {"status": "replayed", "receipt": existing.to_mapping()}
         proposal = self.integration.pipeline._proposals.get(action.proposal_id)
         if proposal is None:
-            raise KeyError(action.proposal_id)
+            self._deny(action, "proposal_not_found", KeyError)
         if proposal.state != action.expected_state:
-            raise ValueError("proposal_state_conflict")
+            self._deny(action, "proposal_state_conflict", ValueError)
         receipt = self.integration.pipeline._receipts.get(proposal.receipt_id)
         owner_id = receipt.agent_id if receipt is not None else ""
         if not owner_id or not self.independent_reviewer(action.operator_id, owner_id):
-            raise PermissionError("independent_reviewer_required")
+            self._deny(action, "independent_reviewer_required", PermissionError)
         previous = proposal.state
         if action.action == "approve":
             updated = self.integration.approve(action.proposal_id, approved_by=action.operator_id, tests=self.approval_tests)
@@ -194,6 +205,22 @@ class OwnershipPolicySimulator:
 
 
 @dataclass(frozen=True)
+class OperatorAuthContext:
+    operator_id: str
+    session_id: str
+    scopes: tuple[str, ...] = ()
+    authenticated: bool = True
+
+    def authorize(self, action: "PromotionApprovalAction") -> None:
+        if not self.authenticated or not self.operator_id or self.operator_id != action.operator_id:
+            raise PermissionError("operator_identity_mismatch")
+        if action.session_id and self.session_id != action.session_id:
+            raise PermissionError("operator_session_mismatch")
+        if action.scope and action.scope not in self.scopes:
+            raise PermissionError("operator_scope_denied")
+
+
+@dataclass(frozen=True)
 class PromotionApprovalAction:
     """Versioned, non-secret operator action; handler decides side effects explicitly."""
     action_id: str
@@ -201,6 +228,8 @@ class PromotionApprovalAction:
     proposal_id: str
     operator_id: str
     expected_state: str = "review"
+    session_id: str = ""
+    scope: str = ""
     schema_version: str = "noesis.promotion-approval.v1"
 
     def __post_init__(self) -> None:
@@ -215,10 +244,10 @@ class PromotionApprovalAction:
     def from_mapping(cls, value: Mapping[str, Any]) -> "PromotionApprovalAction":
         if not isinstance(value, Mapping) or value.get("schema_version") != "noesis.promotion-approval.v1":
             raise ValueError("unsupported_approval_action_schema")
-        return cls(str(value.get("action_id", "")), str(value.get("action", "")), str(value.get("proposal_id", "")), str(value.get("operator_id", "")), str(value.get("expected_state", "review")))
+        return cls(str(value.get("action_id", "")), str(value.get("action", "")), str(value.get("proposal_id", "")), str(value.get("operator_id", "")), str(value.get("expected_state", "review")), str(value.get("session_id", "")), str(value.get("scope", "")))
 
     def to_mapping(self) -> dict[str, str]:
-        return {"schema_version": self.schema_version, "action_id": self.action_id, "action": self.action, "proposal_id": self.proposal_id, "operator_id": self.operator_id, "expected_state": self.expected_state}
+        return {"schema_version": self.schema_version, "action_id": self.action_id, "action": self.action, "proposal_id": self.proposal_id, "operator_id": self.operator_id, "expected_state": self.expected_state, "session_id": self.session_id, "scope": self.scope}
 
 
 @dataclass(frozen=True)
@@ -360,4 +389,4 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

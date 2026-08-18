@@ -116,7 +116,7 @@ class HealthServerTests(unittest.TestCase):
             self.assertEqual(payload["error"]["code"], "promotion_actions_unavailable")
 
         handled = []
-        with HealthServer(port=0, promotion_action_handler=lambda action: handled.append(action.to_mapping()) or {"status": "queued"}) as server:
+        with HealthServer(port=0, promotion_action_handler=lambda action, context: handled.append((action.to_mapping(), context)) or {"status": "queued"}, operator_id="operator-1", operator_session_id="session-1", operator_scopes=("promotion:approve",)) as server:
             base = f"http://{server.address[0]}:{server.address[1]}"
             request = urllib.request.Request(base + "/api/promotion-actions", data=json.dumps(action_payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
             with urllib.request.urlopen(request, timeout=2) as response:
@@ -124,7 +124,9 @@ class HealthServerTests(unittest.TestCase):
                 payload = json.loads(response.read().decode("utf-8"))
                 self.assertEqual(payload["data"]["action"]["proposal_id"], "proposal-1")
                 self.assertEqual(payload["data"]["result"]["status"], "queued")
-        self.assertEqual(handled[0]["action"], "approve")
+        self.assertEqual(handled[0][0]["action"], "approve")
+        self.assertEqual(handled[0][1].operator_id, "operator-1")
+        self.assertEqual(handled[0][1].session_id, "session-1")
 
     def test_duplicate_start_and_invalid_binding_are_safe(self):
         with HealthServer(port=0) as server:
