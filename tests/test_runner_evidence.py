@@ -50,6 +50,26 @@ class RunnerEvidenceTests(unittest.TestCase):
         self.assertFalse(evidence["accepted"])
         self.assertIn("invalid:metric:task_success", evidence["errors"])
 
+    def test_verify_evidence_rejects_malformed_envelopes_without_throwing(self):
+        evidence = ingest(self.spec, self.result, KEY)
+        cases = [
+            None,
+            {},
+            {**evidence, "errors": ["unexpected"]},
+            {**evidence, "source_result_sha256": "bad"},
+            {**evidence, "signature": None},
+            {**evidence, "accepted": False},
+        ]
+        for candidate in cases:
+            with self.subTest(candidate=candidate):
+                self.assertFalse(verify_evidence(candidate, KEY))
+        self.assertFalse(verify_evidence(evidence, "short"))
+
+    def test_verify_evidence_rejects_signed_failed_record(self):
+        evidence = ingest(self.spec, {**self.result, "metrics": {"task_success": {"status": "maybe"}}}, KEY)
+        self.assertFalse(evidence["accepted"])
+        self.assertFalse(verify_evidence(evidence, KEY))
+
     def test_outcome_conversion_preserves_not_run_and_observes_approved_run(self):
         denied = outcome_to_result(self.spec, {"execution": "denied", "status": "not_run", "reason": "approval_required"})
         denied_evidence = ingest(self.spec, denied, KEY)

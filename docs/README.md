@@ -7,6 +7,7 @@ This directory contains the technical documentation for the local-first NOESIS a
 | Document | Purpose |
 |---|---|
 | [`LANGUAGE_POLICY.md`](LANGUAGE_POLICY.md) | English-primary and Russian-supplemental language rules for code, docs, contracts and evidence. |
+| [`SIGNED_EVIDENCE_FAIL_CLOSED.md`](SIGNED_EVIDENCE_FAIL_CLOSED.md) | Normative HMAC evidence envelope, hostile-input verification and fail-closed external A/B acceptance rules; Russian localization: [`SIGNED_EVIDENCE_FAIL_CLOSED_RU.md`](SIGNED_EVIDENCE_FAIL_CLOSED_RU.md). |
 | [`ARCHITECTURE_1.0_NEXTGEN.md`](ARCHITECTURE_1.0_NEXTGEN.md) | Architecture of run envelopes, capabilities, audit chains, durable fibers, evidence memory, coordination and bounded context. |
 | [`EVALUATION_PROTOCOL.md`](EVALUATION_PROTOCOL.md) | Normative English evaluation criteria; Russian localization: [`EVALUATION_PROTOCOL_RU.md`](EVALUATION_PROTOCOL_RU.md). |
 | [`IMPLEMENTATION_REPORT_2026-08.md`](IMPLEMENTATION_REPORT_2026-08.md) | Normative English implementation report; Russian localization: [`IMPLEMENTATION_REPORT_2026-08_RU.md`](IMPLEMENTATION_REPORT_2026-08_RU.md). |

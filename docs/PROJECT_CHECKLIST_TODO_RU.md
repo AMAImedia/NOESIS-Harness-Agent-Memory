@@ -816,3 +816,14 @@ Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage �
 | DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `9670271eb713b0538886395651e03321f65d453ee9b75cf5b11bddc017ce79bd` |
 
 Summary: `docs/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.
+
+## 2026-08-18 — Signed evidence fail-closed gate
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| EVID-01 | Hostile-input verification для signed evidence | `DONE / LOCAL VERIFIED` | `verify_evidence()` возвращает `False` для malformed envelope, missing fields, invalid hashes/signatures, non-empty errors, rejected records и invalid keys; не выбрасывает исключение |
+| EVID-02 | Regression coverage | `DONE / LOCAL VERIFIED` | `tests/test_runner_evidence.py`; полный Python 3.14 suite: `373/373 passed`, `ResourceWarning=0` |
+| EVID-03 | Signed fixture evaluation | `DONE / LOCAL VERIFIED / SIMULATION ONLY` | Local fixture evaluator создал accepted Hermes/OpenCode records с matching fingerprint; `external_processes_started=false`; это не native/external A/B evidence |
+| EVID-04 | English primary documentation | `DONE / LOCAL VERIFIED` | `docs/SIGNED_EVIDENCE_FAIL_CLOSED.md` и Russian localization `docs/SIGNED_EVIDENCE_FAIL_CLOSED_RU.md`; evidence status values остаются English |
+
+Граница сохраняется: реальные Hermes/OpenCode/DeepSeek Harness execution, native macOS/Windows runs и superiority ranking требуют exact revisions, matching environments, disposable workspaces и explicit operator approval.

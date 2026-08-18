@@ -18,6 +18,11 @@ from typing import Any, Mapping
 from scripts.external_runner_contract import ALLOWED_STATUS, REQUIRED_FIELDS, validate_result
 
 SCHEMA = "noesis.runner-evidence.v1"
+EVIDENCE_REQUIRED_FIELDS = (
+    "schema_version", "accepted", "errors", "system", "revision",
+    "task_manifest_sha256", "model_provider", "protocol_fingerprint",
+    "workspace", "status", "metrics", "source_result_sha256",
+)
 METRIC_STATUS = ALLOWED_STATUS | {"observed"}
 _CREDENTIAL_PATTERNS = (
     re.compile(r"(?i)\b(?:api[_-]?key|token|password|secret)\s*[:=]\s*[^\s,;]+"),
@@ -106,9 +111,28 @@ def ingest(spec: Mapping[str, Any], result: Mapping[str, Any], key: str) -> dict
 
 
 def verify_evidence(evidence: Mapping[str, Any], key: str) -> bool:
+    """Verify an accepted evidence envelope without throwing on hostile input."""
+    if not isinstance(evidence, Mapping):
+        return False
+    if any(field not in evidence for field in EVIDENCE_REQUIRED_FIELDS):
+        return False
+    if evidence.get("schema_version") != SCHEMA or evidence.get("accepted") is not True:
+        return False
+    if not isinstance(evidence.get("errors"), list) or evidence.get("errors"):
+        return False
+    if not isinstance(evidence.get("metrics"), Mapping):
+        return False
+    if not isinstance(evidence.get("source_result_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", evidence["source_result_sha256"]):
+        return False
+    supplied = evidence.get("signature")
+    if not isinstance(supplied, str) or not supplied.startswith("hmac-sha256:"):
+        return False
     signed = {name: value for name, value in evidence.items() if name != "signature"}
-    supplied = str(evidence.get("signature", ""))
-    return hmac.compare_digest(supplied, signature(signed, key)) and evidence.get("schema_version") == SCHEMA and evidence.get("accepted") is True
+    try:
+        expected = signature(signed, key)
+    except (TypeError, ValueError, UnicodeError):
+        return False
+    return hmac.compare_digest(supplied, expected)
 
 
 def main(argv=None) -> int:
