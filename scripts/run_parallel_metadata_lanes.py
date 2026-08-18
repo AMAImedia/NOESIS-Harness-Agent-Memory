@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -61,8 +62,6 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Run bounded NOESIS metadata/provenance lanes")
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
-    workspace_root = Path(args.output).expanduser().resolve().parent / "parallel_metadata_workspaces"
-    executor = SafeParallelExecutor(str(workspace_root), max_concurrency=4)
     lanes = [
         AgentLane("metadata", "release-metadata", "release-metadata"),
         AgentLane("provenance", "license-provenance", "license-provenance"),
@@ -70,7 +69,9 @@ def main(argv=None) -> int:
         AgentLane("sbom", "portable-sbom", "portable-sbom", ("read", "workspace_write", "provenance"), True, True),
     ]
     events: list[dict[str, object]] = []
-    results = executor.execute(lanes, lane, session_id="metadata-coverage-session", approval=True, event_sink=events.append)
+    with tempfile.TemporaryDirectory(prefix="noesis-parallel-metadata-") as workspace_root:
+        executor = SafeParallelExecutor(workspace_root, max_concurrency=4)
+        results = executor.execute(lanes, lane, session_id="metadata-coverage-session", approval=True, event_sink=events.append)
     report = {
         "schema_version": "noesis.parallel-metadata-coverage.v1",
         "network_allowed": False,
@@ -78,7 +79,7 @@ def main(argv=None) -> int:
         "model_generated_code_executed": False,
         "native_builds_executed": False,
         "workspace_count": len({item.workspace for item in results}),
-        "results": [{"task_id": item.task_id, "agent_id": item.agent_id, "workspace": item.workspace, "status": item.status, "output": item.output, "error": item.error} for item in results],
+        "results": [{"task_id": item.task_id, "agent_id": item.agent_id, "workspace": Path(item.workspace).name, "status": item.status, "output": item.output, "error": item.error} for item in results],
         "event_kinds": sorted({str(event["kind"]) for event in events}),
     }
     output = Path(args.output)

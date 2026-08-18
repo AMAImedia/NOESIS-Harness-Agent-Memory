@@ -793,6 +793,6 @@ Offline release audit на committed checkpoint завершён: **4/4 lanes pa
 | META-02 | Python/license/private-release alignment | `DONE / LOCAL VERIFIED` | 9/9 metadata checks passed; Python 3.14, MIT, private GitHub и owner-approved public gate согласованы |
 | META-03 | Third-party provenance parity | `DONE / LOCAL VERIFIED` | 5 upstreams; NOTICE↔JSON parity; `code_copied=false`, `runtime_dependency=false` |
 | META-04 | CHANGELOG/docs navigation freshness | `DONE / LOCAL VERIFIED` | Unreleased 2026-08-18 snapshot, new evidence docs linked, missing markers `[]` |
-| META-05 | Parallel metadata/SBOM evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; evidence SHA-256 `c3a3e2dc041b203c923ab48c97ce8e193a0673e9e864695a68aea0592dfe9d81` |
+| META-05 | Parallel metadata/SBOM evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; evidence SHA-256 `34cf5bfa3f74e909f041600e9dd147d2400711a90e68d5dc1290772ceeca0608` |
 
 Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage закрыта локально; license review при будущем vendoring и external/native gates остаются отдельными задачами.

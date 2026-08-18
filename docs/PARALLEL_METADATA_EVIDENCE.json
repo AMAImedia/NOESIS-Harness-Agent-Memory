@@ -19,7 +19,7 @@
       },
       "status": "passed",
       "task_id": "changelog-docs",
-      "workspace": "/tmp/parallel_metadata_workspaces/changelog-docs"
+      "workspace": "changelog-docs"
     },
     {
       "agent_id": "provenance",
@@ -33,20 +33,20 @@
       },
       "status": "passed",
       "task_id": "license-provenance",
-      "workspace": "/tmp/parallel_metadata_workspaces/license-provenance"
+      "workspace": "license-provenance"
     },
     {
       "agent_id": "sbom",
       "error": "",
       "output": {
-        "artifact_sha256": "febcfbe4e964f5d34e94229eb3079782869526662ef36f6f1cf34440b9f95bce",
+        "artifact_sha256": "f01340953b4ca961832ec39e9b24c3a93e7901c7951b6fee7c19520c5d6ce58f",
         "check": "portable_sbom",
         "file_count": 2,
         "status": "passed"
       },
       "status": "passed",
       "task_id": "portable-sbom",
-      "workspace": "/tmp/parallel_metadata_workspaces/portable-sbom"
+      "workspace": "portable-sbom"
     },
     {
       "agent_id": "metadata",
@@ -60,7 +60,7 @@
       },
       "status": "passed",
       "task_id": "release-metadata",
-      "workspace": "/tmp/parallel_metadata_workspaces/release-metadata"
+      "workspace": "release-metadata"
     }
   ],
   "schema_version": "noesis.parallel-metadata-coverage.v1",

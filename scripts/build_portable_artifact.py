@@ -46,6 +46,13 @@ def build_sbom(entries: list[dict]) -> dict:
     }
 
 
+def _zip_info(name: str) -> zipfile.ZipInfo:
+    info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.external_attr = 0o100644 << 16
+    return info
+
+
 def build(root: str, output: str) -> dict:
     source = Path(root).expanduser().resolve()
     target = Path(output).expanduser().resolve()
@@ -61,9 +68,10 @@ def build(root: str, output: str) -> dict:
     target.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in files:
-            archive.write(path, path.relative_to(source).as_posix())
-        archive.writestr("PORTABLE_MANIFEST.json", json.dumps(manifest, sort_keys=True, indent=2) + "\n")
-        archive.writestr("PORTABLE_SBOM.spdx.json", json.dumps(sbom, sort_keys=True, indent=2) + "\n")
+            name = path.relative_to(source).as_posix()
+            archive.writestr(_zip_info(name), path.read_bytes())
+        archive.writestr(_zip_info("PORTABLE_MANIFEST.json"), json.dumps(manifest, sort_keys=True, indent=2) + "\n")
+        archive.writestr(_zip_info("PORTABLE_SBOM.spdx.json"), json.dumps(sbom, sort_keys=True, indent=2) + "\n")
     return {"output": str(target), "file_count": len(entries), "manifest": manifest, "sbom": sbom}
 
 

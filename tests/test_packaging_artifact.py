@@ -36,6 +36,20 @@ class PortableArtifactTests(unittest.TestCase):
             self.assertEqual(listed, {"README.md", "main.py"})
             self.assertEqual({entry["fileName"] for entry in sbom["files"]}, listed)
 
+    def test_artifact_sha256_is_stable_for_same_file_inventory(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "project"
+            root.mkdir()
+            (root / "a.txt").write_text("A\n", encoding="utf-8")
+            first_path = Path(directory) / "one.zip"
+            second_path = Path(directory) / "two.zip"
+            build(str(root), str(first_path))
+            build(str(root), str(second_path))
+            first = hashlib.sha256(first_path.read_bytes()).hexdigest()
+            second = hashlib.sha256(second_path.read_bytes()).hexdigest()
+            self.assertEqual(first, second)
+
     def test_sbom_namespace_is_stable_for_same_file_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "project"
