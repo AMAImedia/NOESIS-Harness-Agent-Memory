@@ -669,3 +669,15 @@ Full regression после lease integration: **317/317 passed**, `ResourceWarni
 | MA-09 | Parallel/recovery regression | `DONE / LOCAL VERIFIED` | Focused **20/20 passed**; full Python 3.14.7 suite **318/318 passed**, `ResourceWarning: 0` |
 
 Безопасная граница сохраняется: parallel scheduler не выполняет model-generated code и не заменяет OS sandbox; executable tools/skills идут через ChildExecutionRuntime.
+
+
+## 2026-08-18 — Durable Actions/RecoveryCoordinator integration
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| MA-10 | Actions-aware parallel lifecycle | `DONE / LOCAL VERIFIED` | Lane claim → callback → `done`; exception → owner-only `pending`; foreign active action не запускается |
+| MA-11 | RecoveryCoordinator action requeue | `DONE / LOCAL VERIFIED` | Optional Actions store, explicit `action_id`/`action_owner`, `requeued_actions` в `DurableRecoveryReport` |
+| MA-12 | Durable recovery regression | `DONE / LOCAL VERIFIED` | Focused parallel/coordination/recovery **25/25 passed** |
+| MA-13 | Full regression after integration | `DONE / LOCAL VERIFIED` | Python 3.14.7: **321/321 passed**, `ResourceWarning: 0`, `git diff --check` passed |
+
+Граница Trust Plane сохранена: callback orchestration не выполняет model-generated code; executable tools/skills остаются за ChildExecutionRuntime, а best-state/fiber/work recovery не обходятся Actions requeue.

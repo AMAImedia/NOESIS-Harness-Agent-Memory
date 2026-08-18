@@ -174,6 +174,7 @@ class SafeParallelExecutor:
         session_id: str | None = None,
         approval: bool = False,
         lease_store: object | None = None,
+        action_store: object | None = None,
     ) -> list[AgentLaneResult]:
         """Execute callbacks with bounded concurrency and isolated failures."""
         if not callable(callback):
@@ -182,6 +183,10 @@ class SafeParallelExecutor:
         if lease_store is not None:
             if not callable(getattr(lease_store, "acquire", None)) or not callable(getattr(lease_store, "release", None)):
                 raise ParallelExecutionError("lease_store_invalid")
+        if action_store is not None:
+            required = ("claim", "complete", "requeue")
+            if any(not callable(getattr(action_store, name, None)) for name in required):
+                raise ParallelExecutionError("action_store_invalid")
         sid = session_id or uuid4().hex
         contexts = self._validate_lanes(lane_list, approval)
         contexts = [AgentLaneContext(sid, c.task_id, c.agent_id, c.workspace, c.capabilities) for c in contexts]
@@ -189,6 +194,7 @@ class SafeParallelExecutor:
 
         def run_one(context: AgentLaneContext) -> AgentLaneResult:
             claimed = False
+            action_claimed = False
             with self._audit_lock:
                 self.audit.append({"event": "lane_started", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
             if lease_store is not None:
@@ -198,11 +204,27 @@ class SafeParallelExecutor:
                         self.audit.append({"event": "lane_blocked", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
                     return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "blocked", error="lease_held")
                 claimed = True
+            if action_store is not None:
+                if not action_store.claim(context.task_id, context.agent_id):
+                    if claimed:
+                        lease_store.release(context.task_id, context.agent_id)
+                    with self._audit_lock:
+                        self.audit.append({"event": "lane_blocked", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+                    return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "blocked", error="action_not_claimed")
+                action_claimed = True
             try:
                 output = callback(context)
+                if action_claimed:
+                    completion = action_store.complete(context.task_id)
+                    if completion is False:
+                        raise ParallelExecutionError("action_completion_rejected")
+                    action_claimed = False
             except Exception as exc:  # fail one lane without cancelling unrelated lanes
                 with self._audit_lock:
                     self.audit.append({"event": "lane_failed", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+                if action_claimed:
+                    action_store.requeue(context.task_id, context.agent_id)
+                    action_claimed = False
                 return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "failed", error=type(exc).__name__ + ": " + str(exc))
             finally:
                 if claimed:

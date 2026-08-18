@@ -51,3 +51,12 @@ Focused Python 3.14 suite: **8/8 passed** для parallel executor; совмес
 Для action/task ledger добавлен owner-only `Actions.requeue(aid, agent)`. Он возвращает только текущий `active` action его владельцу в `pending`; чужой agent не может перехватить recovery. Это позволяет bounded parallel runner безопасно requeue-ить failed/interrupted work после recovery coordinator, не меняя ownership произвольно.
 
 После lease integration и requeue regression: focused coordination/parallel tests **20/20 passed**; полный suite **318/318 passed**, `ResourceWarning: 0`.
+
+
+## Durable Actions и RecoveryCoordinator integration
+
+`SafeParallelExecutor` теперь принимает существующий `Actions` store. Для каждой lane lifecycle имеет строгий порядок: `pending → active` через owner claim, callback запускается только после claim, успешный callback переводит action в `done`, а exception возвращает action в `pending` через owner-only `requeue`. Если action уже принадлежит другому agent, callback не запускается.
+
+`RecoveryCoordinator` получил опциональный Actions store и явные `action_id`/`action_owner`. Во время crash recovery он одновременно сохраняет существующий best-state/fiber/work recovery path и пытается вернуть только указанный active action его текущему владельцу. Результат фиксируется в `DurableRecoveryReport.requeued_actions`. Это не заменяет best-state verification и не позволяет recovery-agent переприсвоить чужую работу.
+
+После integration focused suite: **25/25 passed**. Полный Python 3.14.7 suite: **321/321 passed**, `ResourceWarning: 0`, `git diff --check` passed.

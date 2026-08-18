@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from noesis_harness.best_state import BestStateStore
+from noesis_harness.coordination import Actions
 from noesis_harness.fibers import FiberStore
 from noesis_harness.orchestration import WorkCoordinator
 from noesis_harness.recovery import RecoveryCoordinator
@@ -32,6 +33,23 @@ class RecoveryIntegrationTests(unittest.TestCase):
             self.assertEqual(work.status("task-1")["status"], "pending")
             self.assertEqual(best.current("run-1").state_id, first.state.state_id)
             self.assertNotEqual(regression.state.state_id, best.current("run-1").state_id)
+
+    def test_crash_recovery_requeues_owned_action(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            best = BestStateStore(str(root / "state.db"))
+            fibers = FiberStore(str(root / "state.db"))
+            work = WorkCoordinator(str(root / "state.db"))
+            actions = Actions(str(root / "state.db"))
+            fiber_id = fibers.register("parallel-agent")
+            action_id = actions.create("parallel-action")
+            self.assertTrue(actions.claim(action_id, "agent-a"))
+            report = RecoveryCoordinator(best, fibers, work, actions).recover_after_crash(
+                "missing-run", fiber_id, action_id=action_id, action_owner="agent-a"
+            )
+            self.assertEqual(report.requeued_actions, 1)
+            self.assertEqual(actions.counts().get("pending"), 1)
+            self.assertTrue(actions.claim(action_id, "recovery-agent"))
 
     def test_live_lease_is_not_reclaimed_and_missing_best_is_fail_soft(self):
         with tempfile.TemporaryDirectory() as d:

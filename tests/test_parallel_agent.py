@@ -6,7 +6,7 @@ import time
 import unittest
 from pathlib import Path
 
-from noesis_harness.coordination import Leases
+from noesis_harness.coordination import Actions, Leases
 from noesis_harness.parallel_agent import AgentLane, ParallelExecutionError, SafeParallelExecutor
 
 
@@ -72,6 +72,37 @@ class SafeParallelExecutorTests(unittest.TestCase):
         self.assertEqual(results[0].status, "failed")
         self.assertIn("workspace_escape", results[0].error)
         self.assertFalse(os.path.exists(os.path.join(self.root, "escape")))
+
+    def test_actions_ledger_completes_success_and_requeues_failure(self):
+        actions = Actions(os.path.join(self.root, "actions.db"))
+        success_id = actions.create("success")
+        failure_id = actions.create("failure")
+        executor = SafeParallelExecutor(self.root)
+
+        def callback(ctx):
+            if ctx.task_id == failure_id:
+                raise RuntimeError("interrupted")
+            return "verified-result"
+
+        lanes = [AgentLane("agent-a", success_id, "success"), AgentLane("agent-b", failure_id, "failure")]
+        results = executor.execute(lanes, callback, action_store=actions)
+        by_task = {r.task_id: r for r in results}
+        self.assertEqual(by_task[success_id].status, "passed")
+        self.assertEqual(by_task[failure_id].status, "failed")
+        self.assertEqual(actions.counts().get("done"), 1)
+        self.assertEqual(actions.counts().get("pending"), 1)
+        self.assertTrue(actions.claim(failure_id, "recovery-agent"))
+
+    def test_actions_ledger_denial_does_not_run_callback(self):
+        actions = Actions(os.path.join(self.root, "actions.db"))
+        action_id = actions.create("already-owned")
+        self.assertTrue(actions.claim(action_id, "other-agent"))
+        executor = SafeParallelExecutor(self.root)
+        called = []
+        results = executor.execute([AgentLane("agent-a", action_id, "already-owned")], lambda _: called.append(True), action_store=actions)
+        self.assertEqual(results[0].status, "blocked")
+        self.assertEqual(results[0].error, "action_not_claimed")
+        self.assertEqual(called, [])
 
     def test_ttl_lease_blocks_held_lane_and_releases_completed_lane(self):
         leases = Leases(os.path.join(self.root, "leases.db"), ttl=60)
