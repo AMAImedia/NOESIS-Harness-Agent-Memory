@@ -1,0 +1,33 @@
+{
+  "schema_version": "noesis.claims-progress.v1",
+  "baseline_percent_local_os": 68,
+  "baseline_percent_proven_world_leader_claim": 30,
+  "progress_is_weighted_evidence_not_feature_count": true,
+  "milestones": {
+    "25": {"label": "local_governed_kernel", "status": "passed_local"},
+    "40": {"label": "integrated_local_os", "status": "in_progress"},
+    "55": {"label": "hardened_local_release_candidate", "status": "in_progress"},
+    "70": {"label": "native_ready_release_candidate", "status": "not_run_host_gated"},
+    "85": {"label": "comparative_ready_system", "status": "not_run_pinned_environment_gated"},
+    "100": {"label": "claim_ready_evidence_package", "status": "blocked_until_external_review"}
+  },
+  "tracks": {
+    "A_control_plane_operator_surface": {"status": "local_in_progress", "blocking": ["complete integrated operator workflow"]},
+    "B_governed_self_learning": {"status": "bounded_local", "blocking": ["durable evaluator deployment", "review UI", "activation boundary evidence"]},
+    "C_memory_long_context": {"status": "bounded_local", "blocking": ["broader non_fixture distributions", "independent repeated evaluation"]},
+    "D_isolation_adversarial_reliability": {"status": "linux_local", "blocking": ["matching Windows/macOS conformance"]},
+    "E_portable_native_packaging": {"status": "preparation_only", "blocking": ["matching Windows/macOS execution"]},
+    "F_external_comparative_lanes": {"status": "not_run", "blocking": ["exact revisions", "executables", "disposable environments", "operator approval"]}
+  },
+  "claim_requirements": {
+    "local_leading_agent_os": ["python314_full_suite", "security_audit", "recovery_evidence", "memory_quality_evidence", "linux_isolation_evidence"],
+    "native_portable_claim": ["windows_matching_host_pass", "macos_matching_host_pass", "artifact_sha256", "sbom", "environment_digest"],
+    "worldwide_leading_claim": ["at_least_two_comparable_external_lanes", "immutable_revision_pins", "shared_protocol_fingerprint", "independent_scoring", "repeated_runs", "no_safety_or_governance_regression"]
+  },
+  "negative_claims": {
+    "native_or_external_execution_claim": false,
+    "competitor_superiority_claim": false,
+    "automatic_skill_activation": false
+  },
+  "next_gate": "freeze_baseline_and_execute_local_tracks_A_to_D"
+}
