@@ -21,15 +21,17 @@
     "sqlite_wal_administrative_backend",
     "migration_mode_source_and_dual_read_guard",
     "signed_migration_audit_persistence",
-    "healthserver_readiness_and_ui_sse_audit_timeline"
+    "healthserver_readiness_and_ui_sse_audit_timeline",
+    "durable_promotion_state_and_evaluator_manifests"
   ],
   "next_local_gate": {
-    "id": "NEXT-02",
-    "name": "durable_promotion_state_and_evaluator_deployment",
+    "id": "NEXT-03",
+    "name": "governed_executable_child_runtime",
     "automatic_activation": false,
     "facade_status": "bounded_local_verified",
     "deployment_binding_status": "bounded_local_verified",
-    "durable_state_status": "next_local_gate",
+    "durable_state_status": "locally_verified",
+    "child_runtime_status": "next_local_gate",
     "required_boundaries": [
       "terminal_task_to_receipt",
       "runtime_owned_policy",

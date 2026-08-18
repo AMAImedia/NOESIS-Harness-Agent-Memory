@@ -18,7 +18,7 @@ from .admin_migration import OperatorMigrationModeSource
 from .admin_state_sqlite import SQLiteAdministrativeBackend
 from .health_server import HealthServer
 from .learning_promotion import LearningPromotionPipeline
-from .promotion_integration import EvaluatorRegistry, OperatorSessionRegistry, PolicySimulation, ProductionLearningLifecycle, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, RuntimePolicySimulator
+from .promotion_integration import EvaluatorRegistry, OperatorSessionRegistry, ProductionLearningLifecycle, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, RuntimePolicySimulator
 from .provider_registry import ProviderRegistry
 from .task_session_api import TaskSessionStore
 from .user_data import user_data_paths
@@ -97,13 +97,14 @@ def main(argv=None) -> int:
         state_root = layout.data_root / "state"
         migration_backend = SQLiteAdministrativeBackend(str(state_root / "admin.sqlite3"), signing_key=signing_key, admin_ids=(operator_id,) if operator_id else ())
         migration_source = OperatorMigrationModeSource(str(state_root / "migration_mode.jsonl"), operator_ids=(operator_id,) if operator_id else (), signing_key=signing_key, audit_backend=migration_backend)
-        promotion_integration = PromotionIntegration(LearningPromotionPipeline(str(state_root / "learning"), signing_key), registry=EvaluatorRegistry())
+        promotion_pipeline = LearningPromotionPipeline(str(state_root / "learning"), signing_key)
+        promotion_integration = PromotionIntegration(promotion_pipeline, registry=EvaluatorRegistry(state=promotion_pipeline.durable_state))
         reviewer_store = ReviewerAuthorizationStore(str(state_root / "reviewer_events.jsonl"))
         session_registry = OperatorSessionRegistry(str(state_root / "operator_sessions.jsonl"))
         action_executor = PromotionActionExecutor(promotion_integration, str(state_root / "promotion_actions.jsonl"), reviewer_store=reviewer_store, session_registry=session_registry)
         runtime_policy = RuntimePolicySimulator(agent_id=operator_id or "portable-agent", scope="portable:default")
         promotion_lifecycle = ProductionLearningLifecycle(task_store=session_store, event_bridge=PromotionEventBridge(promotion_integration, str(state_root / "promotion_bridge.jsonl")), policy_simulator=runtime_policy.simulate, action_executor=action_executor)
-    server = HealthServer(host=args.host, port=args.port, provider_registry=ProviderRegistry(), session_store=session_store, promotion_telemetry=promotion_integration.telemetry if promotion_integration else None, promotion_action_handler=promotion_lifecycle.handle_operator_action if promotion_lifecycle else None, migration_mode_source=migration_source, migration_audit_provider=migration_source.mode_audit if migration_source else None, migration_mode_change_handler=migration_source.handle_action if migration_source else None, operator_id=operator_id, operator_session_id=operator_session_id, operator_scopes=("admin:migration", "promotion:review") if operator_id and operator_session_id else ())
+    server = HealthServer(host=args.host, port=args.port, provider_registry=ProviderRegistry(), session_store=session_store, promotion_telemetry=promotion_integration if promotion_integration else None, promotion_action_handler=promotion_lifecycle.handle_operator_action if promotion_lifecycle else None, migration_mode_source=migration_source, migration_audit_provider=migration_source.mode_audit if migration_source else None, migration_mode_change_handler=migration_source.handle_action if migration_source else None, operator_id=operator_id, operator_session_id=operator_session_id, operator_scopes=("admin:migration", "promotion:review") if operator_id and operator_session_id else ())
     server.start()
     print("NOESIS portable control plane listening at http://%s:%d" % server.address, flush=True)
     print("Install root: %s" % layout.install_root, flush=True)

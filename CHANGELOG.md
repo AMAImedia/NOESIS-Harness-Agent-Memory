@@ -22,9 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Offline release audit is network-off-by-default and checks credential-like strings, AST eval/exec calls, package exports and clean Git state.
 
 ### Verification snapshot — 2026-08-18
-- Python 3.14.7 full regression: 428 tests passed with `ResourceWarning` treated as an error; link, documentation security, JSON evidence, metadata, and packaging consistency audits passed.
+- Python 3.14.7 full regression: 430 tests passed with `ResourceWarning` treated as an error; link, documentation security, JSON evidence, metadata, and packaging consistency audits passed.
 - Offline release audit remains claim-conservative: the synthetic private-key holdout fixture is intentional, while native target builds and external A/B remain unreleased gates; the pushed checkpoint tree is clean.
-- Reconciled the normative English/Russian master roadmap, root roadmap navigation, self-learning maturity audit and operational checklist; bounded production learning lifecycle wiring is locally verified, and durable promotion-state/evaluator deployment is the next local gate.
+- Reconciled the normative English/Russian master roadmap, root roadmap navigation, self-learning maturity audit and operational checklist; bounded production lifecycle and durable promotion-state/evaluator deployment are locally verified, and governed executable child runtime is the next local gate.
 
 ## [0.5.0] - 2026-08-14
 

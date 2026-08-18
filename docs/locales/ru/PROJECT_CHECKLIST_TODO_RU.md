@@ -10,7 +10,7 @@
 
 Последний подтверждённый remote commit: `3555f4d` — `Bind governed learning lifecycle in portable runtime`
 
-Текущий рабочий этап: **roadmap и code/docs sync опубликованы; bounded Gate 1 закрыт локально; следующий локальный gate — durable promotion state/evaluator deployment; native/external gates остаются blocked/not_run**
+Текущий рабочий этап: **Gate 2 durable promotion state/evaluator deployment локально verified; следующий локальный gate — governed executable child runtime; native/external gates остаются blocked/not_run**
 
 ## Как мы используем этот документ
 
@@ -1215,6 +1215,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-PROD-02 | Operator-trigger boundary | `DONE / LOCAL VERIFIED` | Capture without `operator_trigger=True` fails closed; terminal capture is replay-idempotent |
 | LEARN-PROD-03 | Automatic activation boundary | `DONE / LOCAL VERIFIED` | Readiness reports automatic evaluation/approval/promotion/activation disabled |
 | LEARN-PROD-04 | Concrete deployment binding | `DONE / BOUNDED LOCAL` | Portable launcher binds the facade to persistent session/reviewer stores and the injected HealthServer promotion action handler when signing configuration is explicit |
-| LEARN-PROD-05 | Durable promotion state/evaluator deployment | `NEXT LOCAL GATE` | Persist receipts/evaluations/proposals and evaluator manifests across restart; expose bounded state in operator UI; keep activation separately gated |
+| LEARN-PROD-05 | Durable promotion state/evaluator deployment | `DONE / LOCAL VERIFIED` | SQLite/WAL persistence, restart reconstruction, evaluator manifest conflict rejection, duplicate idempotency and bounded HealthServer/UI/SSE snapshot; 430-test full suite |
+| NEXT-03 | Governed executable child runtime | `NEXT LOCAL GATE` | Separate approved tool/skill execution from control plane with manifest, capability grants, workspace isolation, timeout, output limits, receipts, diff review and recovery |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

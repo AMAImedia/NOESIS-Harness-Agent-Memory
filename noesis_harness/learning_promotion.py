@@ -12,8 +12,10 @@ import hmac
 import json
 from pathlib import Path
 import re
+import sqlite3
 import time
 import uuid
+from contextlib import contextmanager
 from typing import Any, Callable, Iterable, Mapping, Optional
 
 
@@ -89,19 +91,110 @@ class LearningPromotionError(ValueError):
     """Raised for invalid or unsafe promotion transitions."""
 
 
+class DurablePromotionState:
+    """SQLite/WAL state store for restart-safe promotion records and evaluator manifests."""
+
+    def __init__(self, path: str) -> None:
+        if not path:
+            raise ValueError("promotion_state_path_required")
+        self.path = str(Path(path).expanduser().resolve())
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        self._initialize()
+
+    @contextmanager
+    def _connect(self):
+        db = sqlite3.connect(self.path, timeout=5.0)
+        db.row_factory = sqlite3.Row
+        try:
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("PRAGMA busy_timeout=5000")
+            yield db
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def _initialize(self) -> None:
+        with self._connect() as db:
+            db.executescript("""
+            CREATE TABLE IF NOT EXISTS promotion_receipts (
+                receipt_id TEXT PRIMARY KEY, record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS promotion_evaluations (
+                evaluation_id TEXT PRIMARY KEY, record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS promotion_proposals (
+                proposal_id TEXT PRIMARY KEY, record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS promotion_previous_active (
+                skill_name TEXT PRIMARY KEY, version TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS evaluator_manifests (
+                version TEXT PRIMARY KEY, manifest_digest TEXT NOT NULL, registered_at REAL NOT NULL
+            );
+            """)
+
+    @staticmethod
+    def _record(value: Any) -> str:
+        return _canonical(asdict(value) if hasattr(value, "__dataclass_fields__") else value)
+
+    def load_records(self, table: str, cls: Any) -> dict[str, Any]:
+        allowed = {"promotion_receipts": "receipt_id", "promotion_evaluations": "evaluation_id", "promotion_proposals": "proposal_id"}
+        if table not in allowed:
+            raise ValueError("invalid_promotion_state_table")
+        with self._connect() as db:
+            rows = db.execute(f"SELECT {allowed[table]}, record_json FROM {table}").fetchall()
+        return {str(row[allowed[table]]): cls(**json.loads(str(row["record_json"]))) for row in rows}
+
+    def put(self, table: str, key: str, value: Any) -> None:
+        columns = {"promotion_receipts": "receipt_id", "promotion_evaluations": "evaluation_id", "promotion_proposals": "proposal_id"}
+        if table not in columns:
+            raise ValueError("invalid_promotion_state_table")
+        with self._connect() as db:
+            db.execute(f"INSERT INTO {table} ({columns[table]}, record_json) VALUES (?, ?) ON CONFLICT({columns[table]}) DO UPDATE SET record_json=excluded.record_json", (str(key), self._record(value)))
+
+    def put_previous_active(self, skill_name: str, version: str) -> None:
+        with self._connect() as db:
+            db.execute("INSERT INTO promotion_previous_active(skill_name, version) VALUES (?, ?) ON CONFLICT(skill_name) DO UPDATE SET version=excluded.version", (skill_name, version))
+
+    def previous_active(self) -> dict[str, str]:
+        with self._connect() as db:
+            rows = db.execute("SELECT skill_name, version FROM promotion_previous_active").fetchall()
+        return {str(row["skill_name"]): str(row["version"]) for row in rows}
+
+    def register_evaluator(self, version: str, manifest_digest: str, *, registered_at: Optional[float] = None) -> None:
+        with self._connect() as db:
+            existing = db.execute("SELECT manifest_digest FROM evaluator_manifests WHERE version=?", (version,)).fetchone()
+            if existing is not None and str(existing["manifest_digest"]) != manifest_digest:
+                raise LearningPromotionError("evaluator_manifest_conflict")
+            db.execute("INSERT OR IGNORE INTO evaluator_manifests(version, manifest_digest, registered_at) VALUES (?, ?, ?)", (version, manifest_digest, float(time.time() if registered_at is None else registered_at)))
+
+    def evaluator_manifests(self) -> dict[str, str]:
+        with self._connect() as db:
+            rows = db.execute("SELECT version, manifest_digest FROM evaluator_manifests ORDER BY version").fetchall()
+        return {str(row["version"]): str(row["manifest_digest"]) for row in rows}
+
+
 class LearningPromotionPipeline:
     """Persistent, explicit, fail-closed learning promotion state machine."""
 
-    def __init__(self, root: str, signing_key: bytes):
+    def __init__(self, root: str, signing_key: bytes, *, state_path: Optional[str] = None):
         if not isinstance(signing_key, bytes) or len(signing_key) < 16:
             raise ValueError("signing_key_too_short")
         self.root = Path(root).expanduser().resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self._key = signing_key
-        self._receipts: dict[str, ExperienceReceipt] = {}
-        self._evaluations: dict[str, HoldoutEvaluation] = {}
-        self._proposals: dict[str, PromotionProposal] = {}
-        self._previous_active: dict[str, str] = {}
+        self._state = DurablePromotionState(state_path or str(self.root / "promotion_state.sqlite3"))
+        self._receipts: dict[str, ExperienceReceipt] = self._state.load_records("promotion_receipts", ExperienceReceipt)
+        self._evaluations: dict[str, HoldoutEvaluation] = self._state.load_records("promotion_evaluations", HoldoutEvaluation)
+        self._proposals: dict[str, PromotionProposal] = self._state.load_records("promotion_proposals", PromotionProposal)
+        self._previous_active: dict[str, str] = self._state.previous_active()
+
+    @property
+    def durable_state(self) -> DurablePromotionState:
+        return self._state
 
     def capture(self, *, experience_id: str, agent_id: str, scope: str,
                 source_digest: str, outcome: str, payload: Any,
@@ -114,6 +207,11 @@ class LearningPromotionPipeline:
             raise ValueError("invalid_source_digest")
         if not isinstance(outcome, str) or outcome not in ("success", "failure", "partial"):
             raise ValueError("invalid_outcome")
+        for existing in self._receipts.values():
+            if existing.experience_id == experience_id:
+                if existing.source_digest == source_digest and existing.policy_digest == policy_digest and existing.payload_digest == _digest(payload):
+                    return existing
+                raise LearningPromotionError("experience_receipt_conflict")
         receipt = ExperienceReceipt(
             receipt_id=uuid.uuid4().hex,
             experience_id=experience_id,
@@ -126,6 +224,7 @@ class LearningPromotionPipeline:
             created_at=float(time.time() if created_at is None else created_at),
         )
         self._receipts[receipt.receipt_id] = receipt
+        self._state.put("promotion_receipts", receipt.receipt_id, receipt)
         return receipt
 
     def evaluate(self, receipt_id: str, cases: Iterable[Mapping[str, Any]], *, evaluator_version: str) -> HoldoutEvaluation:
@@ -146,6 +245,10 @@ class LearningPromotionPipeline:
                 "leaked": bool(case.get("leaked", False)),
             })
         normalized.sort(key=lambda item: item["case_id"])
+        holdout_digest = _digest(normalized)
+        for existing in self._evaluations.values():
+            if existing.receipt_id == receipt_id and existing.evaluator_version == evaluator_version and existing.holdout_digest == holdout_digest:
+                return existing
         total = len(normalized)
         passed = sum(1 for item in normalized if item["passed"])
         leaked = sum(1 for item in normalized if item["leaked"])
@@ -154,7 +257,7 @@ class LearningPromotionPipeline:
             evaluation_id=uuid.uuid4().hex,
             receipt_id=receipt_id,
             evaluator_version=evaluator_version,
-            holdout_digest=_digest(normalized),
+            holdout_digest=holdout_digest,
             total_cases=total,
             passed_cases=passed,
             leaked_cases=leaked,
@@ -162,6 +265,7 @@ class LearningPromotionPipeline:
             evaluated_at=time.time(),
         )
         self._evaluations[evaluation.evaluation_id] = evaluation
+        self._state.put("promotion_evaluations", evaluation.evaluation_id, evaluation)
         return evaluation
 
     def propose(self, receipt_id: str, evaluation_id: str, *, skill_name: str, content: str) -> PromotionProposal:
@@ -172,9 +276,16 @@ class LearningPromotionPipeline:
         _require_id(skill_name, "skill_name")
         if not isinstance(content, str) or not content.strip():
             raise LearningPromotionError("empty_skill_content")
+        content_digest = _digest(content)
+        for existing in self._proposals.values():
+            if existing.receipt_id == receipt_id and existing.evaluation_id == evaluation_id and existing.skill_name == skill_name:
+                if existing.content_digest == content_digest:
+                    return existing
+                raise LearningPromotionError("proposal_content_conflict")
         state = "review" if evaluation.accepted else "blocked"
-        proposal = PromotionProposal(uuid.uuid4().hex, receipt_id, evaluation_id, skill_name, _digest(content), state, time.time())
+        proposal = PromotionProposal(uuid.uuid4().hex, receipt_id, evaluation_id, skill_name, content_digest, state, time.time())
         self._proposals[proposal.proposal_id] = proposal
+        self._state.put("promotion_proposals", proposal.proposal_id, proposal)
         if state == "blocked":
             raise LearningPromotionError("holdout_not_accepted")
         return proposal
@@ -194,6 +305,7 @@ class LearningPromotionPipeline:
             raise LearningPromotionError("approval_tests_failed")
         updated = PromotionProposal(**{**asdict(proposal), "state": "approved", "approved_by": approved_by})
         self._proposals[proposal_id] = updated
+        self._state.put("promotion_proposals", proposal_id, updated)
         return updated
 
     def reject(self, proposal_id: str, *, rejected_by: str) -> PromotionProposal:
@@ -205,6 +317,7 @@ class LearningPromotionPipeline:
             raise LearningPromotionError("proposal_not_in_review")
         updated = PromotionProposal(**{**asdict(proposal), "state": "rejected", "approved_by": rejected_by})
         self._proposals[proposal_id] = updated
+        self._state.put("promotion_proposals", proposal_id, updated)
         return updated
 
     def promote(self, proposal_id: str, *, content: str, verify: Callable[[Path], bool], activate: bool = True) -> tuple[PromotionProposal, str]:
@@ -231,6 +344,7 @@ class LearningPromotionPipeline:
         previous = self.active_version(proposal.skill_name)
         if activate:
             self._previous_active[proposal.skill_name] = previous or ""
+            self._state.put_previous_active(proposal.skill_name, previous or "")
             (self.root / proposal.skill_name).mkdir(parents=True, exist_ok=True)
             (self.root / proposal.skill_name / "ACTIVE").write_text(version + "\n", encoding="utf-8")
         updated = PromotionProposal(**{**asdict(proposal), "state": "promoted", "version": version})
@@ -252,6 +366,7 @@ class LearningPromotionPipeline:
             active.unlink()
         updated = PromotionProposal(**{**asdict(proposal), "state": "rolled_back"})
         self._proposals[proposal_id] = updated
+        self._state.put("promotion_proposals", proposal_id, updated)
         return updated
 
     def active_version(self, skill_name: str) -> str:
@@ -267,4 +382,4 @@ class LearningPromotionPipeline:
         return hmac.new(self._key, _canonical(payload).encode("utf-8"), hashlib.sha256).hexdigest()
 
 
-__all__ = ["ExperienceReceipt", "HoldoutEvaluation", "PromotionProposal", "LearningPromotionError", "LearningPromotionPipeline"]
+__all__ = ["ExperienceReceipt", "HoldoutEvaluation", "PromotionProposal", "LearningPromotionError", "DurablePromotionState", "LearningPromotionPipeline"]

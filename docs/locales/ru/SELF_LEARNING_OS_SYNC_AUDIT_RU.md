@@ -21,7 +21,8 @@ NOESIS-Harness-Agent-Memory имеет проверенное local-first ядр
 | Multi-agent leases, signals, dependencies и cancellation | `implemented / locally verified` | `coordination.py`, governance и multi-agent tests |
 | Skill import/store/version/rollback safety | `implemented / bounded` | Import/store/rollback есть; executable skill entrypoints намеренно disabled |
 | Human-governed learning promotion | `implemented / bounded local` | Receipt -> evaluator -> proposal -> approval -> immutable version -> rollback; activation отдельно ограничена |
-| Production lifecycle binding | `implemented / bounded local` | `ProductionLearningLifecycle` и portable launcher соединяют task capture, runtime policy и explicit operator actions; durable promotion-state/evaluator deployment остаётся следующим gate |
+| Production lifecycle binding | `implemented / bounded local` | `ProductionLearningLifecycle` и portable launcher соединяют task capture, runtime policy и explicit operator actions |
+| Durable promotion state and evaluator deployment | `implemented / locally verified` | SQLite/WAL receipts/evaluations/proposals/manifests, restart reconstruction, idempotent retries, conflict rejection и bounded operator snapshot |
 | Durable promotion event bridge | `implemented / bounded local` | Idempotent terminal-task replay и fail-closed policy boundary |
 | Authenticated operator lifecycle | `implemented / bounded local` | Session/reviewer stores, signed action receipts и явные UI handlers |
 | Administrative SQLite/WAL migration | `implemented / locally verified` | Dual-read guard, explicit rollback, transactional state/audit и signed mode receipts |
@@ -44,13 +45,13 @@ NOESIS-Harness-Agent-Memory имеет проверенное local-first ядр
 
 ## Следующий self-learning gate
 
-Следующий high-leverage gate — **durable promotion state and evaluator deployment**. Bounded production facade уже соединяет durable task/session lifecycle, runtime-owned policy, authenticated operator configuration и explicit proposal executor. Следующий шаг — сохранять receipts, evaluations, proposals и evaluator manifests после restart и показывать их bounded state в operator surface.
+Следующий high-leverage gate — **governed executable child runtime**. Durable promotion state и evaluator deployment теперь локально verified: receipts, evaluations, proposals и evaluator manifests переживают restart, conflicts fail closed, а bounded counts/digests показываются через operator surface.
 
 Путь должен оставаться явным: `terminal task -> receipt -> holdout -> review proposal -> independent approval -> immutable promotion -> verification -> signed receipt -> separately approved activation`.
 
 Нужны positive и negative tests для replay, duplicate action, reviewer conflict, session expiry, scope confusion, cancellation, interrupted write, corrupted receipt, rollback, leakage и activation bypass. Завершение task никогда не должно неявно approve, promote или activate skill.
 
-После этого локальные приоритеты: governed executable child runtime, end-to-end multi-agent work-product loop, memory/long-context quality benchmarks, native host evidence и pinned external A/B.
+После этого локальные приоритеты: end-to-end multi-agent work-product loop, memory/long-context quality benchmarks, native host evidence и pinned external A/B.
 
 До появления соответствующих signed evidence проект нельзя называть готовой native Windows/macOS distribution, полностью autonomous self-improving platform или benchmark-proven superior system. Корректное описание: **local-first, provenance-aware и human-governed Agent OS kernel с проверенным Linux control plane**.
 

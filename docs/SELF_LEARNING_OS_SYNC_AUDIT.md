@@ -19,7 +19,8 @@ The implemented learning path now covers provenance-bound experience receipts, d
 | Memory tiers, provenance, confidence, decay and conflicts | `implemented / locally verified` | Memory/evidence/context/consolidation tests |
 | Experience reuse with scope and provenance checks | `implemented / locally verified` | `experience_reuse.py` and leakage/scope tests |
 | Human-governed learning promotion | `implemented / bounded local` | Receipt -> evaluator -> proposal -> approval -> immutable version -> rollback; activation is separately gated |
-| Production lifecycle binding | `implemented / bounded local` | `ProductionLearningLifecycle` and portable launcher compose task capture, runtime policy and explicit operator actions; durable promotion-state/evaluator deployment remains next |
+| Production lifecycle binding | `implemented / bounded local` | `ProductionLearningLifecycle` and portable launcher compose task capture, runtime policy and explicit operator actions |
+| Durable promotion state and evaluator deployment | `implemented / locally verified` | SQLite/WAL receipts/evaluations/proposals/manifests, restart reconstruction, idempotent retries, conflict rejection and bounded operator snapshot |
 | Durable promotion event bridge | `implemented / bounded local` | Idempotent terminal-task replay and fail-closed policy boundary |
 | Authenticated operator lifecycle | `implemented / bounded local` | Session/reviewer stores, signed action receipts and explicit UI handlers |
 | Administrative SQLite/WAL migration | `implemented / locally verified` | Dual-read guard, explicit rollback, transactional state/audit and signed mode receipts |
@@ -33,13 +34,13 @@ The implemented learning path now covers provenance-bound experience receipts, d
 
 ## Next local gate
 
-The highest-leverage remaining local gate is **durable promotion state and evaluator deployment**. The bounded production facade now connects the durable task/session lifecycle, runtime-owned policy, authenticated operator configuration and explicit proposal executor. The next step is to persist receipts, evaluations, proposals and evaluator manifests across restart and expose their bounded state through the operator surface. The workflow must remain explicit and observable:
+The highest-leverage remaining local gate is the **governed executable child runtime**. Durable promotion state and evaluator deployment are now locally verified: receipts, evaluations, proposals and evaluator manifests survive restart, conflicts fail closed, and bounded counts/digests are exposed through the operator surface. The next workflow must remain separate from the control plane and observable:
 
 `terminal task -> receipt -> holdout -> review proposal -> independent approval -> immutable promotion -> verification -> signed receipt -> separately approved activation`.
 
 Acceptance requires positive and negative tests for replay, duplicate action, reviewer conflict, session expiry, scope confusion, task cancellation, interrupted write, corrupted receipt, rollback, leakage and activation bypass. Task completion must never implicitly approve, promote or activate a skill.
 
-After that gate, the next local priorities are the governed executable child runtime, end-to-end multi-agent work-product loop, memory/long-context quality benchmarks, native host evidence and pinned external A/B.
+After that gate, the next local priorities are the end-to-end multi-agent work-product loop, memory/long-context quality benchmarks, native host evidence and pinned external A/B.
 
 ## Honest claim boundary
 

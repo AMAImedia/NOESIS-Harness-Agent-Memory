@@ -9,7 +9,7 @@ import time
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from .event_store import EventStore
-from .learning_promotion import ExperienceReceipt, HoldoutEvaluation, LearningPromotionPipeline, PromotionProposal
+from .learning_promotion import DurablePromotionState, ExperienceReceipt, HoldoutEvaluation, LearningPromotionPipeline, PromotionProposal, _digest
 
 
 @dataclass(frozen=True)
@@ -20,17 +20,28 @@ class EvaluatorSpec:
 
 class EvaluatorRegistry:
     """Explicit evaluator registry; no implicit evaluator or automatic promotion."""
-    def __init__(self) -> None:
+    def __init__(self, *, state: DurablePromotionState | None = None) -> None:
         self._items: dict[str, EvaluatorSpec] = {}
+        self._state = state
 
-    def register(self, version: str, build_cases: Callable[[ExperienceReceipt], Iterable[Mapping[str, Any]]]) -> EvaluatorSpec:
+    def register(self, version: str, build_cases: Callable[[ExperienceReceipt], Iterable[Mapping[str, Any]]], *, manifest_digest: str | None = None) -> EvaluatorSpec:
         if not isinstance(version, str) or not version or version in self._items:
             raise ValueError("invalid_or_duplicate_evaluator_version")
         if not callable(build_cases):
             raise TypeError("evaluator_builder_required")
+        digest = manifest_digest or _digest({"version": version, "builder": getattr(build_cases, "__qualname__", type(build_cases).__name__)})
+        if not isinstance(digest, str) or not digest:
+            raise ValueError("evaluator_manifest_digest_required")
+        if self._state is not None:
+            self._state.register_evaluator(version, digest)
         spec = EvaluatorSpec(version, build_cases)
         self._items[version] = spec
         return spec
+
+    def manifests(self) -> Mapping[str, str]:
+        if self._state is not None:
+            return dict(self._state.evaluator_manifests())
+        return {version: _digest({"version": version, "builder": getattr(spec.build_cases, "__qualname__", type(spec.build_cases).__name__)}) for version, spec in sorted(self._items.items())}
 
     def get(self, version: str) -> EvaluatorSpec:
         try:
@@ -492,7 +503,10 @@ class PromotionIntegration:
         return proposal
 
     def snapshot(self) -> dict[str, Any]:
-        return self.telemetry.snapshot()
+        snapshot = self.telemetry.snapshot()
+        snapshot["promotion_state"] = {"receipts": len(self.pipeline._receipts), "evaluations": len(self.pipeline._evaluations), "proposals": len(self.pipeline._proposals), "active_versions": sum(1 for name in {proposal.skill_name for proposal in self.pipeline._proposals.values()} if self.pipeline.active_version(name))}
+        snapshot["evaluator_manifests"] = dict(self.registry.manifests())
+        return snapshot
 
 
 class ProductionLearningLifecycle:

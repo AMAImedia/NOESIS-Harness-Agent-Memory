@@ -30,11 +30,11 @@ Bounded production binding реализован: `ProductionLearningLifecycle` �
 
 Локальный facade gate проверен positive, negative, replay и activation-boundary tests. Завершение task не оценивает, не одобряет, не продвигает и не активирует skill скрыто. Для полного закрытия нужны durable promotion-state/evaluator deployment и operator UI workflow для явно зарегистрированных evaluators и proposals.
 
-### Gate 2 — Durable promotion state and evaluator deployment
+### Gate 2 — Durable promotion state and evaluator deployment (локальный gate закрыт)
 
-Сохранить receipts, evaluations и proposals после restart; сохранять явно зарегистрированный evaluator manifest; показывать bounded proposal/evaluation state в operator surface; добавить crash/reopen, duplicate proposal, stale evaluator, reviewer conflict и rollback tests. Automatic activation остаётся отключённой.
+Реализовано и проверено: receipts, evaluations, proposals, previous-active metadata и evaluator manifests сохраняются в SQLite/WAL; reopened pipeline восстанавливает bounded state; одинаковые retries idempotent; payload/content/manifest conflicts fail closed; `PromotionIntegration.snapshot()` показывает bounded counts и manifest digests через HealthServer/UI/SSE. Automatic activation остаётся отключённой. Полная Python 3.14 проверка: 430 тестов пройдено.
 
-### Gate 3 — Governed executable skill/tool runtime
+### Gate 3 — Governed executable skill/tool runtime (следующий локальный gate)
 
 Реализовать отдельный child-runtime contract для approved tools и executable skills: manifest, capability grant, isolated workspace, bounded environment, timeout/cancellation, output limits, receipt, diff review и recovery. Parent control plane не должен импортировать или выполнять model-generated code. Linux/Bubblewrap — локальный reference backend; Windows/macOS остаются conformance targets до запуска на matching hosts.
 
@@ -62,7 +62,7 @@ Bounded production binding реализован: `ProductionLearningLifecycle` �
 
 ## Правило синхронизации
 
-Порядок работы: **(1) завершить durable promotion state/evaluator deployment, (2) в одном focused change обновить код, tests, English docs, Russian docs и machine-readable evidence, (3) выполнить полную проверку, commit и remote verification, (4) реализовать governed executable child runtime, (5) измерить multi-agent и memory quality gates и только потом запускать native/external lanes**. Gate не считается закрытым, если код, тесты, документация и evidence расходятся.
+Порядок работы: **(1) реализовать governed executable child runtime, (2) в одном focused change обновить код, tests, English docs, Russian docs и machine-readable evidence, (3) выполнить полную проверку, commit и remote verification, (4) связать end-to-end multi-agent work-product loop, (5) измерить memory quality gates и только потом запускать native/external lanes**. Gate не считается закрытым, если код, тесты, документация и evidence расходятся.
 
 ## Честный критерий завершения
 

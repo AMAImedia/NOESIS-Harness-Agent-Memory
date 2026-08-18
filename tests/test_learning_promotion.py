@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from noesis_harness.learning_promotion import LearningPromotionError, LearningPromotionPipeline
+from noesis_harness.promotion_integration import EvaluatorRegistry
 
 
 class LearningPromotionTests(unittest.TestCase):
@@ -20,6 +21,16 @@ class LearningPromotionTests(unittest.TestCase):
             policy_digest="policy-1",
             created_at=1.0,
         )
+
+    def test_duplicate_capture_evaluation_and_proposal_are_idempotent(self):
+        pipe = self.pipeline(); receipt = self.receipt(pipe)
+        self.assertEqual(pipe.capture(experience_id="exp-1", agent_id="agent-a", scope="project:demo", source_digest="source-1", outcome="success", payload={"answer": "safe"}, policy_digest="policy-1", created_at=2.0), receipt)
+        evaluation = pipe.evaluate(receipt.receipt_id, [{"case_id": "a", "passed": True}], evaluator_version="eval-1")
+        self.assertEqual(pipe.evaluate(receipt.receipt_id, [{"case_id": "a", "passed": True}], evaluator_version="eval-1"), evaluation)
+        proposal = pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="safe-skill", content="# safe\n")
+        self.assertEqual(pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="safe-skill", content="# safe\n"), proposal)
+        with self.assertRaisesRegex(LearningPromotionError, "proposal_content_conflict"):
+            pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="safe-skill", content="# changed\n")
 
     def test_holdout_is_deterministic_and_requires_nonempty_all_pass(self):
         pipe = self.pipeline(); receipt = self.receipt(pipe)
@@ -58,6 +69,22 @@ class LearningPromotionTests(unittest.TestCase):
         with self.assertRaisesRegex(LearningPromotionError, "promotion_verification_failed"):
             pipe.promote(proposal.proposal_id, content="# safe\n", verify=lambda _: False)
         self.assertEqual(pipe.active_version("safe-skill"), "")
+
+    def test_restart_restores_receipts_evaluations_proposals_and_approval_state(self):
+        pipe = self.pipeline(); receipt = self.receipt(pipe)
+        evaluation = pipe.evaluate(receipt.receipt_id, [{"case_id": "a", "passed": True}], evaluator_version="eval-1")
+        proposal = pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="restart-skill", content="# restart\n")
+        pipe.approve(proposal.proposal_id, approved_by="owner", tests=lambda: True)
+        registry = EvaluatorRegistry(state=pipe.durable_state)
+        registry.register("eval-1", lambda _: [{"case_id": "a", "passed": True}], manifest_digest="manifest-eval-1")
+        reopened = LearningPromotionPipeline(str(pipe.root), b"promotion-test-key-2026")
+        self.assertIn(receipt.receipt_id, reopened._receipts)
+        self.assertIn(evaluation.evaluation_id, reopened._evaluations)
+        self.assertEqual(reopened._proposals[proposal.proposal_id].state, "approved")
+        reopened_registry = EvaluatorRegistry(state=reopened.durable_state)
+        self.assertEqual(reopened_registry.manifests(), {"eval-1": "manifest-eval-1"})
+        with self.assertRaisesRegex(LearningPromotionError, "evaluator_manifest_conflict"):
+            reopened_registry.register("eval-1", lambda _: [], manifest_digest="tampered-manifest")
 
     def test_immutable_promotion_signature_and_rollback(self):
         pipe = self.pipeline(); receipt = self.receipt(pipe)

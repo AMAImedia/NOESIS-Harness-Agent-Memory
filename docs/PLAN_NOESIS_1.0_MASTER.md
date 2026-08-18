@@ -30,11 +30,11 @@ The bounded production binding is now implemented: `ProductionLearningLifecycle`
 
 The local facade gate is verified by positive, negative, replay and activation-boundary tests. A task completion event never silently evaluates, approves, promotes or activates a skill. The remaining completion work is durable promotion-state/evaluator deployment and an operator UI workflow that can safely manage those explicitly registered evaluators and proposals.
 
-### Gate 2 — Durable promotion state and evaluator deployment
+### Gate 2 — Durable promotion state and evaluator deployment (completed local gate)
 
-Persist promotion receipts, evaluations and proposals across restart; persist the explicitly registered evaluator manifest; expose bounded proposal/evaluation state to the operator surface; and add crash/reopen, duplicate proposal, stale evaluator, reviewer conflict and rollback tests. Automatic activation remains disabled.
+Implemented and verified: promotion receipts, evaluations, proposals, previous-active metadata and evaluator manifests persist in SQLite/WAL; reopened pipelines reconstruct bounded state; identical retries are idempotent; payload/content/manifest conflicts fail closed; `PromotionIntegration.snapshot()` exposes bounded counts and manifest digests to HealthServer/UI/SSE. Automatic activation remains disabled. Full Python 3.14 validation passed with 430 tests.
 
-### Gate 3 — Governed executable skill/tool runtime
+### Gate 3 — Governed executable skill/tool runtime (next local gate)
 
 Implement the separate child-runtime contract for approved tools and executable skills. Require a manifest, capability grant, isolated workspace, bounded environment, timeout/cancellation, output limits, receipt, diff review and recovery. The parent control plane must never import or execute model-generated code. Linux/Bubblewrap is the local reference backend; Windows and macOS backends remain conformance targets until run on matching hosts.
 
@@ -62,7 +62,7 @@ Only after Gates 1–7 produce evidence may the project consider a public releas
 
 ## Execution order and synchronization rule
 
-The next work sequence is: **(1) complete durable promotion state/evaluator deployment, (2) update code/docs/evidence in one focused change, (3) run full validation, commit and verify the private remote, (4) implement the governed executable child runtime, (5) measure the multi-agent and memory quality gates, and only then run native/external lanes**. No new gate is considered complete until code, tests, English primary documentation, Russian supplemental documentation and machine-readable evidence agree.
+The next work sequence is: **(1) implement the governed executable child runtime, (2) update code/docs/evidence in one focused change, (3) run full validation, commit and verify the private remote, (4) bind the end-to-end multi-agent work-product loop, (5) measure memory quality gates, and only then run native/external lanes**. No new gate is considered complete until code, tests, English primary documentation, Russian supplemental documentation and machine-readable evidence agree.
 
 ## Honest completion criterion
 
