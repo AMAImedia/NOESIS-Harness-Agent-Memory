@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import sys
 import tempfile
@@ -64,6 +65,31 @@ class ExternalLaneTests(unittest.TestCase):
             store = root / "used.json"
             self.assertEqual(consume_approval_receipt(receipt, str(store)), (True, "consumed"))
             self.assertEqual(consume_approval_receipt(receipt, str(store)), (False, "approval_replay"))
+
+    def test_corrupted_store_fails_closed_and_reopen_preserves_replay(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            key = "approval-key-for-tests-2026"
+            spec = make_spec("hermes", "pinned-h1", [sys.executable, "-c", "print('x')"], "f" * 64)
+            receipt = create_approval_receipt(plan(spec, str(root)), key, now=time.time(), ttl_seconds=300, nonce="reopen")
+            store = root / "consumed.sqlite"
+            self.assertEqual(consume_approval_receipt(receipt, str(store)), (True, "consumed"))
+            self.assertEqual(consume_approval_receipt(receipt, str(store)), (False, "approval_replay"))
+            corrupt = root / "corrupt.sqlite"
+            corrupt.write_bytes(b"not-a-sqlite-database")
+            self.assertEqual(consume_approval_receipt(receipt, str(corrupt)), (False, "approval_store_invalid"))
+
+    def test_concurrent_consume_has_one_winner(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            key = "approval-key-for-tests-2026"
+            spec = make_spec("hermes", "pinned-h1", [sys.executable, "-c", "print('x')"], "e" * 64)
+            receipt = create_approval_receipt(plan(spec, str(root)), key, now=time.time(), ttl_seconds=300, nonce="concurrent")
+            store = root / "consumed.sqlite"
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+                results = list(pool.map(lambda _: consume_approval_receipt(receipt, str(store)), range(8)))
+            self.assertEqual(sum(result == (True, "consumed") for result in results), 1)
+            self.assertEqual(sum(result == (False, "approval_replay") for result in results), 7)
 
 
 if __name__ == "__main__":

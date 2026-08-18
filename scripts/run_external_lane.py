@@ -6,7 +6,7 @@ import hashlib
 import hmac
 import json
 import os
-import tempfile
+import sqlite3
 import time
 from pathlib import Path
 from typing import Any, Mapping
@@ -98,35 +98,30 @@ def verify_approval_receipt(receipt: Mapping[str, Any], plan_report: Mapping[str
 
 
 def consume_approval_receipt(receipt: Mapping[str, Any], store_path: str) -> tuple[bool, str]:
-    """Atomically record an approval ID; a previously consumed ID is rejected."""
+    """Consume an approval exactly once using a transactional SQLite/WAL store."""
     path = Path(store_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        used = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
-    except (OSError, ValueError):
-        return False, "approval_store_invalid"
-    if not isinstance(used, list):
-        return False, "approval_store_invalid"
     approval_id = str(receipt.get("approval_id", ""))
     if not approval_id:
         return False, "approval_id_missing"
-    if approval_id in used:
-        return False, "approval_replay"
-    used.append(approval_id)
-    data = json.dumps(used, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+    db: sqlite3.Connection | None = None
     try:
-        fd, temp_name = tempfile.mkstemp(prefix=path.name + ".", dir=str(path.parent), text=True)
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            stream.write(data)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temp_name, path)
-    except OSError:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        db = sqlite3.connect(path, timeout=5.0, isolation_level=None)
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("PRAGMA synchronous=FULL")
+        db.execute("CREATE TABLE IF NOT EXISTS consumed_approvals (approval_id TEXT PRIMARY KEY, consumed_at REAL NOT NULL)")
+        db.execute("BEGIN IMMEDIATE")
         try:
-            os.unlink(temp_name)
-        except (OSError, UnboundLocalError):
-            pass
-        return False, "approval_store_write_failed"
+            db.execute("INSERT INTO consumed_approvals(approval_id, consumed_at) VALUES(?, ?)", (approval_id, time.time()))
+        except sqlite3.IntegrityError:
+            db.execute("ROLLBACK")
+            return False, "approval_replay"
+        db.execute("COMMIT")
+    except (OSError, sqlite3.DatabaseError):
+        return False, "approval_store_invalid"
+    finally:
+        if db is not None:
+            db.close()
     return True, "consumed"
 
 
