@@ -10,7 +10,9 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import time
+from contextlib import contextmanager
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -66,13 +68,65 @@ class PatchProposal:
     status: str = "needs_review"
 
 
+class PatchReviewStore:
+    """Durable patch proposal/review records; never applies or publishes files."""
+    def __init__(self, path: str):
+        self.path = str(path)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        with self._connection() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("CREATE TABLE IF NOT EXISTS patch_reviews (proposal_id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+            conn.commit()
+
+    @contextmanager
+    def _connection(self):
+        conn = sqlite3.connect(self.path)
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _payload(proposal: PatchProposal) -> str:
+        return json.dumps({"proposal_id": proposal.proposal_id, "workspace_id": proposal.workspace_id, "base_snapshot_id": proposal.base_snapshot_id, "head_snapshot_id": proposal.head_snapshot_id, "changes": list(proposal.changes), "status": proposal.status}, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _from_payload(payload: str) -> PatchProposal:
+        data = json.loads(payload)
+        return PatchProposal(str(data["proposal_id"]), str(data["workspace_id"]), str(data["base_snapshot_id"]), str(data["head_snapshot_id"]), tuple(data.get("changes", ())), str(data.get("status", "needs_review")))
+
+    def put(self, proposal: PatchProposal) -> PatchProposal:
+        payload = self._payload(proposal)
+        with self._connection() as conn:
+            row = conn.execute("SELECT payload FROM patch_reviews WHERE proposal_id = ?", (proposal.proposal_id,)).fetchone()
+            if row is not None and row[0] != payload:
+                existing = self._from_payload(row[0])
+                if existing.proposal_id == proposal.proposal_id and existing.workspace_id == proposal.workspace_id and existing.base_snapshot_id == proposal.base_snapshot_id and existing.head_snapshot_id == proposal.head_snapshot_id and existing.changes == proposal.changes and existing.status == "needs_review" and proposal.status in {"approved", "rejected"}:
+                    conn.execute("UPDATE patch_reviews SET payload = ? WHERE proposal_id = ?", (payload, proposal.proposal_id))
+                    conn.commit()
+                else:
+                    raise WorkspaceError("patch_review_conflict")
+            elif row is None:
+                conn.execute("INSERT INTO patch_reviews VALUES (?, ?)", (proposal.proposal_id, payload))
+                conn.commit()
+        return proposal
+
+    def get(self, proposal_id: str) -> PatchProposal:
+        with self._connection() as conn:
+            row = conn.execute("SELECT payload FROM patch_reviews WHERE proposal_id = ?", (str(proposal_id),)).fetchone()
+        if row is None:
+            raise WorkspaceError("patch_review_not_found")
+        return self._from_payload(row[0])
+
+
 class WorkspaceManager:
     """Manage agent workspaces under one explicit root."""
 
-    def __init__(self, root: str):
+    def __init__(self, root: str, *, review_store: PatchReviewStore | None = None):
         self.root = Path(root).expanduser().resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self._snapshots: dict[str, WorkspaceSnapshot] = {}
+        self.review_store = review_store
 
     @staticmethod
     def _validate_id(value: str, label: str) -> str:
@@ -158,13 +212,18 @@ class WorkspaceManager:
                 changes.append({"path": path, "kind": "deleted", "before": before[path].as_dict()})
             elif before[path] != after[path]:
                 changes.append({"path": path, "kind": "modified", "before": before[path].as_dict(), "after": after[path].as_dict()})
-        return PatchProposal("patch_" + uuid.uuid4().hex, base.workspace_id, base.snapshot_id, head.snapshot_id, tuple(changes))
+        proposal = PatchProposal("patch_" + uuid.uuid4().hex, base.workspace_id, base.snapshot_id, head.snapshot_id, tuple(changes))
+        if self.review_store is not None:
+            self.review_store.put(proposal)
+        return proposal
 
-    @staticmethod
-    def review(proposal: PatchProposal, decision: str) -> PatchProposal:
+    def review(self, proposal: PatchProposal, decision: str) -> PatchProposal:
         if decision not in {"approved", "rejected"}:
             raise WorkspaceError("invalid_patch_review")
-        return PatchProposal(proposal.proposal_id, proposal.workspace_id, proposal.base_snapshot_id, proposal.head_snapshot_id, proposal.changes, decision)
+        reviewed = PatchProposal(proposal.proposal_id, proposal.workspace_id, proposal.base_snapshot_id, proposal.head_snapshot_id, proposal.changes, decision)
+        if self.review_store is not None:
+            self.review_store.put(reviewed)
+        return reviewed
 
     @staticmethod
     def authorize_merge(proposal: PatchProposal, *, reviewer: str, current_base_snapshot_id: str) -> MergeAuthorization:
@@ -180,4 +239,4 @@ class WorkspaceManager:
         return MergeAuthorization(proposal.proposal_id, proposal.workspace_id, proposal.base_snapshot_id, proposal.head_snapshot_id, reviewer, digest)
 
 
-__all__ = ["WORKSPACE_SCHEMA", "FileEntry", "MergeAuthorization", "PatchProposal", "WorkspaceManager", "WorkspaceError"]
+__all__ = ["WORKSPACE_SCHEMA", "FileEntry", "MergeAuthorization", "PatchProposal", "PatchReviewStore", "WorkspaceManager", "WorkspaceError"]

@@ -37,12 +37,13 @@
       "explicit_capability_grants",
       "hardened_backend_requirement",
       "linux_bubblewrap_filesystem_isolation",
-      "linux_bubblewrap_network_isolation"
+      "linux_bubblewrap_network_isolation",
+      "hmac_signed_execution_receipt_persistence",
+      "durable_patch_review_state",
+      "interrupted_run_recovery_ledger"
     ],
     "open_subgates": [
-      "signed_execution_receipt",
-      "diff_review",
-      "interrupted_execution_recovery",
+      "operator_controlled_rollback_recovery_binding",
       "native_windows_macos_evidence"
     ],
     "required_boundaries": [

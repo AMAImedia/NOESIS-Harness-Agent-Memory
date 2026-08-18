@@ -36,9 +36,9 @@ Implemented and verified: promotion receipts, evaluations, proposals, previous-a
 
 ### Gate 3 — Governed executable skill/tool runtime (in progress)
 
-The manifest/grant contract and Linux reference path are implemented: `ExecutionRequest` binds an optional `SkillManifest` to explicit granted capabilities; strict executable-skill mode requires an available hardened backend; `BubblewrapBackend` provides the Linux namespace/network/filesystem boundary. The parent control plane never imports or executes model-generated code. Windows and macOS backends remain conformance targets until run on matching hosts.
+The manifest/grant contract and Linux reference path are implemented: `ExecutionRequest` binds an optional `SkillManifest` to explicit granted capabilities; strict executable-skill mode requires an available hardened backend; `BubblewrapBackend` provides the Linux namespace/network/filesystem boundary. HMAC-signed `ExecutionReceiptStore`, restart-safe `ExecutionRecoveryStore` and durable `PatchReviewStore` now cover result evidence, interrupted-run state and review status. The parent control plane never imports or executes model-generated code. Windows and macOS backends remain conformance targets until run on matching hosts.
 
-Acceptance requires path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process-tree, corrupted receipt, interrupted write and cross-agent workspace tests. Unconfigured or unverifiable backends must return `not_run`, `blocked` or `unavailable`, never `passed`.
+Acceptance requires path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process-tree, corrupted receipt, interrupted write, receipt replay/tamper, patch-review conflict and cross-agent workspace tests. These local subgates are now covered; the remaining Gate 3 work is to bind signed receipts and reviewed patches into an operator-controlled rollback/recovery action without claiming that review itself applies changes. Unconfigured or unverifiable backends must return `not_run`, `blocked` or `unavailable`, never `passed`.
 
 ### Gate 4 — Real multi-agent work product loop
 

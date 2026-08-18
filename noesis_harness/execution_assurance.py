@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import sqlite3
 from dataclasses import dataclass
+from contextlib import contextmanager
+from pathlib import Path
 from typing import Any, Mapping, Optional
 
 ASSURANCE_SCHEMA = "noesis.execution-assurance.v1"
@@ -25,13 +29,14 @@ class ExecutionReceipt:
     rollback_available: bool
     side_effects: tuple[str, ...]
     receipt_digest: str
+    signature: Optional[str] = None
 
 
 class AssuranceError(ValueError):
     pass
 
 
-def create_receipt(*, request: Mapping[str, Any], policy: Mapping[str, Any], workspace_before: str, workspace_after: Optional[str], outcome: str, rollback_available: bool, side_effects: tuple[str, ...] = ()) -> ExecutionReceipt:
+def create_receipt(*, request: Mapping[str, Any], policy: Mapping[str, Any], workspace_before: str, workspace_after: Optional[str], outcome: str, rollback_available: bool, side_effects: tuple[str, ...] = (), signing_key: Optional[bytes] = None) -> ExecutionReceipt:
     if outcome not in {"prepared", "committed", "rejected", "failed", "timed_out", "rolled_back"}:
         raise AssuranceError("invalid_outcome")
     if not workspace_before:
@@ -41,12 +46,136 @@ def create_receipt(*, request: Mapping[str, Any], policy: Mapping[str, Any], wor
     stable = {"request_digest": request_digest, "policy_digest": policy_digest, "workspace_before": workspace_before, "workspace_after": workspace_after, "outcome": outcome, "rollback_available": rollback_available, "side_effects": list(side_effects)}
     receipt_digest = _digest(stable)
     receipt_id = "receipt:" + receipt_digest[7:]
-    return ExecutionReceipt(receipt_id, ASSURANCE_SCHEMA, request_digest, policy_digest, workspace_before, workspace_after, outcome, rollback_available, tuple(side_effects), receipt_digest)
+    signature = None if signing_key is None else "hmac-sha256:" + hmac.new(signing_key, receipt_digest.encode("ascii"), hashlib.sha256).hexdigest()
+    return ExecutionReceipt(receipt_id, ASSURANCE_SCHEMA, request_digest, policy_digest, workspace_before, workspace_after, outcome, rollback_available, tuple(side_effects), receipt_digest, signature)
 
 
-def verify_receipt(receipt: ExecutionReceipt) -> bool:
+def verify_receipt(receipt: ExecutionReceipt, signing_key: Optional[bytes] = None) -> bool:
     stable = {"request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects)}
-    return receipt.schema_version == ASSURANCE_SCHEMA and receipt.receipt_id == "receipt:" + receipt.receipt_digest[7:] and receipt.receipt_digest == _digest(stable)
+    if not (receipt.schema_version == ASSURANCE_SCHEMA and receipt.receipt_id == "receipt:" + receipt.receipt_digest[7:] and receipt.receipt_digest == _digest(stable)):
+        return False
+    if receipt.signature is None:
+        return signing_key is None
+    if signing_key is None or not receipt.signature.startswith("hmac-sha256:"):
+        return False
+    expected = "hmac-sha256:" + hmac.new(signing_key, receipt.receipt_digest.encode("ascii"), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(receipt.signature, expected)
 
 
-__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "create_receipt", "verify_receipt"]
+class ExecutionRecoveryStore:
+    """Restart-safe child-run lifecycle ledger; recovery never claims rollback happened."""
+    def __init__(self, path: str):
+        self.path = str(path)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        with self._connection() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("CREATE TABLE IF NOT EXISTS execution_runs (run_id TEXT PRIMARY KEY, status TEXT NOT NULL, workspace_before TEXT NOT NULL, workspace_after TEXT, receipt_id TEXT, updated_at REAL NOT NULL)")
+            conn.commit()
+
+    @contextmanager
+    def _connection(self):
+        conn = sqlite3.connect(self.path)
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    def begin(self, run_id: str, workspace_before: str) -> Mapping[str, Any]:
+        with self._connection() as conn:
+            row = conn.execute("SELECT run_id, status, workspace_before, workspace_after, receipt_id, updated_at FROM execution_runs WHERE run_id = ?", (str(run_id),)).fetchone()
+            if row is None:
+                now = __import__("time").time()
+                conn.execute("INSERT INTO execution_runs VALUES (?, ?, ?, ?, ?, ?)", (str(run_id), "running", str(workspace_before), None, None, now))
+                conn.commit()
+                return {"run_id": str(run_id), "status": "running", "workspace_before": str(workspace_before), "workspace_after": None, "receipt_id": None, "updated_at": now}
+            return {"run_id": row[0], "status": row[1], "workspace_before": row[2], "workspace_after": row[3], "receipt_id": row[4], "updated_at": row[5]}
+
+    def complete(self, run_id: str, *, workspace_after: str, receipt_id: str, status: str) -> Mapping[str, Any]:
+        if status not in {"completed", "failed", "timed_out", "denied"}:
+            raise AssuranceError("invalid_recovery_terminal_status")
+        with self._connection() as conn:
+            now = __import__("time").time()
+            conn.execute("UPDATE execution_runs SET status = ?, workspace_after = ?, receipt_id = ?, updated_at = ? WHERE run_id = ?", (status, str(workspace_after), str(receipt_id), now, str(run_id)))
+            if conn.total_changes != 1:
+                raise AssuranceError("execution_run_not_found")
+            conn.commit()
+        return self.get(run_id)
+
+    def get(self, run_id: str) -> Mapping[str, Any]:
+        with self._connection() as conn:
+            row = conn.execute("SELECT run_id, status, workspace_before, workspace_after, receipt_id, updated_at FROM execution_runs WHERE run_id = ?", (str(run_id),)).fetchone()
+        if row is None:
+            raise AssuranceError("execution_run_not_found")
+        return {"run_id": row[0], "status": row[1], "workspace_before": row[2], "workspace_after": row[3], "receipt_id": row[4], "updated_at": row[5]}
+
+    def recover(self, run_id: str) -> Mapping[str, Any]:
+        record = self.get(run_id)
+        if record["status"] == "running":
+            return dict(record, status="interrupted_recovery_required", rollback_performed=False)
+        return dict(record, rollback_performed=False)
+
+    def mark_recovered(self, run_id: str) -> Mapping[str, Any]:
+        with self._connection() as conn:
+            now = __import__("time").time()
+            conn.execute("UPDATE execution_runs SET status = ?, updated_at = ? WHERE run_id = ? AND status = ?", ("recovered", now, str(run_id), "running"))
+            conn.commit()
+        return self.get(run_id)
+
+
+class ExecutionReceiptStore:
+    """SQLite/WAL store for signed, idempotent execution receipts."""
+    def __init__(self, path: str, *, signing_key: bytes):
+        if not isinstance(signing_key, bytes) or len(signing_key) < 16:
+            raise AssuranceError("receipt_signing_key_required")
+        self.path = str(path)
+        self.signing_key = signing_key
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        with self._connection() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("CREATE TABLE IF NOT EXISTS execution_receipts (receipt_id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+            conn.commit()
+
+    @contextmanager
+    def _connection(self):
+        conn = sqlite3.connect(self.path)
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _payload(receipt: ExecutionReceipt) -> str:
+        return json.dumps({"receipt_id": receipt.receipt_id, "schema_version": receipt.schema_version, "request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects), "receipt_digest": receipt.receipt_digest, "signature": receipt.signature}, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _from_payload(payload: str) -> ExecutionReceipt:
+        data = json.loads(payload)
+        return ExecutionReceipt(str(data["receipt_id"]), str(data["schema_version"]), str(data["request_digest"]), str(data["policy_digest"]), str(data["workspace_before"]), data.get("workspace_after"), str(data["outcome"]), bool(data["rollback_available"]), tuple(str(item) for item in data.get("side_effects", [])), str(data["receipt_digest"]), data.get("signature"))
+
+    def put(self, receipt: ExecutionReceipt) -> ExecutionReceipt:
+        if not verify_receipt(receipt, self.signing_key):
+            raise AssuranceError("invalid_signed_receipt")
+        payload = self._payload(receipt)
+        with self._connection() as conn:
+            row = conn.execute("SELECT payload FROM execution_receipts WHERE receipt_id = ?", (receipt.receipt_id,)).fetchone()
+            if row is not None:
+                existing = self._from_payload(row[0])
+                if self._payload(existing) != payload:
+                    raise AssuranceError("receipt_conflict")
+                return existing
+            conn.execute("INSERT INTO execution_receipts(receipt_id, payload) VALUES (?, ?)", (receipt.receipt_id, payload))
+            conn.commit()
+        return receipt
+
+    def get(self, receipt_id: str) -> Optional[ExecutionReceipt]:
+        with self._connection() as conn:
+            row = conn.execute("SELECT payload FROM execution_receipts WHERE receipt_id = ?", (str(receipt_id),)).fetchone()
+        if row is None:
+            return None
+        receipt = self._from_payload(row[0])
+        if not verify_receipt(receipt, self.signing_key):
+            raise AssuranceError("stored_receipt_tampered")
+        return receipt
+
+
+__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "create_receipt", "verify_receipt"]

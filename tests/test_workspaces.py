@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from noesis_harness.workspaces import WorkspaceError, WorkspaceManager
+from noesis_harness.workspaces import PatchReviewStore, WorkspaceError, WorkspaceManager
 
 
 class WorkspaceManagerTests(unittest.TestCase):
@@ -24,6 +24,20 @@ class WorkspaceManagerTests(unittest.TestCase):
         self.assertEqual(proposal.status, "needs_review")
         self.assertEqual([change["kind"] for change in proposal.changes], ["added", "modified"])
         self.assertEqual(self.manager.review(proposal, "approved").status, "approved")
+
+    def test_patch_review_store_reopens_and_rejects_conflicting_mutation(self):
+        review_store = PatchReviewStore(str(Path(self.tmp.name) / "patch-reviews.db"))
+        manager = WorkspaceManager(str(Path(self.tmp.name) / "durable-workspaces"), review_store=review_store)
+        workspace = manager.create("session-2", "agent-b")
+        base = manager.snapshot(workspace)
+        manager.write_text(workspace, "change.txt", "draft\n")
+        head = manager.snapshot(workspace, parent_snapshot_id=base.snapshot_id)
+        proposal = manager.propose_patch(base.snapshot_id, head.snapshot_id)
+        approved = manager.review(proposal, "approved")
+        reopened = PatchReviewStore(str(Path(self.tmp.name) / "patch-reviews.db"))
+        self.assertEqual(reopened.get(proposal.proposal_id).status, "approved")
+        with self.assertRaisesRegex(WorkspaceError, "patch_review_conflict"):
+            reopened.put(type(approved)(approved.proposal_id, approved.workspace_id, approved.base_snapshot_id, approved.head_snapshot_id, approved.changes, "rejected"))
 
     def test_deleted_file_is_reported(self):
         self.manager.write_text(self.workspace, "old.txt", "old\n")

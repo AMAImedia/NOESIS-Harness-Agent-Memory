@@ -19,6 +19,8 @@ This document describes the first implementation slice of `PLAN_NOESIS_1.0_MASTE
 | Execution ladder | `ExecutionLadder` | Workspace/simulation by default; missing sandbox is `unavailable` |
 | Governed child runtime | `ChildExecutionRuntime`, `ExecutableSkillRuntime` | Versioned manifest, committed capability grant, shell-free argv, workspace containment, bounded environment/output/time and explicit hardened-backend requirement |
 | Linux isolation backend | `BubblewrapBackend` | `--unshare-all`, `--unshare-net`, read-only system mounts, writable workspace only; unavailable backends fail closed |
+| Execution evidence | `ExecutionReceiptStore`, `ExecutionRecoveryStore` | HMAC-signed receipt persistence, idempotent replay, explicit running/interrupted/recovered states; recovery never claims rollback without an actual rollback operation |
+| Patch review | `PatchReviewStore`, `WorkspaceManager` | Durable added/modified/deleted patch proposals and review status; merge authorization remains separate and never applies files |
 
 ## Minimal example
 
@@ -57,7 +59,7 @@ assert ExecutionLadder().choose("sandbox")["status"] == "unavailable"
 
 A child execution request is valid only when the parent has a committed `Gatekeeper` decision, the executable is allowlisted, the argv contains no inline-code switch, the workspace is real and traversal-free, environment keys are allowlisted, and time/output budgets are bounded. A request carrying a `SkillManifest` must match the skill identity, include every manifest capability in the explicit grant set, and use an available hardened sandbox backend. A missing grant, manifest identity mismatch or unavailable backend fails closed.
 
-The Linux reference backend is `BubblewrapBackend`: it unshares namespaces and network, exposes read-only system mounts, binds only the workspace as writable, uses a fresh session and kills descendants on timeout. Adversarial tests verify host-path reads and outbound socket access are blocked. This is Linux evidence only; macOS and Windows native backend claims remain `not_run` until matching hosts are exercised.
+The Linux reference backend is `BubblewrapBackend`: it unshares namespaces and network, exposes read-only system mounts, binds only the workspace as writable, uses a fresh session and kills descendants on timeout. Adversarial tests verify host-path reads and outbound socket access are blocked. `ExecutionReceiptStore` signs and persists the result, while `ExecutionRecoveryStore` records interrupted work explicitly after restart. `PatchReviewStore` persists review state but does not merge or publish patches. This is Linux evidence only; macOS and Windows native backend claims remain `not_run` until matching hosts are exercised.
 
 `ContextManager` and `VaultProjector` do not execute content. Markdown is parsed as data and can only become memory through a caller-controlled promotion policy. `Gatekeeper` classifies and records a requested side effect but does not perform it. `ExecutionLadder` remains an availability contract, while `ChildExecutionRuntime` is the explicit process boundary and never imports or evaluates child/model-generated code.
 
@@ -71,4 +73,4 @@ python -m unittest discover -s tests -p 'test_governance.py' -v
 python -m unittest discover -s tests -v
 ```
 
-The suites cover tamper detection, Windows SQLite cleanup, path denial, private-scope isolation, idempotency, compaction retention, gate approval, DAG cycles, atomic vault writes, staged skills, child-runtime manifest/grant enforcement, timeout/process-tree recovery, credential output blocking and adversarial Bubblewrap filesystem/network isolation. Native Windows/macOS sandbox evidence remains `not_run` until matching hosts are available.
+The suites cover tamper detection, Windows SQLite cleanup, path denial, private-scope isolation, idempotency, compaction retention, gate approval, DAG cycles, atomic vault writes, staged skills, child-runtime manifest/grant enforcement, HMAC receipt persistence/tamper rejection, durable patch review, interrupted-run recovery, timeout/process-tree recovery, credential output blocking and adversarial Bubblewrap filesystem/network isolation. Native Windows/macOS sandbox evidence remains `not_run` until matching hosts are available.

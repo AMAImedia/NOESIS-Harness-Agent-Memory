@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import replace
 import signal
 import subprocess
 import time
@@ -19,7 +20,8 @@ from typing import Mapping, Optional, Sequence
 from .gatekeeper import Gatekeeper
 from .security import safe_path
 from .sandbox_backend import SandboxBackend
-from .skill_manifest import SkillManifest
+from .skill_manifest import SkillManifest, digest_files
+from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt
 from .process_control import terminate_process_tree
 
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -60,15 +62,18 @@ class ExecutionResult:
     duration_ms: float
     reason: str
     sandboxed: bool = False
+    receipt: object | None = None
 
 
 class ChildExecutionRuntime:
     """Run only explicitly approved, bounded, shell-free child processes."""
 
-    def __init__(self, gatekeeper: Gatekeeper, *, environment_allowlist: Sequence[str] = (), sandbox_backend: SandboxBackend | None = None):
+    def __init__(self, gatekeeper: Gatekeeper, *, environment_allowlist: Sequence[str] = (), sandbox_backend: SandboxBackend | None = None, receipt_store: ExecutionReceiptStore | None = None, recovery_store: ExecutionRecoveryStore | None = None):
         self.gatekeeper = gatekeeper
         self.environment_allowlist = frozenset(str(key) for key in environment_allowlist)
         self.sandbox_backend = sandbox_backend
+        self.receipt_store = receipt_store
+        self.recovery_store = recovery_store
 
     @staticmethod
     def _basename(executable: str) -> str:
@@ -133,7 +138,7 @@ class ChildExecutionRuntime:
             found = found or bool(count)
         return text, found
 
-    def run(self, request: ExecutionRequest) -> ExecutionResult:
+    def _run(self, request: ExecutionRequest) -> ExecutionResult:
         decision = self.gatekeeper.get(request.request_id)
         if not decision or decision.get("status") != "committed":
             return ExecutionResult("denied", request.request_id, None, "", "", 0.0, "gatekeeper_commit_required")
@@ -192,6 +197,31 @@ class ChildExecutionRuntime:
             return ExecutionResult("failed", request.request_id, process.returncode, stdout_text, stderr_text, (time.perf_counter() - started) * 1000.0, "output_budget_exceeded")
         status = "completed" if process.returncode == 0 else "failed"
         return ExecutionResult(status, request.request_id, process.returncode, stdout_text, stderr_text, (time.perf_counter() - started) * 1000.0, "exit_%s" % process.returncode)
+
+    @staticmethod
+    def _workspace_digest(workspace: str) -> str:
+        try:
+            return digest_files(workspace, exclude=())
+        except Exception:
+            return "sha256:workspace-unavailable"
+
+    def run(self, request: ExecutionRequest) -> ExecutionResult:
+        before = self._workspace_digest(request.workspace)
+        if self.recovery_store is not None:
+            self.recovery_store.begin(request.request_id, before)
+        result = self._run(request)
+        if self.receipt_store is None:
+            if self.recovery_store is not None:
+                self.recovery_store.complete(request.request_id, workspace_after=self._workspace_digest(request.workspace), receipt_id="unreceipted:" + request.request_id, status="completed" if result.status == "completed" else "timed_out" if result.status == "timeout" else "denied" if result.status == "denied" else "failed")
+            return result
+        decision = self.gatekeeper.get(request.request_id) or {}
+        outcome = "committed" if result.status == "completed" else "timed_out" if result.status == "timeout" else "rejected" if result.status == "denied" else "failed"
+        receipt = create_receipt(request={"request_id": request.request_id, "argv": list(request.argv), "workspace": str(Path(request.workspace).resolve()), "skill_id": request.skill_id}, policy={"decision": decision, "manifest": request.manifest.to_dict() if request.manifest else None, "granted_capabilities": list(request.granted_capabilities)}, workspace_before=before, workspace_after=self._workspace_digest(request.workspace), outcome=outcome, rollback_available=True, side_effects=("workspace_patch",), signing_key=self.receipt_store.signing_key)
+        stored = self.receipt_store.put(receipt)
+        if self.recovery_store is not None:
+            recovery_status = "denied" if result.status == "denied" else outcome
+            self.recovery_store.complete(request.request_id, workspace_after=self._workspace_digest(request.workspace), receipt_id=stored.receipt_id, status=recovery_status)
+        return replace(result, receipt=stored)
 
 
 __all__ = ["MAX_OUTPUT_BYTES", "ExecutionRequest", "ExecutionResult", "ChildExecutionError", "ChildExecutionRuntime"]

@@ -36,9 +36,9 @@ Bounded production binding реализован: `ProductionLearningLifecycle` �
 
 ### Gate 3 — Governed executable skill/tool runtime (в работе)
 
-Manifest/grant contract и Linux reference path реализованы: `ExecutionRequest` связывает optional `SkillManifest` с explicit granted capabilities; strict executable-skill mode требует available hardened backend; `BubblewrapBackend` предоставляет Linux namespace/network/filesystem boundary. Parent control plane не импортирует и не выполняет model-generated code. Windows/macOS остаются conformance targets до запуска на matching hosts.
+Manifest/grant contract и Linux reference path реализованы: `ExecutionRequest` связывает optional `SkillManifest` с explicit granted capabilities; strict executable-skill mode требует available hardened backend; `BubblewrapBackend` предоставляет Linux namespace/network/filesystem boundary. HMAC-signed `ExecutionReceiptStore`, restart-safe `ExecutionRecoveryStore` и durable `PatchReviewStore` покрывают execution evidence, interrupted-run state и review status. Parent control plane не импортирует и не выполняет model-generated code. Windows/macOS остаются conformance targets до запуска на matching hosts.
 
-Нужны тесты path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process tree, corrupted receipt, interrupted write и cross-agent workspace. Непроверенный backend получает `not_run`, `blocked` или `unavailable`, но не `passed`.
+Нужны тесты path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process tree, corrupted receipt, interrupted write, receipt replay/tamper, patch-review conflict и cross-agent workspace. Эти local subgates теперь покрыты; остаётся связать signed receipts и reviewed patches с operator-controlled rollback/recovery action, не выдавая review за фактическое применение изменений. Непроверенный backend получает `not_run`, `blocked` или `unavailable`, но не `passed`.
 
 ### Gate 4 — Реальный multi-agent work-product loop
 
