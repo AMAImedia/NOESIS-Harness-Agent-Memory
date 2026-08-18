@@ -143,6 +143,17 @@ class HealthServerTests(unittest.TestCase):
             self.assertEqual(code, 404)
             self.assertEqual(payload["status"], "invalid_request")
 
+    def test_operator_snapshot_is_bounded_redacted_and_read_only(self):
+        server = HealthServer(port=0, operator_id="operator-1", operator_session_id="session-1", operator_scopes=("telemetry:read",))
+        server.set_telemetry(streams=({"stream_id": "s-1", "authorization": "secret"},), child_runtimes=({"runtime_id": "child-1", "state": "running"},))
+        snapshot = server.operator_snapshot()
+        self.assertEqual(snapshot["schema_version"], "noesis.operator-snapshot.v1")
+        self.assertEqual(snapshot["execution_claim"], "read_only_snapshot")
+        self.assertTrue(snapshot["operator_context"]["configured"])
+        self.assertEqual(snapshot["telemetry"]["streams"][0]["authorization"], "[REDACTED]")
+        self.assertEqual(snapshot["health"]["contract_version"], CONTRACT_VERSION)
+        self.assertIn("migration_readiness", snapshot["telemetry"])
+
     def test_telemetry_snapshot_child_runtime_and_sse_are_read_only(self):
         server = HealthServer(port=0)
         server.set_telemetry(
@@ -160,6 +171,10 @@ class HealthServerTests(unittest.TestCase):
             code, child_payload = self._request("GET", base + "/api/child-runtimes")
             self.assertEqual(code, 200)
             self.assertEqual(child_payload["data"]["telemetry"]["child_runtimes"][0]["runtime_id"], "child-1")
+            code, snapshot_payload = self._request("GET", base + "/api/operator/snapshot")
+            self.assertEqual(code, 200)
+            self.assertEqual(snapshot_payload["data"]["schema_version"], "noesis.operator-snapshot.v1")
+            self.assertEqual(snapshot_payload["data"]["execution_claim"], "read_only_snapshot")
             request = urllib.request.Request(base + "/api/telemetry/events", method="GET")
             with urllib.request.urlopen(request, timeout=2) as response:
                 body = response.read().decode("utf-8")

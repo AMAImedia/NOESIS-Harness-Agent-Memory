@@ -15,7 +15,7 @@
 
 ## Параллельные направления
 
-**Track A — control plane и operator surface.** Завершить versioned task/session API, interactive streaming, SSE telemetry, approvals, diff/patch review, per-agent workspaces и session resume.
+**Track A — control plane и operator surface.** Завершить versioned task/session API, interactive streaming, SSE telemetry, approvals, diff/patch review, per-agent workspaces и session resume. Read-only endpoint `/api/operator/snapshot` объединяет health, model capabilities, readiness, telemetry и authenticated operator context с recursive secret redaction.
 
 **Track B — governed self-learning.** Связать terminal outcomes с provenance, holdout, review-only proposal, explicit approval, immutable promotion, verification и rollback. Automatic activation без approval остаётся запрещённой.
 

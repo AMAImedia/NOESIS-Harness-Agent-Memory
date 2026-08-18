@@ -141,6 +141,23 @@ class HealthServer:
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
 
+    def operator_snapshot(self) -> Mapping[str, Any]:
+        """Return a bounded, read-only operator view with no execution side effects."""
+        context = self.operator_auth_context
+        return {
+            "schema_version": "noesis.operator-snapshot.v1",
+            "health": self.envelope().to_dict(),
+            "models": self.models_envelope().to_dict(),
+            "telemetry": self.telemetry_snapshot(),
+            "operator_context": {
+                "configured": context is not None,
+                "operator_id": context.operator_id if context is not None else "",
+                "session_id": context.session_id if context is not None else "",
+                "scopes": list(context.scopes) if context is not None else [],
+            },
+            "execution_claim": "read_only_snapshot",
+        }
+
     @property
     def bound_port(self) -> int:
         return int(self._server.server_address[1]) if self._server is not None else self.port
@@ -233,6 +250,8 @@ class HealthServer:
                     self._send(parent.models_envelope(), 200)
                 elif self.path == "/api/readiness":
                     self._send(success({"migration_readiness": parent._migration_readiness_snapshot()}), 200)
+                elif self.path == "/api/operator/snapshot":
+                    self._send(success(parent.operator_snapshot()), 200)
                 elif self.path in {"/api/telemetry", "/api/child-runtimes"}:
                     snapshot = parent.telemetry_snapshot()
                     if self.path == "/api/child-runtimes":

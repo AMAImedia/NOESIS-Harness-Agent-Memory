@@ -19,7 +19,7 @@ The project uses weighted evidence rather than feature counting. A feature is no
 
 ### Track A — Control plane and operator surface
 
-Complete versioned task/session command APIs, interactive chat/streaming contracts, durable SSE telemetry, child-runtime state views, operator approvals, diff/patch review, per-agent workspaces and session resume. Acceptance requires deterministic protocol fixtures, bounded event sizes, authenticated administrative actions and recovery-visible state transitions.
+Complete versioned task/session command APIs, interactive chat/streaming contracts, durable SSE telemetry, child-runtime state views, operator approvals, diff/patch review, per-agent workspaces and session resume. The read-only `/api/operator/snapshot` contract now combines health, model capability, readiness, telemetry and authenticated operator-context metadata with recursive secret redaction. Acceptance requires deterministic protocol fixtures, bounded event sizes, authenticated administrative actions and recovery-visible state transitions.
 
 ### Track B — Governed self-learning
 
