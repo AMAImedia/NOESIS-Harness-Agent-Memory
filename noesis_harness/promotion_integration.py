@@ -117,12 +117,13 @@ class PromotionActionReceipt:
 class PromotionActionExecutor:
     """Execute only explicit operator proposal actions; replay is idempotent."""
 
-    def __init__(self, integration: "PromotionIntegration", receipt_path: str, *, approval_tests: Callable[[], bool] | None = None, independent_reviewer: Callable[[str, str], bool] | None = None, reviewer_store: ReviewerAuthorizationStore | None = None, required_scope: str = "promotion:review") -> None:
+    def __init__(self, integration: "PromotionIntegration", receipt_path: str, *, approval_tests: Callable[[], bool] | None = None, independent_reviewer: Callable[[str, str], bool] | None = None, reviewer_store: ReviewerAuthorizationStore | None = None, session_registry: OperatorSessionRegistry | None = None, required_scope: str = "promotion:review") -> None:
         self.integration = integration
         self.receipts = EventStore(receipt_path)
         self.approval_tests = approval_tests or (lambda: True)
         self.independent_reviewer = independent_reviewer or (lambda operator_id, owner_id: operator_id != owner_id)
         self.reviewer_store = reviewer_store
+        self.session_registry = session_registry
         self.required_scope = str(required_scope)
 
     def _existing(self, action_id: str) -> PromotionActionReceipt | None:
@@ -158,6 +159,11 @@ class PromotionActionExecutor:
         owner_id = receipt.agent_id if receipt is not None else ""
         if not owner_id or not self.independent_reviewer(action.operator_id, owner_id):
             self._deny(action, "independent_reviewer_required", PermissionError)
+        if self.session_registry is not None:
+            try:
+                self.session_registry.require_active(auth_context)
+            except PermissionError:
+                self._deny(action, "operator_session_inactive_or_expired", PermissionError)
         if self.reviewer_store is not None and not self.reviewer_store.can_review(auth_context, owner_id, required_scope=self.required_scope):
             self._deny(action, "reviewer_authorization_required", PermissionError)
         previous = proposal.state
@@ -206,6 +212,52 @@ class OwnershipPolicySimulator:
             return PolicySimulation(False, agent_id=owner, scope=scope, reason="ownership_scope_denied")
         runtime = RuntimePolicySimulator(owner, scope, allowed_scopes=(scope,), policy_version=self.policy_version)
         return runtime.simulate({**dict(task), "state": task.get("state", "")})
+
+
+class OperatorSessionRegistry:
+    """Persistent operator session state with expiry and fail-closed validation."""
+
+    def __init__(self, event_path: str, *, clock: Callable[[], float] = time.time) -> None:
+        self.events = EventStore(event_path)
+        self.clock = clock
+
+    def open(self, operator_id: str, session_id: str, *, ttl_seconds: float = 900.0, scopes: Sequence[str] = ()) -> Mapping[str, Any]:
+        if not operator_id or not session_id or ttl_seconds <= 0 or ttl_seconds > 86400:
+            raise ValueError("invalid_operator_session")
+        now = float(self.clock())
+        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "scopes": sorted({str(item) for item in scopes}), "opened_at": now, "expires_at": now + float(ttl_seconds), "active": True}
+        self.events.append("operator_session_opened", payload, event_id="operator-session-open:" + session_id + ":" + str(self.events.count()))
+        return payload
+
+    def close(self, operator_id: str, session_id: str, *, reason: str = "closed") -> Mapping[str, Any]:
+        if not operator_id or not session_id:
+            raise ValueError("invalid_operator_session")
+        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "active": False, "reason": str(reason)[:128], "closed_at": float(self.clock())}
+        self.events.append("operator_session_closed", payload, event_id="operator-session-close:" + session_id + ":" + str(self.events.count()))
+        return payload
+
+    def _records(self) -> dict[str, Mapping[str, Any]]:
+        state: dict[str, Mapping[str, Any]] = {}
+        for event in self.events.iter_events():
+            payload = event.get("payload") or {}
+            sid = str(payload.get("session_id", ""))
+            if sid:
+                previous = dict(state.get(sid, {}))
+                previous.update(payload)
+                state[sid] = previous
+        return state
+
+    def context(self, operator_id: str, session_id: str) -> "OperatorAuthContext":
+        record = self._records().get(str(session_id))
+        now = float(self.clock())
+        if not record or record.get("operator_id") != str(operator_id) or not record.get("active", False) or float(record.get("expires_at", 0.0)) <= now:
+            return OperatorAuthContext(str(operator_id), str(session_id), (), authenticated=False)
+        return OperatorAuthContext(str(operator_id), str(session_id), tuple(str(item) for item in record.get("scopes", ())), authenticated=True)
+
+    def require_active(self, context: "OperatorAuthContext") -> None:
+        current = self.context(context.operator_id, context.session_id)
+        if not current.authenticated or current.scopes != context.scopes:
+            raise PermissionError("operator_session_inactive_or_expired")
 
 
 class ReviewerAuthorizationStore:
@@ -442,4 +494,4 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

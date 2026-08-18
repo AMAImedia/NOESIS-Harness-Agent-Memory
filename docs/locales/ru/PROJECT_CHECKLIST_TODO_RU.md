@@ -1057,3 +1057,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-REVIEW-06 | Production identity source | `NEXT LOCAL GATE` | Bind reviewer store grants to authenticated operator session lifecycle and durable administrative policy |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Durable Operator Session Lifecycle
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-SESSION-01 | Persistent operator session registry | `DONE / LOCAL VERIFIED` | `OperatorSessionRegistry` stores open/close events and reconstructs current session state |
+| LEARN-SESSION-02 | TTL expiration | `DONE / LOCAL VERIFIED` | Expired sessions derive unauthenticated context and cannot authorize review |
+| LEARN-SESSION-03 | Close/revoke behavior | `DONE / LOCAL VERIFIED` | Closed sessions fail active validation after restart/replay |
+| LEARN-SESSION-04 | Reviewer executor binding | `DONE / LOCAL VERIFIED` | `PromotionActionExecutor` requires active session when registry is configured |
+| LEARN-SESSION-05 | No implicit activation | `DONE / BOUNDED` | Session lifecycle only controls authorization; it never promotes or activates skills |
+| LEARN-SESSION-06 | Administrative policy source | `NEXT LOCAL GATE` | Replace local injected session configuration with a reviewed administrative policy lifecycle and operator UI integration |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

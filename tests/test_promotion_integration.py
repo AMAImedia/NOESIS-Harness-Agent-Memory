@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import EvaluatorRegistry, OperatorAuthContext, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
+from noesis_harness.promotion_integration import EvaluatorRegistry, OperatorAuthContext, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -119,6 +119,22 @@ class PromotionIntegrationTests(unittest.TestCase):
         evaluation = integration.evaluate(receipt.receipt_id, "eval-1")
         return integration.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="skill-" + task_id, content="# skill\n")
 
+    def test_operator_session_registry_persists_and_expires_fail_closed(self):
+        now = [100.0]
+        path = tempfile.mktemp()
+        registry = OperatorSessionRegistry(path, clock=lambda: now[0])
+        opened = registry.open("operator-1", "session-1", ttl_seconds=10, scopes=("promotion:review",))
+        self.assertTrue(registry.context("operator-1", "session-1").authenticated)
+        restored = OperatorSessionRegistry(path, clock=lambda: now[0])
+        restored_context = restored.context("operator-1", "session-1")
+        self.assertTrue(restored_context.authenticated)
+        self.assertEqual(restored_context.scopes, ("promotion:review",))
+        now[0] = 111.0
+        self.assertFalse(restored.context("operator-1", "session-1").authenticated)
+        restored.close("operator-1", "session-1")
+        self.assertFalse(restored.context("operator-1", "session-1").authenticated)
+        self.assertEqual(opened["session_id"], "session-1")
+
     def test_reviewer_authorization_store_is_persistent_and_fail_closed(self):
         path = tempfile.mktemp()
         store = ReviewerAuthorizationStore(path)
@@ -133,6 +149,26 @@ class PromotionIntegrationTests(unittest.TestCase):
         restored.revoke("reviewer-1", "session-1")
         with self.assertRaisesRegex(PermissionError, "reviewer_authorization_required"):
             restored.authorize(context, required_scope="promotion:review")
+
+    def test_operator_action_executor_requires_active_operator_session(self):
+        integration = self.integration()
+        proposal = self._proposal(integration, "task-session")
+        reviewer_store = ReviewerAuthorizationStore(tempfile.mktemp())
+        session_registry = OperatorSessionRegistry(tempfile.mktemp(), clock=lambda: 200.0)
+        reviewer_store.grant("independent-reviewer", "session-operator", ("promotion:review",))
+        session_registry.open("independent-reviewer", "session-operator", ttl_seconds=5, scopes=("promotion:review",))
+        executor = PromotionActionExecutor(integration, tempfile.mktemp(), reviewer_store=reviewer_store, session_registry=session_registry)
+        context = OperatorAuthContext("independent-reviewer", "session-operator", ("promotion:review",))
+        action = PromotionApprovalAction("action-session", "approve", proposal.proposal_id, "independent-reviewer")
+        self.assertEqual(executor.handle(action, context)["receipt"]["new_state"], "approved")
+
+        expired_now = [200.0]
+        expired_registry = OperatorSessionRegistry(tempfile.mktemp(), clock=lambda: expired_now[0])
+        expired_registry.open("independent-reviewer", "session-operator", ttl_seconds=5, scopes=("promotion:review",))
+        expired_now[0] = 206.0
+        expired_executor = PromotionActionExecutor(integration, tempfile.mktemp(), reviewer_store=reviewer_store, session_registry=expired_registry)
+        with self.assertRaisesRegex(PermissionError, "proposal_state_conflict|operator_session_inactive_or_expired"):
+            expired_executor.handle(PromotionApprovalAction("action-session-expired", "rollback", proposal.proposal_id, "independent-reviewer", expected_state="approved"), context)
 
     def test_operator_action_executor_requires_persistent_reviewer_grant(self):
         integration = self.integration()
