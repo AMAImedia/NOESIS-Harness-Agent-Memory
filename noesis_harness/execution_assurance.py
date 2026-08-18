@@ -121,6 +121,15 @@ class ExecutionRecoveryStore:
             conn.commit()
         return self.get(run_id)
 
+    def mark_rolled_back(self, run_id: str) -> Mapping[str, Any]:
+        with self._connection() as conn:
+            now = __import__("time").time()
+            conn.execute("UPDATE execution_runs SET status = ?, updated_at = ? WHERE run_id = ? AND status IN ('completed', 'failed', 'timed_out', 'denied', 'recovered')", ("rolled_back", now, str(run_id)))
+            if conn.total_changes != 1:
+                raise AssuranceError("execution_run_not_rollbackable")
+            conn.commit()
+        return self.get(run_id)
+
 
 class ExecutionReceiptStore:
     """SQLite/WAL store for signed, idempotent execution receipts."""

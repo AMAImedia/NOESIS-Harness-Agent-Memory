@@ -40,10 +40,10 @@
       "linux_bubblewrap_network_isolation",
       "hmac_signed_execution_receipt_persistence",
       "durable_patch_review_state",
-      "interrupted_run_recovery_ledger"
+      "interrupted_run_recovery_ledger",
+      "authenticated_rollback_recovery_binding"
     ],
     "open_subgates": [
-      "operator_controlled_rollback_recovery_binding",
       "native_windows_macos_evidence"
     ],
     "required_boundaries": [

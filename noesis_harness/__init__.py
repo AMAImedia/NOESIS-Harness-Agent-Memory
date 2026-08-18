@@ -38,6 +38,7 @@ from .session_stream import STREAM_SCHEMA, MAX_EVENT_BYTES, CancellationToken, S
 from .execution_bridge import TaskExecutionBridge, TaskExecutionBridgeError, TaskExecutionReport, TaskExecutionRequest
 from .child_execution import ChildExecutionError, ChildExecutionRuntime, ExecutionRequest, ExecutionResult
 from .execution_assurance import ASSURANCE_SCHEMA, AssuranceError, ExecutionReceipt, ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, verify_receipt
+from .execution_recovery import RECOVERY_ACTION_SCHEMA, ExecutionRecoveryAction, ExecutionRecoveryError, ExecutionRecoveryExecutor
 
 __all__ = [
     "EventStore", "project_chain",
@@ -56,7 +57,7 @@ __all__ = [
     "extract_session", "McpServer",
     "ContextPack", "estimate_tokens", "AgentLoop",
     "AgentLane", "AgentLaneContext", "AgentLaneResult", "ALWAYS_DENIED_CAPABILITIES", "ParallelCancellationToken", "ParallelExecutionError", "SAFE_CAPABILITIES", "SafeParallelExecutor",
-    "COMMANDS", "TASK_SESSION_SCHEMA_VERSION", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore", "STREAM_SCHEMA", "MAX_EVENT_BYTES", "CancellationToken", "SessionEventBuffer", "StreamContractError", "StreamEvent", "TaskExecutionBridge", "TaskExecutionBridgeError", "TaskExecutionReport", "TaskExecutionRequest", "ChildExecutionError", "ChildExecutionRuntime", "ExecutionRequest", "ExecutionResult", "ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "create_receipt", "verify_receipt",
+    "COMMANDS", "TASK_SESSION_SCHEMA_VERSION", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore", "STREAM_SCHEMA", "MAX_EVENT_BYTES", "CancellationToken", "SessionEventBuffer", "StreamContractError", "StreamEvent", "TaskExecutionBridge", "TaskExecutionBridgeError", "TaskExecutionReport", "TaskExecutionRequest", "ChildExecutionError", "ChildExecutionRuntime", "ExecutionRequest", "ExecutionResult", "ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "create_receipt", "verify_receipt", "RECOVERY_ACTION_SCHEMA", "ExecutionRecoveryAction", "ExecutionRecoveryError", "ExecutionRecoveryExecutor",
 ]
 
 __version__ = "0.5.0"

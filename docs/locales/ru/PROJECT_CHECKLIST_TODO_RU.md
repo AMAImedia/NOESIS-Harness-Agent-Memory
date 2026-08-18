@@ -1227,6 +1227,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | CHILD-03 | Hardened backend boundary | `DONE / BOUNDED LOCAL` | Strict skill mode rejects absent backend; Bubblewrap uses unshare-all/unshare-net and workspace-only write binding |
 | CHILD-04 | Filesystem/network adversarial isolation | `DONE / LINUX VERIFIED` | Child probe blocks host-path read and outbound socket; Windows/macOS remain `not_run` |
 | CHILD-05 | Signed execution receipt, diff review and recovery integration | `DONE / BOUNDED LOCAL` | HMAC receipt persistence/replay, durable patch proposal/review state and interrupted-run recovery ledger are verified; review does not apply patches |
-| CHILD-06 | Operator-controlled rollback/recovery binding | `NEXT LOCAL SUBGATE` | Bind signed receipt and approved patch to an explicit operator action with fresh-base check and honest rollback outcome |
+| CHILD-06 | Operator-controlled rollback/recovery binding | `DONE / BOUNDED LOCAL` | Authenticated `ExecutionRecoveryExecutor` verifies signed receipt/run identity, approved patch, fresh base and handler-confirmed mutation; replay, stale-base, scope and unapproved-patch denials are tested |
+| CHILD-07 | Native Windows/macOS child-runtime evidence | `NOT_RUN / HOST REQUIRED` | Requires matching hosts and native sandbox execution; Linux evidence must not be generalized |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

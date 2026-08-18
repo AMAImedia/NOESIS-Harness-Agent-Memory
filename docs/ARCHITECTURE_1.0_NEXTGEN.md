@@ -21,6 +21,7 @@ This document describes the first implementation slice of `PLAN_NOESIS_1.0_MASTE
 | Linux isolation backend | `BubblewrapBackend` | `--unshare-all`, `--unshare-net`, read-only system mounts, writable workspace only; unavailable backends fail closed |
 | Execution evidence | `ExecutionReceiptStore`, `ExecutionRecoveryStore` | HMAC-signed receipt persistence, idempotent replay, explicit running/interrupted/recovered states; recovery never claims rollback without an actual rollback operation |
 | Patch review | `PatchReviewStore`, `WorkspaceManager` | Durable added/modified/deleted patch proposals and review status; merge authorization remains separate and never applies files |
+| Operator recovery | `ExecutionRecoveryAction`, `ExecutionRecoveryExecutor` | Authenticated rollback/recover action verifies signed receipt, approved patch, run identity and fresh base; injected handler must confirm actual mutation before state changes |
 
 ## Minimal example
 
@@ -61,7 +62,7 @@ A child execution request is valid only when the parent has a committed `Gatekee
 
 The Linux reference backend is `BubblewrapBackend`: it unshares namespaces and network, exposes read-only system mounts, binds only the workspace as writable, uses a fresh session and kills descendants on timeout. Adversarial tests verify host-path reads and outbound socket access are blocked. `ExecutionReceiptStore` signs and persists the result, while `ExecutionRecoveryStore` records interrupted work explicitly after restart. `PatchReviewStore` persists review state but does not merge or publish patches. This is Linux evidence only; macOS and Windows native backend claims remain `not_run` until matching hosts are exercised.
 
-`ContextManager` and `VaultProjector` do not execute content. Markdown is parsed as data and can only become memory through a caller-controlled promotion policy. `Gatekeeper` classifies and records a requested side effect but does not perform it. `ExecutionLadder` remains an availability contract, while `ChildExecutionRuntime` is the explicit process boundary and never imports or evaluates child/model-generated code.
+`ContextManager` and `VaultProjector` do not execute content. Markdown is parsed as data and can only become memory through a caller-controlled promotion policy. `Gatekeeper` classifies and records a requested side effect but does not perform it. `ExecutionLadder` remains an availability contract, while `ChildExecutionRuntime` is the explicit process boundary and never imports or evaluates child/model-generated code. `ExecutionRecoveryExecutor` never infers rollback from a review or receipt: an authenticated operator action, fresh-base check and handler confirmation are all required.
 
 ## Verification
 
