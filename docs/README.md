@@ -13,6 +13,7 @@ This directory contains the technical documentation for the local-first NOESIS a
 | [`CROSS_PLATFORM_RELEASE_GATES.md`](CROSS_PLATFORM_RELEASE_GATES.md) | Aggregate local/native/external release gate matrix with fail-closed status and claim boundaries. |
 | [`BUILD_POLICY_HONESTY_GATE.md`](BUILD_POLICY_HONESTY_GATE.md) | Native packaging dry-run, signing policy and target-host refusal semantics. |
 | [`PARALLEL_AGENT_TRACKS.md`](PARALLEL_AGENT_TRACKS.md) | Evidence from isolated local reliability, security, operator and release audit tracks. |
+| [`PARALLEL_AGENT_TRACKS_2.md`](PARALLEL_AGENT_TRACKS_2.md) | Second isolated run covering task/session, child-runtime, memory/governance and operator/release surfaces. |
 | [`SIGNED_EVIDENCE_FAIL_CLOSED.md`](SIGNED_EVIDENCE_FAIL_CLOSED.md) | Normative HMAC evidence envelope, hostile-input verification and fail-closed external A/B acceptance rules; Russian localization: [`SIGNED_EVIDENCE_FAIL_CLOSED_RU.md`](locales/ru/SIGNED_EVIDENCE_FAIL_CLOSED_RU.md). |
 | [`EXTERNAL_EVIDENCE_READINESS.md`](EXTERNAL_EVIDENCE_READINESS.md) | Unified Hermes/OpenCode/DeepSeek Harness readiness statuses and acceptance checks; matrix artifact: [`EXTERNAL_EVIDENCE_READINESS_MATRIX.json`](EXTERNAL_EVIDENCE_READINESS_MATRIX.json); Russian localization: [`EXTERNAL_EVIDENCE_READINESS_RU.md`](locales/ru/EXTERNAL_EVIDENCE_READINESS_RU.md). |
 | [`ARCHITECTURE_1.0_NEXTGEN.md`](ARCHITECTURE_1.0_NEXTGEN.md) | Architecture of run envelopes, capabilities, audit chains, durable fibers, evidence memory, coordination and bounded context. |

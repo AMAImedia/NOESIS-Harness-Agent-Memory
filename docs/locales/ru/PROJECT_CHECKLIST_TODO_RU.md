@@ -906,3 +906,15 @@ Machine evidence: `docs/PARALLEL_BUILD_POLICY_EVIDENCE.json`; English contract: 
 | PAR-05 | Isolation and claim boundary | `DONE / LOCAL VERIFIED` | `network_allowed=false`, `credentials_available=false`, `external_processes_started=false`; native/external claims не создавались |
 
 Machine evidence: `docs/PARALLEL_AGENT_TRACKS_EVIDENCE.json`; English contract: `docs/PARALLEL_AGENT_TRACKS.md`. Отсутствующий rollback glob не был засчитан как pass: он явно исключён из финального Track A status из-за отсутствия matching test file.
+
+## 2026-08-18 — Parallel agent tracks 2
+
+| ID | Track | Статус | Доказательство |
+|---|---|---|---|
+| PAR2-01 | Task/session API, SSE и recovery | `DONE / LOCAL VERIFIED` | 28 тестов: session 11, task 6, stream 4, recovery 7 |
+| PAR2-02 | Child runtime и sandbox | `DONE / LOCAL VERIFIED` | Sandbox 7, child 12; Linux Bubblewrap passed; macOS/Windows `not_run` |
+| PAR2-03 | Memory/provenance/governance | `DONE / LOCAL VERIFIED` | Memory 3, governance 5; docs security `CLEAN` |
+| PAR2-04 | Release/UI/operator contract | `DONE / LOCAL VERIFIED` | UI 11, portable 12; links/release metadata passed |
+| PAR2-05 | Neutral coverage accounting | `DONE / LOCAL VERIFIED` | Empty process/provenance/leak/operator globs recorded as `0`, never as fabricated pass |
+
+Machine evidence: `docs/PARALLEL_AGENT_TRACKS_2_EVIDENCE.json`; English contract: `docs/PARALLEL_AGENT_TRACKS_2.md`. Native macOS/Windows и external Hermes/OpenCode/DeepSeek Harness claims не создавались.
