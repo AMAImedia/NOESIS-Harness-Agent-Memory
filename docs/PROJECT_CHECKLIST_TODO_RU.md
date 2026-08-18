@@ -796,3 +796,8 @@ Offline release audit на committed checkpoint завершён: **4/4 lanes pa
 | META-05 | Parallel metadata/SBOM evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; evidence SHA-256 `34cf5bfa3f74e909f041600e9dd147d2400711a90e68d5dc1290772ceeca0608` |
 
 Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage закрыта локально; license review при будущем vendoring и external/native gates остаются отдельными задачами.
+
+
+## Progress snapshot после metadata/provenance audit — 2026-08-18
+
+По уникальным checklist IDs: **234/243 = 96,30%** имеют `DONE`, `PASS`, `VERIFIED`, `IMPLEMENTED`, `PREPARED` или эквивалентный локально закрытый статус. **9/243 = 3,70%** остаются открытыми: 5 external environment/evidence gates (`P6-05`, `P6-06`, `P6-09`, `P12-01`, `P13-01`) и 4 owner decisions (`P4-03`, `USER-03`, `USER-04`, `USER-05`). Этот процент отражает checklist coverage, а не доказанность superiority claim: native target evidence и external A/B всё ещё обязательны.
