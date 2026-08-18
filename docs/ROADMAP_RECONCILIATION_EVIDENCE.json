@@ -53,11 +53,13 @@
       "parallel_workload_crash_recovery",
       "durable_workload_result_aggregation",
       "completed_workload_replay",
-      "aggregation_conflict_rejection"
+      "aggregation_conflict_rejection",
+      "multi_point_crash_recovery",
+      "active_lane_workspace_leakage_probe",
+      "repeated_distribution_percentiles"
     ],
     "open_subgates": [
       "native_windows_macos_evidence",
-      "repeated_workload_distributions",
       "active_delegation_leakage_holdouts"
     ],
     "required_boundaries": [

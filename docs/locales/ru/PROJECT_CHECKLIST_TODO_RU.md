@@ -1241,6 +1241,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | MA-05 | Explicit commit and durable resume/replay | `DONE / BOUNDED LOCAL` | Commit is separate from review; task/session/work-product events survive coordinator reopen |
 | MA-06 | Bounded retry, leakage holdouts and work-product metrics | `DONE / BOUNDED LOCAL` | Retry limit is capped at 3, action reclaim is tested, cancellation is not retried, leakage corpus has 12 deterministic cases and evaluator reports correctness/delivery/leakage/recovery/reviewer-time/retry/commit metrics |
 | MA-07 | Local parallel workload benchmark | `DONE / BOUNDED LOCAL` | Three parallel deterministic lanes, injected first-attempt crash, retry/reclaim, durable result aggregation, completed-run replay and aggregation conflict denial are verified |
-| MA-08 | Repeated workload distributions and active-delegation leakage | `NEXT LOCAL GATE` | Requires repeated runs with distribution reporting, crash at different execution points and leakage holdouts while multiple lanes are active |
+| MA-08 | Crash-point recovery, active-lane leakage and repeated distributions | `DONE / BOUNDED LOCAL` | Before/after-write/read crash points recover, active-lane workspace escape is denied, three repeated runs produce deterministic mean/p50/p95 report with bounded repetitions |
+| MA-09 | Larger active-delegation leakage corpus | `NEXT LOCAL GATE` | Requires cross-agent leakage cases while multiple real delegated work products are concurrently active |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
