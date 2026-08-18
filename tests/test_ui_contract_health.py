@@ -100,6 +100,32 @@ class HealthServerTests(unittest.TestCase):
                 self.assertIn('"runtime_id":"child-1"', body)
                 self.assertNotIn("hidden", body)
 
+    def test_operator_promotion_action_requires_handler_and_returns_contract(self):
+        action_payload = {"schema_version": "noesis.promotion-approval.v1", "action_id": "action-1", "action": "approve", "proposal_id": "proposal-1", "operator_id": "operator-1"}
+        with HealthServer(port=0) as server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            request = urllib.request.Request(base + "/api/promotion-actions", data=json.dumps(action_payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+            with self.assertRaises(urllib.error.HTTPError) as context:
+                urllib.request.urlopen(request, timeout=2)
+            error = context.exception
+            try:
+                payload = json.loads(error.read().decode("utf-8"))
+            finally:
+                error.close()
+            self.assertEqual(error.code, 405)
+            self.assertEqual(payload["error"]["code"], "promotion_actions_unavailable")
+
+        handled = []
+        with HealthServer(port=0, promotion_action_handler=lambda action: handled.append(action.to_mapping()) or {"status": "queued"}) as server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            request = urllib.request.Request(base + "/api/promotion-actions", data=json.dumps(action_payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(request, timeout=2) as response:
+                self.assertEqual(response.status, 202)
+                payload = json.loads(response.read().decode("utf-8"))
+                self.assertEqual(payload["data"]["action"]["proposal_id"], "proposal-1")
+                self.assertEqual(payload["data"]["result"]["status"], "queued")
+        self.assertEqual(handled[0]["action"], "approve")
+
     def test_duplicate_start_and_invalid_binding_are_safe(self):
         with HealthServer(port=0) as server:
             first = server.start()

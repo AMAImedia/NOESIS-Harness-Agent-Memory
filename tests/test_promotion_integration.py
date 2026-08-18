@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import EvaluatorRegistry, PolicySimulation, PromotionEventBridge, PromotionIntegration
+from noesis_harness.promotion_integration import EvaluatorRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionEventBridge, PromotionIntegration
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -92,6 +92,35 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertIn("policy_simulation_error:ValueError", outcomes[0]["reason"])
         self.assertEqual(outcomes[1]["reason"], "cancelled_task")
         self.assertEqual(len(integration.pipeline._receipts), 0)
+
+    def test_ownership_policy_uses_authoritative_session_and_owner_metadata(self):
+        task_store = TaskSessionStore(tempfile.mktemp())
+        session = task_store.create_session("owner", session_id="session-owner")
+        task_store.create_task(session.session_id, "owned", "creator", task_id="task-owned")
+        task_store.transition_task("task-owned", "planned")
+        task_store.transition_task("task-owned", "executing")
+        task_store.transition_task("task-owned", "review")
+        task_store.transition_task("task-owned", "committed")
+        simulator = OwnershipPolicySimulator(task_store, lambda task_id: "agent-authoritative", allowed_scopes=("session:session-owner",))
+        event = {"task_id": "task-owned", "session_id": "session-owner", "state": "committed", "reason": "review_approved"}
+        result = simulator.simulate(event)
+        self.assertTrue(result.allowed)
+        self.assertEqual(result.agent_id, "agent-authoritative")
+        self.assertEqual(result.scope, "session:session-owner")
+        mismatch = simulator.simulate({**event, "session_id": "other-session"})
+        self.assertFalse(mismatch.allowed)
+        self.assertEqual(mismatch.reason, "ownership_session_mismatch")
+        missing = OwnershipPolicySimulator(task_store, lambda _: "", allowed_scopes=()).simulate(event)
+        self.assertFalse(missing.allowed)
+        self.assertEqual(missing.reason, "task_owner_missing")
+
+    def test_promotion_approval_action_is_versioned_and_non_secret(self):
+        action = PromotionApprovalAction.from_mapping({"schema_version": "noesis.promotion-approval.v1", "action_id": "action-1", "action": "approve", "proposal_id": "proposal-1", "operator_id": "operator-1"})
+        self.assertEqual(action.to_mapping()["action"], "approve")
+        with self.assertRaisesRegex(ValueError, "unsupported_approval_action"):
+            PromotionApprovalAction.from_mapping({"schema_version": "noesis.promotion-approval.v1", "action_id": "a", "action": "promote", "proposal_id": "p", "operator_id": "o"})
+        with self.assertRaisesRegex(ValueError, "unsupported_approval_action_schema"):
+            PromotionApprovalAction.from_mapping({"schema_version": "wrong", "action_id": "a", "action": "approve", "proposal_id": "p", "operator_id": "o"})
 
     def test_registry_duplicate_and_unknown_versions_fail_closed(self):
         integration = self.integration()

@@ -7,12 +7,13 @@ from dataclasses import asdict, is_dataclass
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 from .provider_registry import ProviderRegistry
 from .ui_assets import CONTROL_PLANE_HTML
 from .session_stream import SessionEventBuffer, StreamContractError
 from .task_session_api import TaskSessionError, TaskSessionStore
+from .promotion_integration import PromotionApprovalAction
 from .ui_contract import UIEnvelope, failure, health_payload, success
 
 
@@ -24,7 +25,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction], Mapping[str, Any]]] = None):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -42,6 +43,7 @@ class HealthServer:
         self.provider_registry = provider_registry or ProviderRegistry()
         self.session_store = session_store
         self.promotion_telemetry = promotion_telemetry
+        self.promotion_action_handler = promotion_action_handler
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
         self._telemetry: dict[str, Any] = {
@@ -236,11 +238,21 @@ class HealthServer:
                 if not self._authorized():
                     self._send_unauthorized()
                     return
-                if parent.session_store is None:
-                    self._send(failure("denied", "read_only", "session API is not enabled"), 405)
-                    return
                 try:
                     payload = self._body()
+                    if self.path == "/api/promotion-actions":
+                        if parent.promotion_action_handler is None:
+                            self._send(failure("denied", "promotion_actions_unavailable", "promotion action handler is not enabled"), 405)
+                            return
+                        action = PromotionApprovalAction.from_mapping(payload)
+                        result = parent.promotion_action_handler(action)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("promotion_action_handler_must_return_object")
+                        self._send(success({"action": action.to_mapping(), "result": dict(result)}), 202)
+                        return
+                    if parent.session_store is None:
+                        self._send(failure("denied", "read_only", "session API is not enabled"), 405)
+                        return
                     if self.path == "/api/sessions":
                         record = parent.session_store.create_session(str(payload.get("owner", "")), session_id=payload.get("session_id"))
                         self._session_buffer(record.session_id).publish("session_started", {"state": record.state})

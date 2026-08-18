@@ -1004,3 +1004,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-RUNTIME-05 | Runtime-owned production policy configuration | `NEXT LOCAL GATE` | Replace fixture-level simulator configuration with policy derived from runtime/session ownership metadata |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Ownership-Derived Policy and Operator Approval Actions
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-OWNER-01 | Authoritative ownership-derived policy | `DONE / LOCAL VERIFIED` | `OwnershipPolicySimulator` validates task/session identity and resolves owner through explicit runtime lookup |
+| LEARN-OWNER-02 | Scope and metadata fail-closed checks | `DONE / LOCAL VERIFIED` | Session mismatch, missing owner, denied scope and lookup errors create no receipt |
+| LEARN-OWNER-03 | Versioned operator approval action | `DONE / LOCAL VERIFIED` | `PromotionApprovalAction` accepts only `approve`, `reject`, `rollback` under `noesis.promotion-approval.v1` |
+| LEARN-OWNER-04 | UI handler boundary | `DONE / LOCAL VERIFIED` | Optional `POST /api/promotion-actions` validates and delegates; HealthServer never performs promotion |
+| LEARN-OWNER-05 | Automatic activation prohibition | `DONE / BOUNDED` | UI action validation and policy simulation cannot create active skill pointers |
+| LEARN-OWNER-06 | Real operator action implementation | `NEXT LOCAL GATE` | Bind injected handler to explicit proposal approve/reject/rollback operations with independent reviewer policy |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

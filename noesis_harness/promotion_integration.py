@@ -99,6 +99,67 @@ class RuntimePolicySimulator:
         return PolicySimulation(True, source_digest, policy_digest, self.agent_id, self.scope, {"task_id": task_id, "state": state})
 
 
+class OwnershipPolicySimulator:
+    """Derive promotion policy from authoritative task/session ownership metadata."""
+
+    def __init__(self, task_store: Any, owner_lookup: Callable[[str], str], *, scope_prefix: str = "session:", allowed_scopes: Sequence[str] = (), policy_version: str = "promotion-policy.v2") -> None:
+        if not callable(owner_lookup) or not scope_prefix or not policy_version:
+            raise ValueError("ownership_policy_configuration_required")
+        self.task_store = task_store
+        self.owner_lookup = owner_lookup
+        self.scope_prefix = scope_prefix
+        self.allowed_scopes = tuple(str(item) for item in allowed_scopes)
+        self.policy_version = policy_version
+
+    def simulate(self, task: Mapping[str, Any]) -> "PolicySimulation":
+        task_id = str(task.get("task_id", ""))
+        event_session_id = str(task.get("session_id", ""))
+        if not task_id or not event_session_id:
+            return PolicySimulation(False, reason="ownership_identity_required")
+        try:
+            record = self.task_store.task(task_id)
+            owner = str(self.owner_lookup(task_id))
+        except Exception as exc:
+            return PolicySimulation(False, reason="ownership_lookup_failed:" + type(exc).__name__)
+        if record.session_id != event_session_id:
+            return PolicySimulation(False, reason="ownership_session_mismatch")
+        if not owner:
+            return PolicySimulation(False, reason="task_owner_missing")
+        scope = self.scope_prefix + record.session_id
+        if self.allowed_scopes and scope not in self.allowed_scopes:
+            return PolicySimulation(False, agent_id=owner, scope=scope, reason="ownership_scope_denied")
+        runtime = RuntimePolicySimulator(owner, scope, allowed_scopes=(scope,), policy_version=self.policy_version)
+        return runtime.simulate({**dict(task), "state": task.get("state", "")})
+
+
+@dataclass(frozen=True)
+class PromotionApprovalAction:
+    """Versioned, non-secret operator action; handler decides side effects explicitly."""
+    action_id: str
+    action: str
+    proposal_id: str
+    operator_id: str
+    expected_state: str = "proposed"
+    schema_version: str = "noesis.promotion-approval.v1"
+
+    def __post_init__(self) -> None:
+        if not self.action_id or not self.proposal_id or not self.operator_id:
+            raise ValueError("approval_action_identity_required")
+        if self.action not in {"approve", "reject", "rollback"}:
+            raise ValueError("unsupported_approval_action")
+        if self.expected_state not in {"proposed", "approved", "promoted"}:
+            raise ValueError("unsupported_expected_state")
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "PromotionApprovalAction":
+        if not isinstance(value, Mapping) or value.get("schema_version") != "noesis.promotion-approval.v1":
+            raise ValueError("unsupported_approval_action_schema")
+        return cls(str(value.get("action_id", "")), str(value.get("action", "")), str(value.get("proposal_id", "")), str(value.get("operator_id", "")), str(value.get("expected_state", "proposed")))
+
+    def to_mapping(self) -> dict[str, str]:
+        return {"schema_version": self.schema_version, "action_id": self.action_id, "action": self.action, "proposal_id": self.proposal_id, "operator_id": self.operator_id, "expected_state": self.expected_state}
+
+
 @dataclass(frozen=True)
 class PolicySimulation:
     allowed: bool
@@ -238,4 +299,4 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "PromotionApprovalAction", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
