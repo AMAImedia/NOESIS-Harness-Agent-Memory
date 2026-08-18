@@ -3,10 +3,47 @@
   "baseline_recall_mean": 0.0,
   "budget_tokens": 64,
   "cases": 4,
-  "claim_boundary": "deterministic_local_fixture_not_external_model_benchmark",
+  "claim_boundary": "deterministic_local_fixture_and_real_stdlib_memory_trajectory_not_external_model_benchmark",
+  "durable_context_reuse_trajectory": {
+    "memory_stats": {
+      "memories": 4,
+      "observations": 4,
+      "procedural": 0,
+      "semantic": 4,
+      "summaries": 0,
+      "vector_backend": "none",
+      "vector_embedded": 0
+    },
+    "metrics": {
+      "attribution_precision_mean": 1.0,
+      "budget_compliance_rate": 1.0,
+      "cases": 4,
+      "compaction_retention_mean": 1.0,
+      "conflict_resolution_rate": 1.0,
+      "experience_reuse_recall_mean": 1.0,
+      "leakage_free_rate": 1.0,
+      "quality_score": 0.96875,
+      "recall_mean": 0.75,
+      "temporal_order_rate": 1.0
+    },
+    "reopened_metrics": {
+      "attribution_precision_mean": 1.0,
+      "budget_compliance_rate": 1.0,
+      "cases": 4,
+      "compaction_retention_mean": 1.0,
+      "conflict_resolution_rate": 1.0,
+      "experience_reuse_recall_mean": 1.0,
+      "leakage_free_rate": 1.0,
+      "quality_score": 0.96875,
+      "recall_mean": 0.75,
+      "temporal_order_rate": 1.0
+    },
+    "trace_count": 4,
+    "trajectory_kind": "real_stdlib_memory_and_reuse_selector_operations"
+  },
   "nextgen_budget_compliance": 1.0,
   "nextgen_recall_mean": 1.0,
   "recall_gain_mean": 1.0,
   "repetitions": 5,
-  "schema_version": "noesis.memory-quality-evidence.v1"
+  "schema_version": "noesis.memory-quality-evidence.v2"
 }

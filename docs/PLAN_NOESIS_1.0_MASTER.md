@@ -1,6 +1,6 @@
 # NOESIS 1.0 Master Plan
 
-**Status checkpoint:** 2026-08-18, commit `3555f4d`
+**Status checkpoint:** 2026-08-18, MEM-09 implementation checkpoint
 **Runtime policy:** Python 3.14 only; deterministic core is stdlib-only.
 **Operating model:** local-first, private-by-default, human-governed, fail-closed.
 
@@ -46,7 +46,7 @@ Acceptance requires path escape, network egress, credential-like output, environ
 
 ### Gate 5 — Memory and long-context quality evidence (in progress)
 
-`MemoryQualityEvaluator` now reports separate recall, attribution precision, conflict-resolution rate, temporal-order rate, compaction retention, hard budget compliance and leakage-free rate. `DurableMemoryQualityAdapter` records verified traces beside the real `Memory` store in SQLite/WAL and reloads them after restart. Hard-budget fixtures at 64 tokens were run for scales 32/128/512/1024 over five repetitions: baseline recall mean 0.0, nextgen recall mean 1.0, gain 1.0, with both lanes respecting the hard budget. This is deterministic local fixture evidence, not an external model benchmark. Gate 6 preparation now includes fail-closed native Windows/macOS bundles and runbooks; target execution remains `not_run` until matching hosts.
+`MemoryQualityEvaluator` now reports separate recall, attribution precision, conflict-resolution rate, temporal-order rate, compaction retention, hard budget compliance, leakage-free rate and experience-reuse recall. `DurableMemoryQualityAdapter` records verified traces beside the real `Memory` store in SQLite/WAL and reloads them after restart, including query identity and reuse provenance. MEM-09 now executes a deterministic real-stdlib trajectory over four persisted semantic facts, real `Memory.recall`, `ExperienceReuseSelector`, durable observations and reopened quality traces: recall mean 0.75, attribution precision 1.0, reuse recall 1.0, budget compliance 1.0 and trace count 4. Adversarial coverage includes query/trace conflict, attribution leakage, hard-budget violation, decay floor and restart persistence. The 64-token fixture distribution at scales 32/128/512/1024 over five repetitions remains: baseline recall mean 0.0, nextgen recall mean 1.0, gain 1.0. This is deterministic local evidence, not an external model benchmark. Evidence schema is v2. Gate 6 preparation includes fail-closed native Windows/macOS bundles and runbooks; target execution remains `not_run` until matching hosts.
 
 ### Gate 6 — Native Windows/macOS evidence
 
