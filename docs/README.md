@@ -28,6 +28,7 @@ The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-o
 | [`PROJECT_CHECKLIST_TODO_RU.md`](PROJECT_CHECKLIST_TODO_RU.md) | Shared Russian checklist/TODO with completed work, active tasks, owners, evidence, user approvals and the next action gate. |
 | [`COMPETITOR_CAPABILITY_MAP_2026-08-18_RU.md`](COMPETITOR_CAPABILITY_MAP_2026-08-18_RU.md) | Source-grounded capability map for Hermes, OpenCode and Cloudflare Project Think; used for local gate selection, not superiority claims. |
 | [`SKILL_DISCOVERY_CONTRACT_RU.md`](SKILL_DISCOVERY_CONTRACT_RU.md) | Read-only `SKILL.md` discovery, metadata validation, deterministic digest and explicit permission visibility contract. |
+| [`EXPERIENCE_REUSE_CONTRACT_RU.md`](EXPERIENCE_REUSE_CONTRACT_RU.md) | Provenance-aware bounded experience reuse with scope/sensitivity denial, deterministic scoring and explainable budgets. |
 | [`UI_CONTRACT_V1.md`](UI_CONTRACT_V1.md) | Versioned stdlib-only boundary for health, models, errors, redaction and optional Hermes/DeepSeek adapters. |
 | [`NATIVE_PACKAGING_RUNBOOK_RU.md`](NATIVE_PACKAGING_RUNBOOK_RU.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |
 | [`PARALLEL_RELEASE_AUDIT_RU.md`](PARALLEL_RELEASE_AUDIT_RU.md) | Offline release audit, secret/AST/export/Git cleanliness gates. |
