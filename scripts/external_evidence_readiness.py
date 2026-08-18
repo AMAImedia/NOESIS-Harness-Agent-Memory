@@ -34,6 +34,13 @@ def build_matrix(manifest: Mapping[str, Any], evidence: Sequence[Mapping[str, An
     expected_environment = manifest.get("environment_digests") if isinstance(manifest.get("environment_digests"), Mapping) else {}
     expected_fingerprint = str(manifest.get("protocol_fingerprint", ""))
     grouped = _as_records(evidence)
+    receipt_groups: dict[str, list[str]] = {}
+    for item in evidence:
+        receipt = item.get("receipt_id")
+        system = item.get("system")
+        if isinstance(receipt, str) and isinstance(system, str):
+            receipt_groups.setdefault(receipt, []).append(system)
+    duplicate_receipts = {receipt for receipt, systems in receipt_groups.items() if len(systems) > 1}
     lanes: dict[str, dict[str, Any]] = {}
     accepted_fingerprints: set[str] = set()
     for lane in LANES:
@@ -54,6 +61,10 @@ def build_matrix(manifest: Mapping[str, Any], evidence: Sequence[Mapping[str, An
             checks.append("revision_mismatch")
         if expected_environment.get(lane) and record.get("environment_digest") != expected_environment.get(lane):
             checks.append("environment_digest_mismatch")
+        if expected_fingerprint and record.get("protocol_fingerprint") != expected_fingerprint:
+            checks.append("protocol_fingerprint_mismatch")
+        if record.get("receipt_id") in duplicate_receipts:
+            checks.append("duplicate_receipt_id")
         if not verify_evidence(record, key):
             checks.append("signature_or_envelope_invalid")
         if record.get("receipt_id") != receipt_id(record):

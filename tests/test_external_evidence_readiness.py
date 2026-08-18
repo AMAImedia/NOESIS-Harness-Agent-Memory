@@ -58,6 +58,22 @@ class ExternalEvidenceReadinessTests(unittest.TestCase):
         self.assertEqual(report["lanes"]["hermes"]["status"], "blocked")
         self.assertEqual(report["lanes"]["hermes"]["reason"], "duplicate_system_record")
 
+    def test_duplicate_receipt_id_across_lanes_is_blocked(self):
+        first = evidence_for("hermes", "h1")
+        second = dict(evidence_for("opencode", "o1"))
+        second["receipt_id"] = first["receipt_id"]
+        second["signature"] = signature({key: value for key, value in second.items() if key != "signature"}, KEY)
+        report = build_matrix(manifest(), [first, second], KEY)
+        self.assertEqual(report["lanes"]["hermes"]["status"], "blocked")
+        self.assertEqual(report["lanes"]["opencode"]["status"], "blocked")
+        self.assertIn("duplicate_receipt_id", report["lanes"]["hermes"]["checks"])
+
+    def test_manifest_protocol_fingerprint_mismatch_is_blocked(self):
+        record = evidence_for("hermes", "h1")
+        report = build_matrix(manifest(protocol_fingerprint="f" * 64), [record], KEY)
+        self.assertEqual(report["lanes"]["hermes"]["status"], "blocked")
+        self.assertIn("protocol_fingerprint_mismatch", report["lanes"]["hermes"]["checks"])
+
     def test_protocol_fingerprint_conflict_blocks_comparison(self):
         first = evidence_for("hermes", "h1", "a")
         second = evidence_for("opencode", "o1", "c")

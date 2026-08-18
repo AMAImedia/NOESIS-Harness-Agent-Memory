@@ -13,7 +13,7 @@
 
 ## Проверки
 
-Matrix проверяет exact revision, `environment_digest`, deterministic `receipt_id`, HMAC envelope, duplicate system records и общий `protocol_fingerprint`. В output входят lane checks/reasons, global checks, deterministic `matrix_digest`, `comparative_ready` и `native_or_external_execution_claim`.
+Matrix проверяет exact revision, `environment_digest`, deterministic `receipt_id`, HMAC envelope, duplicate system records, duplicate receipt IDs между lanes и общий `protocol_fingerprint`. Если manifest pin-ит protocol fingerprint, каждая accepted lane record обязана ему соответствовать. В output входят lane checks/reasons, global checks, deterministic `matrix_digest`, `comparative_ready` и `native_or_external_execution_claim`.
 
 Comparative readiness требует минимум две `passed` executable records с одним protocol fingerprint и без global conflict. Текущий artifact намеренно `not_run`: все три manifest revisions пустые, а `native_or_external_execution_claim` равен `false`. Pinned operator orchestrator использует тот же readiness preflight до рассмотрения любого external execution command.
 

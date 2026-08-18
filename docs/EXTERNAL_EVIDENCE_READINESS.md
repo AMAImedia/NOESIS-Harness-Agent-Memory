@@ -15,7 +15,7 @@ Each lane receives exactly one readiness status:
 
 ## Required checks
 
-The matrix validates exact revision, `environment_digest`, deterministic `receipt_id`, HMAC envelope verification, duplicate system records, and shared `protocol_fingerprint`. It emits lane checks and reasons, global checks, a deterministic `matrix_digest`, `comparative_ready`, and an explicit `native_or_external_execution_claim` boolean.
+The matrix validates exact revision, `environment_digest`, deterministic `receipt_id`, HMAC envelope verification, duplicate system records, duplicate receipt IDs across lanes, and shared `protocol_fingerprint`. When the manifest pins a protocol fingerprint, every accepted lane record must match it. It emits lane checks and reasons, global checks, a deterministic `matrix_digest`, `comparative_ready`, and an explicit `native_or_external_execution_claim` boolean.
 
 Comparative readiness requires at least two `passed` executable records with one shared protocol fingerprint and no global conflict. A matrix may be `passed` while the underlying external agent run remains outside this repository only when the signed evidence is supplied by an approved operator workflow. The current repository artifact is intentionally `not_run`: all three manifest revisions are empty and `native_or_external_execution_claim` is `false`. The pinned operator orchestrator embeds the same readiness preflight before it can consider any external execution command.
 
