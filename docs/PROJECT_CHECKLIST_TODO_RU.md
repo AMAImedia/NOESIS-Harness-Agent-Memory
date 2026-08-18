@@ -588,7 +588,7 @@ Trust Plane boundary: child runtime остаётся process boundary, а не �
 | DONE-116 | Cross-session decision provenance | `DONE / LOCAL VERIFIED` | Audit events сохраняют session/task/agent identity и hash-linked ordering |
 | DONE-117 | Phase 5 audit recovery regression | `DONE / LOCAL VERIFIED` | Focused tests: **7/7 passed**; full Python 3.14.7 suite: **309/309 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Следующий Trust Plane gate: final security holdout report и Phase 5 closeout audit.
+Синхронный документ: `docs/TRUST_PLANE_SECURITY_HOLDOUTS_RU.md`. Trust Plane и Phase 5 closeout локально завершены; следующий high-leverage gate: `docs/NEXT_HIGH_LEVERAGE_GATE_RU.md` — cross-platform task-execution parity с native sandbox, task/session path и pinned external evidence.
 
 
 ## 2026-08-18 — Phase 5 FINAL CLOSEOUT
@@ -808,9 +808,9 @@ Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage �
 | ID | Задача | Статус | Доказательство |
 |---|---|---|---|
 | DOC-01 | Markdown fence security audit | `DONE / LOCAL VERIFIED` | 0 high и 0 medium findings по docs Markdown |
-| DOC-02 | Local relative-link audit | `DONE / LOCAL VERIFIED` | 73 Markdown files, 34 local links, missing targets `0`; generated runtime docs исключены |
-| DOC-03 | JSON evidence/schema coverage | `DONE / LOCAL VERIFIED` | 14 selected JSON files, valid JSON и `schema_version` coverage, findings `0` |
+| DOC-02 | Local relative-link audit | `DONE / LOCAL VERIFIED` | 75 Markdown files, 37 local links, missing targets `0`; generated runtime docs исключены |
+| DOC-03 | JSON evidence/schema coverage | `DONE / LOCAL VERIFIED` | 15 selected JSON files, valid JSON и `schema_version` coverage, findings `0` |
 | DOC-04 | Russian checklist/evidence navigation | `DONE / LOCAL VERIFIED` | Required markers и evidence paths присутствуют |
-| DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `9bac518d7aa112905f83380a2e60578923ba4fce2f691193926d8935a87df0b8` |
+| DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `8065e0d1bf4cef5a8b4557b4cbbd5a68ffbfad8bd963ff6498c9a4ec97774df6` |
 
 Summary: `docs/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.

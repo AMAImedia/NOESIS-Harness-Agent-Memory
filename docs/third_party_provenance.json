@@ -45,6 +45,26 @@
       "required_notices": true
     },
     {
+      "name": "deepseek-harness",
+      "source": "https://github.com/deepseek-ai/deepseek-harness",
+      "license": "upstream-license-to-verify",
+      "status": "reference_and_benchmark",
+      "planned_adoption": ["plugin_composition", "model_tool_skill_sessions", "sandbox_surface"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "openclaw",
+      "source": "https://github.com/openclaw/openclaw",
+      "license": "upstream-license-to-verify",
+      "status": "reference_and_benchmark",
+      "planned_adoption": ["multi_channel_gateway", "personal_agent_ux", "skills_plugins", "cross_platform_surfaces"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
       "name": "claude-code",
       "source": "https://code.claude.com/docs/en/overview",
       "license": "proprietary_product",

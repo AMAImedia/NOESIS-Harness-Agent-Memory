@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_UPSTREAMS = ("cloudflare-os", "cloudflare-sandbox-sdk", "hermes-agent", "opencode", "claude-code")
+EXPECTED_UPSTREAMS = ("cloudflare-os", "cloudflare-sandbox-sdk", "hermes-agent", "opencode", "deepseek-harness", "openclaw", "claude-code")
 
 
 def _text(path: Path) -> str:

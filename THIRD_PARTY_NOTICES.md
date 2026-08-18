@@ -1,6 +1,6 @@
 # Third-party notices and integration provenance
 
-NOESIS-Harness-Agent-Memory is not a copy of any upstream agent product. The current private core contains no vendored source from the projects below; they are recorded as architectural references and future optional integration sources.
+NOESIS-Harness-Agent-Memory is not a copy of any upstream agent product. The current private core contains no vendored source from the projects below; they are recorded as architectural references and future optional integration sources. Names in this file identify provenance and benchmark references, not endorsement, affiliation or copied implementation.
 
 ## Cloudflare OS
 
@@ -34,6 +34,22 @@ NOESIS-Harness-Agent-Memory is not a copy of any upstream agent product. The cur
 - Planned use: benchmark target and independent implementation reference for plan/build modes, diff review, undo/redo, terminal/desktop surfaces and subagents.
 - Current code reuse: none.
 - Redistribution obligations if code is reused: retain the copyright and MIT permission notice; inspect dependencies and upstream notices.
+
+## DeepSeek Harness
+
+- Source: https://github.com/deepseek-ai/deepseek-harness
+- License: verify against the upstream repository license and release notices before any code reuse.
+- Planned use: reference and benchmark for plugin-oriented model/tool/skill/session/sandbox composition.
+- Current code reuse: none.
+- Redistribution obligations if code is reused: audit the exact revision, preserve upstream license/NOTICE files, identify modifications, and review dependencies before vendoring.
+
+## OpenClaw
+
+- Source: https://github.com/openclaw/openclaw
+- License: verify against the upstream repository license and release notices before any code reuse.
+- Planned use: reference and benchmark for multi-channel gateway, personal-agent UX, skills, plugins and cross-platform surfaces.
+- Current code reuse: none.
+- Redistribution obligations if code is reused: audit the exact revision, preserve upstream license/NOTICE files, identify modifications, and review dependencies before vendoring.
 
 ## Claude Code
 

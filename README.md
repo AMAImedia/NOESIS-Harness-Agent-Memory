@@ -30,7 +30,7 @@ The core package is **stdlib-only**. LLM providers, external services and harden
 
 NOESIS keeps the agent kernel small and inspectable: register durable work, persist checkpoints, store evidence with provenance, assemble context under a hard budget, coordinate leases and review side effects through explicit gates. Once the local Python runtime is available, the test suite and benchmarks run without downloading a framework or connecting to a hosted control plane.
 
-This repository is inspired by the capability and durability ideas described by [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) and [Project Think](https://blog.cloudflare.com/project-think/), but it is not a copy and does not depend on Cloudflare Workers, Durable Objects, Dynamic Workers or Cap'n Web. NOESIS translates selected principles into a local, stdlib-only Python design and keeps the limitations visible.
+This repository is a clean-room, local-first implementation informed by publicly documented capability and durability patterns from [Cloudflare OS](https://github.com/cloudflare/cloudflare-os), [Project Think](https://blog.cloudflare.com/project-think/), [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), [OpenClaw](https://github.com/openclaw/openclaw), [Hermes Agent](https://github.com/NousResearch/hermes-agent) and other documented agent systems. These are architectural and benchmark references, not copied source, endorsement, affiliation or runtime dependencies. NOESIS translates selected principles into a local, stdlib-only Python design and keeps the limitations visible.
 
 ## Highlights
 
@@ -136,7 +136,7 @@ For technical details, see [`docs/README.md`](docs/README.md), [`docs/ARCHITECTU
 
 NOESIS-Harness-Agent-Memory is licensed under the [MIT License](LICENSE). Third-party reference and provenance boundaries are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [`docs/third_party_provenance.json`](docs/third_party_provenance.json).
 
-The project is informed by publicly available design discussions and open-source projects, including Cloudflare OS and Project Think, Hermes Agent memory practices, Pi’s minimal harness and Letta’s memory-tier concepts. These references are design inputs, not bundled runtime dependencies. Their names, source code and licenses remain governed by their respective repositories. See the [evaluation protocol](docs/EVALUATION_PROTOCOL.md) and [architecture notes](docs/ARCHITECTURE_1.0_NEXTGEN.md) for the boundary between inspiration and implemented behavior.
+The project is informed by publicly available design discussions and open-source projects, including Cloudflare OS and Project Think, DeepSeek Harness plugin composition, OpenClaw gateway and cross-platform UX, Hermes Agent memory/skills/gateway practices, Pi’s minimal harness and Letta’s memory-tier concepts. These references are design inputs, not bundled runtime dependencies. Their names, source code and licenses remain governed by their respective repositories. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the [evaluation protocol](docs/EVALUATION_PROTOCOL.md) and [architecture notes](docs/ARCHITECTURE_1.0_NEXTGEN.md) for the boundary between inspiration and implemented behavior.
 
 ## References
 
@@ -144,6 +144,9 @@ The project is informed by publicly available design discussions and open-source
 2. [Project Think: building the next generation of AI agents on Cloudflare](https://blog.cloudflare.com/project-think/) — durable execution, fibers, sub-agents, session trees and the execution ladder.
 3. [NOESIS architecture 1.0](docs/ARCHITECTURE_1.0_NEXTGEN.md) — local implementation boundaries and design decisions.
 4. [NOESIS evaluation protocol](docs/EVALUATION_PROTOCOL.md) — benchmark criteria and release gates.
+5. [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — plugin-oriented harness reference and benchmark target.
+6. [OpenClaw](https://github.com/openclaw/openclaw) — personal-agent gateway, skills/plugins and cross-platform surface reference.
+7. [Hermes Agent](https://github.com/NousResearch/hermes-agent) — persistent memory, skills, gateway and delegate reference.
 
 ---
 
