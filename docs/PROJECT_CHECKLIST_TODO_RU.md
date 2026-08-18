@@ -709,3 +709,17 @@ Full regression после lease integration: **317/317 passed**, `ResourceWarni
 | EXEC-05 | Bridge security/recovery tests | `DONE / LOCAL VERIFIED` | Focused **30/30 passed**; full Python 3.14.7 suite **329/329 passed**, `ResourceWarning: 0` |
 
 Синхронный contract: `docs/TASK_EXECUTION_BRIDGE_RU.md`. Bridge не является model runner и не обходит Trust Plane/ChildExecutionRuntime.
+
+
+## 2026-08-18 — Safe parallel release-readiness lanes
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| REL-01 | Bounded parallel packaging contract lane | `DONE / LOCAL VERIFIED` | Static Windows/macOS manifests passed; `native_builds_executed=false` |
+| REL-02 | Native target honesty lane | `DONE / LOCAL VERIFIED` | Windows/macOS verifier вернул `not_run: target_host_or_python_mismatch` на Linux; native claim не создан |
+| REL-03 | Command contract lane | `DONE / LOCAL VERIFIED` | Versioned `task.request_execution` оставил task в `waiting_approval`; execution без approval не начался |
+| REL-04 | Execution bridge lane | `DONE / LOCAL VERIFIED` | Actions claim → SafeParallelExecutor → action `done` → task `review`; metadata provenance events |
+| REL-05 | Parallel safety evidence | `DONE / LOCAL VERIFIED` | **4/4 passed**, 4 уникальные workspaces, network=false, credentials=false, model-generated code=false |
+| REL-06 | Machine-readable lane evidence | `DONE / LOCAL VERIFIED` | `docs/PARALLEL_RELEASE_LANES_EVIDENCE.json`; SHA-256 `a72bd2057b62fe3e89af3a92c12a1097b189dc98e212aa8f39b12289258fe0e4` |
+
+Синхронный summary: `docs/PARALLEL_RELEASE_LANES_RU.md`. Этот результат подтверждает локальный release-readiness plumbing, но не native `.exe`/`.app`, Authenticode/codesign/notarization или external A/B superiority.
