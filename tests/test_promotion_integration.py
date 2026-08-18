@@ -2,7 +2,8 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import EvaluatorRegistry, PromotionIntegration
+from noesis_harness.promotion_integration import EvaluatorRegistry, PolicySimulation, PromotionEventBridge, PromotionIntegration
+from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
 
@@ -33,6 +34,64 @@ class PromotionIntegrationTests(unittest.TestCase):
         snapshot = integration.snapshot()
         self.assertFalse(snapshot["automatic_activation"])
         self.assertEqual(snapshot["counts"]["promotion_completed"], 1)
+
+    def test_event_bridge_replays_terminal_tasks_once_and_keeps_activation_disabled(self):
+        integration = self.integration()
+        task_store = TaskSessionStore(tempfile.mktemp())
+        session = task_store.create_session("owner", session_id="session-bridge")
+        task_store.create_task(session.session_id, "learn", "owner", task_id="task-bridge")
+        task_store.transition_task("task-bridge", "planned")
+        task_store.transition_task("task-bridge", "executing")
+        task_store.transition_task("task-bridge", "review")
+        task_store.transition_task("task-bridge", "committed")
+        checkpoint = tempfile.mktemp()
+        bridge = PromotionEventBridge(integration, checkpoint)
+        calls = []
+
+        def policy(task):
+            calls.append(task["task_id"])
+            return PolicySimulation(True, "source", "policy", "agent", "project:demo", {"result": "ok"})
+
+        first = bridge.poll(task_store, policy)
+        second = PromotionEventBridge(integration, checkpoint).poll(task_store, policy)
+        self.assertEqual(first[0]["status"], "completed")
+        self.assertEqual(second, ())
+        self.assertEqual(calls, ["task-bridge"])
+        self.assertEqual(len(integration.pipeline._receipts), 1)
+        self.assertFalse(integration.snapshot()["automatic_activation"])
+
+    def test_event_bridge_denies_policy_and_malformed_simulation_fail_closed(self):
+        integration = self.integration()
+        task_store = TaskSessionStore(tempfile.mktemp())
+        session = task_store.create_session("owner", session_id="session-deny")
+        task_store.create_task(session.session_id, "blocked", "owner", task_id="task-deny")
+        task_store.transition_task("task-deny", "planned")
+        task_store.transition_task("task-deny", "executing")
+        task_store.transition_task("task-deny", "failed")
+        checkpoint = tempfile.mktemp()
+        bridge = PromotionEventBridge(integration, checkpoint)
+        denied = bridge.poll(task_store, lambda _: {"allowed": False, "reason": "scope_not_approved"})
+        self.assertEqual(denied[0]["status"], "denied")
+        self.assertEqual(len(integration.pipeline._receipts), 0)
+        self.assertEqual(bridge.poll(task_store, lambda _: {"allowed": True}), ())
+        self.assertEqual(integration.snapshot()["counts"]["promotion_blocked"], 1)
+
+    def test_event_bridge_rejects_malformed_simulation_and_cancelled_tasks(self):
+        integration = self.integration()
+        task_store = TaskSessionStore(tempfile.mktemp())
+        session = task_store.create_session("owner", session_id="session-malformed")
+        task_store.create_task(session.session_id, "malformed", "owner", task_id="task-malformed")
+        task_store.transition_task("task-malformed", "planned")
+        task_store.transition_task("task-malformed", "executing")
+        task_store.transition_task("task-malformed", "failed")
+        task_store.create_task(session.session_id, "cancelled", "owner", task_id="task-cancelled")
+        task_store.transition_task("task-cancelled", "cancelled")
+        bridge = PromotionEventBridge(integration, tempfile.mktemp())
+        outcomes = bridge.poll(task_store, lambda task: {"allowed": True} if task["task_id"] == "task-malformed" else {"allowed": False})
+        self.assertEqual([item["status"] for item in outcomes], ["denied", "denied"])
+        self.assertIn("policy_simulation_error:ValueError", outcomes[0]["reason"])
+        self.assertEqual(outcomes[1]["reason"], "cancelled_task")
+        self.assertEqual(len(integration.pipeline._receipts), 0)
 
     def test_registry_duplicate_and_unknown_versions_fail_closed(self):
         integration = self.integration()

@@ -979,3 +979,16 @@ English primary contract: `docs/LEARNING_PROMOTION_PIPELINE.md`; Russian supplem
 | LEARN-INT-06 | Runtime evaluator/activation policy integration | `NEXT LOCAL GATE` | Connect to durable task event stream and policy simulator; keep activation separately gated |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Durable Promotion Event Bridge
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-EVT-01 | Replay terminal `task_state_changed` events | `DONE / LOCAL VERIFIED` | `committed` → success, `failed` → failure; non-terminal states ignored |
+| LEARN-EVT-02 | Policy simulator boundary | `DONE / LOCAL VERIFIED` | Explicit allow plus source/policy digests, agent identity and scope required |
+| LEARN-EVT-03 | Durable idempotent checkpoints | `DONE / LOCAL VERIFIED` | Started/completed/denied records keyed by source event ID; repeated poll skips terminal checkpoint |
+| LEARN-EVT-04 | Fail-closed denial | `DONE / LOCAL VERIFIED` | Policy deny, malformed response, simulator exception and cancelled task create no receipt |
+| LEARN-EVT-05 | Crash-safe receipt retry | `DONE / BOUNDED` | Existing receipt reused by experience ID; operator approval/promotion remain outside replay |
+| LEARN-EVT-06 | Durable task stream and policy simulator production wiring | `NEXT LOCAL GATE` | Supply runtime-owned policy simulator and connect bridge polling to operator execution lifecycle |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

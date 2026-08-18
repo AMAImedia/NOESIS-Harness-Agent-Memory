@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 import time
 from typing import Any, Callable, Iterable, Mapping
 
+from .event_store import EventStore
 from .learning_promotion import ExperienceReceipt, HoldoutEvaluation, LearningPromotionPipeline, PromotionProposal
 
 
@@ -69,6 +70,94 @@ class PromotionTelemetry:
         return {"events": events, "counts": counts, "active_activation": False, "automatic_activation": False}
 
 
+@dataclass(frozen=True)
+class PolicySimulation:
+    allowed: bool
+    source_digest: str = ""
+    policy_digest: str = ""
+    agent_id: str = ""
+    scope: str = ""
+    payload: Any = None
+    reason: str = ""
+
+
+class PromotionEventBridge:
+    """Replay terminal task events into promotion capture behind a policy simulator.
+
+    The bridge is deliberately capture-only: policy denial is recorded, evaluator
+    execution is never implicit, and approval/promotion remain operator actions.
+    Checkpoints are append-only and retries are idempotent by task-event identity.
+    """
+
+    def __init__(self, integration: "PromotionIntegration", checkpoint_path: str) -> None:
+        self.integration = integration
+        self.checkpoints = EventStore(checkpoint_path)
+
+    def _checkpoint_state(self) -> dict[str, dict[str, Any]]:
+        state: dict[str, dict[str, Any]] = {}
+        for event in self.checkpoints.iter_events():
+            payload = event.get("payload") or {}
+            event_id = str(payload.get("task_event_id", ""))
+            if event_id:
+                state[event_id] = dict(payload)
+        return state
+
+    def _existing_receipt(self, experience_id: str) -> ExperienceReceipt | None:
+        for receipt in self.integration.pipeline._receipts.values():
+            if receipt.experience_id == experience_id:
+                return receipt
+        return None
+
+    def poll(self, task_store: Any, policy_simulator: Callable[[Mapping[str, Any]], Mapping[str, Any] | PolicySimulation]) -> tuple[Mapping[str, Any], ...]:
+        checkpoints = self._checkpoint_state()
+        outcomes: list[Mapping[str, Any]] = []
+        for event in task_store.events.iter_events():
+            if event.get("type") != "task_state_changed":
+                continue
+            payload = dict(event.get("payload") or {})
+            if payload.get("state") not in {"committed", "failed", "cancelled"}:
+                continue
+            task_event_id = str(event.get("event_id", ""))
+            if not task_event_id or checkpoints.get(task_event_id, {}).get("status") in {"completed", "denied"}:
+                continue
+            task = dict(payload)
+            task["task_id"] = task.get("task_id", "")
+            state = str(task.get("state", ""))
+            if state == "cancelled":
+                self.integration.telemetry.record("promotion_blocked", task_event_id=task_event_id, reason="cancelled_task")
+                result = {"task_event_id": task_event_id, "status": "denied", "reason": "cancelled_task"}
+                self.checkpoints.append("promotion_bridge_denied", result, event_id="bridge-denied:" + task_event_id)
+                outcomes.append(result)
+                continue
+            task["status"] = "completed" if state == "committed" else "failed"
+            self.checkpoints.append("promotion_bridge_started", {"task_event_id": task_event_id}, event_id="bridge-start:" + task_event_id)
+            try:
+                simulation_raw = policy_simulator(task)
+                simulation = simulation_raw if isinstance(simulation_raw, PolicySimulation) else PolicySimulation(**dict(simulation_raw))
+                if not simulation.allowed:
+                    self.integration.telemetry.record("promotion_blocked", task_event_id=task_event_id, reason=simulation.reason or "policy_denied")
+                    result = {"task_event_id": task_event_id, "status": "denied", "reason": simulation.reason or "policy_denied"}
+                    self.checkpoints.append("promotion_bridge_denied", result, event_id="bridge-denied:" + task_event_id)
+                    outcomes.append(result)
+                    continue
+                for value, field in ((simulation.source_digest, "source_digest"), (simulation.policy_digest, "policy_digest"), (simulation.agent_id, "agent_id"), (simulation.scope, "scope")):
+                    if not value:
+                        raise ValueError(field + "_required")
+                experience_id = str(task["task_id"])
+                receipt = self._existing_receipt(experience_id)
+                if receipt is None:
+                    receipt = self.integration.capture_task_completion(task, payload=simulation.payload, source_digest=simulation.source_digest, policy_digest=simulation.policy_digest, agent_id=simulation.agent_id, scope=simulation.scope)
+                result = {"task_event_id": task_event_id, "status": "completed", "receipt_id": receipt.receipt_id}
+                self.checkpoints.append("promotion_bridge_completed", result, event_id="bridge-complete:" + task_event_id)
+                outcomes.append(result)
+            except Exception as exc:
+                self.integration.telemetry.record("promotion_blocked", task_event_id=task_event_id, reason="policy_simulation_error:" + type(exc).__name__)
+                result = {"task_event_id": task_event_id, "status": "denied", "reason": "policy_simulation_error:" + type(exc).__name__}
+                self.checkpoints.append("promotion_bridge_denied", result, event_id="bridge-denied:" + task_event_id)
+                outcomes.append(result)
+        return tuple(outcomes)
+
+
 class PromotionIntegration:
     """Glue layer from task outcomes to a review-only promotion pipeline."""
     def __init__(self, pipeline: LearningPromotionPipeline, registry: EvaluatorRegistry | None = None, telemetry: PromotionTelemetry | None = None) -> None:
@@ -120,4 +209,4 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
