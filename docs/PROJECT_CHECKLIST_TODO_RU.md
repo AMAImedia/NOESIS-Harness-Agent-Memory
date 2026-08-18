@@ -723,3 +723,17 @@ Full regression после lease integration: **317/317 passed**, `ResourceWarni
 | REL-06 | Machine-readable lane evidence | `DONE / LOCAL VERIFIED` | `docs/PARALLEL_RELEASE_LANES_EVIDENCE.json`; SHA-256 `a72bd2057b62fe3e89af3a92c12a1097b189dc98e212aa8f39b12289258fe0e4` |
 
 Синхронный summary: `docs/PARALLEL_RELEASE_LANES_RU.md`. Этот результат подтверждает локальный release-readiness plumbing, но не native `.exe`/`.app`, Authenticode/codesign/notarization или external A/B superiority.
+
+
+## 2026-08-18 — Native artifact evidence hardening
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| NAT-01 | Portable manifest/SBOM verifier | `DONE / LOCAL VERIFIED` | `scripts/verify_portable_artifact.py`; archive coverage, sizes, SHA-256 и SPDX-2.3 checksum equality |
+| NAT-02 | Portable tamper/coverage negative matrix | `DONE / LOCAL VERIFIED` | Valid pass, tampered payload SHA fail, unexpected file coverage fail, missing metadata fail |
+| NAT-03 | Parallel native evidence lanes | `DONE / LOCAL VERIFIED` | 4/4 lanes: portable SHA/SBOM, static manifests, Python 3.14 identity, native target matrix |
+| NAT-04 | Native target honesty | `DONE / LOCAL VERIFIED` | Windows/macOS on Linux: `not_run`, `target_host_or_python_mismatch`; native claim не создаётся |
+| NAT-05 | Evidence report validation | `DONE / LOCAL VERIFIED` | `scripts/validate_parallel_native_evidence_report.py`: PASS; evidence SHA-256 `d48f8807229e9d6c5ffcd872dcecfcf87b56b2b3f6038392a9b46bc31f6f0d79` |
+| NAT-06 | Native evidence documentation | `DONE / DOCUMENTED` | `docs/PARALLEL_NATIVE_EVIDENCE_RU.md` и `docs/PARALLEL_NATIVE_EVIDENCE.json` |
+
+Current boundary: static/native evidence plumbing verified locally; real Windows `.exe`, macOS `.app`, Authenticode, codesign и notarization требуют target hosts и остаются external gates.
