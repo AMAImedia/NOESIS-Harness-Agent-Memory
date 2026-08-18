@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def lane(ctx: AgentLaneContext) -> dict[str, Any]:
     if ctx.task_id == "portable-sha-sbom":
         source = ctx.workspace / "fixture"
-        source.mkdir()
+        source.mkdir(parents=True, exist_ok=True)
         (source / "README.md").write_text("native evidence fixture\n", encoding="utf-8")
         (source / "main.py").write_text("print('fixture')\n", encoding="utf-8")
         artifact = ctx.workspace / "portable.zip"

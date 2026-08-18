@@ -29,20 +29,20 @@
       },
       "status": "passed",
       "task_id": "native-target-matrix",
-      "workspace": "/tmp/parallel_native_evidence_workspaces/native-target-matrix"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_native_evidence_workspaces/native-target-matrix"
     },
     {
       "agent_id": "evidence-portable",
       "error": "",
       "output": {
-        "artifact_sha256": "12a1766bd0c48e9e7cb075754366e757359e542a86b8b5ff89c8ed2899b2b139",
+        "artifact_sha256": "de8d5f6e537e52200cf0114c0c78c359e758e33005b6530fd921a5a87d33eae0",
         "check": "portable_sha_sbom",
         "file_count": 2,
         "status": "passed"
       },
       "status": "passed",
       "task_id": "portable-sha-sbom",
-      "workspace": "/tmp/parallel_native_evidence_workspaces/portable-sha-sbom"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_native_evidence_workspaces/portable-sha-sbom"
     },
     {
       "agent_id": "evidence-python",
@@ -55,7 +55,7 @@
       },
       "status": "passed",
       "task_id": "python314-identity",
-      "workspace": "/tmp/parallel_native_evidence_workspaces/python314-identity"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_native_evidence_workspaces/python314-identity"
     },
     {
       "agent_id": "evidence-manifests",
@@ -71,7 +71,7 @@
       },
       "status": "passed",
       "task_id": "static-manifests",
-      "workspace": "/tmp/parallel_native_evidence_workspaces/static-manifests"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_native_evidence_workspaces/static-manifests"
     }
   ],
   "schema_version": "noesis.parallel-native-evidence.v1",

@@ -860,3 +860,14 @@ Summary: `docs/locales/ru/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.
 | REL-05 | Release boundary documentation | `DONE / LOCAL VERIFIED` | `docs/RELEASE_AUDIT_EXTERNAL_READINESS.md`; native/external execution и superiority ranking не создаются локальным audit |
 
 Release audit остаётся локальным/private gate. `not_run` для внешних lanes является честным состоянием отсутствия exact revisions и matching hosts, а не скрытым pass/fail.
+
+## 2026-08-18 — Native evidence honesty gate
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| NAT-07 | Portable SHA/SBOM lane | `DONE / LOCAL VERIFIED` | `scripts/run_parallel_native_evidence_lanes.py`; portable fixture verification `passed` |
+| NAT-08 | Static Windows/macOS manifests | `DONE / LOCAL VERIFIED` | Static manifest lane `passed`; `native_builds_executed=false` |
+| NAT-09 | Python 3.14 identity lane | `DONE / LOCAL VERIFIED` | Local interpreter `3.14.7`; target-host packaging не заявляется |
+| NAT-10 | Target-host honesty matrix | `DONE / LOCAL VERIFIED` | Windows и macOS verifier lanes `passed` как honesty checks; actual evidence для обоих `not_run: target_host_or_python_mismatch` |
+
+Machine evidence: `docs/PARALLEL_NATIVE_EVIDENCE.json`; English contract: `docs/NATIVE_EVIDENCE_HONESTY_GATE.md`. Реальные Windows `.exe`, macOS `.app`, Authenticode/codesign/notarization и native execution требуют matching target hosts.
