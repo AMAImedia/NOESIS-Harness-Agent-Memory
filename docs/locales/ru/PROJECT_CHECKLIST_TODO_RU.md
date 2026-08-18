@@ -1044,3 +1044,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-AUTH-06 | Production operator identity source | `NEXT LOCAL GATE` | Bind context to authenticated operator session lifecycle and independent reviewer authorization store |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Persistent Reviewer Authorization Store
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-REVIEW-01 | Persistent reviewer grant store | `DONE / LOCAL VERIFIED` | Append-only `ReviewerAuthorizationStore` persists operator/session grants and scopes |
+| LEARN-REVIEW-02 | Revocation and recovery | `DONE / LOCAL VERIFIED` | Revoked grant overrides prior grant after store reconstruction |
+| LEARN-REVIEW-03 | Fail-closed default | `DONE / LOCAL VERIFIED` | Missing authorization, inactive grant and scope mismatch deny review |
+| LEARN-REVIEW-04 | Executor integration | `DONE / LOCAL VERIFIED` | `PromotionActionExecutor` requires authorized independent reviewer when store is configured |
+| LEARN-REVIEW-05 | Activation boundary | `DONE / BOUNDED` | Reviewer authorization changes proposal state only; it never activates a skill |
+| LEARN-REVIEW-06 | Production identity source | `NEXT LOCAL GATE` | Bind reviewer store grants to authenticated operator session lifecycle and durable administrative policy |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

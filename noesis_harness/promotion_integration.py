@@ -117,11 +117,13 @@ class PromotionActionReceipt:
 class PromotionActionExecutor:
     """Execute only explicit operator proposal actions; replay is idempotent."""
 
-    def __init__(self, integration: "PromotionIntegration", receipt_path: str, *, approval_tests: Callable[[], bool] | None = None, independent_reviewer: Callable[[str, str], bool] | None = None) -> None:
+    def __init__(self, integration: "PromotionIntegration", receipt_path: str, *, approval_tests: Callable[[], bool] | None = None, independent_reviewer: Callable[[str, str], bool] | None = None, reviewer_store: ReviewerAuthorizationStore | None = None, required_scope: str = "promotion:review") -> None:
         self.integration = integration
         self.receipts = EventStore(receipt_path)
         self.approval_tests = approval_tests or (lambda: True)
         self.independent_reviewer = independent_reviewer or (lambda operator_id, owner_id: operator_id != owner_id)
+        self.reviewer_store = reviewer_store
+        self.required_scope = str(required_scope)
 
     def _existing(self, action_id: str) -> PromotionActionReceipt | None:
         for event in self.receipts.iter_events():
@@ -156,6 +158,8 @@ class PromotionActionExecutor:
         owner_id = receipt.agent_id if receipt is not None else ""
         if not owner_id or not self.independent_reviewer(action.operator_id, owner_id):
             self._deny(action, "independent_reviewer_required", PermissionError)
+        if self.reviewer_store is not None and not self.reviewer_store.can_review(auth_context, owner_id, required_scope=self.required_scope):
+            self._deny(action, "reviewer_authorization_required", PermissionError)
         previous = proposal.state
         if action.action == "approve":
             updated = self.integration.approve(action.proposal_id, approved_by=action.operator_id, tests=self.approval_tests)
@@ -202,6 +206,55 @@ class OwnershipPolicySimulator:
             return PolicySimulation(False, agent_id=owner, scope=scope, reason="ownership_scope_denied")
         runtime = RuntimePolicySimulator(owner, scope, allowed_scopes=(scope,), policy_version=self.policy_version)
         return runtime.simulate({**dict(task), "state": task.get("state", "")})
+
+
+class ReviewerAuthorizationStore:
+    """Append-only operator reviewer grants; absence or revocation fails closed."""
+
+    def __init__(self, event_path: str) -> None:
+        self.events = EventStore(event_path)
+
+    def grant(self, operator_id: str, session_id: str, scopes: Sequence[str] = ()) -> Mapping[str, Any]:
+        if not operator_id or not session_id:
+            raise ValueError("reviewer_identity_required")
+        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "scopes": sorted({str(item) for item in scopes}), "active": True}
+        self.events.append("reviewer_granted", payload, event_id="reviewer-grant:" + operator_id + ":" + session_id)
+        return payload
+
+    def revoke(self, operator_id: str, session_id: str) -> Mapping[str, Any]:
+        if not operator_id or not session_id:
+            raise ValueError("reviewer_identity_required")
+        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "active": False}
+        self.events.append("reviewer_revoked", payload, event_id="reviewer-revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+        return payload
+
+    def _records(self) -> dict[tuple[str, str], Mapping[str, Any]]:
+        state: dict[tuple[str, str], Mapping[str, Any]] = {}
+        for event in self.events.iter_events():
+            payload = event.get("payload") or {}
+            key = (str(payload.get("operator_id", "")), str(payload.get("session_id", "")))
+            if key[0] and key[1]:
+                state[key] = dict(payload)
+        return state
+
+    def authorize(self, context: "OperatorAuthContext", *, required_scope: str = "") -> None:
+        record = self._records().get((context.operator_id, context.session_id))
+        if not context.authenticated or record is None or not record.get("active", False):
+            raise PermissionError("reviewer_authorization_required")
+        granted = set(str(item) for item in record.get("scopes", ()))
+        if required_scope and required_scope not in granted:
+            raise PermissionError("reviewer_scope_denied")
+        if required_scope and required_scope not in context.scopes:
+            raise PermissionError("operator_scope_denied")
+
+    def can_review(self, context: "OperatorAuthContext", owner_id: str, *, required_scope: str = "") -> bool:
+        if context.operator_id == owner_id:
+            return False
+        try:
+            self.authorize(context, required_scope=required_scope)
+        except PermissionError:
+            return False
+        return True
 
 
 @dataclass(frozen=True)
@@ -389,4 +442,4 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import EvaluatorRegistry, OperatorAuthContext, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration
+from noesis_harness.promotion_integration import EvaluatorRegistry, OperatorAuthContext, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -118,6 +118,34 @@ class PromotionIntegrationTests(unittest.TestCase):
         receipt = integration.capture_task_completion({"task_id": task_id, "status": "completed"}, payload={"result": "ok"}, source_digest="src", policy_digest="pol", agent_id="agent-owner", scope="project:demo")
         evaluation = integration.evaluate(receipt.receipt_id, "eval-1")
         return integration.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="skill-" + task_id, content="# skill\n")
+
+    def test_reviewer_authorization_store_is_persistent_and_fail_closed(self):
+        path = tempfile.mktemp()
+        store = ReviewerAuthorizationStore(path)
+        context = OperatorAuthContext("reviewer-1", "session-1", ("promotion:review",))
+        with self.assertRaisesRegex(PermissionError, "reviewer_authorization_required"):
+            store.authorize(context, required_scope="promotion:review")
+        store.grant("reviewer-1", "session-1", ("promotion:review",))
+        restored = ReviewerAuthorizationStore(path)
+        restored.authorize(context, required_scope="promotion:review")
+        self.assertTrue(restored.can_review(context, "agent-owner", required_scope="promotion:review"))
+        self.assertFalse(restored.can_review(context, "reviewer-1", required_scope="promotion:review"))
+        restored.revoke("reviewer-1", "session-1")
+        with self.assertRaisesRegex(PermissionError, "reviewer_authorization_required"):
+            restored.authorize(context, required_scope="promotion:review")
+
+    def test_operator_action_executor_requires_persistent_reviewer_grant(self):
+        integration = self.integration()
+        proposal = self._proposal(integration, "task-store")
+        store = ReviewerAuthorizationStore(tempfile.mktemp())
+        executor = PromotionActionExecutor(integration, tempfile.mktemp(), reviewer_store=store)
+        context = OperatorAuthContext("independent-reviewer", "session-operator", ("promotion:review",))
+        action = PromotionApprovalAction("action-store", "approve", proposal.proposal_id, "independent-reviewer")
+        with self.assertRaisesRegex(PermissionError, "reviewer_authorization_required"):
+            executor.handle(action, context)
+        store.grant("independent-reviewer", "session-operator", ("promotion:review",))
+        applied = executor.handle(action, context)
+        self.assertEqual(applied["receipt"]["new_state"], "approved")
 
     def test_operator_action_executor_approves_with_signed_idempotent_receipt(self):
         integration = self.integration()
