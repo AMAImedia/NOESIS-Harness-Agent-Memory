@@ -1,9 +1,16 @@
 """Deterministic memory and long-context quality evidence."""
 from __future__ import annotations
 
+import hashlib
+import json
 import math
+import sqlite3
 from dataclasses import dataclass
-from typing import Sequence, Tuple
+from typing import Any, Mapping, Sequence, Tuple
+
+from .context_engine import ContextItem
+from .memory_ab import ControlledMemoryEvaluator, MemoryABCase
+from .nextgen import _ManagedConnection
 
 
 class MemoryQualityError(ValueError):
@@ -88,4 +95,88 @@ class MemoryQualityEvaluator:
         return MemoryQualityMetrics(means("recall"), means("attribution_precision"), means("conflict_resolution"), means("temporal_order"), means("compaction_retention"), sum(outcome.budget_respected for outcome in outcomes) / n, sum(outcome.leakage_free for outcome in outcomes) / n, score, len(outcomes))
 
 
-__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator"]
+@dataclass(frozen=True)
+class MemoryComparisonReport:
+    repetitions: int
+    cases: int
+    baseline_recall_mean: float
+    nextgen_recall_mean: float
+    recall_gain_mean: float
+    baseline_budget_compliance: float
+    nextgen_budget_compliance: float
+
+
+class DurableMemoryQualityTraceStore:
+    """SQLite/WAL store for recorded context/reuse quality traces."""
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        with self._connection() as db:
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("CREATE TABLE IF NOT EXISTS memory_quality_traces (trace_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, case_id TEXT NOT NULL, record TEXT NOT NULL, digest TEXT NOT NULL, created_at REAL NOT NULL, UNIQUE(session_id, case_id))")
+
+    def _connection(self):
+        db = sqlite3.connect(self.db_path, timeout=10, factory=_ManagedConnection)
+        db.row_factory = sqlite3.Row
+        return db
+
+    def put(self, session_id: str, case: MemoryQualityCase) -> Mapping[str, Any]:
+        record = {"case_id": case.case_id, "relevant_source_ids": list(case.relevant_source_ids), "selected_source_ids": list(case.selected_source_ids), "attributed_source_ids": list(case.attributed_source_ids), "conflict_resolution_correct": case.conflict_resolution_correct, "temporal_order_correct": case.temporal_order_correct, "retained_after_compaction_ids": list(case.retained_after_compaction_ids), "required_after_compaction_ids": list(case.required_after_compaction_ids), "used_tokens": case.used_tokens, "budget_tokens": case.budget_tokens, "leakage_free": case.leakage_free}
+        encoded = json.dumps(record, sort_keys=True, separators=(",", ":"))
+        digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        trace_id = hashlib.sha256((session_id + ":" + case.case_id).encode("utf-8")).hexdigest()
+        with self._connection() as db:
+            row = db.execute("SELECT record, digest FROM memory_quality_traces WHERE session_id=? AND case_id=?", (session_id, case.case_id)).fetchone()
+            if row is not None:
+                if row["digest"] != digest:
+                    raise MemoryQualityError("trace_conflict")
+                return json.loads(row["record"])
+            db.execute("INSERT INTO memory_quality_traces VALUES(?,?,?,?,?,?)", (trace_id, session_id, case.case_id, encoded, digest, __import__("time").time()))
+        return record
+
+    def list_session(self, session_id: str) -> tuple[Mapping[str, Any], ...]:
+        with self._connection() as db:
+            rows = db.execute("SELECT record FROM memory_quality_traces WHERE session_id=? ORDER BY case_id", (session_id,)).fetchall()
+        return tuple(json.loads(row["record"]) for row in rows)
+
+
+class DurableMemoryQualityAdapter:
+    """Record verified quality traces alongside the real Memory store."""
+    def __init__(self, memory: Any, trace_store: DurableMemoryQualityTraceStore):
+        self.memory = memory
+        self.trace_store = trace_store
+
+    def record(self, session_id: str, case: MemoryQualityCase) -> Mapping[str, Any]:
+        observation = {"case_id": case.case_id, "budget_tokens": case.budget_tokens, "used_tokens": case.used_tokens, "selected_source_ids": list(case.selected_source_ids)}
+        self.memory.observe(session_id, "memory_quality_trace", json.dumps(observation, sort_keys=True))
+        return self.trace_store.put(session_id, case)
+
+    def evaluate_session(self, session_id: str) -> MemoryQualityMetrics:
+        records = self.trace_store.list_session(session_id)
+        cases = tuple(MemoryQualityCase(row["case_id"], tuple(row["relevant_source_ids"]), tuple(row["selected_source_ids"]), tuple(row["attributed_source_ids"]), bool(row["conflict_resolution_correct"]), bool(row["temporal_order_correct"]), tuple(row["retained_after_compaction_ids"]), tuple(row["required_after_compaction_ids"]), int(row["used_tokens"]), int(row["budget_tokens"]), bool(row["leakage_free"])) for row in records)
+        return MemoryQualityEvaluator().metrics(cases)
+
+
+def build_long_context_cases(scales: Sequence[int] = (32, 128, 512), budget_tokens: int = 64) -> tuple[MemoryABCase, ...]:
+    """Build deterministic long-context fixtures; every case has a hard budget."""
+    if budget_tokens < 1 or not scales or any(int(scale) < 1 for scale in scales):
+        raise MemoryQualityError("long_context_fixture_invalid")
+    cases = []
+    for scale in scales:
+        relevant = ContextItem("relevant-%d" % scale, "verified source %d rollback recovery" % scale, priority=100.0, category="pinned", source_ids=("source-%d" % scale,), required=True)
+        distractors = tuple(ContextItem("noise-%d-%d" % (scale, index), "unrelated historical noise " * 9, priority=float(scale - index), source_ids=("noise-%d-%d" % (scale, index),)) for index in range(int(scale)))
+        cases.append(MemoryABCase("long-%d" % scale, "rollback recovery", ("source-%d" % scale,), budget_tokens, distractors + (relevant,), (relevant,) + distractors))
+    return tuple(cases)
+
+
+def compare_baseline_nextgen(cases: Sequence[MemoryABCase], repetitions: int = 3) -> MemoryComparisonReport:
+    if not cases or repetitions < 1 or repetitions > 100:
+        raise MemoryQualityError("comparison_parameters_invalid")
+    evaluator = ControlledMemoryEvaluator()
+    outcomes = tuple(evaluator.evaluate(cases) for _ in range(int(repetitions)))
+    total = float(len(outcomes) * len(cases))
+    baseline = sum(outcome.legacy_recall for run in outcomes for outcome in run) / total
+    nextgen = sum(outcome.nextgen_recall for run in outcomes for outcome in run) / total
+    return MemoryComparisonReport(int(repetitions), len(cases), baseline, nextgen, nextgen - baseline, sum(outcome.legacy_used_tokens <= outcome.budget_tokens for run in outcomes for outcome in run) / total, sum(outcome.hard_cap_respected for run in outcomes for outcome in run) / total)
+
+
+__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator", "MemoryComparisonReport", "DurableMemoryQualityTraceStore", "DurableMemoryQualityAdapter", "build_long_context_cases", "compare_baseline_nextgen"]

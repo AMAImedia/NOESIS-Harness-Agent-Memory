@@ -1,7 +1,10 @@
+import tempfile
 import unittest
+from pathlib import Path
 
+from noesis_harness import Memory
 from noesis_harness.isolation_holdouts import ActiveDelegationLeakageSuite
-from noesis_harness.memory_quality import MemoryQualityCase, MemoryQualityError, MemoryQualityEvaluator
+from noesis_harness.memory_quality import DurableMemoryQualityAdapter, DurableMemoryQualityTraceStore, MemoryQualityCase, MemoryQualityError, MemoryQualityEvaluator, build_long_context_cases, compare_baseline_nextgen
 
 
 class ActiveDelegationLeakageTests(unittest.TestCase):
@@ -32,6 +35,28 @@ class MemoryQualityTests(unittest.TestCase):
         self.assertEqual(metrics.budget_compliance_rate, 0.5)
         self.assertEqual(metrics.leakage_free_rate, 0.5)
         self.assertLess(metrics.quality_score, 1.0)
+
+    def test_durable_trace_adapter_reopens_and_rejects_conflict(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            memory = Memory(str(Path(tmp) / "memory.db"))
+            store = DurableMemoryQualityTraceStore(str(Path(tmp) / "quality.db"))
+            adapter = DurableMemoryQualityAdapter(memory, store)
+            case = MemoryQualityCase("durable", ("s1",), ("s1",), ("s1",), True, True, ("s1",), ("s1",), 8, 16)
+            adapter.record("session-1", case)
+            reopened = DurableMemoryQualityAdapter(Memory(str(Path(tmp) / "memory.db")), DurableMemoryQualityTraceStore(str(Path(tmp) / "quality.db")))
+            self.assertEqual(reopened.evaluate_session("session-1").cases, 1)
+            with self.assertRaisesRegex(MemoryQualityError, "trace_conflict"):
+                reopened.record("session-1", MemoryQualityCase("durable", ("different",), ("s1",), ("s1",), True, True, ("s1",), ("s1",), 8, 16))
+
+    def test_long_context_budget_and_baseline_nextgen_distribution(self):
+        cases = build_long_context_cases((32, 128, 512), budget_tokens=64)
+        report = compare_baseline_nextgen(cases, repetitions=3)
+        self.assertEqual(report.repetitions, 3)
+        self.assertEqual(report.cases, 3)
+        self.assertEqual(report.nextgen_budget_compliance, 1.0)
+        self.assertEqual(report.baseline_budget_compliance, 1.0)
+        self.assertGreater(report.nextgen_recall_mean, report.baseline_recall_mean)
+        self.assertGreater(report.recall_gain_mean, 0.0)
 
     def test_duplicate_and_empty_memory_cases_fail_closed(self):
         evaluator = MemoryQualityEvaluator()

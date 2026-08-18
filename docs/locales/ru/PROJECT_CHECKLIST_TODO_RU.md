@@ -1253,6 +1253,9 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | MEM-03 | Conflict and temporal correctness | `DONE / BOUNDED LOCAL` | Recorded verifier booleans are measured separately; no model self-grading |
 | MEM-04 | Compaction retention | `DONE / BOUNDED LOCAL` | Required source retention after compaction is measured explicitly |
 | MEM-05 | Hard context budget | `DONE / BOUNDED LOCAL` | Used tokens over budget fail compliance; budget is never softened |
-| MEM-06 | Durable trace and long-context stress | `NEXT LOCAL GATE` | Connect evaluator to durable context/reuse traces and repeated long-context fixtures |
+| MEM-06 | Durable trace and long-context stress | `DONE / BOUNDED LOCAL` | `DurableMemoryQualityAdapter` writes/reopens SQLite/WAL traces; 64-token fixtures run at scales 32/128/512/1024 over five repetitions |
+| MEM-07 | Baseline versus nextgen distribution | `DONE / BOUNDED LOCAL` | Baseline recall mean 0.0, nextgen recall mean 1.0, gain 1.0; both budget compliance rates 1.0; fixture is deterministic and local-only |
+| MEM-08 | Native Windows/macOS evidence preparation | `DONE / PREPARED NOT_RUN` | Fail-closed PowerShell/macOS bundles, environment digest contract and artifact requirements are ready; matching host execution remains `not_run` |
+| MEM-09 | Durable memory traces with real long-context reuse | `NEXT LOCAL GATE` | Connect traces to broader context/reuse trajectories and non-fixture repeated stress distributions |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

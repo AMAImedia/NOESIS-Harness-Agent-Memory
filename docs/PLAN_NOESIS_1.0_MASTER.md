@@ -46,7 +46,7 @@ Acceptance requires path escape, network egress, credential-like output, environ
 
 ### Gate 5 — Memory and long-context quality evidence (in progress)
 
-`MemoryQualityEvaluator` now reports separate recall, attribution precision, conflict-resolution rate, temporal-order rate, compaction retention, hard budget compliance and leakage-free rate. The evaluator consumes recorded source IDs and verifier booleans only; it never asks a model to grade itself. Remaining Gate 5 work is to connect these cases to durable context/reuse traces, repeated distributions and long-context stress fixtures without treating larger prompts or stores as quality improvements by themselves.
+`MemoryQualityEvaluator` now reports separate recall, attribution precision, conflict-resolution rate, temporal-order rate, compaction retention, hard budget compliance and leakage-free rate. `DurableMemoryQualityAdapter` records verified traces beside the real `Memory` store in SQLite/WAL and reloads them after restart. Hard-budget fixtures at 64 tokens were run for scales 32/128/512/1024 over five repetitions: baseline recall mean 0.0, nextgen recall mean 1.0, gain 1.0, with both lanes respecting the hard budget. This is deterministic local fixture evidence, not an external model benchmark. Gate 6 preparation now includes fail-closed native Windows/macOS bundles and runbooks; target execution remains `not_run` until matching hosts.
 
 ### Gate 6 — Native Windows/macOS evidence
 

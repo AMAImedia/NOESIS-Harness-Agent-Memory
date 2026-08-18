@@ -62,13 +62,19 @@
       "memory_attribution_precision",
       "memory_conflict_temporal_evidence",
       "memory_compaction_retention",
-      "memory_hard_budget_compliance"
+      "memory_hard_budget_compliance",
+      "durable_memory_quality_traces",
+      "long_context_stress_fixture",
+      "baseline_nextgen_memory_distribution",
+      "native_parity_operator_bundles",
+      "memory_quality_evidence_report"
     ],
     "open_subgates": [
       "native_windows_macos_evidence",
       "broader_active_delegation_leakage_holdouts",
       "durable_memory_trace_stress",
-      "long_context_repeated_distribution"
+      "long_context_repeated_distribution",
+      "durable_long_context_reuse_trajectories"
     ],
     "required_boundaries": [
       "terminal_task_to_receipt",

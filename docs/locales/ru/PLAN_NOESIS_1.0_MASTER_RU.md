@@ -46,7 +46,7 @@ Manifest/grant contract и Linux reference path реализованы: `Executi
 
 ### Gate 5 — Качество памяти и длинного контекста (в работе)
 
-`MemoryQualityEvaluator` отдельно измеряет recall, attribution precision, conflict-resolution rate, temporal-order rate, compaction retention, hard budget compliance и leakage-free rate. Evaluator принимает только recorded source IDs и verifier booleans; модель не оценивает сама себя. Остаётся связать cases с durable context/reuse traces, repeated distributions и long-context stress fixtures, не считая большие prompt/store самостоятельным улучшением.
+`MemoryQualityEvaluator` отдельно измеряет recall, attribution precision, conflict-resolution rate, temporal-order rate, compaction retention, hard budget compliance и leakage-free rate. `DurableMemoryQualityAdapter` сохраняет verified traces рядом с реальным `Memory` store в SQLite/WAL и восстанавливает их после restart. Hard-budget fixtures при 64 tokens запущены для scale 32/128/512/1024 в пяти repetitions: baseline recall mean 0.0, nextgen recall mean 1.0, gain 1.0; обе линии соблюдают hard budget. Это deterministic local fixture evidence, а не внешний model benchmark. Gate 6 подготовлен fail-closed Windows/macOS bundles и runbooks; target execution остаётся `not_run` до matching hosts.
 
 ### Gate 6 — Native Windows/macOS evidence
 

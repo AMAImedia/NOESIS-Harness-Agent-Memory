@@ -1,0 +1,12 @@
+{
+  "baseline_budget_compliance": 1.0,
+  "baseline_recall_mean": 0.0,
+  "budget_tokens": 64,
+  "cases": 4,
+  "claim_boundary": "deterministic_local_fixture_not_external_model_benchmark",
+  "nextgen_budget_compliance": 1.0,
+  "nextgen_recall_mean": 1.0,
+  "recall_gain_mean": 1.0,
+  "repetitions": 5,
+  "schema_version": "noesis.memory-quality-evidence.v1"
+}
