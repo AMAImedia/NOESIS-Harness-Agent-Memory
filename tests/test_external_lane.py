@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 from scripts.external_runner_contract import make_spec
-from scripts.run_external_lane import main, plan
+from scripts.run_external_lane import create_approval_receipt, consume_approval_receipt, main, plan, verify_approval_receipt
 
 
 class ExternalLaneTests(unittest.TestCase):
@@ -36,13 +37,33 @@ class ExternalLaneTests(unittest.TestCase):
             root = Path(directory)
             spec_path = root / "spec.json"
             output = root / "result.json"
-            spec_path.write_text(json.dumps(make_spec("hermes", "pinned-h1", [sys.executable, "-c", "print('fixture-run')"], "c" * 64)), encoding="utf-8")
-            code = main(["--spec", str(spec_path), "--workspace", str(root), "--output", str(output), "--execute", "--approve"])
+            receipt_path = root / "approval.json"
+            receipt_store = root / "consumed.json"
+            key = "approval-key-for-tests-2026"
+            spec = make_spec("hermes", "pinned-h1", [sys.executable, "-c", "print('fixture-run')"], "c" * 64)
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+            receipt = create_approval_receipt(plan(spec, str(root)), key, now=time.time(), ttl_seconds=300, nonce="run-1")
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            code = main(["--spec", str(spec_path), "--workspace", str(root), "--output", str(output), "--execute", "--approve", "--approval-receipt", str(receipt_path), "--approval-key", key, "--receipt-store", str(receipt_store)])
             report = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(code, 0)
             self.assertEqual(report["execution"], "started")
             self.assertEqual(report["status"], "passed")
             self.assertEqual(report["stdout"].strip(), "fixture-run")
+
+    def test_approval_rejects_mutation_expiry_and_replay(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            key = "approval-key-for-tests-2026"
+            spec = make_spec("hermes", "pinned-h1", [sys.executable, "-c", "print('x')"], "d" * 64)
+            report = plan(spec, str(root))
+            receipt = create_approval_receipt(report, key, now=100.0, ttl_seconds=10, nonce="fixed")
+            mutated = dict(report, revision="other")
+            self.assertEqual(verify_approval_receipt(receipt, mutated, key, now=101.0), (False, "approval_plan_identity_mismatch"))
+            self.assertEqual(verify_approval_receipt(receipt, report, key, now=111.0), (False, "approval_expired"))
+            store = root / "used.json"
+            self.assertEqual(consume_approval_receipt(receipt, str(store)), (True, "consumed"))
+            self.assertEqual(consume_approval_receipt(receipt, str(store)), (False, "approval_replay"))
 
 
 if __name__ == "__main__":
