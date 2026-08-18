@@ -46,11 +46,15 @@
       "typed_work_product_envelopes",
       "independent_work_product_review",
       "fresh_base_merge_authorization",
-      "durable_multi_agent_resume_replay"
+      "durable_multi_agent_resume_replay",
+      "bounded_parallel_retry_reclaim",
+      "expanded_cross_agent_leakage_holdouts",
+      "work_product_quality_metrics"
     ],
     "open_subgates": [
       "native_windows_macos_evidence",
-      "broader_multi_agent_execution_benchmarks"
+      "broader_multi_agent_execution_benchmarks",
+      "real_multi_agent_workload_benchmark"
     ],
     "required_boundaries": [
       "terminal_task_to_receipt",

@@ -42,7 +42,7 @@ Manifest/grant contract и Linux reference path реализованы: `Executi
 
 ### Gate 4 — Реальный multi-agent work-product loop (в работе)
 
-`MultiAgentWorkProductLoop` связывает exclusive task claims с typed `WorkProductEnvelope`, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers и durable session resume/replay. Создающий агент не может approve собственный продукт, review не применяет файлы, а commit является отдельным authorized state transition. Остаются более широкий multi-agent execution, cross-agent leakage holdouts, crash recovery во время delegation и измеримые work-product benchmarks.
+`MultiAgentWorkProductLoop` связывает exclusive task claims с typed `WorkProductEnvelope`, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers и durable session resume/replay. `SafeParallelExecutor` получил explicit retry limit с action reclaim, а cancellation никогда не retry. Fixed cross-agent leakage corpus расширен до 12 deterministic holdouts; `WorkProductBenchmarkEvaluator` отдельно измеряет correctness, delivery, leakage, recovery, reviewer-time, retry и commit. Остаются более широкий delegated execution и crash/retry benchmarks на реальных multi-agent workloads.
 
 ### Gate 5 — Качество памяти и длинного контекста
 

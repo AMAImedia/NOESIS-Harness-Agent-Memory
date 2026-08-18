@@ -1239,6 +1239,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | MA-03 | Independent review | `DONE / LOCAL VERIFIED` | Producing agent cannot review its own product; reviewer must be registered |
 | MA-04 | Fresh-base merge authorization | `DONE / LOCAL VERIFIED` | Stale base and mismatched authorization fail closed; review never applies files |
 | MA-05 | Explicit commit and durable resume/replay | `DONE / BOUNDED LOCAL` | Commit is separate from review; task/session/work-product events survive coordinator reopen |
-| MA-06 | Broader parallel execution and benchmark evidence | `NEXT LOCAL GATE` | Requires crash/retry delegation tests, cross-agent leakage holdouts and measurable work-product benchmark |
+| MA-06 | Bounded retry, leakage holdouts and work-product metrics | `DONE / BOUNDED LOCAL` | Retry limit is capped at 3, action reclaim is tested, cancellation is not retried, leakage corpus has 12 deterministic cases and evaluator reports correctness/delivery/leakage/recovery/reviewer-time/retry/commit metrics |
+| MA-07 | Real multi-agent workload benchmark | `NEXT LOCAL GATE` | Requires multiple delegated tasks under crash/retry, durable result aggregation, leakage holdouts during parallel execution and repeated benchmark runs |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

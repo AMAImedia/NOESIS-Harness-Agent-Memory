@@ -125,6 +125,8 @@ class AgentLaneResult:
     status: str
     output: object = None
     error: str = ""
+    attempts: int = 1
+    recovered: bool = False
 
 
 class SafeParallelExecutor:
@@ -213,6 +215,7 @@ class SafeParallelExecutor:
         event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
         max_duration_seconds: float | None = None,
         cancellation: CancellationToken | None = None,
+        retry_limit: int = 0,
     ) -> list[AgentLaneResult]:
         """Execute callbacks with bounded concurrency and isolated failures."""
         if not callable(callback):
@@ -227,6 +230,9 @@ class SafeParallelExecutor:
                 raise ParallelExecutionError("action_store_invalid")
         if max_duration_seconds is not None and max_duration_seconds <= 0:
             raise ParallelExecutionError("max_duration_seconds_must_be_positive")
+        if int(retry_limit) < 0 or int(retry_limit) > 3:
+            raise ParallelExecutionError("retry_limit_out_of_range")
+        retry_limit = int(retry_limit)
         sid = session_id or uuid4().hex
         token = cancellation or CancellationToken()
         deadline = time.monotonic() + max_duration_seconds if max_duration_seconds is not None else None
@@ -250,6 +256,7 @@ class SafeParallelExecutor:
         def run_one(context: AgentLaneContext) -> AgentLaneResult:
             claimed = False
             action_claimed = False
+            attempts = 0
             emit("lane_started", context)
             if lease_store is not None:
                 claim = lease_store.acquire(context.task_id, context.agent_id)
@@ -266,31 +273,45 @@ class SafeParallelExecutor:
                 action_claimed = True
                 emit("lane_claimed", context)
             try:
-                context.check_cancelled()
-                output = callback(context)
-                context.check_cancelled()
-                if action_claimed:
-                    completion = action_store.complete(context.task_id)
-                    if completion is False:
-                        raise ParallelExecutionError("action_completion_rejected")
-                    action_claimed = False
-            except Exception as exc:  # fail one lane without cancelling unrelated lanes
-                if isinstance(exc, ParallelExecutionError) and str(exc).startswith("lane_cancelled:"):
-                    emit("lane_cancelled", context, str(exc))
-                    if action_claimed:
-                        action_store.requeue(context.task_id, context.agent_id)
-                        action_claimed = False
-                    return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "cancelled", error=str(exc))
-                emit("lane_failed", context, type(exc).__name__)
-                if action_claimed:
-                    action_store.requeue(context.task_id, context.agent_id)
-                    action_claimed = False
-                return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "failed", error=type(exc).__name__ + ": " + str(exc))
+                while True:
+                    attempts += 1
+                    if retry_limit > 0:
+                        emit("lane_attempt", context, "attempt_%d" % attempts)
+                    try:
+                        context.check_cancelled()
+                        output = callback(context)
+                        context.check_cancelled()
+                        if action_claimed:
+                            completion = action_store.complete(context.task_id)
+                            if completion is False:
+                                raise ParallelExecutionError("action_completion_rejected")
+                            action_claimed = False
+                        emit("lane_completed", context)
+                        return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "passed", output=output, attempts=attempts, recovered=attempts > 1)
+                    except Exception as exc:  # fail one lane without cancelling unrelated lanes
+                        if isinstance(exc, ParallelExecutionError) and str(exc).startswith("lane_cancelled:"):
+                            emit("lane_cancelled", context, str(exc))
+                            if action_claimed:
+                                action_store.requeue(context.task_id, context.agent_id)
+                                action_claimed = False
+                            return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "cancelled", error=str(exc), attempts=attempts)
+                        if attempts <= retry_limit:
+                            emit("lane_retry_scheduled", context, type(exc).__name__)
+                            if action_claimed and action_store is not None:
+                                action_store.requeue(context.task_id, context.agent_id)
+                                action_claimed = action_store.claim(context.task_id, context.agent_id)
+                                if not action_claimed:
+                                    emit("lane_failed", context, "retry_reclaim_failed")
+                                    return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "failed", error="retry_reclaim_failed", attempts=attempts)
+                            continue
+                        emit("lane_failed", context, type(exc).__name__)
+                        if action_claimed:
+                            action_store.requeue(context.task_id, context.agent_id)
+                            action_claimed = False
+                        return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "failed", error=type(exc).__name__ + ": " + str(exc), attempts=attempts)
             finally:
                 if claimed:
                     lease_store.release(context.task_id, context.agent_id)
-            emit("lane_completed", context)
-            return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "passed", output=output)
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency, thread_name_prefix="noesis-agent") as pool:
             futures: dict[Future[AgentLaneResult], AgentLaneContext] = {pool.submit(run_one, context): context for context in contexts}

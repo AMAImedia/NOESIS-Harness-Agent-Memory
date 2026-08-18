@@ -42,7 +42,7 @@ Acceptance requires path escape, network egress, credential-like output, environ
 
 ### Gate 4 — Real multi-agent work product loop (in progress)
 
-`MultiAgentWorkProductLoop` now binds exclusive task claims to typed `WorkProductEnvelope` records, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers and durable session resume/replay. The producing agent cannot approve its own product, review does not apply files, and commit is a separate authorized state transition. Remaining Gate 4 work is broader multi-agent execution, cross-agent leakage holdouts, crash recovery during delegation and measured work-product benchmarks.
+`MultiAgentWorkProductLoop` binds exclusive task claims to typed `WorkProductEnvelope` records, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers and durable session resume/replay. `SafeParallelExecutor` now supports an explicit retry limit with action reclaim while cancellation is never retried. The fixed cross-agent leakage corpus contains 12 deterministic holdouts, and `WorkProductBenchmarkEvaluator` reports separate correctness, delivery, leakage, recovery, reviewer-time, retry and commit metrics. Remaining Gate 4 work is broader delegated execution and crash/retry benchmarking under real multi-agent workloads.
 
 ### Gate 5 — Memory and long-context quality evidence
 

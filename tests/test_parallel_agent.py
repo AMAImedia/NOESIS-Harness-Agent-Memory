@@ -152,6 +152,35 @@ class SafeParallelExecutorTests(unittest.TestCase):
         self.assertIn("operator_stop", result.error)
         self.assertIn("lane_cancelled", [event["event"] for event in executor.audit])
 
+    def test_bounded_retry_recovers_transient_failure_and_reclaims_action(self):
+        actions = Actions(os.path.join(self.root, "retry-actions.db"))
+        task_id = actions.create("retry-task")
+        executor = SafeParallelExecutor(self.root)
+        calls = []
+
+        def callback(ctx):
+            calls.append(ctx.task_id)
+            if len(calls) == 1:
+                raise RuntimeError("transient")
+            return "recovered"
+
+        result = executor.execute([AgentLane("agent-a", task_id, "retry")], callback, action_store=actions, retry_limit=1)[0]
+        self.assertEqual(result.status, "passed")
+        self.assertEqual(result.attempts, 2)
+        self.assertTrue(result.recovered)
+        self.assertEqual(actions.counts().get("done"), 1)
+        self.assertIn("lane_retry_scheduled", [event["event"] for event in executor.audit])
+
+    def test_retry_limit_is_bounded_and_cancellation_is_not_retried(self):
+        executor = SafeParallelExecutor(self.root)
+        with self.assertRaisesRegex(ParallelExecutionError, "retry_limit_out_of_range"):
+            executor.execute([AgentLane("a", "too-many", "too-many")], lambda _: None, retry_limit=4)
+        from noesis_harness.parallel_agent import CancellationToken
+        token = CancellationToken()
+        result = executor.execute([AgentLane("a", "cancel-retry", "cancel-retry")], lambda ctx: (token.cancel("stop"), ctx.check_cancelled()), cancellation=token, retry_limit=2)[0]
+        self.assertEqual(result.status, "cancelled")
+        self.assertEqual(result.attempts, 1)
+
     def test_deadline_cancellation_is_reported(self):
         executor = SafeParallelExecutor(self.root)
         result = executor.execute([AgentLane("a", "deadline-task", "deadline")], lambda ctx: ctx.check_cancelled(), max_duration_seconds=0.000001)[0]

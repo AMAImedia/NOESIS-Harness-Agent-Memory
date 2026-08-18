@@ -29,6 +29,10 @@ class CrossAgentLeakageSuite:
         "wrong_recipient_cannot_decide",
         "unknown_sender_denied",
         "same_agent_private_write_allowed",
+        "cross_tenant_proposal_denied",
+        "unknown_recipient_denied",
+        "proposal_decision_replay_denied",
+        "unknown_sender_receive_denied",
     )
 
     @staticmethod
@@ -79,6 +83,29 @@ class CrossAgentLeakageSuite:
 
         private = broker.propose_memory("a", "a", "private-a", {"fact": "self"})
         results.append(IsolationHoldoutResult("same_agent_private_write_allowed", bool(private) and len(broker.list_proposals("a")) == 1, "allowed", "agent may write its own private scope"))
+
+        try:
+            broker.propose_memory("a", "c", "shared", {"fact": "cross-tenant"})
+            results.append(IsolationHoldoutResult("cross_tenant_proposal_denied", False, "allowed", "cross-tenant proposal was not denied"))
+        except CapabilityDenied:
+            results.append(IsolationHoldoutResult("cross_tenant_proposal_denied", True, "denied", "cross-tenant proposal blocked"))
+
+        try:
+            broker.send("a", "missing", "task-4", {})
+            results.append(IsolationHoldoutResult("unknown_recipient_denied", False, "allowed", "unknown recipient was not denied"))
+        except CapabilityDenied:
+            results.append(IsolationHoldoutResult("unknown_recipient_denied", True, "denied", "unknown recipient blocked"))
+
+        replay_proposal = broker.propose_memory("a", "b", "shared", {"fact": "single-use"})
+        first_decision = broker.decide_proposal("b", replay_proposal, True)
+        replay = broker.decide_proposal("b", replay_proposal, True)
+        results.append(IsolationHoldoutResult("proposal_decision_replay_denied", first_decision and not replay, "denied", "proposal decision is single-use"))
+
+        try:
+            broker.receive("missing")
+            results.append(IsolationHoldoutResult("unknown_sender_receive_denied", False, "allowed", "unknown receiver was not denied"))
+        except CapabilityDenied:
+            results.append(IsolationHoldoutResult("unknown_sender_receive_denied", True, "denied", "unknown receiver blocked"))
         return tuple(results)
 
     def pass_rate(self) -> float:
