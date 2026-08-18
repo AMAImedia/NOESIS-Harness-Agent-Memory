@@ -31,6 +31,26 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
     syntax_errors: list[dict[str, Any]] = []
     secret_hits: list[dict[str, Any]] = []
     synthetic_fixture_hits: list[dict[str, Any]] = []
+    readiness_path = project / "docs" / "EXTERNAL_EVIDENCE_READINESS_MATRIX.json"
+    readiness: dict[str, Any] = {}
+    readiness_errors: list[str] = []
+    if readiness_path.exists():
+        try:
+            readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+            if readiness.get("schema_version") != "noesis.external-evidence-readiness.v1":
+                readiness_errors.append("readiness_schema_mismatch")
+            allowed = {"passed", "not_run", "blocked", "unsupported"}
+            lanes = readiness.get("lanes", {})
+            if not isinstance(lanes, dict) or not lanes:
+                readiness_errors.append("readiness_lanes_missing")
+            elif any(item.get("status") not in allowed for item in lanes.values() if isinstance(item, dict)):
+                readiness_errors.append("readiness_status_invalid")
+            if readiness.get("native_or_external_execution_claim") is not False:
+                readiness_errors.append("external_claim_guard_missing")
+        except (OSError, json.JSONDecodeError, TypeError):
+            readiness_errors.append("readiness_artifact_invalid")
+    else:
+        readiness_errors.append("readiness_artifact_missing")
     for path in sorted(package.rglob("*.py")):
         text = path.read_text(encoding="utf-8")
         for pattern in PATTERNS:
@@ -59,7 +79,7 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
         except (OSError, subprocess.CalledProcessError, IndexError) as exc:
             remote_error = type(exc).__name__ + ": " + str(exc)
     remote_matches_local = None if not include_remote else remote == local
-    clean = not actual_eval_exec and not syntax_errors and not secret_hits and not status and (not include_remote or remote_matches_local is True)
+    clean = not actual_eval_exec and not syntax_errors and not secret_hits and not status and not readiness_errors and (not include_remote or remote_matches_local is True)
     return {
         "schema_version": "noesis.local-release-audit.v1",
         "mode": "remote-parity" if include_remote else "offline",
@@ -72,6 +92,13 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
         "syntax_errors": syntax_errors,
         "secret_like_hits": secret_hits,
         "synthetic_fixture_hits": synthetic_fixture_hits,
+        "external_readiness": {
+            "path": str(readiness_path),
+            "overall_status": readiness.get("overall_status"),
+            "comparative_ready": readiness.get("comparative_ready"),
+            "native_or_external_execution_claim": readiness.get("native_or_external_execution_claim"),
+            "errors": readiness_errors,
+        },
         "clean": clean,
     }
 

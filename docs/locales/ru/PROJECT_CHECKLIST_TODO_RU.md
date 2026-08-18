@@ -850,3 +850,13 @@ Summary: `docs/locales/ru/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.
 | EXT-05 | Contract/localization | `DONE / LOCAL VERIFIED` | `docs/EXTERNAL_EVIDENCE_READINESS.md` и `docs/locales/ru/EXTERNAL_EVIDENCE_READINESS_RU.md`; signed evidence contract обновлён |
 
 Этот gate подтверждает только readiness и integrity ingestion. Реальные Hermes/OpenCode/DeepSeek Harness execution, native Windows/macOS execution и comparative superiority остаются `not_run/blocked` до exact revisions, matching environments, disposable workspaces и explicit approval.
+
+## 2026-08-18 — Release audit external-readiness claim guard
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| REL-03 | Интегрировать readiness matrix в read-only release audit | `DONE / LOCAL VERIFIED` | `scripts/release_audit.py` проверяет schema, четыре допустимых статуса, наличие lanes и `native_or_external_execution_claim=false` |
+| REL-04 | Fail-closed invalid readiness artifact | `DONE / LOCAL VERIFIED` | Некорректная schema, отсутствующие lanes или внешний claim делают release audit `clean=false`; ожидаемый `overall_status=not_run` разрешён |
+| REL-05 | Release boundary documentation | `DONE / LOCAL VERIFIED` | `docs/RELEASE_AUDIT_EXTERNAL_READINESS.md`; native/external execution и superiority ranking не создаются локальным audit |
+
+Release audit остаётся локальным/private gate. `not_run` для внешних lanes является честным состоянием отсутствия exact revisions и matching hosts, а не скрытым pass/fail.
