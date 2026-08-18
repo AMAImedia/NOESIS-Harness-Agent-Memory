@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import hashlib
+import json
 import time
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from .event_store import EventStore
 from .learning_promotion import ExperienceReceipt, HoldoutEvaluation, LearningPromotionPipeline, PromotionProposal
@@ -68,6 +70,33 @@ class PromotionTelemetry:
         for item in events:
             counts[item["event"]] = counts.get(item["event"], 0) + 1
         return {"events": events, "counts": counts, "active_activation": False, "automatic_activation": False}
+
+
+@dataclass(frozen=True)
+class RuntimePolicySimulator:
+    """Deterministic runtime-owned policy decision; never performs side effects."""
+    agent_id: str
+    scope: str
+    allowed_scopes: tuple[str, ...] = ()
+    policy_version: str = "promotion-policy.v1"
+
+    def __post_init__(self) -> None:
+        if not self.agent_id or not self.scope or not self.policy_version:
+            raise ValueError("runtime_policy_identity_required")
+        if self.allowed_scopes and self.scope not in self.allowed_scopes:
+            raise ValueError("runtime_policy_scope_not_allowed")
+
+    def simulate(self, task: Mapping[str, Any]) -> "PolicySimulation":
+        state = str(task.get("state", ""))
+        if state not in {"committed", "failed"}:
+            return PolicySimulation(False, agent_id=self.agent_id, scope=self.scope, reason="non_terminal_state")
+        task_id = str(task.get("task_id", ""))
+        if not task_id:
+            return PolicySimulation(False, agent_id=self.agent_id, scope=self.scope, reason="task_id_required")
+        canonical_task = json.dumps({"task_id": task_id, "state": state, "reason": str(task.get("reason", ""))}, sort_keys=True, separators=(",", ":"))
+        source_digest = hashlib.sha256(canonical_task.encode("utf-8")).hexdigest()
+        policy_digest = hashlib.sha256(json.dumps({"policy_version": self.policy_version, "scope": self.scope, "allowed_scopes": list(self.allowed_scopes)}, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        return PolicySimulation(True, source_digest, policy_digest, self.agent_id, self.scope, {"task_id": task_id, "state": state})
 
 
 @dataclass(frozen=True)
@@ -209,4 +238,4 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

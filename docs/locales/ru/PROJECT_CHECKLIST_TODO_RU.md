@@ -992,3 +992,15 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-EVT-06 | Durable task stream and policy simulator production wiring | `NEXT LOCAL GATE` | Supply runtime-owned policy simulator and connect bridge polling to operator execution lifecycle |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Runtime-Owned Policy and Operator Lifecycle Wiring
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-RUNTIME-01 | Runtime-owned deterministic policy simulator | `DONE / LOCAL VERIFIED` | `RuntimePolicySimulator` produces stable source/policy digests and performs no side effects |
+| LEARN-RUNTIME-02 | Explicit operator lifecycle trigger | `DONE / LOCAL VERIFIED` | `TaskExecutionBridge.poll_promotion_events(operator_trigger=True)` required; `execute()` never polls implicitly |
+| LEARN-RUNTIME-03 | Runtime promotion wiring | `DONE / LOCAL VERIFIED` | Bridge and simulator are injected explicitly; missing runtime configuration fails closed |
+| LEARN-RUNTIME-04 | Approval/activation boundary | `DONE / BOUNDED` | Capture only; evaluator, approval, promotion and activation remain separate explicit operations |
+| LEARN-RUNTIME-05 | Runtime-owned production policy configuration | `NEXT LOCAL GATE` | Replace fixture-level simulator configuration with policy derived from runtime/session ownership metadata |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

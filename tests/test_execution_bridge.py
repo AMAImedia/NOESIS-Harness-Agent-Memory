@@ -5,6 +5,8 @@ from pathlib import Path
 
 from noesis_harness.coordination import Actions
 from noesis_harness.execution_bridge import TaskExecutionBridge, TaskExecutionBridgeError, TaskExecutionRequest
+from noesis_harness.learning_promotion import LearningPromotionPipeline
+from noesis_harness.promotion_integration import EvaluatorRegistry, PromotionEventBridge, PromotionIntegration, RuntimePolicySimulator
 from noesis_harness.parallel_agent import SafeParallelExecutor
 from noesis_harness.task_session_api import SCHEMA_VERSION, TaskSessionStore
 
@@ -73,6 +75,26 @@ class ExecutionBridgeTests(unittest.TestCase):
             self.assertNotIn("workspace", event)
             self.assertNotIn("output", event)
             self.assertEqual(event["session_id"], self.session.session_id)
+
+    def test_operator_trigger_is_required_and_runtime_policy_wiring_is_capture_only(self):
+        pipeline = LearningPromotionPipeline(str(Path(self.tmp.name) / "promotion"), b"execution-bridge-key")
+        integration = PromotionIntegration(pipeline, registry=EvaluatorRegistry())
+        promotion_bridge = PromotionEventBridge(integration, str(Path(self.tmp.name) / "promotion-checkpoints.jsonl"))
+        simulator = RuntimePolicySimulator("agent-runtime", "project:demo", allowed_scopes=("project:demo",))
+        wired = TaskExecutionBridge(self.store, self.actions, self.executor, promotion_bridge=promotion_bridge, policy_simulator=simulator.simulate)
+        with self.assertRaisesRegex(TaskExecutionBridgeError, "explicit_promotion_poll_trigger_required"):
+            wired.poll_promotion_events()
+        with self.assertRaisesRegex(TaskExecutionBridgeError, "promotion_runtime_not_configured"):
+            self.bridge.poll_promotion_events(operator_trigger=True)
+        self.store.create_task(self.session.session_id, "Promote", "agent-runtime", task_id="task-promote")
+        self.store.transition_task("task-promote", "planned")
+        self.store.transition_task("task-promote", "executing")
+        self.store.transition_task("task-promote", "review")
+        self.store.transition_task("task-promote", "committed")
+        outcomes = wired.poll_promotion_events(operator_trigger=True)
+        self.assertEqual(outcomes[0]["status"], "completed")
+        self.assertEqual(len(pipeline._receipts), 1)
+        self.assertFalse(integration.snapshot()["automatic_activation"])
 
     def test_session_mismatch_fails_before_execution(self):
         self.create_waiting_task("task-mismatch", "Mismatch")

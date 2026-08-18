@@ -7,7 +7,9 @@ Trust Plane and ChildExecutionRuntime boundaries.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Any, Callable, Mapping, Optional, Sequence
+
+from .promotion_integration import PolicySimulation, PromotionEventBridge
 
 from .coordination import Actions
 from .parallel_agent import AgentLane, AgentLaneContext, AgentLaneResult, ParallelExecutionError, SafeParallelExecutor
@@ -35,10 +37,20 @@ class TaskExecutionReport:
 class TaskExecutionBridge:
     """Connect versioned task state with Actions and safe parallel callbacks."""
 
-    def __init__(self, tasks: TaskSessionStore, actions: Actions, executor: SafeParallelExecutor):
+    def __init__(self, tasks: TaskSessionStore, actions: Actions, executor: SafeParallelExecutor, *, promotion_bridge: PromotionEventBridge | None = None, policy_simulator: Callable[[Mapping[str, Any]], Mapping[str, Any] | PolicySimulation] | None = None):
         self.tasks = tasks
         self.actions = actions
         self.executor = executor
+        self.promotion_bridge = promotion_bridge
+        self.policy_simulator = policy_simulator
+
+    def poll_promotion_events(self, *, operator_trigger: bool = False) -> tuple[Mapping[str, Any], ...]:
+        """Poll promotion capture only after an explicit operator lifecycle trigger."""
+        if not operator_trigger:
+            raise TaskExecutionBridgeError("explicit_promotion_poll_trigger_required")
+        if self.promotion_bridge is None or self.policy_simulator is None:
+            raise TaskExecutionBridgeError("promotion_runtime_not_configured")
+        return self.promotion_bridge.poll(self.tasks, self.policy_simulator)
 
     def register_action(self, task_id: str, title: str, *, requires: Sequence[str] = ()) -> str:
         """Create an action using the durable task ID as its stable identity."""
