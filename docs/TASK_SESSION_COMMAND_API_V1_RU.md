@@ -23,6 +23,7 @@
 |---|---|---|
 | `session.create` | `owner`, optional `session_id` | `SessionRecord` |
 | `task.create` | `session_id`, `title`, `owner`, optional `parent_task_id`, `task_id` | `TaskRecord` |
+| `task.request_execution` | `task_id`, optional `reason` | `TaskRecord` in `waiting_approval` |
 | `task.transition` | `task_id`, `target`, optional `reason` | `TaskRecord` |
 | `session.message` | `session_id`, `role`, `content` | `event_id`, `session_id` |
 
@@ -63,10 +64,12 @@ rolled_back -> planned | cancelled
 
 Command events публикуются в stream только после успешной durable dispatch. Секретоподобные поля и credential-like text redacted до persistence и до SSE serialization. Stream не выдаёт raw context, credentials или model-generated executable content.
 
+`task.request_execution` только обозначает намерение и переводит task в `waiting_approval`. Реальный запуск выполняется отдельным `TaskExecutionBridge` только после explicit approval и durable Actions claim.
+
 ## Security boundary
 
 Loopback является default binding. Non-loopback требует explicit opt-in, LAN warning acknowledgement и bearer authentication. Session mutation требует переданного `TaskSessionStore`; без него server остаётся read-only. Command API не является approval gate: действия с side effects должны пройти отдельный Gatekeeper/Trust Plane approval и child boundary.
 
 ## Verified result
 
-Focused command/session/stream/HTTP suite: **16/16 passed** на Python 3.14.7. Full repository suite после добавления contract: **326/326 passed**, `ResourceWarning: 0`, `git diff --check` passed.
+Focused command/session/stream/HTTP suite: **16/16 passed** на Python 3.14.7. Full repository suite после добавления execution bridge: **329/329 passed**, `ResourceWarning: 0`, `git diff --check` passed.

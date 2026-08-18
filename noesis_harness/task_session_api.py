@@ -18,7 +18,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional
 from .event_store import EventStore
 
 SCHEMA_VERSION = "noesis.task-session.v1"
-COMMANDS = frozenset({"session.create", "task.create", "task.transition", "session.message"})
+COMMANDS = frozenset({"session.create", "task.create", "task.request_execution", "task.transition", "session.message"})
 
 SESSION_STATES = frozenset({"open", "paused", "completed", "cancelled"})
 TASK_STATES = frozenset({
@@ -155,6 +155,8 @@ class TaskSessionStore:
             result = self.create_session(str(payload.get("owner", "")), session_id=payload.get("session_id") or _id("sess", "command:" + command_id), command_id=command_id)
         elif name == "task.create":
             result = self.create_task(str(payload.get("session_id", "")), str(payload.get("title", "")), str(payload.get("owner", "")), parent_task_id=payload.get("parent_task_id"), task_id=payload.get("task_id") or _id("task", "command:" + command_id), command_id=command_id)
+        elif name == "task.request_execution":
+            result = self.transition_task(str(payload.get("task_id", "")), "waiting_approval", reason=str(payload.get("reason", "execution_requested")), command_id=command_id)
         elif name == "task.transition":
             result = self.transition_task(str(payload.get("task_id", "")), str(payload.get("target", "")), reason=str(payload.get("reason", "")), command_id=command_id)
         else:

@@ -12,7 +12,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
-from typing import Callable, Iterable, Mapping, Sequence
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 from uuid import uuid4
 
 
@@ -175,6 +175,7 @@ class SafeParallelExecutor:
         approval: bool = False,
         lease_store: object | None = None,
         action_store: object | None = None,
+        event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
     ) -> list[AgentLaneResult]:
         """Execute callbacks with bounded concurrency and isolated failures."""
         if not callable(callback):
@@ -192,26 +193,37 @@ class SafeParallelExecutor:
         contexts = [AgentLaneContext(sid, c.task_id, c.agent_id, c.workspace, c.capabilities) for c in contexts]
         results: list[AgentLaneResult] = []
 
+        def emit(kind: str, context: AgentLaneContext, error: str = "") -> None:
+            event = {"kind": kind, "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id}
+            if error:
+                event["error"] = error
+            with self._audit_lock:
+                self.audit.append({"event": kind, **event})
+            if event_sink is not None:
+                try:
+                    event_sink(event)
+                except Exception:
+                    with self._audit_lock:
+                        self.audit.append({"event": "lane_event_sink_failed", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+
         def run_one(context: AgentLaneContext) -> AgentLaneResult:
             claimed = False
             action_claimed = False
-            with self._audit_lock:
-                self.audit.append({"event": "lane_started", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+            emit("lane_started", context)
             if lease_store is not None:
                 claim = lease_store.acquire(context.task_id, context.agent_id)
                 if not claim.get("ok"):
-                    with self._audit_lock:
-                        self.audit.append({"event": "lane_blocked", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+                    emit("lane_blocked", context, "lease_held")
                     return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "blocked", error="lease_held")
                 claimed = True
             if action_store is not None:
                 if not action_store.claim(context.task_id, context.agent_id):
                     if claimed:
                         lease_store.release(context.task_id, context.agent_id)
-                    with self._audit_lock:
-                        self.audit.append({"event": "lane_blocked", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+                    emit("lane_blocked", context, "action_not_claimed")
                     return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "blocked", error="action_not_claimed")
                 action_claimed = True
+                emit("lane_claimed", context)
             try:
                 output = callback(context)
                 if action_claimed:
@@ -220,8 +232,7 @@ class SafeParallelExecutor:
                         raise ParallelExecutionError("action_completion_rejected")
                     action_claimed = False
             except Exception as exc:  # fail one lane without cancelling unrelated lanes
-                with self._audit_lock:
-                    self.audit.append({"event": "lane_failed", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+                emit("lane_failed", context, type(exc).__name__)
                 if action_claimed:
                     action_store.requeue(context.task_id, context.agent_id)
                     action_claimed = False
@@ -229,8 +240,7 @@ class SafeParallelExecutor:
             finally:
                 if claimed:
                     lease_store.release(context.task_id, context.agent_id)
-            with self._audit_lock:
-                self.audit.append({"event": "lane_completed", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+            emit("lane_completed", context)
             return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "passed", output=output)
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency, thread_name_prefix="noesis-agent") as pool:

@@ -696,3 +696,16 @@ Full regression после lease integration: **317/317 passed**, `ResourceWarni
 | API-07 | Command API regression | `DONE / LOCAL VERIFIED` | Focused **16/16 passed**; full Python 3.14.7 suite **326/326 passed**, `ResourceWarning: 0` |
 
 Синхронный contract: `docs/TASK_SESSION_COMMAND_API_V1_RU.md`. API не запускает модели/tools/skills; side effects требуют отдельного Trust Plane/Gatekeeper/ChildExecutionRuntime path.
+
+
+## 2026-08-18 — Command-to-execution bridge
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| EXEC-01 | `task.request_execution` command | `DONE / LOCAL VERIFIED` | Только переводит task в `waiting_approval`; непосредственный execution не запускается |
+| EXEC-02 | TaskExecutionBridge | `DONE / LOCAL VERIFIED` | `noesis_harness/execution_bridge.py`; session match, explicit approval и waiting-state gates |
+| EXEC-03 | Actions/parallel lifecycle mapping | `DONE / LOCAL VERIFIED` | Claim → callback → done/requeue; task → review/failed |
+| EXEC-04 | Execution event sink | `DONE / LOCAL VERIFIED` | Metadata-only lane/task events для bounded SSE; raw output/workspace не публикуются |
+| EXEC-05 | Bridge security/recovery tests | `DONE / LOCAL VERIFIED` | Focused **30/30 passed**; full Python 3.14.7 suite **329/329 passed**, `ResourceWarning: 0` |
+
+Синхронный contract: `docs/TASK_EXECUTION_BRIDGE_RU.md`. Bridge не является model runner и не обходит Trust Plane/ChildExecutionRuntime.

@@ -35,6 +35,7 @@ from .agent_loop import AgentLoop
 from .parallel_agent import AgentLane, AgentLaneContext, AgentLaneResult, ALWAYS_DENIED_CAPABILITIES, ParallelExecutionError, SAFE_CAPABILITIES, SafeParallelExecutor
 from .task_session_api import COMMANDS, SCHEMA_VERSION as TASK_SESSION_SCHEMA_VERSION, SessionRecord, TaskRecord, TaskSessionError, TaskSessionStore
 from .session_stream import STREAM_SCHEMA, MAX_EVENT_BYTES, CancellationToken, SessionEventBuffer, StreamContractError, StreamEvent
+from .execution_bridge import TaskExecutionBridge, TaskExecutionBridgeError, TaskExecutionReport, TaskExecutionRequest
 
 __all__ = [
     "EventStore", "project_chain",
@@ -53,7 +54,7 @@ __all__ = [
     "extract_session", "McpServer",
     "ContextPack", "estimate_tokens", "AgentLoop",
     "AgentLane", "AgentLaneContext", "AgentLaneResult", "ALWAYS_DENIED_CAPABILITIES", "ParallelExecutionError", "SAFE_CAPABILITIES", "SafeParallelExecutor",
-    "COMMANDS", "TASK_SESSION_SCHEMA_VERSION", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore", "STREAM_SCHEMA", "MAX_EVENT_BYTES", "CancellationToken", "SessionEventBuffer", "StreamContractError", "StreamEvent",
+    "COMMANDS", "TASK_SESSION_SCHEMA_VERSION", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore", "STREAM_SCHEMA", "MAX_EVENT_BYTES", "CancellationToken", "SessionEventBuffer", "StreamContractError", "StreamEvent", "TaskExecutionBridge", "TaskExecutionBridgeError", "TaskExecutionReport", "TaskExecutionRequest",
 ]
 
 __version__ = "0.5.0"

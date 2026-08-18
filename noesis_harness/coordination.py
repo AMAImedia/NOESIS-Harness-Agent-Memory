@@ -251,8 +251,10 @@ class Actions:
                 " kind TEXT NOT NULL, PRIMARY KEY(from_id, to_id, kind))")
 
     def create(self, title: str, priority: int = 5,
-               requires: Optional[List[str]] = None) -> str:
-        aid = uuid.uuid4().hex[:12]
+               requires: Optional[List[str]] = None, action_id: str = "") -> str:
+        aid = action_id or uuid.uuid4().hex[:12]
+        if not aid:
+            raise ValueError("action_id required")
         with self._lock, self._conn() as c:
             blocked = bool(requires)
             status = "blocked" if blocked else "pending"
