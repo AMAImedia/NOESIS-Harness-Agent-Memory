@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
+from .process_control import terminate_process_tree
+
 
 class SandboxUnavailable(RuntimeError):
     pass
@@ -72,12 +74,15 @@ class BubblewrapBackend:
 
     def run(self, argv: Sequence[str], workspace: Path, *, timeout_seconds: float = 10.0) -> SandboxResult:
         command = self.command(argv, workspace)
+        proc = subprocess.Popen(command, cwd=str(workspace), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
         try:
-            proc = subprocess.run(command, cwd=str(workspace), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout_seconds, check=False)
-        except subprocess.TimeoutExpired as exc:
-            return SandboxResult("timed_out", None, (exc.stdout or "")[: self.max_output_bytes], (exc.stderr or "")[: self.max_output_bytes], "timeout")
-        stdout = proc.stdout[: self.max_output_bytes]
-        stderr = proc.stderr[: self.max_output_bytes]
+            stdout, stderr = proc.communicate(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            mechanism = terminate_process_tree(proc)
+            stdout, stderr = proc.communicate(timeout=2.0)
+            return SandboxResult("timed_out", proc.returncode, stdout[: self.max_output_bytes], stderr[: self.max_output_bytes], "timeout:%s" % mechanism)
+        stdout = stdout[: self.max_output_bytes]
+        stderr = stderr[: self.max_output_bytes]
         status = "passed" if proc.returncode == 0 else "failed"
         reason = "" if proc.returncode == 0 else "child_nonzero"
         return SandboxResult(status, proc.returncode, stdout, stderr, reason)

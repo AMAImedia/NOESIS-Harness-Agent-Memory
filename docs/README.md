@@ -31,6 +31,7 @@ The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-o
 | [`EXPERIENCE_REUSE_CONTRACT_RU.md`](EXPERIENCE_REUSE_CONTRACT_RU.md) | Provenance-aware bounded experience reuse with scope/sensitivity denial, deterministic scoring and explainable budgets. |
 | [`MULTI_AGENT_CANCELLATION_MERGE_GOVERNANCE_RU.md`](MULTI_AGENT_CANCELLATION_MERGE_GOVERNANCE_RU.md) | Cooperative cancellation/deadline contract, action recovery boundary and explicit independent-review merge authorization. |
 | [`SANDBOX_BACKEND_CONFORMANCE_RU.md`](SANDBOX_BACKEND_CONFORMANCE_RU.md) | Linux/Bubblewrap and macOS sandbox backend contract, common conformance matrix, process boundary and native `not_run` semantics. |
+| [`PROCESS_TREE_CANCELLATION_RU.md`](PROCESS_TREE_CANCELLATION_RU.md) | Process-group/job termination contract for non-cooperative children, timeout/recovery guarantees and native operator commands. |
 | [`UI_CONTRACT_V1.md`](UI_CONTRACT_V1.md) | Versioned stdlib-only boundary for health, models, errors, redaction and optional Hermes/DeepSeek adapters. |
 | [`NATIVE_PACKAGING_RUNBOOK_RU.md`](NATIVE_PACKAGING_RUNBOOK_RU.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |
 | [`PARALLEL_RELEASE_AUDIT_RU.md`](PARALLEL_RELEASE_AUDIT_RU.md) | Offline release audit, secret/AST/export/Git cleanliness gates. |

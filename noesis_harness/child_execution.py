@@ -19,6 +19,7 @@ from typing import Mapping, Optional, Sequence
 from .gatekeeper import Gatekeeper
 from .security import safe_path
 from .sandbox_backend import SandboxBackend
+from .process_control import terminate_process_tree
 
 MAX_OUTPUT_BYTES = 256 * 1024
 MAX_ARG_COUNT = 64
@@ -160,14 +161,12 @@ class ChildExecutionRuntime:
             try:
                 stdout, stderr = process.communicate(timeout=request.timeout_seconds)
             except subprocess.TimeoutExpired:
-                if os.name != "nt":
-                    try:
-                        os.killpg(process.pid, signal.SIGTERM)
-                    except OSError:
-                        process.terminate()
-                else:
-                    process.terminate()
-                stdout, stderr = process.communicate(timeout=2.0)
+                terminate_process_tree(process)
+                try:
+                    stdout, stderr = process.communicate(timeout=2.0)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout, stderr = process.communicate()
                 return ExecutionResult("timeout", request.request_id, process.returncode, self._decode_bounded(stdout, request.output_limit), self._decode_bounded(stderr, request.output_limit), (time.perf_counter() - started) * 1000.0, "timeout_budget_exceeded")
         except (OSError, subprocess.SubprocessError) as exc:
             return ExecutionResult("failed", request.request_id, None, "", "", (time.perf_counter() - started) * 1000.0, "launch_failed:%s" % type(exc).__name__)

@@ -17,6 +17,7 @@ class ChildExecutionTests(unittest.TestCase):
         self.workspace.mkdir()
         (self.workspace / "ok.py").write_text("print('child-ok')\n", encoding="utf-8")
         (self.workspace / "slow.py").write_text("import time\ntime.sleep(2)\n", encoding="utf-8")
+        (self.workspace / "tree.py").write_text("import subprocess, sys, time\nsubprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])\ntime.sleep(30)\n", encoding="utf-8")
         (self.workspace / "leak.py").write_text("print('token=hf_TEST_SECRET_VALUE_123456')\n", encoding="utf-8")
         (self.workspace / "noisy.py").write_text("print('x' * 1000)\n", encoding="utf-8")
         try:
@@ -67,6 +68,13 @@ class ChildExecutionTests(unittest.TestCase):
     def test_timeout_terminates_child(self):
         request_id = self._approved_request(target="slow.py")
         result = self.runtime.run(self._request(request_id, script="slow.py", timeout=0.1))
+        self.assertEqual(result.status, "timeout")
+        self.assertEqual(result.reason, "timeout_budget_exceeded")
+
+    @unittest.skipUnless(__import__("os").name == "posix", "process-group semantics require POSIX")
+    def test_timeout_terminates_non_cooperative_descendant_tree(self):
+        request_id = self._approved_request(target="tree.py")
+        result = self.runtime.run(self._request(request_id, script="tree.py", timeout=0.1))
         self.assertEqual(result.status, "timeout")
         self.assertEqual(result.reason, "timeout_budget_exceeded")
 
