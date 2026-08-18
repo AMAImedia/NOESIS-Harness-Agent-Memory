@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import hashlib
+import hmac
 import json
 import time
 from typing import Any, Callable, Iterable, Mapping, Sequence
@@ -495,6 +496,43 @@ class PromotionIntegration:
 
 
 @dataclass(frozen=True)
+class SignedMutationReceipt:
+    action_id: str
+    operation: str
+    actor_id: str
+    target_id: str
+    previous_state: str
+    new_state: str
+    payload_digest: str
+    signature: str
+    schema_version: str = "noesis.signed-mutation-receipt.v1"
+
+    def unsigned(self) -> dict[str, str]:
+        return {"schema_version": self.schema_version, "action_id": self.action_id, "operation": self.operation, "actor_id": self.actor_id, "target_id": self.target_id, "previous_state": self.previous_state, "new_state": self.new_state, "payload_digest": self.payload_digest}
+
+    def to_mapping(self) -> dict[str, str]:
+        return {**self.unsigned(), "signature": self.signature}
+
+
+def verify_signed_mutation_receipt(receipt: Mapping[str, Any] | SignedMutationReceipt, signing_key: bytes) -> bool:
+    if not isinstance(signing_key, bytes) or len(signing_key) < 16:
+        return False
+    data = receipt.to_mapping() if isinstance(receipt, SignedMutationReceipt) else dict(receipt)
+    unsigned = {key: data.get(key, "") for key in ("schema_version", "action_id", "operation", "actor_id", "target_id", "previous_state", "new_state", "payload_digest")}
+    expected = hmac.new(signing_key, json.dumps(unsigned, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), hashlib.sha256).hexdigest()
+    return data.get("schema_version") == "noesis.signed-mutation-receipt.v1" and isinstance(data.get("signature"), str) and hmac.compare_digest(expected, data["signature"])
+
+
+def _signed_mutation_receipt(signing_key: bytes, *, action_id: str, operation: str, actor_id: str, target_id: str, previous_state: str, new_state: str, payload: Mapping[str, Any]) -> SignedMutationReceipt:
+    if not isinstance(signing_key, bytes) or len(signing_key) < 16:
+        raise ValueError("signing_key_too_short")
+    payload_digest = hashlib.sha256(json.dumps(dict(payload), sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+    unsigned = {"schema_version": "noesis.signed-mutation-receipt.v1", "action_id": action_id, "operation": operation, "actor_id": actor_id, "target_id": target_id, "previous_state": previous_state, "new_state": new_state, "payload_digest": payload_digest}
+    signature = hmac.new(signing_key, json.dumps(unsigned, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), hashlib.sha256).hexdigest()
+    return SignedMutationReceipt(action_id, operation, actor_id, target_id, previous_state, new_state, payload_digest, signature)
+
+
+@dataclass(frozen=True)
 class OperatorSessionAction:
     action_id: str
     action: str
@@ -525,13 +563,14 @@ class OperatorSessionAction:
 class AdministrativePolicyStore:
     """Reviewed administrative source for reviewer grants and revocations."""
 
-    def __init__(self, event_path: str, reviewer_store: ReviewerAuthorizationStore, session_registry: OperatorSessionRegistry, *, admin_ids: Sequence[str], required_scope: str = "admin:reviewers") -> None:
-        if not admin_ids or not required_scope:
+    def __init__(self, event_path: str, reviewer_store: ReviewerAuthorizationStore, session_registry: OperatorSessionRegistry, *, admin_ids: Sequence[str], signing_key: bytes, required_scope: str = "admin:reviewers") -> None:
+        if not admin_ids or not required_scope or not isinstance(signing_key, bytes) or len(signing_key) < 16:
             raise ValueError("administrative_policy_configuration_required")
         self.events = EventStore(event_path)
         self.reviewer_store = reviewer_store
         self.session_registry = session_registry
         self.admin_ids = frozenset(str(item) for item in admin_ids)
+        self.signing_key = signing_key
         self.required_scope = str(required_scope)
 
     def _require_admin(self, context: OperatorAuthContext) -> None:
@@ -541,15 +580,25 @@ class AdministrativePolicyStore:
 
     def grant_reviewer(self, context: OperatorAuthContext, operator_id: str, session_id: str, scopes: Sequence[str]) -> Mapping[str, Any]:
         self._require_admin(context)
-        grant = self.reviewer_store.grant(operator_id, session_id, scopes)
-        payload = {"requester_id": context.operator_id, "operation": "grant_reviewer", **dict(grant)}
+        current = self.reviewer_store._records().get((str(operator_id), str(session_id)))
+        normalized_scopes = sorted({str(item) for item in scopes})
+        if current and current.get("active", False) and sorted(str(item) for item in current.get("scopes", ())) == normalized_scopes:
+            raise PermissionError("administrative_policy_conflict")
+        previous = "active" if current and current.get("active", False) else "inactive"
+        grant = self.reviewer_store.grant(operator_id, session_id, normalized_scopes)
+        receipt = _signed_mutation_receipt(self.signing_key, action_id="grant:" + operator_id + ":" + session_id + ":" + str(self.events.count()), operation="grant_reviewer", actor_id=context.operator_id, target_id=operator_id + ":" + session_id, previous_state=previous, new_state="active", payload=grant)
+        payload = {"requester_id": context.operator_id, "operation": "grant_reviewer", **dict(grant), "audit_receipt": receipt.to_mapping()}
         self.events.append("administrative_policy_changed", payload, event_id="admin-policy:grant:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
         return payload
 
     def revoke_reviewer(self, context: OperatorAuthContext, operator_id: str, session_id: str) -> Mapping[str, Any]:
         self._require_admin(context)
+        current = self.reviewer_store._records().get((str(operator_id), str(session_id)))
+        if not current or not current.get("active", False):
+            raise PermissionError("administrative_policy_conflict")
         revoked = self.reviewer_store.revoke(operator_id, session_id)
-        payload = {"requester_id": context.operator_id, "operation": "revoke_reviewer", **dict(revoked)}
+        receipt = _signed_mutation_receipt(self.signing_key, action_id="revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()), operation="revoke_reviewer", actor_id=context.operator_id, target_id=operator_id + ":" + session_id, previous_state="active", new_state="inactive", payload=revoked)
+        payload = {"requester_id": context.operator_id, "operation": "revoke_reviewer", **dict(revoked), "audit_receipt": receipt.to_mapping()}
         self.events.append("administrative_policy_changed", payload, event_id="admin-policy:revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
         return payload
 
@@ -557,9 +606,12 @@ class AdministrativePolicyStore:
 class OperatorSessionActionExecutor:
     """Apply explicit open/close session actions with idempotent replay."""
 
-    def __init__(self, registry: OperatorSessionRegistry, event_path: str) -> None:
+    def __init__(self, registry: OperatorSessionRegistry, event_path: str, *, signing_key: bytes) -> None:
+        if not isinstance(signing_key, bytes) or len(signing_key) < 16:
+            raise ValueError("signing_key_too_short")
         self.registry = registry
         self.events = EventStore(event_path)
+        self.signing_key = signing_key
 
     def _existing(self, action_id: str) -> Mapping[str, Any] | None:
         for event in self.events.iter_events():
@@ -576,13 +628,21 @@ class OperatorSessionActionExecutor:
         existing = self._existing(action.action_id)
         if existing is not None:
             return {"status": "replayed", "result": existing}
+        current = self.registry.context(action.operator_id, action.session_id)
         if action.action == "open":
+            if current.authenticated:
+                raise PermissionError("operator_session_conflict")
             result = self.registry.open(action.operator_id, action.session_id, ttl_seconds=action.ttl_seconds, scopes=action.scopes)
+            previous_state, new_state = "inactive", "active"
         else:
+            if not current.authenticated:
+                raise PermissionError("operator_session_conflict")
             result = self.registry.close(action.operator_id, action.session_id)
-        payload = {"action_id": action.action_id, **action.to_mapping(), "result": dict(result)}
+            previous_state, new_state = "active", "inactive"
+        receipt = _signed_mutation_receipt(self.signing_key, action_id=action.action_id, operation="operator_session_" + action.action, actor_id=context.operator_id, target_id=action.session_id, previous_state=previous_state, new_state=new_state, payload=result)
+        payload = {"action_id": action.action_id, **action.to_mapping(), "result": dict(result), "audit_receipt": receipt.to_mapping()}
         self.events.append("operator_session_action_completed", payload, event_id="operator-session-action:" + action.action_id)
         return {"status": "applied", "result": payload}
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

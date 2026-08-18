@@ -1083,3 +1083,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-ADMIN-06 | External identity provider | `NEXT LOCAL GATE` | Replace local admin allow-list with reviewed external/operator identity integration when a pinned provider exists |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Signed Administrative Mutation Evidence
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-EVIDENCE-01 | Signed mutation receipt | `DONE / LOCAL VERIFIED` | HMAC-signed `noesis.signed-mutation-receipt.v1` for admin and session mutations |
+| LEARN-EVIDENCE-02 | Tamper verification | `DONE / LOCAL VERIFIED` | `verify_signed_mutation_receipt` rejects changed fields and wrong keys |
+| LEARN-EVIDENCE-03 | Conflict detection | `DONE / LOCAL VERIFIED` | Repeated grant/revoke/open/close state is rejected before unsafe duplicate mutation |
+| LEARN-EVIDENCE-04 | Interrupted-tail recovery | `DONE / LOCAL VERIFIED` | EventStore repairs only malformed final JSONL tail; non-tail corruption remains hard failure |
+| LEARN-EVIDENCE-05 | Audit boundary | `DONE / BOUNDED` | Mutation receipts attest policy/session changes only; they do not attest promotion or skill activation |
+| LEARN-EVIDENCE-06 | Atomic multi-log commit | `NEXT LOCAL GATE` | Replace sequential cross-store mutation/audit append with a transaction-coordinated journal when needed |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

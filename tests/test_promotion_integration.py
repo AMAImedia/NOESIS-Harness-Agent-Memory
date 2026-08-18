@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import AdministrativePolicyStore, EvaluatorRegistry, OperatorAuthContext, OperatorSessionAction, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
+from noesis_harness.promotion_integration import AdministrativePolicyStore, EvaluatorRegistry, OperatorAuthContext, OperatorSessionAction, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, verify_signed_mutation_receipt
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -125,14 +125,22 @@ class PromotionIntegrationTests(unittest.TestCase):
         sessions.open("admin-1", "admin-session", ttl_seconds=60, scopes=("admin:reviewers",))
         sessions.open("reviewer-1", "reviewer-session", ttl_seconds=60, scopes=("promotion:review",))
         reviewer_store = ReviewerAuthorizationStore(tempfile.mktemp())
-        policy = AdministrativePolicyStore(tempfile.mktemp(), reviewer_store, sessions, admin_ids=("admin-1",))
+        policy = AdministrativePolicyStore(tempfile.mktemp(), reviewer_store, sessions, admin_ids=("admin-1",), signing_key=b"admin-signing-key-123")
         admin = sessions.context("admin-1", "admin-session")
         grant = policy.grant_reviewer(admin, "reviewer-1", "reviewer-session", ("promotion:review",))
         self.assertEqual(grant["requester_id"], "admin-1")
+        self.assertEqual(grant["audit_receipt"]["new_state"], "active")
+        self.assertTrue(verify_signed_mutation_receipt(grant["audit_receipt"], b"admin-signing-key-123"))
+        tampered = dict(grant["audit_receipt"])
+        tampered["new_state"] = "inactive"
+        self.assertFalse(verify_signed_mutation_receipt(tampered, b"admin-signing-key-123"))
+        self.assertTrue(policy.events.count() >= 1)
         reviewer_store.authorize(sessions.context("reviewer-1", "reviewer-session"), required_scope="promotion:review")
         with self.assertRaisesRegex(PermissionError, "administrative_policy_denied"):
             policy.revoke_reviewer(sessions.context("reviewer-1", "reviewer-session"), "reviewer-1", "reviewer-session")
         policy.revoke_reviewer(admin, "reviewer-1", "reviewer-session")
+        with self.assertRaisesRegex(PermissionError, "administrative_policy_conflict"):
+            policy.revoke_reviewer(admin, "reviewer-1", "reviewer-session")
         with self.assertRaisesRegex(PermissionError, "reviewer_authorization_required"):
             reviewer_store.authorize(sessions.context("reviewer-1", "reviewer-session"), required_scope="promotion:review")
         now[0] = 161.0
@@ -141,12 +149,14 @@ class PromotionIntegrationTests(unittest.TestCase):
 
     def test_operator_session_action_executor_is_explicit_and_idempotent(self):
         registry = OperatorSessionRegistry(tempfile.mktemp())
-        executor = OperatorSessionActionExecutor(registry, tempfile.mktemp())
+        executor = OperatorSessionActionExecutor(registry, tempfile.mktemp(), signing_key=b"session-signing-key-123")
         context = OperatorAuthContext("admin-1", "admin-session", ("admin:session",))
         action = OperatorSessionAction("session-action-1", "open", "admin-1", "target-session", ttl_seconds=60, scopes=("promotion:review",))
         first = executor.handle(action, context)
         replay = executor.handle(action, context)
         self.assertEqual(first["status"], "applied")
+        self.assertEqual(first["result"]["audit_receipt"]["new_state"], "active")
+        self.assertTrue(verify_signed_mutation_receipt(first["result"]["audit_receipt"], b"session-signing-key-123"))
         self.assertEqual(replay["status"], "replayed")
         self.assertTrue(registry.context("admin-1", "target-session").authenticated)
         closed = executor.handle(OperatorSessionAction("session-action-2", "close", "admin-1", "target-session"), context)
