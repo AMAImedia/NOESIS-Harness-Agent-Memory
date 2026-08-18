@@ -918,3 +918,15 @@ Machine evidence: `docs/PARALLEL_AGENT_TRACKS_EVIDENCE.json`; English contract: 
 | PAR2-05 | Neutral coverage accounting | `DONE / LOCAL VERIFIED` | Empty process/provenance/leak/operator globs recorded as `0`, never as fabricated pass |
 
 Machine evidence: `docs/PARALLEL_AGENT_TRACKS_2_EVIDENCE.json`; English contract: `docs/PARALLEL_AGENT_TRACKS_2.md`. Native macOS/Windows и external Hermes/OpenCode/DeepSeek Harness claims не создавались.
+
+## 2026-08-18 — Third parallel stage
+
+| ID | Track/gate | Статус | Доказательство |
+|---|---|---|---|
+| STAGE3-A01 | Native Windows/macOS sandbox preflight | `LOCAL VERIFIED / TARGET HOST NOT_RUN` | Linux Bubblewrap `passed`; macOS sandbox-exec и Windows native `not_run`; claims не повышены |
+| STAGE3-A02 | External Hermes/OpenCode/DeepSeek preflight | `NOT_RUN / EXACT REVISION REQUIRED` | Все три lanes `not_run`; `comparative_ready=false`; external execution claim `false` |
+| STAGE3-B01 | Python 3.14 full-suite performance profile | `DONE / LOCAL VERIFIED` | 383 tests, subprocess wall-time 19.465471 s, in-process wall-time 19.758539 s, child max RSS 43156 KiB, peak tracemalloc 3159979 bytes, ResourceWarning 0 |
+| STAGE3-C01 | Operator telemetry dashboard | `DONE / LOCAL VERIFIED` | `/api/telemetry`, `/api/child-runtimes`, bounded SSE `/api/telemetry/events`; secret redaction tests passed |
+| STAGE3-C02 | Dashboard safety boundary | `DONE / LOCAL VERIFIED` | Read-only telemetry; no provider/tool invocation; loopback/auth gates inherited |
+
+Machine artifacts: `docs/PYTHON314_TEST_PERFORMANCE_PROFILE.json`, `docs/STAGE3_EXTERNAL_READINESS_PREFLIGHT.json`, `docs/STAGE3_CROSS_PLATFORM_PREFLIGHT.json`. English contract: `docs/OPERATOR_TELEMETRY_DASHBOARD.md`; Russian localization: `docs/locales/ru/OPERATOR_TELEMETRY_DASHBOARD_RU.md`.

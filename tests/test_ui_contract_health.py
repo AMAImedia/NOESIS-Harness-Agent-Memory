@@ -76,6 +76,30 @@ class HealthServerTests(unittest.TestCase):
             self.assertEqual(code, 404)
             self.assertEqual(payload["status"], "invalid_request")
 
+    def test_telemetry_snapshot_child_runtime_and_sse_are_read_only(self):
+        server = HealthServer(port=0)
+        server.set_telemetry(
+            streams=({"stream_id": "s-1", "state": "active", "api_key": "hidden"},),
+            child_runtimes=({"runtime_id": "child-1", "state": "running", "pid": 123},),
+            counters={"events": 4},
+        )
+        with server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            code, payload = self._request("GET", base + "/api/telemetry")
+            self.assertEqual(code, 200)
+            self.assertEqual(payload["data"]["telemetry"]["counters"]["active_streams"], 1)
+            self.assertEqual(payload["data"]["telemetry"]["streams"][0]["api_key"], "[REDACTED]")
+            code, child_payload = self._request("GET", base + "/api/child-runtimes")
+            self.assertEqual(code, 200)
+            self.assertEqual(child_payload["data"]["telemetry"]["child_runtimes"][0]["runtime_id"], "child-1")
+            request = urllib.request.Request(base + "/api/telemetry/events", method="GET")
+            with urllib.request.urlopen(request, timeout=2) as response:
+                body = response.read().decode("utf-8")
+                self.assertEqual(response.headers["Content-Type"], "text/event-stream; charset=utf-8")
+                self.assertIn("event: telemetry", body)
+                self.assertIn('"runtime_id":"child-1"', body)
+                self.assertNotIn("hidden", body)
+
     def test_duplicate_start_and_invalid_binding_are_safe(self):
         with HealthServer(port=0) as server:
             first = server.start()

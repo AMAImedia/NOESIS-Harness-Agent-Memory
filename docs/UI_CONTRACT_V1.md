@@ -127,6 +127,18 @@ python examples/run_control_plane.py --host 127.0.0.1 --port 8765 --empty-regist
 
 The examples use only declarative demo metadata. They do not start Hermes, DeepSeek, Ollama, LM Studio or any model process.
 
+## Telemetry dashboard endpoints
+
+The read-only operator dashboard exposes three local telemetry routes:
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/telemetry` | `GET` | Redacted snapshot of SSE streams, child runtimes and counters. |
+| `/api/child-runtimes` | `GET` | Redacted child-runtime subset. |
+| `/api/telemetry/events` | `GET` | One bounded `event: telemetry` SSE snapshot; clients reconnect for refresh. |
+
+Telemetry is recursively redacted for secret-shaped keys and cannot invoke tools, providers or commands. `HealthServer.set_telemetry()` replaces the snapshot atomically. The dashboard is loopback-only by default and inherits existing authentication and non-loopback warning gates. A telemetry snapshot is not proof of native sandbox isolation or external provider execution.
+
 ## Adapter boundary
 
 Hermes WebUI and DeepSeek Harness are optional child-runtime adapters. The UI contract normalizes their model/profile/session metadata, but it does not merge their private memory implicitly. Tool execution remains in the selected runtime workspace and its location is recorded as capability metadata. Remote runtime access must never be described as local hands.

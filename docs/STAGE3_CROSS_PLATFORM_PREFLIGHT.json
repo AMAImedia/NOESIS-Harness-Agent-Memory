@@ -1,0 +1,37 @@
+{
+  "claim_boundary": "local_verifier_pass_does_not_create_native_or_external_execution_evidence",
+  "comparative_ready": false,
+  "credentials_available": false,
+  "invalid_status_lanes": [],
+  "lanes": {
+    "deepseek_harness_external": {
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "hermes_external": {
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "linux_local_verifier": {
+      "reason": "bounded_local_evidence_lanes",
+      "status": "passed"
+    },
+    "macos_native": {
+      "reason": "target_host_or_python_mismatch",
+      "status": "not_run"
+    },
+    "opencode_external": {
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "windows_native": {
+      "reason": "target_host_or_python_mismatch",
+      "status": "not_run"
+    }
+  },
+  "native_builds_executed": false,
+  "native_or_external_execution_claim": false,
+  "network_allowed": false,
+  "overall_status": "not_run",
+  "schema_version": "noesis.cross-platform-release-gates.v1"
+}

@@ -5,6 +5,7 @@ import hmac
 import json
 from dataclasses import asdict, is_dataclass
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
@@ -41,6 +42,14 @@ class HealthServer:
         self.provider_registry = provider_registry or ProviderRegistry()
         self.session_store = session_store
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
+        self._telemetry_lock = threading.RLock()
+        self._telemetry: dict[str, Any] = {
+            "streams": [],
+            "child_runtimes": [],
+            "counters": {"events": 0, "active_streams": 0, "active_children": 0},
+            "source": "local-control-plane",
+            "updated_at_epoch": 0,
+        }
         self.host = host
         self.port = int(port)
         self.max_request_bytes = int(max_request_bytes)
@@ -55,6 +64,35 @@ class HealthServer:
 
     def models_envelope(self) -> UIEnvelope:
         return self.provider_registry.envelope()
+
+    def set_telemetry(self, *, streams: Sequence[Mapping[str, Any]] = (), child_runtimes: Sequence[Mapping[str, Any]] = (), counters: Optional[Mapping[str, Any]] = None) -> None:
+        """Replace the redacted, read-only operator telemetry snapshot."""
+        with self._telemetry_lock:
+            safe_streams = [self._redact_telemetry(dict(item)) for item in streams]
+            safe_children = [self._redact_telemetry(dict(item)) for item in child_runtimes]
+            safe_counters = self._redact_telemetry(dict(counters or {}))
+            safe_counters.setdefault("active_streams", len(safe_streams))
+            safe_counters.setdefault("active_children", len(safe_children))
+            self._telemetry = {
+                "streams": safe_streams,
+                "child_runtimes": safe_children,
+                "counters": safe_counters,
+                "source": "local-control-plane",
+                "updated_at_epoch": int(time.time()),
+            }
+
+    @staticmethod
+    def _redact_telemetry(value: Any) -> Any:
+        secret_names = ("token", "secret", "password", "credential", "authorization", "api_key", "private_key")
+        if isinstance(value, Mapping):
+            return {str(key): ("[REDACTED]" if any(name in str(key).casefold() for name in secret_names) else HealthServer._redact_telemetry(item)) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [HealthServer._redact_telemetry(item) for item in value]
+        return value
+
+    def telemetry_snapshot(self) -> Mapping[str, Any]:
+        with self._telemetry_lock:
+            return self._redact_telemetry(self._telemetry)
 
     @property
     def bound_port(self) -> int:
@@ -146,6 +184,21 @@ class HealthServer:
                     self._send(parent.envelope(), 200)
                 elif self.path == "/models":
                     self._send(parent.models_envelope(), 200)
+                elif self.path in {"/api/telemetry", "/api/child-runtimes"}:
+                    snapshot = parent.telemetry_snapshot()
+                    if self.path == "/api/child-runtimes":
+                        snapshot = {"child_runtimes": snapshot["child_runtimes"], "counters": snapshot["counters"], "updated_at_epoch": snapshot["updated_at_epoch"]}
+                    self._send(success({"telemetry": snapshot}), 200)
+                elif self.path == "/api/telemetry/events":
+                    payload = success({"telemetry": parent.telemetry_snapshot()}).to_json()
+                    body = ("event: telemetry\ndata: " + payload + "\n\n").encode("utf-8")
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
                 elif self.path in {"/", "/ui"}:
                     self._send_html(CONTROL_PLANE_HTML, 200)
                 elif self.path.startswith("/api/tasks/") and parent.session_store is not None:
