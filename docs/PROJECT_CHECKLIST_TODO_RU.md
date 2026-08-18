@@ -764,3 +764,17 @@ Summary: `docs/PARALLEL_BUILD_POLICY_EVIDENCE_RU.md`. Native Windows/macOS build
 | CI-06 | Machine-readable evidence | `DONE / LOCAL VERIFIED` | `docs/PARALLEL_CI_CONSISTENCY_EVIDENCE.json`; SHA-256 `884dd1a55ab5deba55174276d83a45c160b822679ec083eff26d44855cb0ebb8` |
 
 Синхронный summary: `docs/PARALLEL_CI_CONSISTENCY_RU.md`. Native target builds и signatures всё ещё требуют Windows/macOS hosts.
+
+
+## 2026-08-18 — Offline release audit
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| AUD-01 | Offline secret/AST audit | `DONE / LOCAL VERIFIED` | Zero credential-like hits, zero syntax errors, zero actual `eval`/`exec` calls |
+| AUD-02 | Package export audit | `DONE / LOCAL VERIFIED` | Governance/execution exports доступны; 8 проверенных names |
+| AUD-03 | Git integrity audit | `DONE / LOCAL VERIFIED` | `git diff --check` gate; final clean-tree requirement |
+| AUD-04 | Russian checklist audit | `DONE / LOCAL VERIFIED` | MA/API/EXEC/REL/NAT/CI markers присутствуют |
+| AUD-05 | Offline audit boundary | `DONE / LOCAL VERIFIED` | `remote_parity_checked=false`; `git ls-remote` не вызывается без explicit `--remote` |
+| AUD-06 | Parallel audit evidence | `DONE / RUN AFTER CLEAN CHECKPOINT` | 4 SafeParallelExecutor lanes, unique workspaces, no network/credentials/model code |
+
+Summary: `docs/PARALLEL_RELEASE_AUDIT_RU.md`. Remote Git parity, native target builds и external A/B остаются отдельными explicit gates.
