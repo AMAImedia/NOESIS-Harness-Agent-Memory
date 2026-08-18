@@ -1109,3 +1109,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-JOURNAL-06 | Single-store transactional backend | `NEXT LOCAL GATE` | Move state and audit records to a transaction-coordinated SQLite/WAL journal when required |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — SQLite/WAL Transactional Administrative Backend
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-SQLITE-01 | Single-store SQLite/WAL schema | `DONE / LOCAL VERIFIED` | Sessions, reviewer grants and mutation audit are stored in one SQLite database |
+| LEARN-SQLITE-02 | Transactional state + audit commit | `DONE / LOCAL VERIFIED` | Accepted mutation writes state and signed audit row in one transaction |
+| LEARN-SQLITE-03 | Rollback/no orphan evidence | `DONE / LOCAL VERIFIED` | Denied actor/session and conflict paths leave no audit row or partial state |
+| LEARN-SQLITE-04 | Restart/recovery | `DONE / LOCAL VERIFIED` | Reopened backend reconstructs sessions and detects active-state conflicts |
+| LEARN-SQLITE-05 | Resource hygiene | `DONE / LOCAL VERIFIED` | Managed connections close cleanly under Python 3.14 ResourceWarning policy |
+| LEARN-SQLITE-06 | Runtime adoption | `NEXT LOCAL GATE` | Replace optional append-only stores in production operator wiring only after migration/recovery plan review |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

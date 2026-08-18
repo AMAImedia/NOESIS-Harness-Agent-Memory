@@ -30,6 +30,6 @@ Operator actions are separately replay-safe by `action_id`. A completed action r
 
 ## Non-goals
 
-This layer does not execute skill content, choose an evaluator implicitly, activate a skill automatically, or claim general autonomous learning. It is a governed bridge to the existing promotion state machine. Runtime activation remains a separate capability-gated implementation task.
+This layer does not execute skill content, choose an evaluator implicitly, activate a skill automatically, or claim general autonomous learning. It is a governed bridge to the existing promotion state machine. `SQLiteAdministrativeBackend` provides an optional single-store SQLite/WAL backend in which operator sessions, reviewer grants and signed mutation audit rows commit in one database transaction. A failed transaction leaves neither the state mutation nor its audit row. Runtime activation remains a separate capability-gated implementation task.
 
 Implementation: `noesis_harness/promotion_integration.py`; lifecycle wiring: `noesis_harness/execution_bridge.py`; HTTP contract: `noesis_harness/health_server.py`; task source: `noesis_harness/task_session_api.py`; HealthServer injection: `promotion_telemetry=`; tests: `tests/test_promotion_integration.py`, `tests/test_execution_bridge.py` and `tests/test_ui_contract_health.py`.
