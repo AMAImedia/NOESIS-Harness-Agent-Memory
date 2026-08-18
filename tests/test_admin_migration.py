@@ -1,9 +1,9 @@
 import tempfile
 import unittest
 
-from noesis_harness.admin_migration import AdministrativeMigrationAdapter, AdministrativeMigrationError
+from noesis_harness.admin_migration import AdministrativeActionRouter, AdministrativeMigrationAdapter, AdministrativeMigrationError
 from noesis_harness.admin_state_sqlite import SQLiteAdministrativeBackend
-from noesis_harness.promotion_integration import ReviewerAuthorizationStore, OperatorSessionRegistry
+from noesis_harness.promotion_integration import OperatorAuthContext, ReviewerAuthorizationStore, OperatorSessionRegistry
 
 
 class AdministrativeMigrationAdapterTests(unittest.TestCase):
@@ -38,6 +38,48 @@ class AdministrativeMigrationAdapterTests(unittest.TestCase):
         rollback = adapter.rollback(operator_id='admin-1', reason='operator requested rollback')
         self.assertEqual(rollback['mode'], 'legacy')
         self.assertEqual(adapter.mode, 'legacy')
+
+    def test_router_keeps_legacy_default_and_selects_explicit_sqlite_mode(self):
+        adapter, *_ = self.make()
+        router = AdministrativeActionRouter(adapter)
+        context = OperatorAuthContext('admin-1', 'admin-session', ('admin:reviewers',))
+        calls = []
+        def legacy(action, auth):
+            calls.append('legacy')
+            return {'backend': 'legacy'}
+        def sqlite(action, auth):
+            calls.append('sqlite')
+            return {'backend': 'sqlite'}
+        result = router.route({'action_id': 'route-legacy'}, context, legacy_handler=legacy, sqlite_handler=sqlite, verification={})
+        self.assertEqual(result['mode'], 'legacy')
+        self.assertEqual(calls, ['legacy'])
+        adapter.start('dual_read', operator_id='admin-1', reason='prepare route')
+        adapter.legacy_reviewer.grant('reviewer-1', 'reviewer-session', ('promotion:review',))
+        with self.assertRaisesRegex(AdministrativeMigrationError, 'routing_dual_read_blocked'):
+            router.route({'action_id': 'route-blocked'}, context, legacy_handler=legacy, sqlite_handler=sqlite, verification={'session_id': 'admin-session', 'reviewer_operator_id': 'reviewer-1', 'reviewer_session_id': 'reviewer-session'})
+
+    def test_sqlite_router_requires_verified_dual_read_then_selects_sqlite_handler(self):
+        adapter, legacy_sessions, legacy_reviewer, sqlite = self.make()
+        legacy_sessions.open('reviewer-1', 'reviewer-session', ttl_seconds=900, scopes=('promotion:review',))
+        sqlite.open_session(actor_id='admin-1', actor_session_id='admin-session', target_operator_id='reviewer-1', target_session_id='reviewer-session', ttl_seconds=900, scopes=('promotion:review',), action_id='route-open')
+        legacy_reviewer.grant('reviewer-1', 'reviewer-session', ('promotion:review',))
+        sqlite.grant_reviewer(admin_id='admin-1', admin_session_id='admin-session', target_operator_id='reviewer-1', target_session_id='reviewer-session', scopes=('promotion:review',), action_id='route-grant')
+        adapter.start('dual_read', operator_id='admin-1', reason='verify projections')
+        adapter.require_dual_read(session_id='reviewer-session', reviewer_operator_id='reviewer-1', reviewer_session_id='reviewer-session')
+        adapter.start('sqlite', operator_id='admin-1', reason='explicit cutover')
+        router = AdministrativeActionRouter(adapter)
+        context = OperatorAuthContext('admin-1', 'admin-session', ('admin:reviewers',))
+        result = router.route({'action_id': 'sqlite-route'}, context, legacy_handler=lambda action, auth: {'backend': 'legacy'}, sqlite_handler=lambda action, auth: {'backend': 'sqlite'}, verification={'session_id': 'reviewer-session', 'reviewer_operator_id': 'reviewer-1', 'reviewer_session_id': 'reviewer-session'})
+        self.assertEqual(result['mode'], 'sqlite')
+        self.assertEqual(result['result']['backend'], 'sqlite')
+
+    def test_health_handler_uses_same_explicit_router_contract(self):
+        adapter, *_ = self.make()
+        router = AdministrativeActionRouter(adapter)
+        context = OperatorAuthContext('admin-1', 'admin-session', ('admin:reviewers',))
+        handler = router.health_handler(legacy_handler=lambda action, auth: {'accepted': True}, sqlite_handler=lambda action, auth: {'accepted': False}, verification_provider=lambda action, auth: {})
+        result = handler({'action_id': 'health-route'}, context)
+        self.assertEqual(result['result']['accepted'], True)
 
     def test_dual_read_passes_when_projections_match(self):
         adapter, legacy_sessions, legacy_reviewer, sqlite = self.make()

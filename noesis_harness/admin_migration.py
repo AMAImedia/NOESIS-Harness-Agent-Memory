@@ -30,6 +30,33 @@ class MigrationCheck:
         return {"schema_version": MIGRATION_SCHEMA, "mode": self.mode, "session_match": self.session_match, "reviewer_match": self.reviewer_match, "status": self.status, "reason": self.reason}
 
 
+class AdministrativeActionRouter:
+    """Route an already validated operator action through an explicit mode."""
+
+    def __init__(self, migration: "AdministrativeMigrationAdapter") -> None:
+        self.migration = migration
+
+    def route(self, action: Mapping[str, Any], context: OperatorAuthContext, *, legacy_handler: Any, sqlite_handler: Any, verification: Mapping[str, str]) -> Mapping[str, Any]:
+        if not context.authenticated or not context.operator_id or not context.session_id:
+            raise AdministrativeMigrationError("operator_context_required")
+        if not callable(legacy_handler) or not callable(sqlite_handler):
+            raise AdministrativeMigrationError("routing_handlers_required")
+        check = self.migration.verify_dual_read(**dict(verification)) if self.migration.mode in {"dual_read", "sqlite"} else MigrationCheck("legacy", True, True, "not_applicable")
+        if self.migration.mode in {"dual_read", "sqlite"} and check.status != "passed":
+            raise AdministrativeMigrationError("routing_dual_read_blocked")
+        handler = sqlite_handler if self.migration.mode == "sqlite" else legacy_handler
+        result = handler(action, context)
+        payload = {"schema_version": MIGRATION_SCHEMA, "mode": self.migration.mode, "operator_id": context.operator_id, "session_id": context.session_id, "action_id": str(action.get("action_id", "")), "verification": check.to_mapping(), "result": dict(result) if isinstance(result, Mapping) else {"value": str(result)}}
+        self.migration.events.append("administrative_action_routed", payload, event_id="admin-route:" + payload["action_id"] + ":" + str(self.migration.events.count()))
+        return payload
+
+    def health_handler(self, *, legacy_handler: Any, sqlite_handler: Any, verification_provider: Any):
+        def handle(action: Mapping[str, Any], context: OperatorAuthContext) -> Mapping[str, Any]:
+            verification = verification_provider(action, context)
+            return self.route(action, context, legacy_handler=legacy_handler, sqlite_handler=sqlite_handler, verification=verification)
+        return handle
+
+
 class AdministrativeMigrationAdapter:
     """Route administrative reads/writes without silently replacing legacy state."""
 
@@ -108,4 +135,4 @@ class AdministrativeMigrationAdapter:
         return {"schema_version": MIGRATION_SCHEMA, "mode": self.mode, "action": "route_after_verification", "check": check.to_mapping(), "automatic_cutover": False}
 
 
-__all__ = ["MIGRATION_SCHEMA", "AdministrativeMigrationError", "MigrationCheck", "AdministrativeMigrationAdapter"]
+__all__ = ["MIGRATION_SCHEMA", "AdministrativeMigrationError", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter"]

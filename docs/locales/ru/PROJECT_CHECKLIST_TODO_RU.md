@@ -1136,3 +1136,17 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-MIGRATE-07 | Production routing adoption | `NEXT LOCAL GATE` | Connect verified adapter to HealthServer and executor mutation routing |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Explicit Administrative Action Routing
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-ROUTE-01 | Legacy default | `DONE / LOCAL VERIFIED` | Router selects legacy handler when migration mode is unset |
+| LEARN-ROUTE-02 | Dual-read guard | `DONE / LOCAL VERIFIED` | Failed projection verification blocks operator routing |
+| LEARN-ROUTE-03 | SQLite selection | `DONE / LOCAL VERIFIED` | SQLite handler is selected only after verified dual-read and explicit mode transition |
+| LEARN-ROUTE-04 | HealthServer handler | `DONE / BOUNDED` | `health_handler()` delegates validated action/context without performing implicit promotion |
+| LEARN-ROUTE-05 | Routing evidence | `DONE / LOCAL VERIFIED` | Bounded `administrative_action_routed` event records mode and verification result |
+| LEARN-ROUTE-06 | Automatic cutover | `NOT_RUN / DISABLED` | No silent replacement of legacy stores |
+| LEARN-ROUTE-07 | Production executor replacement | `NEXT LOCAL GATE` | Connect router to real PromotionActionExecutor and HealthServer deployment configuration |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
