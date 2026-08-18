@@ -9,4 +9,6 @@ This runbook is the operator-controlled preparation contract for Gate 6. It does
 
 The bundle runs the existing Python 3.14 test suite, records an environment manifest, writes parity results, and requires network-off and credential-free execution. A target lane may report `passed` only after the matching host executes the bundle and produces the required artifacts: `environment.json`, `parity-results.json`, `sha256sums.txt`, and `sbom.json`.
 
+After the bundle completes, the operator must run `python3.14 scripts/validate_native_parity.py --target windows --evidence-dir artifacts/native/windows` (or replace `windows` with `macos`). The CLI calls `validate_native_artifacts(target, evidence_dir)`. The validator rejects missing or malformed artifacts, failed environment guards, non-passed parity results, missing SBOM entries, empty SHA-256 manifests, and SHA-256 mismatches. A `passed` result from this validator means that the matching host produced internally consistent operator artifacts; it does not establish external benchmark superiority.
+
 A Linux dry-run or static inspection remains `not_run`; it is never converted into native success. The current machine-readable contract is [`CROSS_PLATFORM_RELEASE_GATE_MATRIX.json`](CROSS_PLATFORM_RELEASE_GATE_MATRIX.json), and the preparation API is `noesis_harness.native_parity`.

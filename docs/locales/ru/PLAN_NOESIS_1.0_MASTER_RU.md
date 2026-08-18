@@ -50,7 +50,7 @@ Manifest/grant contract и Linux reference path реализованы: `Executi
 
 ### Gate 6 — Native Windows/macOS evidence
 
-Запустить одинаковый operator bundle и parity contract на matching Windows/macOS hosts с Python 3.14. Выпустить signed environment digests, backend conformance receipts, packaging manifests, SHA-256/SBOM и negative-path results. До этого статусы остаются `not_run`.
+Запустить одинаковый operator bundle и parity contract на matching Windows/macOS hosts с Python 3.14. В bundle добавлен единый stdlib CLI validator, который отклоняет host mismatch, missing/malformed artifacts, нарушения network/credential guards, неуспешный parity result, неполный SBOM, пустой manifest и SHA-256 mismatch. Выпустить environment digests, backend conformance receipts, packaging manifests, SHA-256/SBOM и negative-path results. Локальные tests покрывают десять native negative/contract cases; до matching-host execution статусы остаются `not_run`.
 
 ### Gate 7 — Pinned external A/B evidence
 
