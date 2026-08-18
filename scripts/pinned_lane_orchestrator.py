@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
+from scripts.external_evidence_readiness import build_matrix as build_readiness_matrix
 from scripts.external_runner_contract import REQUIRED_SYSTEMS, make_spec, validate_result
 from scripts.run_external_lane import plan
 
@@ -107,6 +108,7 @@ def prepare_matrix(manifest: Mapping[str, Any], workspace: str) -> dict[str, Any
         "missing_manifest_systems": missing,
         "adapter_inventory": adapter_inventory(),
         "lanes": lanes,
+        "readiness": build_readiness_matrix(manifest, [], "orchestrator-preflight-key-2026"),
         "external_execution": "not_run",
         "ranking": "not_run",
         "reason": "pinned_environment_and_explicit_operator_approval_required",
