@@ -1017,3 +1017,17 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-OWNER-06 | Real operator action implementation | `NEXT LOCAL GATE` | Bind injected handler to explicit proposal approve/reject/rollback operations with independent reviewer policy |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Explicit Operator Action Executor
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-ACTION-01 | Explicit approve/reject/rollback executor | `DONE / LOCAL VERIFIED` | `PromotionActionExecutor` maps versioned actions to separate proposal transitions |
+| LEARN-ACTION-02 | Independent reviewer policy | `DONE / LOCAL VERIFIED` | Operator identity cannot equal experience owner for approval actions |
+| LEARN-ACTION-03 | Signed action receipt | `DONE / LOCAL VERIFIED` | HMAC-signed `noesis.promotion-action-receipt.v1` receipt verifies against canonical action fields |
+| LEARN-ACTION-04 | Idempotent action replay | `DONE / LOCAL VERIFIED` | Repeated `action_id` returns stored receipt and does not reapply state transition |
+| LEARN-ACTION-05 | Activation boundary | `DONE / BOUNDED` | Approval/rejection/rollback executor never activates a skill; promotion remains separate |
+| LEARN-ACTION-06 | UI handler binding | `DONE / LOCAL VERIFIED` | HealthServer action route delegates only to injected handler after schema validation |
+| LEARN-ACTION-07 | Full operator proposal workflow | `NEXT LOCAL GATE` | Bind handler to operator session/auth identity and independent reviewer policy in production UI lifecycle |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

@@ -114,6 +114,50 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertFalse(missing.allowed)
         self.assertEqual(missing.reason, "task_owner_missing")
 
+    def _proposal(self, integration, task_id="task-action"):
+        receipt = integration.capture_task_completion({"task_id": task_id, "status": "completed"}, payload={"result": "ok"}, source_digest="src", policy_digest="pol", agent_id="agent-owner", scope="project:demo")
+        evaluation = integration.evaluate(receipt.receipt_id, "eval-1")
+        return integration.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="skill-" + task_id, content="# skill\n")
+
+    def test_operator_action_executor_approves_with_signed_idempotent_receipt(self):
+        from noesis_harness.promotion_integration import PromotionActionExecutor
+        integration = self.integration()
+        proposal = self._proposal(integration)
+        executor = PromotionActionExecutor(integration, tempfile.mktemp(), approval_tests=lambda: True)
+        action = PromotionApprovalAction("action-approve", "approve", proposal.proposal_id, "independent-reviewer")
+        first = executor.handle(action)
+        replay = executor.handle(action)
+        self.assertEqual(first["status"], "applied")
+        self.assertEqual(replay["status"], "replayed")
+        receipt = first["receipt"]
+        self.assertEqual(receipt["new_state"], "approved")
+        signature_payload = {key: receipt[key] for key in ("action_id", "proposal_id", "action", "operator_id", "previous_state", "new_state")}
+        self.assertTrue(integration.pipeline.verify_signature(signature_payload, receipt["signed_receipt"]))
+        self.assertEqual(integration.pipeline._proposals[proposal.proposal_id].state, "approved")
+        self.assertEqual(integration.pipeline.active_version(proposal.skill_name), "")
+
+    def test_operator_action_executor_rejects_self_review_and_supports_reject(self):
+        from noesis_harness.promotion_integration import PromotionActionExecutor
+        integration = self.integration()
+        proposal = self._proposal(integration, "task-reject")
+        executor = PromotionActionExecutor(integration, tempfile.mktemp())
+        with self.assertRaisesRegex(PermissionError, "independent_reviewer_required"):
+            executor.handle(PromotionApprovalAction("action-self", "approve", proposal.proposal_id, "agent-owner"))
+        rejected = executor.handle(PromotionApprovalAction("action-reject", "reject", proposal.proposal_id, "independent-reviewer"))
+        self.assertEqual(rejected["receipt"]["new_state"], "rejected")
+
+    def test_operator_action_executor_rolls_back_only_explicitly_promoted_proposal(self):
+        from noesis_harness.promotion_integration import PromotionActionExecutor
+        integration = self.integration()
+        proposal = self._proposal(integration, "task-rollback")
+        executor = PromotionActionExecutor(integration, tempfile.mktemp())
+        executor.handle(PromotionApprovalAction("action-approve-r", "approve", proposal.proposal_id, "independent-reviewer"))
+        promoted, _ = integration.promote(proposal.proposal_id, content="# skill\n", verify=lambda path: path.is_file(), activate=False)
+        self.assertEqual(promoted.state, "promoted")
+        rolled = executor.handle(PromotionApprovalAction("action-rollback", "rollback", proposal.proposal_id, "independent-reviewer", expected_state="promoted"))
+        self.assertEqual(rolled["receipt"]["new_state"], "rolled_back")
+        self.assertEqual(integration.pipeline.active_version(proposal.skill_name), "")
+
     def test_promotion_approval_action_is_versioned_and_non_secret(self):
         action = PromotionApprovalAction.from_mapping({"schema_version": "noesis.promotion-approval.v1", "action_id": "action-1", "action": "approve", "proposal_id": "proposal-1", "operator_id": "operator-1"})
         self.assertEqual(action.to_mapping()["action"], "approve")

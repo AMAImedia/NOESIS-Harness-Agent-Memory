@@ -99,6 +99,67 @@ class RuntimePolicySimulator:
         return PolicySimulation(True, source_digest, policy_digest, self.agent_id, self.scope, {"task_id": task_id, "state": state})
 
 
+@dataclass(frozen=True)
+class PromotionActionReceipt:
+    action_id: str
+    proposal_id: str
+    action: str
+    operator_id: str
+    previous_state: str
+    new_state: str
+    signed_receipt: str
+    schema_version: str = "noesis.promotion-action-receipt.v1"
+
+    def to_mapping(self) -> dict[str, str]:
+        return {"schema_version": self.schema_version, "action_id": self.action_id, "proposal_id": self.proposal_id, "action": self.action, "operator_id": self.operator_id, "previous_state": self.previous_state, "new_state": self.new_state, "signed_receipt": self.signed_receipt}
+
+
+class PromotionActionExecutor:
+    """Execute only explicit operator proposal actions; replay is idempotent."""
+
+    def __init__(self, integration: "PromotionIntegration", receipt_path: str, *, approval_tests: Callable[[], bool] | None = None, independent_reviewer: Callable[[str, str], bool] | None = None) -> None:
+        self.integration = integration
+        self.receipts = EventStore(receipt_path)
+        self.approval_tests = approval_tests or (lambda: True)
+        self.independent_reviewer = independent_reviewer or (lambda operator_id, owner_id: operator_id != owner_id)
+
+    def _existing(self, action_id: str) -> PromotionActionReceipt | None:
+        for event in self.receipts.iter_events():
+            if event.get("type") == "promotion_action_completed" and (event.get("payload") or {}).get("action_id") == action_id:
+                payload = event["payload"]
+                return PromotionActionReceipt(**{key: payload[key] for key in ("action_id", "proposal_id", "action", "operator_id", "previous_state", "new_state", "signed_receipt")})
+        return None
+
+    def handle(self, action: PromotionApprovalAction) -> Mapping[str, Any]:
+        if not isinstance(action, PromotionApprovalAction):
+            raise ValueError("promotion_action_required")
+        existing = self._existing(action.action_id)
+        if existing is not None:
+            return {"status": "replayed", "receipt": existing.to_mapping()}
+        proposal = self.integration.pipeline._proposals.get(action.proposal_id)
+        if proposal is None:
+            raise KeyError(action.proposal_id)
+        if proposal.state != action.expected_state:
+            raise ValueError("proposal_state_conflict")
+        receipt = self.integration.pipeline._receipts.get(proposal.receipt_id)
+        owner_id = receipt.agent_id if receipt is not None else ""
+        if not owner_id or not self.independent_reviewer(action.operator_id, owner_id):
+            raise PermissionError("independent_reviewer_required")
+        previous = proposal.state
+        if action.action == "approve":
+            updated = self.integration.approve(action.proposal_id, approved_by=action.operator_id, tests=self.approval_tests)
+        elif action.action == "reject":
+            updated = self.integration.pipeline.reject(action.proposal_id, rejected_by=action.operator_id)
+            self.integration.telemetry.record("promotion_rejected", proposal_id=action.proposal_id, operator_id=action.operator_id, state=updated.state)
+        else:
+            updated = self.integration.rollback(action.proposal_id)
+        payload = {"action_id": action.action_id, "proposal_id": action.proposal_id, "action": action.action, "operator_id": action.operator_id, "previous_state": previous, "new_state": updated.state}
+        signed = self.integration.pipeline._sign(payload)
+        completed = PromotionActionReceipt(**{**payload, "signed_receipt": signed})
+        self.receipts.append("promotion_action_completed", completed.to_mapping(), event_id="promotion-action:" + action.action_id)
+        return {"status": "applied", "receipt": completed.to_mapping()}
+
+
 class OwnershipPolicySimulator:
     """Derive promotion policy from authoritative task/session ownership metadata."""
 
@@ -139,7 +200,7 @@ class PromotionApprovalAction:
     action: str
     proposal_id: str
     operator_id: str
-    expected_state: str = "proposed"
+    expected_state: str = "review"
     schema_version: str = "noesis.promotion-approval.v1"
 
     def __post_init__(self) -> None:
@@ -147,14 +208,14 @@ class PromotionApprovalAction:
             raise ValueError("approval_action_identity_required")
         if self.action not in {"approve", "reject", "rollback"}:
             raise ValueError("unsupported_approval_action")
-        if self.expected_state not in {"proposed", "approved", "promoted"}:
+        if self.expected_state not in {"review", "approved", "promoted"}:
             raise ValueError("unsupported_expected_state")
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> "PromotionApprovalAction":
         if not isinstance(value, Mapping) or value.get("schema_version") != "noesis.promotion-approval.v1":
             raise ValueError("unsupported_approval_action_schema")
-        return cls(str(value.get("action_id", "")), str(value.get("action", "")), str(value.get("proposal_id", "")), str(value.get("operator_id", "")), str(value.get("expected_state", "proposed")))
+        return cls(str(value.get("action_id", "")), str(value.get("action", "")), str(value.get("proposal_id", "")), str(value.get("operator_id", "")), str(value.get("expected_state", "review")))
 
     def to_mapping(self) -> dict[str, str]:
         return {"schema_version": self.schema_version, "action_id": self.action_id, "action": self.action, "proposal_id": self.proposal_id, "operator_id": self.operator_id, "expected_state": self.expected_state}
@@ -299,4 +360,4 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "PromotionApprovalAction", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

@@ -196,6 +196,17 @@ class LearningPromotionPipeline:
         self._proposals[proposal_id] = updated
         return updated
 
+    def reject(self, proposal_id: str, *, rejected_by: str) -> PromotionProposal:
+        proposal = self._proposals.get(proposal_id)
+        _require_id(rejected_by, "rejected_by")
+        if proposal is None:
+            raise KeyError(proposal_id)
+        if proposal.state != "review":
+            raise LearningPromotionError("proposal_not_in_review")
+        updated = PromotionProposal(**{**asdict(proposal), "state": "rejected", "approved_by": rejected_by})
+        self._proposals[proposal_id] = updated
+        return updated
+
     def promote(self, proposal_id: str, *, content: str, verify: Callable[[Path], bool], activate: bool = True) -> tuple[PromotionProposal, str]:
         proposal = self._proposals.get(proposal_id)
         if proposal is None:
