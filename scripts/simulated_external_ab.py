@@ -12,6 +12,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from scripts.local_safety_metrics import run as run_local_safety_metrics
+
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "benchmarks" / "external_ab_manifest_v1.json"
 
@@ -47,6 +49,7 @@ def main() -> int:
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     observed = run_noesis_contract_lane()
+    local_safety = run_local_safety_metrics()
     report = {
         "schema_version": "noesis.simulated-external-ab.v1",
         "simulation_only": True,
@@ -54,7 +57,7 @@ def main() -> int:
         "runtime": {"python": platform.python_version(), "platform": platform.platform()},
         "manifest": {"schema_version": manifest["schema_version"], "task_count": len(manifest["tasks"]), "metrics": manifest["metrics"]},
         "systems": {
-            "noesis": {**observed, "interpretation": "Observed local contract lane; not a quality ranking."},
+            "noesis": {**observed, "local_safety_metrics": local_safety, "interpretation": "Observed local contract and safety lanes; not a quality ranking."},
             "hermes": {"execution": "not_run", "status": "not_run", "reason": "No pinned Hermes runner was executed in this sandbox."},
             "opencode": {"execution": "not_run", "status": "not_run", "reason": "No pinned OpenCode runner was executed in this sandbox."}
         },

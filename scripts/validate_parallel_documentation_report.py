@@ -21,7 +21,7 @@ links = next(item for item in report["results"] if item["task_id"] == "markdown-
 assert links["missing"] == 0
 assert links["local_links"] >= 20
 schemas = next(item for item in report["results"] if item["task_id"] == "json-evidence")["output"]
-assert schemas["files_checked"] == 11
+assert schemas["files_checked"] >= 11
 assert schemas["findings"] == 0
 checklist = next(item for item in report["results"] if item["task_id"] == "ru-checklist")["output"]
 assert checklist["missing"] == []

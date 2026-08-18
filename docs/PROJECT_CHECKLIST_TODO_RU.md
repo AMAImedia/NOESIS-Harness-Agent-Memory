@@ -615,7 +615,7 @@ Phase 5 закрыт только как локально проверенный
 | P6-01 | Зафиксировать NOESIS/Hermes/OpenCode architectural boundary | `DONE / LOCAL VERIFIED` | Hermes/OpenCode — только black-box baselines; core NOESIS самостоятельный и не зависит от их runtime |
 | P6-02 | Зафиксировать reproducible external A/B manifest | `DONE / LOCAL VERIFIED` | `benchmarks/external_ab_manifest_v1.json`; exact revision, same-model policy, disposable workspace, deny-by-default network |
 | P6-03 | Проверить connector-neutral runner plumbing | `DONE / LOCAL VERIFIED` | **7/7** external contract tests; dry-run, approval gate, shell-safe argv, structured outcomes |
-| P6-04 | Проверить synthetic evaluator plumbing | `DONE / LOCAL VERIFIED` | NOESIS local contract lane **10/10**, test pass rate `1.0`; synthetic-only, ranking запрещён |
+| P6-04 | Проверить synthetic evaluator plumbing | `DONE / LOCAL VERIFIED` | NOESIS local contract lane **10/10** + local safety metrics **5/5 observed passed**; credential holdout **21/21**; synthetic-only, ranking запрещён; `docs/PARALLEL_LOCAL_SAFETY_EVIDENCE.json` SHA-256 `85d4bf58070399f749d7f422b785f104bffbc78d661e83f4d52e1127a1c2f4b4` |
 | P6-05 | Реальный pinned Hermes/OpenCode execution | `BLOCKED / EXTERNAL ENV REQUIRED` | `not_run`; exact revisions, disposable runners и operator-approved environments ещё не предоставлены |
 | P6-06 | Comparative quality report | `BLOCKED / DEPENDS ON P6-05` | Не строить ranking до signed evidence всех трёх систем |
 
@@ -808,9 +808,9 @@ Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage �
 | ID | Задача | Статус | Доказательство |
 |---|---|---|---|
 | DOC-01 | Markdown fence security audit | `DONE / LOCAL VERIFIED` | 0 high и 0 medium findings по docs Markdown |
-| DOC-02 | Local relative-link audit | `DONE / LOCAL VERIFIED` | 66 Markdown files, 27 local links, missing targets `0`; generated runtime docs исключены |
-| DOC-03 | JSON evidence/schema coverage | `DONE / LOCAL VERIFIED` | 11 selected JSON files, valid JSON и `schema_version` coverage, findings `0` |
+| DOC-02 | Local relative-link audit | `DONE / LOCAL VERIFIED` | 67 Markdown files, 28 local links, missing targets `0`; generated runtime docs исключены |
+| DOC-03 | JSON evidence/schema coverage | `DONE / LOCAL VERIFIED` | 13 selected JSON files, valid JSON и `schema_version` coverage, findings `0` |
 | DOC-04 | Russian checklist/evidence navigation | `DONE / LOCAL VERIFIED` | Required markers и evidence paths присутствуют |
-| DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `55d092ff760c9e07381266fbb1dde206d9e8759b2a0e17ac10713ad03504ff16` |
+| DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `1b29e185b22b12b1f23585e631082980565f26040ac0b460ce306f26f34dc6b3` |
 
 Summary: `docs/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.

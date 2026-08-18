@@ -31,4 +31,5 @@ The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-o
 | [`PARALLEL_RELEASE_AUDIT_RU.md`](PARALLEL_RELEASE_AUDIT_RU.md) | Offline release audit, secret/AST/export/Git cleanliness gates. |
 | [`PARALLEL_CI_CONSISTENCY_RU.md`](PARALLEL_CI_CONSISTENCY_RU.md) | CI/runbook consistency and portable artifact evidence. |
 | [`PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`](PARALLEL_DOCUMENTATION_EVIDENCE_RU.md) | Markdown security, local-link and JSON schema evidence. |
+| [`PARALLEL_LOCAL_SAFETY_EVIDENCE_RU.md`](PARALLEL_LOCAL_SAFETY_EVIDENCE_RU.md) | Local patch/recovery, capability denial, credential holdout and approval-bypass metrics; simulation-only boundary. |
 | [`third_party_provenance.json`](third_party_provenance.json) | Machine-readable upstream reference/license/provenance manifest. |
