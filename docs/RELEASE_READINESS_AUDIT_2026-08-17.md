@@ -4,4 +4,4 @@ This is the primary English entry point for the 2026-08-17 release-readiness aud
 
 Native macOS/Windows artifacts, OS-level sandbox claims, external Hermes/OpenCode/DeepSeek Harness A/B results, and public-release claims remain blocked or `not_run` until their required environments and approvals exist.
 
-The detailed Russian localization is available in [`RELEASE_READINESS_AUDIT_2026-08-17_RU.md`](RELEASE_READINESS_AUDIT_2026-08-17_RU.md).
+The detailed Russian localization is available in [`RELEASE_READINESS_AUDIT_2026-08-17_RU.md`](locales/ru/RELEASE_READINESS_AUDIT_2026-08-17_RU.md).

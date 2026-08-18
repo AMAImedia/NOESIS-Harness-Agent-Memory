@@ -4,4 +4,4 @@ This primary English roadmap describes the capability and evidence path for a lo
 
 Claims about being best in class require external A/B evidence against pinned Hermes, OpenCode, DeepSeek Harness, and other approved baselines. Until those lanes run on exact revisions and disposable environments, the project reports preparation and local verification only.
 
-The detailed Russian localization is available in [`STRATEGIC_ROADMAP_BEYOND_COMPETITORS_2026-08-17_RU.md`](STRATEGIC_ROADMAP_BEYOND_COMPETITORS_2026-08-17_RU.md).
+The detailed Russian localization is available in [`STRATEGIC_ROADMAP_BEYOND_COMPETITORS_2026-08-17_RU.md`](locales/ru/STRATEGIC_ROADMAP_BEYOND_COMPETITORS_2026-08-17_RU.md).

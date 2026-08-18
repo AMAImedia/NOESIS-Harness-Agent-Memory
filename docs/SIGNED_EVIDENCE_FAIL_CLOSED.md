@@ -2,26 +2,41 @@
 
 ## Purpose
 
-External runner evidence is an integrity envelope for an explicitly approved operator workflow. It is not a public-key release signature and it is not proof that a third-party system actually ran unless the record also reports a permitted execution and matching environment.
+External runner evidence is an integrity envelope for an explicitly approved operator workflow. It is not a public-key release signature, vendor attestation, or proof that a third-party system ran unless the record also reports permitted execution on a matching environment.
 
-## Acceptance rules
+## Ingestion contract
 
-`ingest_runner_result.py` accepts a result only when the result contract, pinned identity, disposable workspace, argv, metrics, credential holdout, and protocol fields validate. It signs the canonical envelope with a runtime HMAC key that is never persisted.
+`ingest_runner_result.py` accepts a result only when all of the following conditions hold:
 
-`verify_evidence()` now fails closed for non-mappings, missing envelope fields, non-empty errors, malformed hashes, invalid signatures, invalid keys, non-accepted records, and malformed metric containers. Verification returns `False` rather than raising on hostile input.
+| Gate | Required condition | Fail-closed result |
+|---|---|---|
+| Schema | The runner result uses `noesis.external-runner.v1`; the evidence uses `noesis.runner-evidence.v1`. | Reject the envelope |
+| Pinned identity | `system`, `revision`, `model_provider`, `task_manifest_sha256`, `protocol_fingerprint`, `workspace`, and `argv` match the pinned spec exactly. | Add an identity/workspace/argv error and reject |
+| Environment | The result contains a declared environment and the workspace is disposable, outside access is denied, and credentials are absent. | Reject the envelope |
+| Execution state | Status and execution state are consistent; unavailable or denied execution remains `not_run`. | Reject inconsistent states |
+| Metrics | Metrics is a non-empty mapping and every metric has an allowed status. | Reject malformed metrics |
+| Credential holdout | Recursive credential-like content scanning finds no token, password, secret, bearer, or credential-shaped value. | Reject the envelope |
+| Canonical source | `source_result_sha256` is computed from canonical JSON for the complete result. | Reject a missing or malformed digest |
+| Signature | The canonical unsigned evidence envelope is HMAC-SHA256 signed with a runtime key that is never written to the evidence file. | Reject missing, malformed, or mismatched signatures |
+
+An evidence record is accepted only when the validation error set is empty. The `accepted` field must be exactly boolean `true`; an accepted record must contain an empty `errors` list. A record with `accepted=false` is signed as a rejection record for audit purposes, but it is never eligible for comparative evaluation.
+
+## Verification behavior
+
+`verify_evidence()` is deliberately total over hostile input. It returns `False`, without raising, for non-mappings, missing required envelope fields, wrong schema, non-empty errors, non-boolean acceptance, malformed source hashes, malformed metric containers, invalid signature types or prefixes, invalid signing keys, rejected records, and HMAC mismatches. It does not silently repair or coerce an envelope.
 
 | Condition | Result |
 |---|---|
 | Valid accepted envelope and matching key | `True` |
 | Invalid or missing signature | `False` |
 | Missing or malformed field | `False` |
-| Accepted flag is not exactly `true` | `False` |
+| `accepted` is not exactly `true` | `False` |
 | Ingestion errors are present | `False` |
-| External runner not started | Valid signed `not_run`, never a ranking |
+| External runner is not started or is denied | Valid signed `not_run`; never a ranking |
 | Fixture-only simulated result | Explicitly simulation-only; never native/external evidence |
 
-## Verification boundary
+## Comparative evaluation boundary
 
-Signed evidence authenticates the record under the controlled key. It does not establish that the key holder is an external vendor, that a model is genuine, or that a native host was used. Comparative evaluation additionally requires identical protocol fingerprints, at least two accepted executable records, exact revisions, and explicit operator approval.
+Signed evidence authenticates a record under the controlled key. It does not establish that the key holder is an external vendor, that a model or binary is genuine, that a child process was actually isolated, or that a native host was used. Comparative evaluation additionally requires exact immutable revisions, identical task-manifest and protocol fingerprints, at least two accepted executable records, matching environment evidence, disposable workspaces, and explicit operator approval. Missing lanes remain `not_run` or `blocked`; they must never be converted into a pass, failure, zero score, or superiority ranking.
 
-The Russian localization is available in [`SIGNED_EVIDENCE_FAIL_CLOSED_RU.md`](SIGNED_EVIDENCE_FAIL_CLOSED_RU.md).
+The Russian supplemental localization is available at [`locales/ru/SIGNED_EVIDENCE_FAIL_CLOSED_RU.md`](locales/ru/SIGNED_EVIDENCE_FAIL_CLOSED_RU.md).

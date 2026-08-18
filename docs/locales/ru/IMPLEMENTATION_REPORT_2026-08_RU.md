@@ -8,7 +8,7 @@
 
 Вторая часть реализует `Gatekeeper`, который различает deny/pending-simulation/approved; `DAGPlanner` с bounded parallelism и cycle rejection; атомарный `VaultProjector` для Obsidian-подобной Markdown projection; `SkillGate` с stage → test → approve/reject; и `ExecutionLadder`, которая честно возвращает `unavailable`, если hardened sandbox отсутствует. Добавлены `FiberStore` для checkpoint/resume после fault injection, `EvidenceStore` для provenance/freshness/conflict proposals и `SecurityScanner`/`LocalExecutionContract` для deterministic adversarial checks и explicit local execution planning.
 
-Добавлены план `docs/PLAN_NOESIS_1.0_MASTER_RU.md`, архитектура `docs/ARCHITECTURE_1.0_NEXTGEN.md`, evaluation protocol `docs/EVALUATION_PROTOCOL_RU.md`, тесты новых слоёв и benchmarks `benchmarks/nextgen_bench.py` и `benchmarks/coordination_context_bench.py`. CHANGELOG и ROADMAP обновлены как local-only, not released.
+Добавлены план `docs/locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md`, архитектура `docs/ARCHITECTURE_1.0_NEXTGEN.md`, evaluation protocol `docs/locales/ru/EVALUATION_PROTOCOL_RU.md`, тесты новых слоёв и benchmarks `benchmarks/nextgen_bench.py` и `benchmarks/coordination_context_bench.py`. CHANGELOG и ROADMAP обновлены как local-only, not released.
 
 ## Проверка
 

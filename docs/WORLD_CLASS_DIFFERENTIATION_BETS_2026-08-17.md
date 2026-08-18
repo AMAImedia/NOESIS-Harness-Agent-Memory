@@ -4,4 +4,4 @@ This primary English note defines measurable differentiation bets for NOESIS: pr
 
 Each bet requires a falsifiable metric, a holdout or conformance test, a reproducible evidence artifact, and a clearly stated boundary. Feature presence alone is not evidence of improved reliability, memory, safety, or productivity.
 
-The detailed Russian localization is available in [`WORLD_CLASS_DIFFERENTIATION_BETS_2026-08-17_RU.md`](WORLD_CLASS_DIFFERENTIATION_BETS_2026-08-17_RU.md).
+The detailed Russian localization is available in [`WORLD_CLASS_DIFFERENTIATION_BETS_2026-08-17_RU.md`](locales/ru/WORLD_CLASS_DIFFERENTIATION_BETS_2026-08-17_RU.md).

@@ -24,4 +24,4 @@ Evidence внешнего runner-а является integrity envelope для �
 
 Signed evidence подтверждает целостность записи относительно controlled key. Это не доказывает, что ключ принадлежит внешнему vendor, что модель подлинная или что использовался native host. Для comparative evaluation дополнительно нужны одинаковый protocol fingerprint, минимум две accepted executable records, exact revisions и explicit operator approval.
 
-Нормативная English-версия: [`SIGNED_EVIDENCE_FAIL_CLOSED.md`](SIGNED_EVIDENCE_FAIL_CLOSED.md).
+Нормативная English-версия: [`SIGNED_EVIDENCE_FAIL_CLOSED.md`](../../SIGNED_EVIDENCE_FAIL_CLOSED.md).

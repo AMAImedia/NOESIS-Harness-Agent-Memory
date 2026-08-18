@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def check(root: str = str(ROOT)) -> dict[str, Any]:
     project = Path(root).resolve()
     workflow = (project / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    runbook = (project / "docs" / "NATIVE_PACKAGING_RUNBOOK_RU.md").read_text(encoding="utf-8")
+    runbook_path = project / "docs" / "locales" / "ru" / "NATIVE_PACKAGING_RUNBOOK_RU.md"
+    runbook = runbook_path.read_text(encoding="utf-8")
     ci_markers = (
         "python scripts/verify_python314.py --json",
         "python scripts/build_portable_artifact.py",
@@ -35,7 +36,7 @@ def check(root: str = str(ROOT)) -> dict[str, Any]:
         "schema_version": "noesis.ci-packaging-consistency.v1",
         "status": "passed" if not missing_ci and not missing_runbook else "failed",
         "ci": {"path": str(project / ".github" / "workflows" / "ci.yml"), "missing_markers": missing_ci},
-        "runbook": {"path": str(project / "docs" / "NATIVE_PACKAGING_RUNBOOK_RU.md"), "missing_markers": missing_runbook},
+        "runbook": {"path": str(runbook_path), "missing_markers": missing_runbook},
         "native_claim_policy": "static_and_target_honesty_only_until_native_hosts",
     }
     return result
