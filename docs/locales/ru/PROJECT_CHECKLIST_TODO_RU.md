@@ -941,3 +941,14 @@ Machine artifacts: `docs/PYTHON314_TEST_PERFORMANCE_PROFILE.json`, `docs/STAGE3_
 | STAGE4-C02 | Claim boundary | `DONE / LOCAL VERIFIED` | Network/credentials disabled; no native or external process started |
 
 Machine evidence: `docs/PARALLEL_STAGE4_EVIDENCE.json`; English report: `docs/PARALLEL_STAGE4.md`; Russian localization: `docs/locales/ru/PARALLEL_STAGE4_RU.md`.
+
+## 2026-08-18 — Self-Learning / OS / Documentation Sync Audit
+
+| ID | Gate | Статус | Вывод |
+|---|---|---|---|
+| AUDIT-SL-01 | Self-learning maturity audit | `DONE / LOCAL VERIFIED` | Memory, provenance, experience reuse и governance реализованы; полный observe→evaluate→propose→approve→promote→verify product loop ещё не завершён |
+| AUDIT-OS-01 | Agent OS/control-plane audit | `DONE / LOCAL VERIFIED / BOUNDED` | Sessions, tasks, approvals, recovery, child runtime, Linux sandbox, SSE telemetry и operator dashboard реализованы; native Windows/macOS остаются `not_run` |
+| AUDIT-SYNC-01 | Code/docs/GitHub synchronization audit | `DONE / LOCAL VERIFIED` | English primary, Russian locale, links, security, evidence, release metadata и remote parity проверены |
+| NEXT-SL-01 | Human-Governed Learning Promotion Pipeline | `NEXT LOCAL GATE` | Experience receipt → deterministic holdout evaluator → review proposal → explicit approval → immutable promotion → rollback/holdout verification → signed receipt |
+
+English primary audit: `docs/SELF_LEARNING_OS_SYNC_AUDIT.md`; Russian supplemental localization: `docs/locales/ru/SELF_LEARNING_OS_SYNC_AUDIT_RU.md`.
