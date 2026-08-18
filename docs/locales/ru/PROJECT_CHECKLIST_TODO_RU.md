@@ -1230,4 +1230,15 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | CHILD-06 | Operator-controlled rollback/recovery binding | `DONE / BOUNDED LOCAL` | Authenticated `ExecutionRecoveryExecutor` verifies signed receipt/run identity, approved patch, fresh base and handler-confirmed mutation; replay, stale-base, scope and unapproved-patch denials are tested |
 | CHILD-07 | Native Windows/macOS child-runtime evidence | `NOT_RUN / HOST REQUIRED` | Requires matching hosts and native sandbox execution; Linux evidence must not be generalized |
 
+### Gate 4 multi-agent work-product evidence
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| MA-01 | Exclusive task claim and per-agent workspace | `DONE / LOCAL VERIFIED` | Coordinator binds one task to one agent and creates isolated workspace |
+| MA-02 | Typed work-product envelope | `DONE / BOUNDED LOCAL` | `WorkProductEnvelope` binds task, agent, workspace, base/head snapshots, result type and artifact digest |
+| MA-03 | Independent review | `DONE / LOCAL VERIFIED` | Producing agent cannot review its own product; reviewer must be registered |
+| MA-04 | Fresh-base merge authorization | `DONE / LOCAL VERIFIED` | Stale base and mismatched authorization fail closed; review never applies files |
+| MA-05 | Explicit commit and durable resume/replay | `DONE / BOUNDED LOCAL` | Commit is separate from review; task/session/work-product events survive coordinator reopen |
+| MA-06 | Broader parallel execution and benchmark evidence | `NEXT LOCAL GATE` | Requires crash/retry delegation tests, cross-agent leakage holdouts and measurable work-product benchmark |
+
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

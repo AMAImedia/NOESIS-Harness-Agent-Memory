@@ -40,9 +40,9 @@ The manifest/grant contract and Linux reference path are implemented: `Execution
 
 Acceptance requires path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process-tree, corrupted receipt, interrupted write, receipt replay/tamper, patch-review conflict, authenticated rollback, stale-base and cross-agent workspace tests. The local Gate 3 subgates are now covered: `ExecutionRecoveryExecutor` requires authenticated operator context, signed receipt/run identity, approved patch, fresh base and an injected handler that confirms the actual mutation. Unconfigured or unverifiable backends must return `not_run`, `blocked` or `unavailable`, never `passed`.
 
-### Gate 4 — Real multi-agent work product loop
+### Gate 4 — Real multi-agent work product loop (in progress)
 
-Bind planning, delegation, per-agent workspaces, typed result envelopes, patch/diff review, independent review, merge authorization, session resume and durable event replay into one end-to-end task contract. Measure completion correctness, evidence attribution, leakage, duplicate work, recovery rate, reviewer time and resource budgets against the current single-agent baseline.
+`MultiAgentWorkProductLoop` now binds exclusive task claims to typed `WorkProductEnvelope` records, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers and durable session resume/replay. The producing agent cannot approve its own product, review does not apply files, and commit is a separate authorized state transition. Remaining Gate 4 work is broader multi-agent execution, cross-agent leakage holdouts, crash recovery during delegation and measured work-product benchmarks.
 
 ### Gate 5 — Memory and long-context quality evidence
 

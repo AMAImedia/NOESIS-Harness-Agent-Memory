@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Verification snapshot — 2026-08-18
 - Gate 3 child-runtime progress: `ExecutionRequest` binds `SkillManifest` identity to explicit capability grants; strict executable-skill mode requires a hardened backend; Linux/Bubblewrap adversarial probes verify host filesystem and outbound network isolation; HMAC receipt persistence, durable patch review, interrupted-run recovery and authenticated operator rollback binding are locally verified. Native Windows/macOS evidence remains open.
-- Python 3.14.7 full regression: 439 tests passed with `ResourceWarning` treated as an error; link, documentation security, JSON evidence, metadata, and packaging consistency audits passed.
+- Gate 4 progress: `MultiAgentWorkProductLoop` binds exclusive claims to typed work-product envelopes, per-agent snapshots, independent review, fresh-base authorization, explicit commit markers and durable resume/replay. Broader parallel execution, crash/retry delegation and benchmark evidence remain open.
+- Python 3.14.7 full regression: 442 tests passed with `ResourceWarning` treated as an error; link, documentation security, JSON evidence, metadata, and packaging consistency audits passed.
 - Offline release audit remains claim-conservative: the synthetic private-key holdout fixture is intentional, while native target builds and external A/B remain unreleased gates; the pushed checkpoint tree is clean.
 - Reconciled the normative English/Russian master roadmap, root roadmap navigation, self-learning maturity audit and operational checklist; bounded production lifecycle and durable promotion-state/evaluator deployment are locally verified, while governed executable child runtime is in progress with Linux-only isolation evidence.
 

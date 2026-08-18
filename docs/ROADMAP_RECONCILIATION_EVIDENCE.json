@@ -41,10 +41,16 @@
       "hmac_signed_execution_receipt_persistence",
       "durable_patch_review_state",
       "interrupted_run_recovery_ledger",
-      "authenticated_rollback_recovery_binding"
+      "authenticated_rollback_recovery_binding",
+      "exclusive_task_claims",
+      "typed_work_product_envelopes",
+      "independent_work_product_review",
+      "fresh_base_merge_authorization",
+      "durable_multi_agent_resume_replay"
     ],
     "open_subgates": [
-      "native_windows_macos_evidence"
+      "native_windows_macos_evidence",
+      "broader_multi_agent_execution_benchmarks"
     ],
     "required_boundaries": [
       "terminal_task_to_receipt",

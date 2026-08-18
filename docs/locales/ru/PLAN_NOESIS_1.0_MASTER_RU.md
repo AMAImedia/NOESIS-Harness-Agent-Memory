@@ -40,9 +40,9 @@ Manifest/grant contract и Linux reference path реализованы: `Executi
 
 Нужны тесты path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process tree, corrupted receipt, interrupted write, receipt replay/tamper, patch-review conflict, authenticated rollback, stale-base и cross-agent workspace. Local Gate 3 subgates теперь покрыты: `ExecutionRecoveryExecutor` требует authenticated operator context, signed receipt/run identity, approved patch, fresh base и injected handler, подтверждающий фактическую mutation. Непроверенный backend получает `not_run`, `blocked` или `unavailable`, но не `passed`.
 
-### Gate 4 — Реальный multi-agent work-product loop
+### Gate 4 — Реальный multi-agent work-product loop (в работе)
 
-Связать planning, delegation, per-agent workspaces, typed result envelopes, patch/diff review, independent review, merge authorization, session resume и durable replay в единый task contract. Сравнить с текущим single-agent baseline по correctness, evidence attribution, leakage, duplicate work, recovery, reviewer time и resource budgets.
+`MultiAgentWorkProductLoop` связывает exclusive task claims с typed `WorkProductEnvelope`, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers и durable session resume/replay. Создающий агент не может approve собственный продукт, review не применяет файлы, а commit является отдельным authorized state transition. Остаются более широкий multi-agent execution, cross-agent leakage holdouts, crash recovery во время delegation и измеримые work-product benchmarks.
 
 ### Gate 5 — Качество памяти и длинного контекста
 
