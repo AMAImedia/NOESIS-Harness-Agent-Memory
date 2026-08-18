@@ -1164,3 +1164,19 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-WIRE-07 | Deployment adoption | `NEXT LOCAL GATE` | Wire handler into concrete HealthServer deployment configuration with operator-managed mode source |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Operator-Owned Migration Readiness
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-READY-01 | Operator-owned mode source | `DONE / LOCAL VERIFIED` | Append-only `OperatorMigrationModeSource`; safe default is `legacy` |
+| LEARN-READY-02 | Mode authorization | `DONE / LOCAL VERIFIED` | Optional operator allow-list; unauthorized mode changes fail closed |
+| LEARN-READY-03 | Direct sqlite cutover guard | `DONE / LOCAL VERIFIED` | `legacy -> sqlite` is rejected without `dual_read` |
+| LEARN-READY-04 | HealthServer startup wiring | `DONE / LOCAL VERIFIED` | Mode source is read during startup and health/readiness generation |
+| LEARN-READY-05 | Readiness snapshot | `DONE / LOCAL VERIFIED` | Reports mode, blocked, rollback_available, operator_owned and automatic_cutover=false |
+| LEARN-READY-06 | Readiness endpoint | `DONE / LOCAL VERIFIED` | `GET /api/readiness` is read-only and authenticated when configured |
+| LEARN-READY-07 | Blocked UI mapping | `DONE / LOCAL VERIFIED` | Machine snapshot remains `blocked`; UI health status maps to allowed `unavailable` |
+| LEARN-READY-08 | Automatic mode change | `NOT_RUN / DISABLED` | Startup never changes migration mode or performs cutover |
+| LEARN-READY-09 | Native/external readiness | `NOT_RUN` | Windows/macOS and external A/B remain environment-gated |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

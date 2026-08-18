@@ -18,6 +18,59 @@ class AdministrativeMigrationError(ValueError):
     """Raised when migration state or dual-read verification fails closed."""
 
 
+class OperatorMigrationModeSource:
+    """Persistent operator-owned source of migration mode; default is legacy."""
+
+    def __init__(self, path: str, *, operator_ids: tuple[str, ...] = (), default_mode: str = "legacy", clock=time.time) -> None:
+        if default_mode not in MODES or not path:
+            raise ValueError("migration_mode_source_configuration_required")
+        self.events = EventStore(path)
+        self.operator_ids = frozenset(str(item) for item in operator_ids)
+        self.default_mode = default_mode
+        self.clock = clock
+
+    def _state(self) -> dict[str, Any]:
+        current = {"schema_version": MIGRATION_SCHEMA, "mode": self.default_mode, "operator_id": "", "reason": "default"}
+        for event in self.events.iter_events():
+            if event.get("type") in {"migration_mode_set", "migration_mode_rollback"}:
+                current.update(event.get("payload") or {})
+        mode = str(current.get("mode", self.default_mode))
+        if mode not in MODES:
+            mode = "legacy"
+        current["mode"] = mode
+        return current
+
+    @property
+    def mode(self) -> str:
+        return str(self._state()["mode"])
+
+    def set_mode(self, mode: str, *, operator_id: str, reason: str) -> Mapping[str, Any]:
+        if mode not in MODES or not operator_id or not reason:
+            raise AdministrativeMigrationError("invalid_migration_mode_action")
+        if self.operator_ids and str(operator_id) not in self.operator_ids:
+            raise AdministrativeMigrationError("migration_operator_not_authorized")
+        current = self.mode
+        if mode == "sqlite" and current == "legacy":
+            raise AdministrativeMigrationError("sqlite_mode_requires_dual_read")
+        payload = {"schema_version": MIGRATION_SCHEMA, "mode": mode, "previous_mode": current, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
+        self.events.append("migration_mode_set", payload, event_id="migration-source:set:" + mode + ":" + str(self.events.count()))
+        return payload
+
+    def rollback(self, *, operator_id: str, reason: str) -> Mapping[str, Any]:
+        if self.mode == "legacy":
+            raise AdministrativeMigrationError("migration_not_active")
+        if self.operator_ids and str(operator_id) not in self.operator_ids:
+            raise AdministrativeMigrationError("migration_operator_not_authorized")
+        payload = {"schema_version": MIGRATION_SCHEMA, "mode": "legacy", "previous_mode": self.mode, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
+        self.events.append("migration_mode_rollback", payload, event_id="migration-source:rollback:" + str(self.events.count()))
+        return payload
+
+    def readiness(self, *, verification: Optional["MigrationCheck"] = None) -> Mapping[str, Any]:
+        mode = self.mode
+        blocked = bool(verification is not None and verification.status == "blocked")
+        return {"schema_version": "noesis.migration-readiness.v1", "mode": mode, "blocked": blocked, "rollback_available": mode != "legacy", "status": "blocked" if blocked else mode, "automatic_cutover": False, "operator_owned": True, "verification": verification.to_mapping() if verification is not None else None}
+
+
 @dataclass(frozen=True)
 class MigrationCheck:
     mode: str
@@ -146,4 +199,4 @@ class AdministrativeMigrationAdapter:
         return {"schema_version": MIGRATION_SCHEMA, "mode": self.mode, "action": "route_after_verification", "check": check.to_mapping(), "automatic_cutover": False}
 
 
-__all__ = ["MIGRATION_SCHEMA", "AdministrativeMigrationError", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter"]
+__all__ = ["MIGRATION_SCHEMA", "AdministrativeMigrationError", "OperatorMigrationModeSource", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter"]

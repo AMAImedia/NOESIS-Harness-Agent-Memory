@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 
 from noesis_harness.health_server import HealthServer
+from noesis_harness.admin_migration import OperatorMigrationModeSource
 from noesis_harness.ui_contract import CONTRACT_VERSION, UIContractError, failure, health_payload, model_payload, success
 
 
@@ -65,6 +66,35 @@ class HealthServerTests(unittest.TestCase):
         finally:
             server.stop()
         self.assertEqual(server._thread, None)
+
+    def test_operator_owned_migration_readiness_is_exposed_at_startup(self):
+        source = OperatorMigrationModeSource('/tmp/noesis-test-migration-source-' + str(time.time_ns()), operator_ids=('operator-1',))
+        server = HealthServer(port=0, migration_mode_source=source)
+        self.assertEqual(server._migration_readiness_snapshot()['mode'], 'legacy')
+        source.set_mode('dual_read', operator_id='operator-1', reason='operator verification')
+        self.assertEqual(server._migration_readiness_snapshot()['status'], 'dual_read')
+        with server:
+            base = f'http://{server.address[0]}:{server.address[1]}'
+            code, payload = self._request('GET', base + '/api/readiness')
+            self.assertEqual(code, 200)
+            readiness = payload['data']['migration_readiness']
+            self.assertEqual(readiness['mode'], 'dual_read')
+            self.assertFalse(readiness['blocked'])
+            self.assertTrue(readiness['rollback_available'])
+        source.rollback(operator_id='operator-1', reason='restore legacy default')
+        self.assertEqual(source.readiness()['mode'], 'legacy')
+        self.assertFalse(source.readiness()['rollback_available'])
+
+    def test_readiness_provider_failure_is_blocked_and_health_is_not_ready(self):
+        server = HealthServer(port=0, migration_readiness_provider=lambda: (_ for _ in ()).throw(RuntimeError('broken')))
+        readiness = server._migration_readiness_snapshot()
+        self.assertEqual(readiness['mode'], 'blocked')
+        self.assertTrue(readiness['blocked'])
+        with server:
+            code, payload = self._request('GET', f'http://{server.address[0]}:{server.address[1]}/health')
+            self.assertEqual(code, 200)
+            self.assertEqual(payload['status'], 'unavailable')
+            self.assertEqual(payload['data']['readiness'], 'unavailable')
 
     def test_read_only_and_unknown_path_fail_soft(self):
         with HealthServer(port=0) as server:

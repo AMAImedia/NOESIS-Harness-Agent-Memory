@@ -25,7 +25,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -46,6 +46,8 @@ class HealthServer:
         self.promotion_action_handler = promotion_action_handler
         self.operator_session_action_handler = operator_session_action_handler
         self.administrative_policy_handler = administrative_policy_handler
+        self.migration_mode_source = migration_mode_source
+        self.migration_readiness_provider = migration_readiness_provider
         self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
@@ -65,8 +67,25 @@ class HealthServer:
         self._server: _HealthHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
+    def _migration_readiness_snapshot(self) -> Mapping[str, Any]:
+        if self.migration_readiness_provider is not None:
+            try:
+                value = self.migration_readiness_provider()
+                if not isinstance(value, Mapping):
+                    raise ValueError("migration_readiness_must_be_object")
+                return self._redact_telemetry(dict(value))
+            except Exception as exc:
+                return {"schema_version": "noesis.migration-readiness.v1", "mode": "blocked", "blocked": True, "rollback_available": False, "status": "blocked", "reason": "readiness_provider_error:" + type(exc).__name__, "automatic_cutover": False}
+        if self.migration_mode_source is not None and hasattr(self.migration_mode_source, "readiness"):
+            try:
+                return self._redact_telemetry(dict(self.migration_mode_source.readiness()))
+            except Exception as exc:
+                return {"schema_version": "noesis.migration-readiness.v1", "mode": "blocked", "blocked": True, "rollback_available": False, "status": "blocked", "reason": "mode_source_error:" + type(exc).__name__, "automatic_cutover": False}
+        return {"schema_version": "noesis.migration-readiness.v1", "mode": "legacy", "blocked": False, "rollback_available": False, "status": "legacy", "automatic_cutover": False, "operator_owned": False}
+
     def envelope(self) -> UIEnvelope:
-        return health_payload(runtime_version=self.runtime_version, readiness="ready", binding=f"{self.host}:{self.bound_port}", capabilities=self.capabilities, unavailable_reasons=self.unavailable_reasons)
+        readiness = self._migration_readiness_snapshot()
+        return health_payload(runtime_version=self.runtime_version, readiness="unavailable" if readiness.get("blocked") else "ready", binding=f"{self.host}:{self.bound_port}", capabilities=self.capabilities, unavailable_reasons=self.unavailable_reasons + (("migration_readiness_blocked",) if readiness.get("blocked") else ()))
 
     def models_envelope(self) -> UIEnvelope:
         return self.provider_registry.envelope()
@@ -99,8 +118,9 @@ class HealthServer:
     def telemetry_snapshot(self) -> Mapping[str, Any]:
         with self._telemetry_lock:
             snapshot = self._redact_telemetry(self._telemetry)
+        snapshot = dict(snapshot)
+        snapshot["migration_readiness"] = self._migration_readiness_snapshot()
         if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
-            snapshot = dict(snapshot)
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
 
@@ -194,6 +214,8 @@ class HealthServer:
                     self._send(parent.envelope(), 200)
                 elif self.path == "/models":
                     self._send(parent.models_envelope(), 200)
+                elif self.path == "/api/readiness":
+                    self._send(success({"migration_readiness": parent._migration_readiness_snapshot()}), 200)
                 elif self.path in {"/api/telemetry", "/api/child-runtimes"}:
                     snapshot = parent.telemetry_snapshot()
                     if self.path == "/api/child-runtimes":
@@ -328,6 +350,7 @@ class HealthServer:
     def start(self) -> Tuple[str, int]:
         if self._server is not None:
             return self.address
+        self._migration_readiness_snapshot()
         self._server = _HealthHTTPServer((self.host, self.port), self._handler())
         self.port = int(self._server.server_address[1])
         self._thread = threading.Thread(target=self._server.serve_forever, name="noesis-health", daemon=True)
