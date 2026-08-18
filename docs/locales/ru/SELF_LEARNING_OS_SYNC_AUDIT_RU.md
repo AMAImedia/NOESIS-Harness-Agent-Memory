@@ -2,7 +2,7 @@
 
 **Дата аудита:** 2026-08-18  
 **Репозиторий:** `AMAImedia/NOESIS-Harness-Agent-Memory`  
-**Контрольная точка:** `4925e52` плюс текущая reconciliation-правка плана до её commit.
+**Контрольная точка:** `3555f4d`, commit опубликован в private `origin/main`.
 
 ## Вывод
 

@@ -1,6 +1,6 @@
 # NOESIS 1.0 Master Plan
 
-**Status checkpoint:** 2026-08-18, commit `4925e52`
+**Status checkpoint:** 2026-08-18, commit `3555f4d`
 **Runtime policy:** Python 3.14 only; deterministic core is stdlib-only.
 **Operating model:** local-first, private-by-default, human-governed, fail-closed.
 

@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `4925e52` — `Persist signed migration receipts in admin audit store`; текущая reconciliation-правка ожидает commit
+Последний подтверждённый remote commit: `3555f4d` — `Bind governed learning lifecycle in portable runtime`
 
-Текущий рабочий этап: **roadmap reconciliation и code/docs sync; следующий локальный gate — production learning lifecycle binding; native/external gates остаются blocked/not_run**
+Текущий рабочий этап: **roadmap и code/docs sync опубликованы; bounded Gate 1 закрыт локально; следующий локальный gate — durable promotion state/evaluator deployment; native/external gates остаются blocked/not_run**
 
 ## Как мы используем этот документ
 

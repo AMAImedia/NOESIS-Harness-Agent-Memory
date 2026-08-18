@@ -1,6 +1,6 @@
 # NOESIS 1.0 — master-план развития
 
-**Контрольная точка:** 2026-08-18, commit `4925e52`
+**Контрольная точка:** 2026-08-18, commit `3555f4d`
 **Runtime policy:** только Python 3.14; детерминированное ядро — stdlib-only.
 **Модель эксплуатации:** local-first, private-by-default, human-governed, fail-closed.
 

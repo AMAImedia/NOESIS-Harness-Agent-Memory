@@ -2,7 +2,7 @@
 
 **Audit date:** 2026-08-18  
 **Repository:** `AMAImedia/NOESIS-Harness-Agent-Memory`  
-**Checkpoint:** `4925e52` plus the current roadmap reconciliation change pending commit.
+**Checkpoint:** `3555f4d` (pushed to private `origin/main`).
 
 ## Executive finding
 
@@ -29,7 +29,7 @@ The implemented learning path now covers provenance-bound experience receipts, d
 | Native Windows/macOS packaging | `not_run / host required` | Static manifests and refusal policy only |
 | Hermes/OpenCode/DeepSeek Harness external A/B | `not_run / environment required` | Exact revisions, executables and disposable approved environments absent |
 | English primary code/docs policy | `passed` | English contracts and code-facing files are normative |
-| Russian supplemental localization | `passed / sync pending checkpoint` | Localizations under `docs/locales/ru/`; this reconciliation updates the master plan |
+| Russian supplemental localization | `passed` | Localizations under `docs/locales/ru/`; master plan and audit are synchronized to the pushed checkpoint |
 
 ## Next local gate
 
