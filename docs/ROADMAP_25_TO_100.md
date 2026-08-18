@@ -1,6 +1,6 @@
 # NOESIS 25%→100% Claim-Ready Roadmap
 
-**Status:** Baseline frozen at approximately **25–35% of the evidence required for a defensible “best in the world” claim**. The local control-plane implementation is substantially further along than the external proof surface. This document is an execution roadmap, not a superiority claim.
+**Status:** Baseline frozen at approximately **25–35% of the evidence required for a defensible “best in the world” claim**. The local control-plane implementation is substantially further along than the external proof surface. The roadmap has a two-stage completion target: **complete the portable Python 3.14 Agent OS first, then prove the worldwide-leading claim**. This document is an execution roadmap, not a superiority claim.
 
 ## 1. Progress model
 
@@ -13,7 +13,7 @@ The project uses weighted evidence rather than feature counting. A feature is no
 | 55% | Hardened local release candidate | Non-fixture memory/agent stress, chaos/recovery, leakage holdouts, artifact integrity and portable packaging are reproducible |
 | 70% | Native-ready release candidate | Matching Windows/macOS bundles produce verified parity evidence; Linux preparation is not substituted for native execution |
 | 85% | Comparative-ready system | Exact pinned Hermes/OpenCode/DeepSeek environments, identical tasks, signed receipts and independent scoring are available |
-| 100% | Claim-ready evidence package | Repeated external A/B results show meaningful advantage without safety, provenance, recovery or human-control regression; release audit passes |
+| 100% | Complete Agent OS plus claim-ready evidence package | Portable Agent OS contract is complete, then repeated external A/B results show meaningful advantage without safety, provenance, recovery or human-control regression; release audit passes |
 
 ## 2. Parallel execution tracks
 

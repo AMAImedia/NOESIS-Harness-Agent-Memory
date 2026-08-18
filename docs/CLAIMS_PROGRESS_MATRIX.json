@@ -29,5 +29,11 @@
     "competitor_superiority_claim": false,
     "automatic_skill_activation": false
   },
-  "next_gate": "freeze_baseline_and_execute_local_tracks_A_to_D"
+  "completion_definition": {
+    "stage_1": "complete_portable_python314_agent_os",
+    "stage_2": "evidence_backed_worldwide_leading_claim",
+    "stage_1_requires": ["control_plane", "governed_learning", "durable_memory", "multi_agent_isolation", "portable_artifacts", "native_parity"],
+    "stage_2_requires": ["pinned_external_ab", "independent_scoring", "repeated_runs", "reproducibility", "security_and_provenance_review"]
+  },
+  "next_gate": "complete_local_control_plane_and_operator_experience"
 }

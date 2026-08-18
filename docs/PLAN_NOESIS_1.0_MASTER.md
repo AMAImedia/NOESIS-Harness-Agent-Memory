@@ -4,7 +4,7 @@
 **Runtime policy:** Python 3.14 only; deterministic core is stdlib-only.
 **Operating model:** local-first, private-by-default, human-governed, fail-closed.
 
-This is the normative English roadmap. The weighted 25%→100% execution plan is [`ROADMAP_25_TO_100.md`](ROADMAP_25_TO_100.md), with machine-readable claim status in [`CLAIMS_PROGRESS_MATRIX.json`](CLAIMS_PROGRESS_MATRIX.json). This document remains a delivery plan, not a superiority claim. NOESIS may be described as a leading or best-in-class system only after comparable pinned external A/B results, native Windows/macOS evidence, and independently reproducible metrics exist.
+This is the normative English roadmap. The weighted 25%→100% execution plan is [`ROADMAP_25_TO_100.md`](ROADMAP_25_TO_100.md), with machine-readable claim status in [`CLAIMS_PROGRESS_MATRIX.json`](CLAIMS_PROGRESS_MATRIX.json). The completion target is two-stage: first deliver a genuinely complete, portable Python 3.14 Agent OS; then establish an evidence-backed leading/worldwide-superiority claim through native parity, pinned external A/B, independent scoring, reproducibility and review. This document remains a delivery plan, not a superiority claim.
 
 ## Current verified baseline
 
