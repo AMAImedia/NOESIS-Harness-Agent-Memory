@@ -952,3 +952,17 @@ Machine evidence: `docs/PARALLEL_STAGE4_EVIDENCE.json`; English report: `docs/PA
 | NEXT-SL-01 | Human-Governed Learning Promotion Pipeline | `NEXT LOCAL GATE` | Experience receipt → deterministic holdout evaluator → review proposal → explicit approval → immutable promotion → rollback/holdout verification → signed receipt |
 
 English primary audit: `docs/SELF_LEARNING_OS_SYNC_AUDIT.md`; Russian supplemental localization: `docs/locales/ru/SELF_LEARNING_OS_SYNC_AUDIT_RU.md`.
+
+## 2026-08-18 — Human-Governed Learning Promotion Pipeline
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-01 | Provenance-bound experience receipt | `DONE / LOCAL VERIFIED` | `noesis_harness/learning_promotion.py`; source/policy/payload digests, scope и schema binding |
+| LEARN-02 | Deterministic holdout evaluator | `DONE / LOCAL VERIFIED` | Sorted case digest; non-empty all-pass and zero-leakage acceptance |
+| LEARN-03 | Review-only learning proposal | `DONE / LOCAL VERIFIED` | Proposal remains `review` until explicit operator approval |
+| LEARN-04 | Explicit approval and immutable promotion | `DONE / LOCAL VERIFIED` | Approval identity, passing tests, immutable version directory and content digest |
+| LEARN-05 | Rollback and signed promotion receipt | `DONE / LOCAL VERIFIED` | ACTIVE pointer rollback and HMAC-SHA256 promotion receipt |
+| LEARN-06 | Executable skill boundary | `DONE / BOUNDED` | Promotion module never executes skill content; entrypoints remain disabled |
+| LEARN-07 | Full integration with autonomous runtime | `NEXT LOCAL GATE` | Connect promotion lifecycle to task completion/evaluator/operator telemetry without automatic activation |
+
+English primary contract: `docs/LEARNING_PROMOTION_PIPELINE.md`; Russian supplemental localization: `docs/locales/ru/LEARNING_PROMOTION_PIPELINE_RU.md`.

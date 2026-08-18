@@ -1,0 +1,25 @@
+{
+  "schema_version": "noesis.learning-promotion-evidence.v1",
+  "implementation": "noesis_harness.learning_promotion.LearningPromotionPipeline",
+  "status": "passed",
+  "tests_total_after_gate": 388,
+  "promotion_tests": 5,
+  "states": ["review", "approved", "promoted", "rolled_back", "rejected", "blocked"],
+  "checks": {
+    "provenance_bound_receipt": true,
+    "deterministic_holdout_digest": true,
+    "non_empty_all_pass_required": true,
+    "zero_leakage_required": true,
+    "review_only_before_approval": true,
+    "explicit_operator_identity_required": true,
+    "content_digest_checked": true,
+    "immutable_version_written": true,
+    "verification_failure_cleans_staged_version": true,
+    "hmac_signed_promotion_receipt": true,
+    "rollback_supported": true,
+    "executable_skill_content_invoked": false,
+    "automatic_activation_without_approval": false
+  },
+  "claim_boundary": "Local lifecycle integrity only; no general capability, universal safety, or competitor superiority claim.",
+  "next_gate": "Integrate promotion lifecycle with task completion, evaluator registry and operator telemetry without automatic activation."
+}
