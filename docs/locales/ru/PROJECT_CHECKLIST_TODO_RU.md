@@ -966,3 +966,16 @@ English primary audit: `docs/SELF_LEARNING_OS_SYNC_AUDIT.md`; Russian supplement
 | LEARN-07 | Full integration with autonomous runtime | `NEXT LOCAL GATE` | Connect promotion lifecycle to task completion/evaluator/operator telemetry without automatic activation |
 
 English primary contract: `docs/LEARNING_PROMOTION_PIPELINE.md`; Russian supplemental localization: `docs/locales/ru/LEARNING_PROMOTION_PIPELINE_RU.md`.
+
+## 2026-08-18 — Learning Promotion Integration
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-INT-01 | Terminal task → experience receipt | `DONE / LOCAL VERIFIED` | Active/unknown tasks rejected; terminal outcomes capture provenance-bound receipt |
+| LEARN-INT-02 | Explicit evaluator registry | `DONE / LOCAL VERIFIED` | Duplicate/unknown evaluator versions fail closed; no implicit evaluator |
+| LEARN-INT-03 | Review-only operator lifecycle | `DONE / LOCAL VERIFIED` | Capture/evaluate/propose/approve/promote/rollback are explicit operations |
+| LEARN-INT-04 | Promotion telemetry and HealthServer snapshot | `DONE / LOCAL VERIFIED` | Bounded redacted `learning_promotion` section; existing SSE snapshot remains read-only |
+| LEARN-INT-05 | Automatic activation boundary | `DONE / BOUNDED` | Integration defaults `activate=False`; task completion and evaluator never activate skills |
+| LEARN-INT-06 | Runtime evaluator/activation policy integration | `NEXT LOCAL GATE` | Connect to durable task event stream and policy simulator; keep activation separately gated |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

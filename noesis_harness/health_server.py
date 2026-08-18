@@ -24,7 +24,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -41,6 +41,7 @@ class HealthServer:
         self.unavailable_reasons = tuple(str(item) for item in unavailable_reasons) or tuple(f"{key}_unavailable" for key, value in self.capabilities.items() if value == "unavailable")
         self.provider_registry = provider_registry or ProviderRegistry()
         self.session_store = session_store
+        self.promotion_telemetry = promotion_telemetry
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
         self._telemetry: dict[str, Any] = {
@@ -92,7 +93,11 @@ class HealthServer:
 
     def telemetry_snapshot(self) -> Mapping[str, Any]:
         with self._telemetry_lock:
-            return self._redact_telemetry(self._telemetry)
+            snapshot = self._redact_telemetry(self._telemetry)
+        if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
+            snapshot = dict(snapshot)
+            snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
+        return snapshot
 
     @property
     def bound_port(self) -> int:
