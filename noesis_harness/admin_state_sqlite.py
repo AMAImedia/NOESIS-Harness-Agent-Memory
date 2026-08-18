@@ -209,5 +209,19 @@ class SQLiteAdministrativeBackend:
             row = db.execute("SELECT * FROM mutation_audit WHERE action_id=?", (action_id,)).fetchone()
             return dict(row) if row else None
 
+    def session_snapshot(self, session_id: str) -> Optional[Mapping[str, Any]]:
+        with self._connect() as db:
+            row = db.execute("SELECT * FROM operator_sessions WHERE session_id=?", (session_id,)).fetchone()
+            if row is None:
+                return None
+            return {"session_id": row["session_id"], "operator_id": row["operator_id"], "scopes": json.loads(row["scopes"]), "expires_at": float(row["expires_at"]), "active": bool(row["active"])}
+
+    def reviewer_snapshot(self, operator_id: str, session_id: str) -> Optional[Mapping[str, Any]]:
+        with self._connect() as db:
+            row = db.execute("SELECT * FROM reviewer_grants WHERE operator_id=? AND session_id=?", (operator_id, session_id)).fetchone()
+            if row is None:
+                return None
+            return {"operator_id": row["operator_id"], "session_id": row["session_id"], "scopes": json.loads(row["scopes"]), "active": bool(row["active"])}
+
 
 __all__ = ["SCHEMA_VERSION", "RECEIPT_SCHEMA", "SQLiteAdminStateError", "SQLiteAdministrativeBackend"]

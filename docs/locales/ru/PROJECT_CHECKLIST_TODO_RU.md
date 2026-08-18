@@ -1122,3 +1122,17 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-SQLITE-06 | Runtime adoption | `NEXT LOCAL GATE` | Replace optional append-only stores in production operator wiring only after migration/recovery plan review |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Administrative Store Migration Adapter
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-MIGRATE-01 | Versioned migration state | `DONE / LOCAL VERIFIED` | `noesis.admin-migration.v1` with `legacy`, `dual_read`, `sqlite` modes |
+| LEARN-MIGRATE-02 | Direct cutover prevention | `DONE / LOCAL VERIFIED` | `legacy` cannot jump directly to `sqlite` |
+| LEARN-MIGRATE-03 | Dual-read verification | `DONE / LOCAL VERIFIED` | Identity, scopes and active state compare; TTL timestamp jitter is semantic-only |
+| LEARN-MIGRATE-04 | Mismatch fail-closed | `DONE / LOCAL VERIFIED` | State mismatch returns `blocked` and `require_dual_read` raises |
+| LEARN-MIGRATE-05 | Explicit rollback | `DONE / LOCAL VERIFIED` | `sqlite`/`dual_read` can explicitly roll back to `legacy` |
+| LEARN-MIGRATE-06 | Automatic cutover | `NOT_RUN / DISABLED` | No silent replacement of append-only stores |
+| LEARN-MIGRATE-07 | Production routing adoption | `NEXT LOCAL GATE` | Connect verified adapter to HealthServer and executor mutation routing |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
