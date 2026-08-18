@@ -54,7 +54,7 @@ Run the same operator bundle and parity contract on matching Windows and macOS h
 
 ### Gate 7 — Pinned external A/B evidence
 
-Acquire exact immutable revisions and executable environments for Hermes, OpenCode and DeepSeek Harness. Use disposable workspaces, a connector-neutral task protocol, identical task corpus, fixed budgets, independent scoring, signed receipts and explicit operator approval. Compare correctness, evidence quality, recovery, isolation, approval bypass, credential leakage, latency, reviewer time and resource use. Missing or mismatched environments remain `not_run` or `blocked`.
+Acquire exact immutable revisions and executable environments for Hermes, OpenCode and DeepSeek Harness. The pinned orchestrator now validates exact commit-shaped revisions, required external lane coverage, seed digest when required, disposable workspace policy, deny-by-default network and budget policy before planning a lane. Its capability-aware inventory records required network/workspace/credential capabilities and executable availability without treating discovery as execution. Use disposable workspaces, a connector-neutral task protocol, identical task corpus, fixed budgets, independent scoring, signed receipts and explicit operator approval. Compare correctness, evidence quality, recovery, isolation, approval bypass, credential leakage, latency, reviewer time and resource use. Missing or mismatched environments remain `not_run` or `blocked`.
 
 ### Gate 8 — Release and public-claim review
 

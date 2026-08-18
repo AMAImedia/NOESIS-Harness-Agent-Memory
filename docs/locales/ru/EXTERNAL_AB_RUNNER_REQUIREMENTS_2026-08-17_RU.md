@@ -58,7 +58,7 @@ Simulated evaluator использует expanded 13-metric schema. Локаль
 
 ` scripts/run_external_lane.py` связывает pinned spec с adapter и evidence pipeline в безопасном режиме. Без `--execute` создаётся только plan с `execution=not_started`; `--execute` без `--approve` возвращает `denied/not_run`. Только `--execute --approve` может начать процесс, после чего результат фиксируется как structured `started` outcome с status, return code, timeout и redacted output.
 
-Для Hermes/OpenCode оператор сначала должен получить exact revision, model/provider, task-manifest SHA-256, protocol fingerprint и disposable workspace, затем выполнить dry-run и проверить plan. Нельзя подставлять shell string, shared workspace, credentials или неподтверждённый executable. Публикация evidence выполняется отдельным ingestion/signing шагом.
+Для Hermes/OpenCode/DeepSeek Harness оператор сначала должен получить exact immutable revision, model/provider, task-manifest SHA-256, protocol fingerprint, required seed digest и disposable workspace, затем выполнить strict manifest validation, capability-aware dry-run и проверить plan. Нельзя подставлять floating revision, shell string, shared workspace, credentials или неподтверждённый executable. Approval должен быть явно связан с argv, revision, fingerprint и workspace policy. Публикация evidence выполняется отдельным ingestion/signing шагом.
 
 
 ## Structured outcome → evidence
