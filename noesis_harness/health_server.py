@@ -25,7 +25,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -48,6 +48,7 @@ class HealthServer:
         self.administrative_policy_handler = administrative_policy_handler
         self.migration_mode_change_handler = migration_mode_change_handler
         self.migration_mode_source = migration_mode_source
+        self.migration_audit_provider = migration_audit_provider
         self.migration_readiness_provider = migration_readiness_provider
         self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
@@ -83,6 +84,20 @@ class HealthServer:
             except Exception as exc:
                 return {"schema_version": "noesis.migration-readiness.v1", "mode": "blocked", "blocked": True, "rollback_available": False, "status": "blocked", "reason": "mode_source_error:" + type(exc).__name__, "automatic_cutover": False}
         return {"schema_version": "noesis.migration-readiness.v1", "mode": "legacy", "blocked": False, "rollback_available": False, "status": "legacy", "automatic_cutover": False, "operator_owned": False}
+
+    def _migration_audit_snapshot(self) -> tuple[Mapping[str, Any], ...]:
+        provider = self.migration_audit_provider
+        if provider is None and self.migration_mode_source is not None and hasattr(self.migration_mode_source, "mode_audit"):
+            provider = self.migration_mode_source.mode_audit
+        if provider is None:
+            return ()
+        try:
+            records = provider()
+            if not isinstance(records, Sequence) or isinstance(records, (str, bytes)):
+                raise ValueError("migration_audit_must_be_sequence")
+            return tuple(self._redact_telemetry(dict(item)) for item in records[:50] if isinstance(item, Mapping))
+        except Exception as exc:
+            return ({"status": "blocked", "reason": "migration_audit_provider_error:" + type(exc).__name__},)
 
     def envelope(self) -> UIEnvelope:
         readiness = self._migration_readiness_snapshot()
@@ -121,6 +136,7 @@ class HealthServer:
             snapshot = self._redact_telemetry(self._telemetry)
         snapshot = dict(snapshot)
         snapshot["migration_readiness"] = self._migration_readiness_snapshot()
+        snapshot["migration_audit"] = self._migration_audit_snapshot()
         if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
@@ -222,6 +238,8 @@ class HealthServer:
                     if self.path == "/api/child-runtimes":
                         snapshot = {"child_runtimes": snapshot["child_runtimes"], "counters": snapshot["counters"], "updated_at_epoch": snapshot["updated_at_epoch"]}
                     self._send(success({"telemetry": snapshot}), 200)
+                elif self.path == "/api/audit/migration":
+                    self._send(success({"migration_audit": parent._migration_audit_snapshot()}), 200)
                 elif self.path == "/api/telemetry/events":
                     payload = success({"telemetry": parent.telemetry_snapshot()}).to_json()
                     body = ("event: telemetry\ndata: " + payload + "\n\n").encode("utf-8")

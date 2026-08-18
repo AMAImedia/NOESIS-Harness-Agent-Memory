@@ -44,6 +44,12 @@ def _sign(key: bytes, value: Mapping[str, Any]) -> str:
     return hmac.new(key, _canonical(value).encode("utf-8"), hashlib.sha256).hexdigest()
 
 
+def _verify_mode_receipt(receipt: Mapping[str, Any], key: bytes) -> bool:
+    unsigned = {str(item): value for item, value in receipt.items() if item != "signed_receipt"}
+    expected = _sign(key, unsigned)
+    return hmac.compare_digest(str(receipt.get("signed_receipt", "")), expected)
+
+
 class SQLiteAdminStateError(ValueError):
     """Raised for invalid or denied administrative mutations."""
 
@@ -89,6 +95,15 @@ class SQLiteAdministrativeBackend:
                 active INTEGER NOT NULL,
                 updated_at REAL NOT NULL,
                 PRIMARY KEY(operator_id, session_id)
+            );
+            CREATE TABLE IF NOT EXISTS migration_mode_audit(
+                action_id TEXT PRIMARY KEY,
+                mode TEXT NOT NULL,
+                previous_mode TEXT NOT NULL,
+                operator_id TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                receipt_json TEXT NOT NULL,
+                created_at REAL NOT NULL
             );
             CREATE TABLE IF NOT EXISTS mutation_audit(
                 action_id TEXT PRIMARY KEY,
@@ -203,6 +218,26 @@ class SQLiteAdministrativeBackend:
             db.execute("UPDATE reviewer_grants SET active=0, updated_at=? WHERE operator_id=? AND session_id=?", (float(self.clock()), target_operator_id, target_session_id))
             self._audit(db, receipt)
             return {"operator_id": target_operator_id, "session_id": target_session_id, "active": False, "audit_receipt": receipt}
+
+    def record_mode_change_receipt(self, receipt: Mapping[str, Any]) -> Mapping[str, Any]:
+        required = ("action_id", "mode", "previous_mode", "operator_id", "reason", "signed_receipt")
+        if any(not receipt.get(key) for key in required):
+            raise SQLiteAdminStateError("migration_receipt_incomplete")
+        if not _verify_mode_receipt(receipt, self.signing_key):
+            raise SQLiteAdminStateError("migration_receipt_invalid")
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            existing = db.execute("SELECT receipt_json FROM migration_mode_audit WHERE action_id=?", (str(receipt["action_id"]),)).fetchone()
+            if existing is not None:
+                return json.loads(str(existing["receipt_json"]))
+            db.execute("INSERT INTO migration_mode_audit VALUES(?,?,?,?,?,?,?)", (str(receipt["action_id"]), str(receipt["mode"]), str(receipt["previous_mode"]), str(receipt["operator_id"]), str(receipt["reason"]), _canonical(dict(receipt)), float(self.clock())))
+            return dict(receipt)
+
+    def mode_audit(self, limit: int = 50) -> tuple[Mapping[str, Any], ...]:
+        bounded = max(1, min(int(limit), 200))
+        with self._connect() as db:
+            rows = db.execute("SELECT receipt_json FROM migration_mode_audit ORDER BY created_at DESC LIMIT ?", (bounded,)).fetchall()
+            return tuple(json.loads(str(row["receipt_json"])) for row in rows)
 
     def audit(self, action_id: str) -> Optional[Mapping[str, Any]]:
         with self._connect() as db:

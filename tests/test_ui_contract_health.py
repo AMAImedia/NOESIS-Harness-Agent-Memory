@@ -90,7 +90,7 @@ class HealthServerTests(unittest.TestCase):
         key = b'ui-migration-signing-key'
         source = OperatorMigrationModeSource(tempfile.mktemp(), operator_ids=('operator-1',), signing_key=key)
         server = HealthServer(port=0, migration_mode_source=source, migration_mode_change_handler=source.handle_action, operator_id='operator-1', operator_session_id='operator-session', operator_scopes=('admin:migration',))
-        payload = {'schema_version': 'noesis.migration-mode-action.v1', 'action': 'set_mode', 'mode': 'dual_read', 'operator_id': 'operator-1', 'reason': 'operator readiness test'}
+        payload = {'schema_version': 'noesis.migration-mode-action.v1', 'action_id': 'ui-mode-action-1', 'action': 'set_mode', 'mode': 'dual_read', 'operator_id': 'operator-1', 'reason': 'operator readiness test'}
         with server:
             base = f'http://{server.address[0]}:{server.address[1]}'
             request = urllib.request.Request(base + '/api/admin/migration-mode', data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
@@ -109,7 +109,7 @@ class HealthServerTests(unittest.TestCase):
     def test_mode_change_requires_authenticated_operator_context(self):
         source = OperatorMigrationModeSource(tempfile.mktemp(), signing_key=b'ui-migration-signing-key')
         server = HealthServer(port=0, migration_mode_source=source, migration_mode_change_handler=source.handle_action)
-        payload = {'schema_version': 'noesis.migration-mode-action.v1', 'action': 'set_mode', 'mode': 'dual_read', 'operator_id': 'operator-1', 'reason': 'denied test'}
+        payload = {'schema_version': 'noesis.migration-mode-action.v1', 'action_id': 'ui-mode-action-denied', 'action': 'set_mode', 'mode': 'dual_read', 'operator_id': 'operator-1', 'reason': 'denied test'}
         with server:
             request = urllib.request.Request(f'http://{server.address[0]}:{server.address[1]}/api/admin/migration-mode', data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
             with self.assertRaises(urllib.error.HTTPError) as caught:

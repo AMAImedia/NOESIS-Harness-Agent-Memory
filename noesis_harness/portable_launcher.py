@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Optional, Tuple
 
+from .admin_migration import OperatorMigrationModeSource
+from .admin_state_sqlite import SQLiteAdministrativeBackend
 from .health_server import HealthServer
 from .provider_registry import ProviderRegistry
 from .task_session_api import TaskSessionStore
@@ -82,7 +84,15 @@ def main(argv=None) -> int:
     layout = resolve_layout(args.install_root, args.data_root)
     layout.ensure()
     session_store = TaskSessionStore(str(layout.data_root / "state" / "session_events.jsonl"))
-    server = HealthServer(host=args.host, port=args.port, provider_registry=ProviderRegistry(), session_store=session_store)
+    signing_key = os.environ.get("NOESIS_MIGRATION_SIGNING_KEY", "").encode("utf-8")
+    operator_id = os.environ.get("NOESIS_OPERATOR_ID")
+    operator_session_id = os.environ.get("NOESIS_OPERATOR_SESSION_ID")
+    migration_source = None
+    migration_backend = None
+    if len(signing_key) >= 16:
+        migration_backend = SQLiteAdministrativeBackend(str(layout.data_root / "state" / "admin.sqlite3"), signing_key=signing_key, admin_ids=(operator_id,) if operator_id else ())
+        migration_source = OperatorMigrationModeSource(str(layout.data_root / "state" / "migration_mode.jsonl"), operator_ids=(operator_id,) if operator_id else (), signing_key=signing_key, audit_backend=migration_backend)
+    server = HealthServer(host=args.host, port=args.port, provider_registry=ProviderRegistry(), session_store=session_store, migration_mode_source=migration_source, migration_audit_provider=migration_source.mode_audit if migration_source else None, migration_mode_change_handler=migration_source.handle_action if migration_source else None, operator_id=operator_id, operator_session_id=operator_session_id, operator_scopes=("admin:migration",) if operator_id and operator_session_id else ())
     server.start()
     print("NOESIS portable control plane listening at http://%s:%d" % server.address, flush=True)
     print("Install root: %s" % layout.install_root, flush=True)

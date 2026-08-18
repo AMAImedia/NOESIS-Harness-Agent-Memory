@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Versioned task/session command API, bounded SSE stream contract and approval-gated TaskExecutionBridge.
 - SafeParallelExecutor with per-agent workspaces, durable Actions lifecycle and RecoveryCoordinator requeue.
 - Portable artifact manifest/SBOM verifier and native Windows/macOS dry-run/signing-policy evidence lanes.
+- Operator-owned migration mode source with HMAC-signed receipts persisted transactionally in the SQLite/WAL administrative audit store.
+- Read-only `/api/audit/migration` endpoint and SSE/UI audit timeline rendering for the latest signed migration receipts.
 
 ### Changed
 - Python 3.14 is the sole target runtime; CI packaging gates now verify portable SHA-256/SPDX coverage and both native target mismatch paths.
@@ -20,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Offline release audit is network-off-by-default and checks credential-like strings, AST eval/exec calls, package exports and clean Git state.
 
 ### Verification snapshot — 2026-08-18
-- Python 3.14.7 full regression and local release evidence remain verified; native target builds and external A/B are still unreleased gates.
+- Python 3.14.7 full regression: 427 tests passed with `ResourceWarning` treated as an error; link, documentation security, JSON evidence, metadata, and packaging consistency audits passed.
+- Offline release audit intentionally remains `clean: false` while the working tree contains this checkpoint and the synthetic private-key holdout fixture; native target builds and external A/B are still unreleased gates.
 
 ## [0.5.0] - 2026-08-14
 

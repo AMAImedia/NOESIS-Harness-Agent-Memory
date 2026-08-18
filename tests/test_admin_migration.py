@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 
-from noesis_harness.admin_migration import AdministrativeActionRouter, AdministrativeMigrationAdapter, AdministrativeMigrationError
+from noesis_harness.admin_migration import AdministrativeActionRouter, AdministrativeMigrationAdapter, AdministrativeMigrationError, OperatorMigrationModeSource, verify_signed_mode_change_receipt
 from noesis_harness.admin_state_sqlite import SQLiteAdministrativeBackend
 from noesis_harness.promotion_integration import OperatorAuthContext, ReviewerAuthorizationStore, OperatorSessionRegistry
 
@@ -15,6 +15,19 @@ class AdministrativeMigrationAdapterTests(unittest.TestCase):
         legacy_sessions.open('admin-1', 'admin-session', ttl_seconds=900, scopes=('admin:reviewers', 'admin:session'))
         adapter = AdministrativeMigrationAdapter(tempfile.mktemp(), legacy_reviewer=legacy_reviewer, legacy_sessions=legacy_sessions, sqlite_backend=sqlite)
         return adapter, legacy_sessions, legacy_reviewer, sqlite
+
+    def test_operator_mode_receipt_is_persisted_in_sqlite_audit_store(self):
+        key = b'migration-audit-signing-key'
+        db_path = tempfile.mktemp()
+        backend = SQLiteAdministrativeBackend(db_path, signing_key=key, admin_ids=('operator-1',))
+        source = OperatorMigrationModeSource(tempfile.mktemp(), operator_ids=('operator-1',), signing_key=key, audit_backend=backend)
+        context = OperatorAuthContext('operator-1', 'operator-session', ('admin:migration',))
+        receipt = source.handle_action({'schema_version': 'noesis.migration-mode-action.v1', 'action_id': 'mode-audit-1', 'action': 'set_mode', 'mode': 'dual_read', 'operator_id': 'operator-1', 'reason': 'persist audit'}, context)
+        self.assertTrue(verify_signed_mode_change_receipt(receipt, key))
+        self.assertEqual(backend.mode_audit()[0]['action_id'], 'mode-audit-1')
+        self.assertEqual(source.mode_audit()[0]['mode'], 'dual_read')
+        reopened = SQLiteAdministrativeBackend(db_path, signing_key=key, admin_ids=('operator-1',))
+        self.assertEqual(reopened.mode_audit()[0]['signed_receipt'], receipt['signed_receipt'])
 
     def test_legacy_to_dual_read_is_explicit_and_mismatch_blocks(self):
         adapter, *_ = self.make()

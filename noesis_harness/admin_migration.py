@@ -23,13 +23,14 @@ class AdministrativeMigrationError(ValueError):
 class OperatorMigrationModeSource:
     """Persistent operator-owned source of migration mode; default is legacy."""
 
-    def __init__(self, path: str, *, operator_ids: tuple[str, ...] = (), default_mode: str = "legacy", signing_key: bytes = b"", clock=time.time) -> None:
+    def __init__(self, path: str, *, operator_ids: tuple[str, ...] = (), default_mode: str = "legacy", signing_key: bytes = b"", audit_backend: Optional[Any] = None, clock=time.time) -> None:
         if default_mode not in MODES or not path:
             raise ValueError("migration_mode_source_configuration_required")
         self.events = EventStore(path)
         self.operator_ids = frozenset(str(item) for item in operator_ids)
         self.default_mode = default_mode
         self.signing_key = bytes(signing_key)
+        self.audit_backend = audit_backend
         self.clock = clock
 
     def _sign(self, payload: Mapping[str, Any]) -> str:
@@ -48,10 +49,13 @@ class OperatorMigrationModeSource:
             raise AdministrativeMigrationError("migration_operator_context_denied")
         if action.get("schema_version") != "noesis.migration-mode-action.v1":
             raise AdministrativeMigrationError("unsupported_migration_mode_action")
+        action_id = str(action.get("action_id", ""))
+        if not action_id:
+            raise AdministrativeMigrationError("migration_action_id_required")
         if action.get("action") == "set_mode":
-            result = self.set_mode(str(action.get("mode", "")), operator_id=context.operator_id, reason=str(action.get("reason", "")))
+            result = self.set_mode(str(action.get("mode", "")), operator_id=context.operator_id, reason=str(action.get("reason", "")), action_id=action_id)
         elif action.get("action") == "rollback":
-            result = self.rollback(operator_id=context.operator_id, reason=str(action.get("reason", "")))
+            result = self.rollback(operator_id=context.operator_id, reason=str(action.get("reason", "")), action_id=action_id)
         else:
             raise AdministrativeMigrationError("unsupported_migration_mode_action")
         return result
@@ -71,7 +75,7 @@ class OperatorMigrationModeSource:
     def mode(self) -> str:
         return str(self._state()["mode"])
 
-    def set_mode(self, mode: str, *, operator_id: str, reason: str) -> Mapping[str, Any]:
+    def set_mode(self, mode: str, *, operator_id: str, reason: str, action_id: str = "") -> Mapping[str, Any]:
         if mode not in MODES or not operator_id or not reason:
             raise AdministrativeMigrationError("invalid_migration_mode_action")
         if self.operator_ids and str(operator_id) not in self.operator_ids:
@@ -79,20 +83,36 @@ class OperatorMigrationModeSource:
         current = self.mode
         if mode == "sqlite" and current == "legacy":
             raise AdministrativeMigrationError("sqlite_mode_requires_dual_read")
-        payload = {"schema_version": MIGRATION_SCHEMA, "action": "set_mode", "mode": mode, "previous_mode": current, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
+        effective_action_id = str(action_id) or "migration-mode:set:" + str(self.events.count())
+        payload = {"schema_version": MIGRATION_SCHEMA, "action": "set_mode", "action_id": effective_action_id, "mode": mode, "previous_mode": current, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
         result = self._signed(payload)
-        self.events.append("migration_mode_set", result, event_id="migration-source:set:" + mode + ":" + str(self.events.count()))
+        self.events.append("migration_mode_set", result, event_id="migration-source:set:" + effective_action_id)
+        self._persist_audit(result)
         return result
 
-    def rollback(self, *, operator_id: str, reason: str) -> Mapping[str, Any]:
+    def rollback(self, *, operator_id: str, reason: str, action_id: str = "") -> Mapping[str, Any]:
         if self.mode == "legacy":
             raise AdministrativeMigrationError("migration_not_active")
         if self.operator_ids and str(operator_id) not in self.operator_ids:
             raise AdministrativeMigrationError("migration_operator_not_authorized")
-        payload = {"schema_version": MIGRATION_SCHEMA, "action": "rollback", "mode": "legacy", "previous_mode": self.mode, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
+        effective_action_id = str(action_id) or "migration-mode:rollback:" + str(self.events.count())
+        payload = {"schema_version": MIGRATION_SCHEMA, "action": "rollback", "action_id": effective_action_id, "mode": "legacy", "previous_mode": self.mode, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
         result = self._signed(payload)
-        self.events.append("migration_mode_rollback", result, event_id="migration-source:rollback:" + str(self.events.count()))
+        self.events.append("migration_mode_rollback", result, event_id="migration-source:rollback:" + effective_action_id)
+        self._persist_audit(result)
         return result
+
+    def _persist_audit(self, receipt: Mapping[str, Any]) -> None:
+        if self.audit_backend is not None:
+            try:
+                self.audit_backend.record_mode_change_receipt(receipt)
+            except Exception as exc:
+                raise AdministrativeMigrationError("migration_audit_persist_failed:" + type(exc).__name__) from exc
+
+    def mode_audit(self, limit: int = 50) -> tuple[Mapping[str, Any], ...]:
+        if self.audit_backend is None or not hasattr(self.audit_backend, "mode_audit"):
+            return ()
+        return tuple(self.audit_backend.mode_audit(limit))
 
     def readiness(self, *, verification: Optional["MigrationCheck"] = None) -> Mapping[str, Any]:
         mode = self.mode
