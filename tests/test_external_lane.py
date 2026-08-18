@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from scripts.external_runner_contract import make_spec
-from scripts.run_external_lane import create_approval_receipt, consume_approval_receipt, main, plan, verify_approval_receipt
+from scripts.run_external_lane import create_approval_receipt, consume_approval_receipt, main, plan, record_execution_state, recover_execution, verify_approval_receipt
 
 
 class ExternalLaneTests(unittest.TestCase):
@@ -78,6 +78,21 @@ class ExternalLaneTests(unittest.TestCase):
             corrupt = root / "corrupt.sqlite"
             corrupt.write_bytes(b"not-a-sqlite-database")
             self.assertEqual(consume_approval_receipt(receipt, str(corrupt)), (False, "approval_store_invalid"))
+
+    def test_execution_journal_recovery_is_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            key = "approval-key-for-tests-2026"
+            spec = make_spec("hermes", "pinned-h1", [sys.executable, "-c", "print('x')"], "g" * 64)
+            receipt = create_approval_receipt(plan(spec, str(root)), key, now=time.time(), ttl_seconds=300, nonce="journal")
+            store = root / "journal.sqlite"
+            self.assertEqual(consume_approval_receipt(receipt, str(store)), (True, "consumed"))
+            approval_id = receipt["approval_id"]
+            self.assertEqual(recover_execution(str(store), approval_id)["action"], "issue_new_approval")
+            self.assertEqual(record_execution_state(str(store), approval_id, "started"), (True, "state_recorded"))
+            self.assertEqual(record_execution_state(str(store), approval_id, "completed"), (True, "state_recorded"))
+            self.assertEqual(recover_execution(str(store), approval_id), {"status": "completed", "reason": "execution_already_completed", "action": "no_replay"})
+            self.assertEqual(record_execution_state(str(store), approval_id, "started"), (False, "execution_transition_invalid"))
 
     def test_concurrent_consume_has_one_winner(self):
         with tempfile.TemporaryDirectory() as directory:

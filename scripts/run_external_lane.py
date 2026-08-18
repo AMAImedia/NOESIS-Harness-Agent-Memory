@@ -15,6 +15,7 @@ from scripts.ingest_runner_result import canonical, signature
 from scripts.pinned_runner_adapter import RunnerConfigurationError, execute, validate
 
 APPROVAL_SCHEMA = "noesis.external-approval.v1"
+EXECUTION_STATES = frozenset({"consumed", "started", "completed", "abandoned"})
 
 
 def _identity(report: Mapping[str, Any]) -> dict[str, Any]:
@@ -110,9 +111,12 @@ def consume_approval_receipt(receipt: Mapping[str, Any], store_path: str) -> tup
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("PRAGMA synchronous=FULL")
         db.execute("CREATE TABLE IF NOT EXISTS consumed_approvals (approval_id TEXT PRIMARY KEY, consumed_at REAL NOT NULL)")
+        db.execute("CREATE TABLE IF NOT EXISTS approval_execution_journal (approval_id TEXT PRIMARY KEY, state TEXT NOT NULL, updated_at REAL NOT NULL, detail TEXT NOT NULL)")
         db.execute("BEGIN IMMEDIATE")
         try:
-            db.execute("INSERT INTO consumed_approvals(approval_id, consumed_at) VALUES(?, ?)", (approval_id, time.time()))
+            now = time.time()
+            db.execute("INSERT INTO consumed_approvals(approval_id, consumed_at) VALUES(?, ?)", (approval_id, now))
+            db.execute("INSERT INTO approval_execution_journal(approval_id, state, updated_at, detail) VALUES(?, 'consumed', ?, '')", (approval_id, now))
         except sqlite3.IntegrityError:
             db.execute("ROLLBACK")
             return False, "approval_replay"
@@ -123,6 +127,55 @@ def consume_approval_receipt(receipt: Mapping[str, Any], store_path: str) -> tup
         if db is not None:
             db.close()
     return True, "consumed"
+
+
+def record_execution_state(receipt_store: str, approval_id: str, state: str, detail: str = "") -> tuple[bool, str]:
+    """Advance a consumed approval through a monotonic durable execution state machine."""
+    if state not in EXECUTION_STATES:
+        return False, "execution_state_invalid"
+    transitions = {"consumed": {"started", "abandoned"}, "started": {"completed", "abandoned"}, "completed": set(), "abandoned": set()}
+    db: sqlite3.Connection | None = None
+    try:
+        db = sqlite3.connect(Path(receipt_store), timeout=5.0, isolation_level=None)
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT state FROM approval_execution_journal WHERE approval_id=?", (approval_id,)).fetchone()
+        if row is None:
+            db.execute("ROLLBACK")
+            return False, "execution_record_missing"
+        current = str(row[0])
+        if state != current and state not in transitions.get(current, set()):
+            db.execute("ROLLBACK")
+            return False, "execution_transition_invalid"
+        db.execute("UPDATE approval_execution_journal SET state=?, updated_at=?, detail=? WHERE approval_id=?", (state, time.time(), str(detail)[:512], approval_id))
+        db.execute("COMMIT")
+        return True, "state_recorded"
+    except (OSError, sqlite3.DatabaseError):
+        return False, "approval_store_invalid"
+    finally:
+        if db is not None:
+            db.close()
+
+
+def recover_execution(receipt_store: str, approval_id: str) -> dict[str, str]:
+    """Return a conservative recovery decision; an interrupted receipt is never auto-reused."""
+    db: sqlite3.Connection | None = None
+    try:
+        db = sqlite3.connect(Path(receipt_store), timeout=5.0)
+        row = db.execute("SELECT state FROM approval_execution_journal WHERE approval_id=?", (approval_id,)).fetchone()
+    except (OSError, sqlite3.DatabaseError):
+        return {"status": "blocked", "reason": "approval_store_invalid", "action": "operator_review"}
+    finally:
+        if db is not None:
+            db.close()
+    if row is None:
+        return {"status": "not_found", "reason": "execution_record_missing", "action": "operator_review"}
+    state = str(row[0])
+    if state == "completed":
+        return {"status": "completed", "reason": "execution_already_completed", "action": "no_replay"}
+    if state == "abandoned":
+        return {"status": "abandoned", "reason": "execution_abandoned", "action": "issue_new_approval"}
+    return {"status": "interrupted", "reason": "execution_not_terminal", "action": "issue_new_approval"}
 
 
 def main(argv=None) -> int:
@@ -166,4 +219,4 @@ def main(argv=None) -> int:
 if __name__ == "__main__":
     raise SystemExit(main())
 
-__all__ = ["APPROVAL_SCHEMA", "consume_approval_receipt", "create_approval_receipt", "plan", "verify_approval_receipt"]
+__all__ = ["APPROVAL_SCHEMA", "EXECUTION_STATES", "consume_approval_receipt", "create_approval_receipt", "plan", "record_execution_state", "recover_execution", "verify_approval_receipt"]
