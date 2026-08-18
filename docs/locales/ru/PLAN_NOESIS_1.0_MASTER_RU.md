@@ -42,7 +42,7 @@ Manifest/grant contract и Linux reference path реализованы: `Executi
 
 ### Gate 4 — Реальный multi-agent work-product loop (в работе)
 
-`MultiAgentWorkProductLoop` связывает exclusive task claims с typed `WorkProductEnvelope`, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers и durable session resume/replay. `SafeParallelExecutor` получил explicit retry limit с action reclaim, а cancellation никогда не retry. Fixed cross-agent leakage corpus расширен до 12 deterministic holdouts; `WorkProductBenchmarkEvaluator` отдельно измеряет correctness, delivery, leakage, recovery, reviewer-time, retry и commit. Остаются более широкий delegated execution и crash/retry benchmarks на реальных multi-agent workloads.
+`MultiAgentWorkProductLoop` связывает exclusive task claims с typed `WorkProductEnvelope`, per-agent workspace snapshots, independent review, fresh-base merge authorization, explicit task commit markers и durable session resume/replay. `SafeParallelExecutor` получил explicit retry limit с action reclaim, а cancellation никогда не retry. Fixed cross-agent leakage corpus расширен до 12 deterministic holdouts; `WorkProductBenchmarkEvaluator` отдельно измеряет correctness, delivery, leakage, recovery, reviewer-time, retry и commit. MA-07 теперь предоставляет local deterministic workload runner с несколькими parallel lanes, injected first-attempt crash, bounded retry/reclaim, durable SQLite/WAL result aggregation, completed-run replay и aggregation conflict rejection. Остаются repeated workload distributions, более широкий cross-agent leakage во время active delegation и external/native comparison evidence.
 
 ### Gate 5 — Качество памяти и длинного контекста
 

@@ -49,12 +49,16 @@
       "durable_multi_agent_resume_replay",
       "bounded_parallel_retry_reclaim",
       "expanded_cross_agent_leakage_holdouts",
-      "work_product_quality_metrics"
+      "work_product_quality_metrics",
+      "parallel_workload_crash_recovery",
+      "durable_workload_result_aggregation",
+      "completed_workload_replay",
+      "aggregation_conflict_rejection"
     ],
     "open_subgates": [
       "native_windows_macos_evidence",
-      "broader_multi_agent_execution_benchmarks",
-      "real_multi_agent_workload_benchmark"
+      "repeated_workload_distributions",
+      "active_delegation_leakage_holdouts"
     ],
     "required_boundaries": [
       "terminal_task_to_receipt",

@@ -1240,6 +1240,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | MA-04 | Fresh-base merge authorization | `DONE / LOCAL VERIFIED` | Stale base and mismatched authorization fail closed; review never applies files |
 | MA-05 | Explicit commit and durable resume/replay | `DONE / BOUNDED LOCAL` | Commit is separate from review; task/session/work-product events survive coordinator reopen |
 | MA-06 | Bounded retry, leakage holdouts and work-product metrics | `DONE / BOUNDED LOCAL` | Retry limit is capped at 3, action reclaim is tested, cancellation is not retried, leakage corpus has 12 deterministic cases and evaluator reports correctness/delivery/leakage/recovery/reviewer-time/retry/commit metrics |
-| MA-07 | Real multi-agent workload benchmark | `NEXT LOCAL GATE` | Requires multiple delegated tasks under crash/retry, durable result aggregation, leakage holdouts during parallel execution and repeated benchmark runs |
+| MA-07 | Local parallel workload benchmark | `DONE / BOUNDED LOCAL` | Three parallel deterministic lanes, injected first-attempt crash, retry/reclaim, durable result aggregation, completed-run replay and aggregation conflict denial are verified |
+| MA-08 | Repeated workload distributions and active-delegation leakage | `NEXT LOCAL GATE` | Requires repeated runs with distribution reporting, crash at different execution points and leakage holdouts while multiple lanes are active |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
