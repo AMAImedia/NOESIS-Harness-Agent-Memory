@@ -22,6 +22,7 @@ EVIDENCE_REQUIRED_FIELDS = (
     "schema_version", "accepted", "errors", "system", "revision",
     "task_manifest_sha256", "model_provider", "protocol_fingerprint",
     "workspace", "status", "metrics", "source_result_sha256",
+    "environment_digest", "receipt_id",
 )
 METRIC_STATUS = ALLOWED_STATUS | {"observed"}
 _CREDENTIAL_PATTERNS = (
@@ -39,6 +40,21 @@ def signature(payload: Mapping[str, Any], key: str) -> str:
     if not key or len(key) < 16:
         raise ValueError("evidence signing key must be at least 16 characters")
     return "hmac-sha256:" + hmac.new(key.encode("utf-8"), canonical(payload), hashlib.sha256).hexdigest()
+
+
+def environment_digest(value: Any) -> str:
+    return hashlib.sha256(canonical(value)).hexdigest()
+
+
+def receipt_id(unsigned: Mapping[str, Any]) -> str:
+    basis = {
+        "system": unsigned.get("system"),
+        "revision": unsigned.get("revision"),
+        "protocol_fingerprint": unsigned.get("protocol_fingerprint"),
+        "source_result_sha256": unsigned.get("source_result_sha256"),
+        "environment_digest": unsigned.get("environment_digest"),
+    }
+    return hashlib.sha256(canonical(basis)).hexdigest()
 
 
 def contains_credential_like(value: Any) -> bool:
@@ -106,7 +122,9 @@ def ingest(spec: Mapping[str, Any], result: Mapping[str, Any], key: str) -> dict
         "status": result.get("status", "not_run"),
         "metrics": result.get("metrics", {}),
         "source_result_sha256": hashlib.sha256(canonical(result)).hexdigest(),
+        "environment_digest": environment_digest(result.get("environment", {})),
     }
+    unsigned["receipt_id"] = receipt_id(unsigned)
     return {**unsigned, "signature": signature(unsigned, key)}
 
 
@@ -123,6 +141,10 @@ def verify_evidence(evidence: Mapping[str, Any], key: str) -> bool:
     if not isinstance(evidence.get("metrics"), Mapping):
         return False
     if not isinstance(evidence.get("source_result_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", evidence["source_result_sha256"]):
+        return False
+    if not isinstance(evidence.get("environment_digest"), str) or not re.fullmatch(r"[0-9a-f]{64}", evidence["environment_digest"]):
+        return False
+    if evidence.get("receipt_id") != receipt_id(evidence):
         return False
     supplied = evidence.get("signature")
     if not isinstance(supplied, str) or not supplied.startswith("hmac-sha256:"):

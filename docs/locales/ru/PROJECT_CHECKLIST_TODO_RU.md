@@ -838,3 +838,15 @@ Summary: `docs/locales/ru/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.
 | LOC-04 | Markdown link conformance | `DONE / LOCAL VERIFIED` | 90 Markdown files, 61 local links, missing targets `0` |
 
 Нормативные English документы остаются в `docs/`; русские переводы находятся в `docs/locales/ru/` и не заменяют code-facing contracts или machine-readable evidence.
+
+## 2026-08-18 — Unified external evidence readiness matrix
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| EXT-01 | Environment digest и deterministic signed receipt | `DONE / LOCAL VERIFIED` | `ingest_runner_result.py` добавляет `environment_digest` и `receipt_id`; `verify_evidence()` отклоняет stale/mismatched receipt |
+| EXT-02 | Unified readiness matrix для Hermes/OpenCode/DeepSeek Harness | `DONE / LOCAL VERIFIED` | `scripts/external_evidence_readiness.py`; schema `noesis.external-evidence-readiness.v1`; статусы `passed/not_run/blocked/unsupported` |
+| EXT-03 | Current machine-readable readiness artifact | `DONE / LOCAL VERIFIED / EXTERNAL NOT RUN` | `docs/EXTERNAL_EVIDENCE_READINESS_MATRIX.json`; все три lanes сейчас `not_run` из-за пустых exact revisions; `native_or_external_execution_claim=false` |
+| EXT-04 | Negative cases | `DONE / LOCAL VERIFIED` | Missing revision, revision mismatch, environment mismatch, stale receipt, duplicate system record, protocol fingerprint conflict и unsupported lane покрыты `tests/test_external_evidence_readiness.py` |
+| EXT-05 | Contract/localization | `DONE / LOCAL VERIFIED` | `docs/EXTERNAL_EVIDENCE_READINESS.md` и `docs/locales/ru/EXTERNAL_EVIDENCE_READINESS_RU.md`; signed evidence contract обновлён |
+
+Этот gate подтверждает только readiness и integrity ingestion. Реальные Hermes/OpenCode/DeepSeek Harness execution, native Windows/macOS execution и comparative superiority остаются `not_run/blocked` до exact revisions, matching environments, disposable workspaces и explicit approval.
