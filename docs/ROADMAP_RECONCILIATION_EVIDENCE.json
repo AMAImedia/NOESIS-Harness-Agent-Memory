@@ -56,11 +56,19 @@
       "aggregation_conflict_rejection",
       "multi_point_crash_recovery",
       "active_lane_workspace_leakage_probe",
-      "repeated_distribution_percentiles"
+      "repeated_distribution_percentiles",
+      "simultaneous_active_delegation_leakage",
+      "memory_recall_evidence",
+      "memory_attribution_precision",
+      "memory_conflict_temporal_evidence",
+      "memory_compaction_retention",
+      "memory_hard_budget_compliance"
     ],
     "open_subgates": [
       "native_windows_macos_evidence",
-      "active_delegation_leakage_holdouts"
+      "broader_active_delegation_leakage_holdouts",
+      "durable_memory_trace_stress",
+      "long_context_repeated_distribution"
     ],
     "required_boundaries": [
       "terminal_task_to_receipt",

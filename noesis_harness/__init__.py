@@ -42,6 +42,8 @@ from .execution_recovery import RECOVERY_ACTION_SCHEMA, ExecutionRecoveryAction,
 from .multi_agent_workflow import WORK_PRODUCT_SCHEMA, MultiAgentWorkProductLoop, WorkProductEnvelope, WorkProductError
 from .work_product_benchmark import WorkProductBenchmarkError, WorkProductBenchmarkEvaluator, WorkProductMetrics, WorkProductOutcome
 from .multi_agent_benchmark import DurableWorkloadAggregator, MultiAgentBenchmarkError, MultiAgentWorkloadRunner, RepeatedWorkloadReport, WorkloadCase, WorkloadRun
+from .isolation_holdouts import ActiveDelegationLeakageSuite
+from .memory_quality import MemoryQualityCase, MemoryQualityError, MemoryQualityEvaluator, MemoryQualityMetrics, MemoryQualityOutcome
 
 __all__ = [
     "EventStore", "project_chain",
@@ -60,7 +62,7 @@ __all__ = [
     "extract_session", "McpServer",
     "ContextPack", "estimate_tokens", "AgentLoop",
     "AgentLane", "AgentLaneContext", "AgentLaneResult", "ALWAYS_DENIED_CAPABILITIES", "ParallelCancellationToken", "ParallelExecutionError", "SAFE_CAPABILITIES", "SafeParallelExecutor",
-    "COMMANDS", "TASK_SESSION_SCHEMA_VERSION", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore", "STREAM_SCHEMA", "MAX_EVENT_BYTES", "CancellationToken", "SessionEventBuffer", "StreamContractError", "StreamEvent", "TaskExecutionBridge", "TaskExecutionBridgeError", "TaskExecutionReport", "TaskExecutionRequest", "ChildExecutionError", "ChildExecutionRuntime", "ExecutionRequest", "ExecutionResult", "ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "create_receipt", "verify_receipt", "RECOVERY_ACTION_SCHEMA", "ExecutionRecoveryAction", "ExecutionRecoveryError", "ExecutionRecoveryExecutor", "WORK_PRODUCT_SCHEMA", "MultiAgentWorkProductLoop", "WorkProductEnvelope", "WorkProductError", "WorkProductBenchmarkError", "WorkProductBenchmarkEvaluator", "WorkProductMetrics", "WorkProductOutcome", "DurableWorkloadAggregator", "MultiAgentBenchmarkError", "MultiAgentWorkloadRunner", "RepeatedWorkloadReport", "WorkloadCase", "WorkloadRun",
+    "COMMANDS", "TASK_SESSION_SCHEMA_VERSION", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore", "STREAM_SCHEMA", "MAX_EVENT_BYTES", "CancellationToken", "SessionEventBuffer", "StreamContractError", "StreamEvent", "TaskExecutionBridge", "TaskExecutionBridgeError", "TaskExecutionReport", "TaskExecutionRequest", "ChildExecutionError", "ChildExecutionRuntime", "ExecutionRequest", "ExecutionResult", "ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "create_receipt", "verify_receipt", "RECOVERY_ACTION_SCHEMA", "ExecutionRecoveryAction", "ExecutionRecoveryError", "ExecutionRecoveryExecutor", "WORK_PRODUCT_SCHEMA", "MultiAgentWorkProductLoop", "WorkProductEnvelope", "WorkProductError", "WorkProductBenchmarkError", "WorkProductBenchmarkEvaluator", "WorkProductMetrics", "WorkProductOutcome", "DurableWorkloadAggregator", "MultiAgentBenchmarkError", "MultiAgentWorkloadRunner", "RepeatedWorkloadReport", "WorkloadCase", "WorkloadRun", "ActiveDelegationLeakageSuite", "MemoryQualityCase", "MemoryQualityError", "MemoryQualityEvaluator", "MemoryQualityMetrics", "MemoryQualityOutcome",
 ]
 
 __version__ = "0.5.0"

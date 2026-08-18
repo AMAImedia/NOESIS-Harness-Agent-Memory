@@ -1242,6 +1242,17 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | MA-06 | Bounded retry, leakage holdouts and work-product metrics | `DONE / BOUNDED LOCAL` | Retry limit is capped at 3, action reclaim is tested, cancellation is not retried, leakage corpus has 12 deterministic cases and evaluator reports correctness/delivery/leakage/recovery/reviewer-time/retry/commit metrics |
 | MA-07 | Local parallel workload benchmark | `DONE / BOUNDED LOCAL` | Three parallel deterministic lanes, injected first-attempt crash, retry/reclaim, durable result aggregation, completed-run replay and aggregation conflict denial are verified |
 | MA-08 | Crash-point recovery, active-lane leakage and repeated distributions | `DONE / BOUNDED LOCAL` | Before/after-write/read crash points recover, active-lane workspace escape is denied, three repeated runs produce deterministic mean/p50/p95 report with bounded repetitions |
-| MA-09 | Larger active-delegation leakage corpus | `NEXT LOCAL GATE` | Requires cross-agent leakage cases while multiple real delegated work products are concurrently active |
+| MA-09 | Simultaneous active-delegation leakage corpus | `DONE / BOUNDED LOCAL` | Four concurrent sibling-read/write, absolute-path and traversal probes are denied while lanes are active |
+
+### Gate 5 memory and long-context evidence
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| MEM-01 | Recall | `DONE / BOUNDED LOCAL` | Source-ID intersection recall is deterministic and separate from attribution |
+| MEM-02 | Attribution precision | `DONE / BOUNDED LOCAL` | Unsupported source attribution is penalized independently |
+| MEM-03 | Conflict and temporal correctness | `DONE / BOUNDED LOCAL` | Recorded verifier booleans are measured separately; no model self-grading |
+| MEM-04 | Compaction retention | `DONE / BOUNDED LOCAL` | Required source retention after compaction is measured explicitly |
+| MEM-05 | Hard context budget | `DONE / BOUNDED LOCAL` | Used tokens over budget fail compliance; budget is never softened |
+| MEM-06 | Durable trace and long-context stress | `NEXT LOCAL GATE` | Connect evaluator to durable context/reuse traces and repeated long-context fixtures |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

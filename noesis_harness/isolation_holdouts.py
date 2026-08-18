@@ -1,10 +1,13 @@
 """Deterministic cross-agent leakage and authorization holdouts."""
 from __future__ import annotations
 
+import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Tuple
+
+from .parallel_agent import AgentLane, SafeParallelExecutor
 
 from .nextgen import AgentManifest, CapabilityDenied, IsolationBroker
 
@@ -15,6 +18,35 @@ class IsolationHoldoutResult:
     passed: bool
     observed: str
     reason: str
+
+
+class ActiveDelegationLeakageSuite:
+    """Run concurrent workspace escape probes while delegated lanes are active."""
+
+    CASE_IDS: Tuple[str, ...] = ("sibling_read_denied", "sibling_write_denied", "absolute_path_denied", "traversal_denied")
+
+    def evaluate(self) -> Tuple[IsolationHoldoutResult, ...]:
+        with tempfile.TemporaryDirectory(prefix="noesis-active-leakage-") as root:
+            executor = SafeParallelExecutor(root, max_concurrency=4)
+            lanes = [AgentLane("agent-%d" % index, "task-%d" % index, "agent-%d" % index) for index in range(4)]
+            probes = {"sibling_read_denied": "../agent-1/secret.txt", "sibling_write_denied": "../agent-2/write.txt", "absolute_path_denied": str(Path(root).parent / "outside.txt"), "traversal_denied": "../../escape.txt"}
+            observed: dict[str, str] = {}
+
+            def callback(ctx):
+                case_id = tuple(probes)[int(ctx.task_id.rsplit("-", 1)[-1])]
+                try:
+                    ctx.path(probes[case_id])
+                    observed[case_id] = "allowed"
+                except Exception as exc:
+                    observed[case_id] = type(exc).__name__
+                return case_id
+
+            results = executor.execute(lanes, callback, session_id="active-leakage", max_duration_seconds=5)
+            return tuple(IsolationHoldoutResult(case_id, observed.get(case_id) != "allowed" and any(result.status == "passed" and result.output == case_id for result in results), observed.get(case_id, "missing"), "concurrent workspace boundary") for case_id in self.CASE_IDS)
+
+    def pass_rate(self) -> float:
+        results = self.evaluate()
+        return sum(result.passed for result in results) / len(results) if results else 1.0
 
 
 class CrossAgentLeakageSuite:
