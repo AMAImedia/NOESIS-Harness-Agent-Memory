@@ -117,7 +117,7 @@ The isolation broker provides logical private scopes and cross-tenant denial. It
 | Sandbox execution reports `unavailable` | Configure a reviewed hardened adapter; do not treat the local fallback as a security sandbox. |
 | Benchmark results differ | Record Python version, OS, `--n` value and database location. Local measurements are not universal performance claims. |
 
-For technical details, see [`docs/README.md`](docs/README.md), [`docs/ARCHITECTURE_1.0_NEXTGEN.md`](docs/ARCHITECTURE_1.0_NEXTGEN.md) and [`docs/EVALUATION_PROTOCOL.md`](docs/EVALUATION_PROTOCOL.md).
+For technical details, see [`docs/README.md`](docs/README.md), [`docs/ARCHITECTURE_1.0_NEXTGEN.md`](docs/ARCHITECTURE_1.0_NEXTGEN.md), [`docs/EVALUATION_PROTOCOL.md`](docs/EVALUATION_PROTOCOL.md) and [`docs/LANGUAGE_POLICY.md`](docs/LANGUAGE_POLICY.md).
 
 ## File map
 

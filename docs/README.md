@@ -2,12 +2,15 @@
 
 This directory contains the technical documentation for the local-first NOESIS agent kernel.
 
+> **Language policy:** English is the primary language for code, CLI and batch output, API contracts, schemas, tests, metadata, the root README and code-facing documentation. Russian is an additional localized layer; Russian documents use the `_RU.md` suffix. See [`LANGUAGE_POLICY.md`](LANGUAGE_POLICY.md).
+
 | Document | Purpose |
 |---|---|
+| [`LANGUAGE_POLICY.md`](LANGUAGE_POLICY.md) | English-primary and Russian-supplemental language rules for code, docs, contracts and evidence. |
 | [`ARCHITECTURE_1.0_NEXTGEN.md`](ARCHITECTURE_1.0_NEXTGEN.md) | Architecture of run envelopes, capabilities, audit chains, durable fibers, evidence memory, coordination and bounded context. |
-| [`EVALUATION_PROTOCOL.md`](EVALUATION_PROTOCOL.md) | Reproducible criteria for memory, coordination, security, coding tasks and release decisions. |
-| [`IMPLEMENTATION_REPORT_2026-08.md`](IMPLEMENTATION_REPORT_2026-08.md) | Verified local implementation report and benchmark snapshot dated 2026-08-17. |
-| [`PLAN_NOESIS_1.0_MASTER.md`](PLAN_NOESIS_1.0_MASTER.md) | Master implementation plan and phase gates. |
+| [`EVALUATION_PROTOCOL.md`](EVALUATION_PROTOCOL.md) | Normative English evaluation criteria; Russian localization: [`EVALUATION_PROTOCOL_RU.md`](EVALUATION_PROTOCOL_RU.md). |
+| [`IMPLEMENTATION_REPORT_2026-08.md`](IMPLEMENTATION_REPORT_2026-08.md) | Normative English implementation report; Russian localization: [`IMPLEMENTATION_REPORT_2026-08_RU.md`](IMPLEMENTATION_REPORT_2026-08_RU.md). |
+| [`PLAN_NOESIS_1.0_MASTER.md`](PLAN_NOESIS_1.0_MASTER.md) | Normative English master plan; Russian localization: [`PLAN_NOESIS_1.0_MASTER_RU.md`](PLAN_NOESIS_1.0_MASTER_RU.md). |
 | [`api.md`](api.md) | Existing API notes for the core package. |
 | [`architecture.md`](architecture.md) | Earlier architecture notes retained for historical context. |
 | [`why.md`](why.md) | Motivation and design rationale. |

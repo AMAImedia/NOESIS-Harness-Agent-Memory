@@ -130,7 +130,7 @@
 |---|---|---|---|---|
 | P4-01 | Windows x64 portable artifact | Агент | `DONE / REMOTE VERIFIED` | Stdlib-only portable launcher; separate install/data roots; explicit NOESIS_HOME override; loopback startup probe; data sentinel survives clean stop; external bind rejected; 4/4 focused tests; 187/187 full tests; commit `75fcd87`; remote SHA `75fcd8729eb0d5e3fe75eb2176bd50a83cb4db2a`; repository remains private |
 | P4-02 | macOS arm64 portable artifact | Агент | `DONE / SIMULATED VERIFIED` | macOS `~/Library/Application Support/NOESIS` branch; explicit NOESIS_HOME override; loopback startup; data preservation; clean shutdown; 4/4 platform-simulated tests; 191/191 full tests; actual macOS arm64 runner still unavailable; commit `8fc6561`; remote SHA `8fc65612af2cefbbc1e2bb974a5b493a9c5484de`; repository remains private |
-| P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `DECISION MEMO READY / WAITING FOR USER` | Recommendation: keep stdlib-first control plane as canonical baseline; defer wrapper; if native shell is required, prefer isolated optional Tauri layer after native CI and IPC/security review; Electron not default; memo `docs/DECISION_MEMO_P4-03_DESKTOP_WRAPPER_2026-08-17.md` |
+| P4-03 | Optional Electron/Tauri wrapper decision | Владелец + агент | `DECISION MEMO READY / WAITING FOR USER` | Recommendation: keep stdlib-first control plane as canonical baseline; defer wrapper; if native shell is required, prefer isolated optional Tauri layer after native CI and IPC/security review; Electron not default; memo `docs/DECISION_MEMO_P4-03_DESKTOP_WRAPPER_2026-08-17_RU.md` |
 | P5-00 | Windows/macOS Hermes WebUI + DeepSeek Harness integration layer | Агент | `DONE / REMOTE VERIFIED` | `BridgeIntegrationCoordinator` registers validated Hermes/DeepSeek declarations; discovery is explicit read-only; loopback/auth/capability/scope mapping and unavailable paths are fail-soft; child runtime is never started implicitly; 4/4 focused tests; 195/195 full tests; commit `a487e4c`; remote SHA `a487e4cd5333fcb2c5d4b1edcf72c763ede00a1a`; repository remains private |
 | P5-01 | Hermes/DeepSeek integration tests | Агент | `DONE / REMOTE VERIFIED` | Local stdlib gateway fixtures for Hermes/DeepSeek; auth and readiness probes; audit JSONL without credential/payload leakage; per-agent audit identity; 4/4 focused tests; 199/199 full tests; commit `36c5d2d`; remote SHA `36c5d2dfe6a23ec863344fe273ef1f2c20eece60`; repository remains private |
 | P5-02 | Pinned coding-task expansion | Агент | `DONE / REMOTE VERIFIED` | Expanded static AST corpus from 3 to 5 pinned tasks; added CSV parsing and secret redaction tasks; forbidden imports (`subprocess`, `ctypes`, `pickle`, `marshal`, `socket`) denied; dynamic execution remains `unavailable`; 5/5 focused tests; 200/200 full tests; commit `228d1b3`; remote SHA `228d1b35bef2fb27c5cfa0f4ec6573a3bbb57803`; repository remains private |
@@ -153,6 +153,8 @@
 | P12-01 | Native Python 3.14 packaging | Агент | `SOURCE ARTIFACT IMPLEMENTED / NATIVE GATE BLOCKED` | `scripts/build_portable_artifact.py` builds source-portable ZIP with `PORTABLE_MANIFEST.json`, SHA-256 entries and model/secret exclusions. `scripts/verify_python314.py` fail-closed: current sandbox 3.12.3 -> `ok:false`; native `.exe/.app`, embedded 3.14 and Windows/macOS evidence require native 3.14 environment. |
 | P13-01 | Comparative A/B and task benchmarks | Агент | `CONTRACT PROTOCOL + LOCAL BASELINE READY / EXTERNAL A-B NOT RUN` | `docs/COMPETITIVE_BENCHMARK_PROTOCOL_RU.md` defines fixed task suite, metrics, stop conditions and reporting schema. `docs/TASK_EXECUTION_PARITY_EVIDENCE.json` records local-only parity `passed`; `scripts/pinned_lane_orchestrator.py` and `docs/PINNED_EXTERNAL_LANE_MATRIX_EVIDENCE.json` prepare connector-neutral Hermes/OpenCode/DeepSeek Harness lanes; external runs and native Windows/macOS measurements remain explicitly `not_run`. |
 
+| DOC-06 | English-primary / Russian-supplemental policy | `DONE / LOCAL VERIFIED` | `docs/LANGUAGE_POLICY.md`; code-facing scope contains no unintended Cyrillic, Russian documents use the `_RU.md` suffix, and stable evidence status values remain English. |
+
 ## 5. Release-readiness audit 2026-08-17
 
 Итоговый отчёт: `docs/FINAL_SECURITY_RELIABILITY_PACKAGING_AUDIT_2026-08-17.md`. Локальный RC verified: 234/234 tests, 10/10 contract benchmark cases, AST eval/exec audit clean, local/remote SHA совпадают. Python 3.14 и native Windows/macOS evidence пока заблокированы отсутствием соответствующей среды; hardened OS sandbox и external A/B также не заявляются как готовые.
@@ -170,7 +172,7 @@
 | Native macOS arm64 runner | `UNAVAILABLE`; simulated verification only |
 | Hardened OS-level sandbox | `UNAVAILABLE`; not claimed |
 
-Подробный memo: `docs/RELEASE_READINESS_AUDIT_2026-08-17.md`. Visibility не изменялась; branch protection, native runner verification, wrapper choice и public release остаются решениями владельца.
+Подробный memo: `docs/RELEASE_READINESS_AUDIT_2026-08-17_RU.md`. Visibility не изменялась; branch protection, native runner verification, wrapper choice и public release остаются решениями владельца.
 
 ## 4. Как устроена документация проекта
 
@@ -180,12 +182,12 @@
 |---|---|---|
 | 1 | `docs/PROJECT_CHECKLIST_TODO_RU.md` | Главный operational checklist: что делать сейчас, кто отвечает и какое доказательство нужно |
 | 2 | `docs/README.md` | Навигационный индекс всех документов |
-| 3 | `docs/PLAN_NOESIS_1.0_MASTER.md` | Архитектурные фазы и долгосрочные gates |
+| 3 | `docs/PLAN_NOESIS_1.0_MASTER_RU.md` | Архитектурные фазы и долгосрочные gates |
 | 4 | `docs/PORTABLE_UI_INTEGRATION_ROADMAP.md` | Отдельный план Portable Control Plane и Hermes/DeepSeek adapters |
 | `docs/UI_CONTRACT_V1.md` | Точная versioned схема envelope, `/health`, `/models`, errors и redaction |
-| 5 | `docs/ARCHITECTURE_1.0_NEXTGEN.md` и `docs/EVALUATION_PROTOCOL.md` | Детали архитектуры и измерений |
-| 6 | `docs/IMPLEMENTATION_REPORT_2026-08.md` и `docs/RELEASE_READINESS_AUDIT_2026-08.md` | Фактические результаты, commits, tests и release gates |
-| 7 | `docs/GITHUB_FREE_PRIVATE_LIMITS_AND_NEXT_TASKS_2026-08-17.md` | Ограничения GitHub Free/private и порядок задач, не зависящих от платных функций |
+| 5 | `docs/ARCHITECTURE_1.0_NEXTGEN.md` и `docs/EVALUATION_PROTOCOL_RU.md` | Детали архитектуры и измерений |
+| 6 | `docs/IMPLEMENTATION_REPORT_2026-08_RU.md` и `docs/RELEASE_READINESS_AUDIT_2026-08.md` | Фактические результаты, commits, tests и release gates |
+| 7 | `docs/GITHUB_FREE_PRIVATE_LIMITS_AND_NEXT_TASKS_2026-08-17_RU.md` | Ограничения GitHub Free/private и порядок задач, не зависящих от платных функций |
 | 8 | `docs/NOESIS_RUNTIME_STATUS_AND_GAP_ANALYSIS_2026-08-17.md` | Фактическая граница portable control plane, Python policy, Web UI, skills и interactive runtime gaps |
 | 9 | `docs/PYTHON_314_ONLY_MIGRATION_2026-08-17.md` | Python 3.14-only policy, CI/native/package release gates и последствия breaking compatibility change |
 | 10 | `docs/EXTERNAL_AGENT_OS_INTEGRATION_AUDIT_2026-08-17.md` | License/provenance/security audit Cloudflare OS, Cloudflare Sandbox SDK, Hermes, OpenCode и правила интеграции |
@@ -219,7 +221,7 @@
 
 | Новый gate | Статус | Фактический результат |
 |---|---|---|
-| Cloudflare/OpenCode/Hermes research | `RESEARCHED / ROADMAP UPDATED` | Сохранены официальные findings и источники в `docs/COMPETITIVE_RESEARCH_CLOUDFLARE_OPENCODE_HERMES_2026-08-17.md`; стратегический roadmap — `docs/STRATEGIC_ROADMAP_BEYOND_COMPETITORS_RU_2026-08-17.md` |
+| Cloudflare/OpenCode/Hermes research | `RESEARCHED / ROADMAP UPDATED` | Сохранены официальные findings и источники в `docs/COMPETITIVE_RESEARCH_CLOUDFLARE_OPENCODE_HERMES_2026-08-17.md`; стратегический roadmap — `docs/STRATEGIC_ROADMAP_BEYOND_COMPETITORS_2026-08-17_RU.md` |
 | Cloudflare-style operator UI | `IMPLEMENTED / LOCAL VERIFIED` | `ui_assets.py` получил workspace rail, policy/lineage, provider health, agents/workspaces, runtime telemetry и audit timeline; 237/237 tests после redesign; hidden side effects не добавлены |
 | Observation/taint lineage | `IMPLEMENTED / LOCAL VERIFIED` | `resource_lineage.py`: append-only observations, sensitivity labels, stable idempotency, taint-aware egress deny и explicit approval; 3 focused tests |
 | Documentation supply-chain safety | `IMPLEMENTED / CLEAN` | `docs_security_audit.py` scans Markdown fences; текущий tree: 0 high, 0 medium findings; policy: `docs/DOCUMENTATION_SECURITY_POLICY_RU.md` |
@@ -257,7 +259,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 
 | Bet | Status | Evidence |
 |---|---|---|
-| Measurable differentiation/anti-claims | `DOCUMENTED` | `docs/WORLD_CLASS_DIFFERENTIATION_BETS_RU_2026-08-17.md` defines metrics and forbids unsupported superiority claims |
+| Measurable differentiation/anti-claims | `DOCUMENTED` | `docs/WORLD_CLASS_DIFFERENTIATION_BETS_2026-08-17_RU.md` defines metrics and forbids unsupported superiority claims |
 | Context firewall | `IMPLEMENTED / LOCAL VERIFIED` | `noesis_harness/context_firewall.py`: sensitivity redaction, scope enforcement, bounded context, explicit approval; 3 focused tests |
 | Provenance-aware memory | `IMPLEMENTED / LOCAL VERIFIED` | Observation ledger and taint-aware gateway egress are active primitives |
 | Full current suite | `PASS` | 243/243 tests after context firewall |
@@ -332,7 +334,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-28 | Interrupted/partial provider response | `DONE / LOCAL VERIFIED` | Truncated JSON body fail-closed с `provider_invalid_json`; bounded response and side-effect contract сохранены |
 | DONE-29 | Phase 2 regression after provider fault gate | `DONE / LOCAL VERIFIED` | Focused provider tests: **5/5 passed**; full Python 3.14.7 suite: **256/256 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ acceptance criteria: `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — provider boundary`. Следующий незавершённый Phase 2 gate — расширить fault injection на session resume/rollback и повреждённое durable state, после чего перейти к native packaging evidence.
+Синхронный документ acceptance criteria: `docs/EVALUATION_PROTOCOL_RU.md`, раздел `Phase 2 fault-injection gate — provider boundary`. Следующий незавершённый Phase 2 gate — расширить fault injection на session resume/rollback и повреждённое durable state, после чего перейти к native packaging evidence.
 
 
 ## 2026-08-17 — Phase 2 fault-injection checkpoint F-02
@@ -343,7 +345,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-31 | Quarantine повреждённого checkpoint | `DONE / LOCAL VERIFIED` | Запись переводится в `status='corrupted'`, `error='checkpoint_corrupt'`; `recoverable()` исключает её, другие fibers продолжают recovery |
 | DONE-32 | Phase 2 resume/corruption regression | `DONE / LOCAL VERIFIED` | Fiber + chaos focused tests: **7/7 passed**; full Python 3.14.7 suite: **257/257 passed**; полный suite `ResourceWarning`: **0** |
 
-Синхронный acceptance criteria добавлен в `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — durable checkpoint corruption`. Следующий незавершённый Phase 2 gate — fault injection на session/task resume и rollback boundary; после завершения Phase 2 активируется packaging evidence gate.
+Синхронный acceptance criteria добавлен в `docs/EVALUATION_PROTOCOL_RU.md`, раздел `Phase 2 fault-injection gate — durable checkpoint corruption`. Следующий незавершённый Phase 2 gate — fault injection на session/task resume и rollback boundary; после завершения Phase 2 активируется packaging evidence gate.
 
 
 ## 2026-08-17 — Phase 2 fault-injection checkpoint F-03
@@ -355,7 +357,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-35 | Middle-line event corruption | `DONE / LOCAL VERIFIED` | `EventStoreCorrupt` fail-closed останавливает replay, malformed history не пропускается молча |
 | DONE-36 | Phase 2 session/replay regression | `DONE / LOCAL VERIFIED` | Focused session/projection tests: **13/13 passed**; full Python 3.14.7 suite: **259/259 passed**; `ResourceWarning`: **0** |
 
-Синхронные критерии добавлены в `docs/EVALUATION_PROTOCOL.md`, раздел `Phase 2 fault-injection gate — session resume and rollback boundary`. Phase 2 fault-injection gates завершены; следующий master gate — **Phase 3: Windows/macOS Python 3.14 packaging evidence**.
+Синхронные критерии добавлены в `docs/EVALUATION_PROTOCOL_RU.md`, раздел `Phase 2 fault-injection gate — session resume and rollback boundary`. Phase 2 fault-injection gates завершены; следующий master gate — **Phase 3: Windows/macOS Python 3.14 packaging evidence**.
 
 
 ## 2026-08-17 — Phase 3 packaging checkpoint P-01
@@ -404,7 +406,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-52 | Phase 4 evaluator/runner regression | `DONE / LOCAL VERIFIED` | Focused tests: **8/8 passed**; simulated report содержит **13 metric records**; full Python 3.14.7 suite: **270/270 passed**; `ResourceWarning`: **0** |
 | DONE-53 | Python 3.14 test fixture lifecycle hygiene | `DONE / LOCAL VERIFIED` | `tests/test_fibers.py` больше не полагается на SQLite context manager как на close; explicit `db.close()` устраняет allocation-traced warnings |
 
-Синхронный runner policy: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Hermes/OpenCode реальные execution lanes остаются `not_run` до pinned revisions/native runners; текущий report не выдаёт ranking.
+Синхронный runner policy: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. Hermes/OpenCode реальные execution lanes остаются `not_run` до pinned revisions/native runners; текущий report не выдаёт ranking.
 
 
 ## 2026-08-17 — Phase 4 checkpoint A-02
@@ -416,7 +418,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-56 | Evidence security gates | `DONE / LOCAL VERIFIED` | Credential-like content, shared workspace, invalid metric status и identity mismatch fail-closed; `not_run` остаётся валидным явным статусом |
 | DONE-57 | Phase 4 evidence regression | `DONE / LOCAL VERIFIED` | Focused tests: **8/8 passed**; full Python 3.14.7 suite: **274/274 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. HMAC envelope является operator integrity mechanism и не заявляется как публичная release signature. Hermes/OpenCode фактические evidence records всё ещё `not_run` до pinned execution.
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. HMAC envelope является operator integrity mechanism и не заявляется как публичная release signature. Hermes/OpenCode фактические evidence records всё ещё `not_run` до pinned execution.
 
 
 ## 2026-08-17 — Phase 4 checkpoint A-03
@@ -428,7 +430,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-60 | Comparable-metric gate | `DONE / LOCAL VERIFIED` | При общем fingerprint numeric `observed` metrics могут сравниваться; при mismatch или tamper все metrics получают `comparable=false`, ranking не создаётся |
 | DONE-61 | Phase 4 evaluation regression | `DONE / LOCAL VERIFIED` | Focused tests: **11/11 passed**; full Python 3.14.7 suite: **277/277 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Фактические Hermes/OpenCode records всё ещё `not_run`; evaluator не создаёт сравнительный результат без pinned protocol fingerprint.
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. Фактические Hermes/OpenCode records всё ещё `not_run`; evaluator не создаёт сравнительный результат без pinned protocol fingerprint.
 
 
 ## 2026-08-17 — Phase 4 checkpoint A-04
@@ -440,7 +442,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-64 | Local comparability proof | `DONE / LOCAL VERIFIED` | Два accepted signed records, `comparable=true`, **6 metric records**, `external_processes_started=false` |
 | DONE-65 | Phase 4 fixture regression | `DONE / LOCAL VERIFIED` | Focused tests: **8/8 passed**; full Python 3.14.7 suite: **278/278 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Этот lane доказывает только correctness plumbing/evidence pipeline; он не является реальным Hermes/OpenCode execution или quality ranking.
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. Этот lane доказывает только correctness plumbing/evidence pipeline; он не является реальным Hermes/OpenCode execution или quality ranking.
 
 
 ## 2026-08-17 — Phase 4 checkpoint A-05
@@ -452,7 +454,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-68 | Runtime containment contract | `DONE / LOCAL VERIFIED` | Требуется существующий disposable workspace; environment минимален; timeout и redacted stdout/stderr возвращаются структурированно |
 | DONE-69 | Phase 4 adapter regression | `DONE / LOCAL VERIFIED` | Focused tests: **13/13 passed**; full Python 3.14.7 suite: **283/283 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Adapter не запускается без явного approval и не превращает отсутствие Hermes/OpenCode configuration в `not_run`-подмену.
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. Adapter не запускается без явного approval и не превращает отсутствие Hermes/OpenCode configuration в `not_run`-подмену.
 
 
 ## 2026-08-17 — Phase 4 checkpoint A-06
@@ -464,7 +466,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-72 | Structured external outcome | `DONE / LOCAL VERIFIED` | Approved controlled fixture возвращает `started`, status, return code, timeout и redacted output |
 | DONE-73 | Phase 4 lane regression | `DONE / LOCAL VERIFIED` | Focused tests: **12/12 passed**; full Python 3.14.7 suite: **286/286 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Hermes/OpenCode остаются `not_run`, пока оператор не предоставит exact pinned configuration и явно не подтвердит execution.
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. Hermes/OpenCode остаются `not_run`, пока оператор не предоставит exact pinned configuration и явно не подтвердит execution.
 
 
 ## 2026-08-17 — Phase 4 checkpoint A-07
@@ -476,7 +478,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-76 | Not-run comparison exclusion | `DONE / LOCAL VERIFIED` | Unified evaluator требует минимум два accepted signed non-`not_run` records и общий fingerprint; denied/not_run не сравниваются |
 | DONE-77 | Phase 4 outcome regression | `DONE / LOCAL VERIFIED` | Focused tests: **12/12 passed**; full Python 3.14.7 suite: **288/288 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Фактический Hermes/OpenCode execution остаётся `not_run` без exact pinned config и explicit approval.
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. Фактический Hermes/OpenCode execution остаётся `not_run` без exact pinned config и explicit approval.
 
 
 ## 2026-08-17 — Phase 4 checkpoint A-08 / closeout
@@ -488,7 +490,7 @@ Latest uncommitted gateway checkpoint is not release-ready until local/remote SH
 | DONE-80 | Report integrity | `DONE / LOCAL VERIFIED` | HMAC signature и `verify_report()` подтверждают целостность report; runtime key не сохраняется |
 | DONE-81 | Phase 4 closeout regression | `DONE / LOCAL VERIFIED` | Focused report tests: **7/7 passed**; full Python 3.14.7 suite: **290/290 passed**; `ResourceWarning`: **0** |
 
-Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_RU_2026-08-17.md`. Phase 4 закрыт для локального evidence plumbing. Hermes/OpenCode фактический execution и ranking остаются `not_run` до pinned native/external environments и explicit approval. Следующий master gate — **Phase 5: Trust Plane и security holdouts**.
+Синхронный документ: `docs/EXTERNAL_AB_RUNNER_REQUIREMENTS_2026-08-17_RU.md`. Phase 4 закрыт для локального evidence plumbing. Hermes/OpenCode фактический execution и ranking остаются `not_run` до pinned native/external environments и explicit approval. Следующий master gate — **Phase 5: Trust Plane и security holdouts**.
 
 
 ## 2026-08-18 — Phase 5 checkpoint T-01

@@ -1,6 +1,6 @@
 # NOESIS 1.0 Next-Generation Primitives
 
-This document describes the first implementation slice of `PLAN_NOESIS_1.0_MASTER.md`. It is local-only and keeps the 0.5 stdlib core intact.
+This document describes the first implementation slice of `PLAN_NOESIS_1.0_MASTER_RU.md`. It is local-only and keeps the 0.5 stdlib core intact.
 
 ## What is implemented
 
