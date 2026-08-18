@@ -148,6 +148,12 @@ class HealthServer:
                     self._send(parent.models_envelope(), 200)
                 elif self.path in {"/", "/ui"}:
                     self._send_html(CONTROL_PLANE_HTML, 200)
+                elif self.path.startswith("/api/tasks/") and parent.session_store is not None:
+                    task_id = self.path[len("/api/tasks/"):].rstrip("/")
+                    try:
+                        self._send(success({"task": self._jsonable(parent.session_store.task(task_id))}), 200)
+                    except TaskSessionError as exc:
+                        self._send(failure("invalid_request", "task_unavailable", str(exc)), 404)
                 elif self.path.startswith("/api/sessions/") and parent.session_store is not None:
                     suffix = self.path[len("/api/sessions/"):]
                     if suffix.endswith("/events"):
@@ -181,6 +187,23 @@ class HealthServer:
                         record = parent.session_store.create_session(str(payload.get("owner", "")), session_id=payload.get("session_id"))
                         self._session_buffer(record.session_id).publish("session_started", {"state": record.state})
                         self._send(success({"session": self._jsonable(record)}), 201)
+                        return
+                    if self.path == "/api/commands":
+                        command = parent.session_store.dispatch(payload)
+                        result = command.get("result")
+                        if hasattr(result, "session_id"):
+                            session_id = result.session_id
+                            task_id = None
+                        elif hasattr(result, "task_id"):
+                            session_id = result.session_id
+                            task_id = result.task_id
+                        else:
+                            session_id = str(result.get("session_id", "")) if isinstance(result, Mapping) else ""
+                            task_id = None
+                        if not session_id:
+                            raise TaskSessionError("command_session_id_required")
+                        event = self._session_buffer(session_id).publish("command", {"command_id": command["command_id"], "command": command["command"], "result": self._jsonable(result)}, task_id=task_id)
+                        self._send(success({"command": self._jsonable(command), "sequence": event.sequence}), 202)
                         return
                     prefix = "/api/sessions/"
                     if self.path.startswith(prefix) and self.path.endswith("/messages"):

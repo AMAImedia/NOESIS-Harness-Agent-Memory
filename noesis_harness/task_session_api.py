@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional
 from .event_store import EventStore
 
 SCHEMA_VERSION = "noesis.task-session.v1"
+COMMANDS = frozenset({"session.create", "task.create", "task.transition", "session.message"})
 
 SESSION_STATES = frozenset({"open", "paused", "completed", "cancelled"})
 TASK_STATES = frozenset({
@@ -130,6 +131,37 @@ class TaskSessionStore:
         safe["command_id"] = command_id or uuid.uuid4().hex
         return self.events.append(event_type, safe, event_id="cmd_" + safe["command_id"])
 
+    @staticmethod
+    def _command_fields(command: Mapping[str, Any]) -> tuple[str, str, Mapping[str, Any]]:
+        if not isinstance(command, Mapping):
+            raise TaskSessionError("command_object_required")
+        if command.get("schema_version") != SCHEMA_VERSION:
+            raise TaskSessionError("unsupported_command_schema")
+        command_id = str(command.get("command_id", ""))
+        name = str(command.get("command", ""))
+        payload = command.get("payload", {})
+        if not command_id or len(command_id) > 128:
+            raise TaskSessionError("command_id_required_or_too_large")
+        if name not in COMMANDS:
+            raise TaskSessionError("unknown_command")
+        if not isinstance(payload, Mapping):
+            raise TaskSessionError("command_payload_object_required")
+        return command_id, name, payload
+
+    def dispatch(self, command: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Apply one versioned, idempotent, redacted session/task command."""
+        command_id, name, payload = self._command_fields(command)
+        if name == "session.create":
+            result = self.create_session(str(payload.get("owner", "")), session_id=payload.get("session_id") or _id("sess", "command:" + command_id), command_id=command_id)
+        elif name == "task.create":
+            result = self.create_task(str(payload.get("session_id", "")), str(payload.get("title", "")), str(payload.get("owner", "")), parent_task_id=payload.get("parent_task_id"), task_id=payload.get("task_id") or _id("task", "command:" + command_id), command_id=command_id)
+        elif name == "task.transition":
+            result = self.transition_task(str(payload.get("task_id", "")), str(payload.get("target", "")), reason=str(payload.get("reason", "")), command_id=command_id)
+        else:
+            event_id = self.append_message(str(payload.get("session_id", "")), str(payload.get("role", "user")), str(payload.get("content", "")), command_id=command_id)
+            result = {"event_id": event_id, "session_id": str(payload.get("session_id", ""))}
+        return {"schema_version": SCHEMA_VERSION, "command_id": command_id, "command": name, "result": result}
+
     def create_session(self, owner: str, session_id: Optional[str] = None, command_id: Optional[str] = None) -> SessionRecord:
         owner = _redact_text(owner).strip()
         if not owner:
@@ -197,4 +229,4 @@ class TaskSessionStore:
         return {"schema_version": SCHEMA_VERSION, "session": session, "tasks": tasks, "messages": self.messages(session_id), "event_count": self.events.count()}
 
 
-__all__ = ["SCHEMA_VERSION", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore"]
+__all__ = ["SCHEMA_VERSION", "COMMANDS", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore"]

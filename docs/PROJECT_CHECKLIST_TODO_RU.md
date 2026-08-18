@@ -681,3 +681,18 @@ Full regression после lease integration: **317/317 passed**, `ResourceWarni
 | MA-13 | Full regression after integration | `DONE / LOCAL VERIFIED` | Python 3.14.7: **321/321 passed**, `ResourceWarning: 0`, `git diff --check` passed |
 
 Граница Trust Plane сохранена: callback orchestration не выполняет model-generated code; executable tools/skills остаются за ChildExecutionRuntime, а best-state/fiber/work recovery не обходятся Actions requeue.
+
+
+## 2026-08-18 — Versioned session/task command API и streaming
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| API-01 | Versioned command envelope | `DONE / LOCAL VERIFIED` | `schema_version=noesis.task-session.v1`, bounded `command_id`, 4 allowlisted commands |
+| API-02 | Durable command dispatch | `DONE / LOCAL VERIFIED` | session/task create, task transition и session message через existing EventStore/state machine |
+| API-03 | Idempotent create retry | `DONE / LOCAL VERIFIED` | Deterministic IDs from command_id; повторная команда не создаёт duplicate event/object |
+| API-04 | Task read/resume routes | `DONE / LOCAL VERIFIED` | `GET /api/tasks/<id>`, existing session resume и task state validation |
+| API-05 | Interactive bounded stream | `DONE / LOCAL VERIFIED` | Command events в `SessionEventBuffer`, monotonic sequence, Last-Event-ID SSE replay, 64 KiB event bound |
+| API-06 | Security/default boundary | `DONE / LOCAL VERIFIED` | Mutation opt-in only; default server read-only; redaction/no raw credentials; loopback/auth defaults preserved |
+| API-07 | Command API regression | `DONE / LOCAL VERIFIED` | Focused **16/16 passed**; full Python 3.14.7 suite **326/326 passed**, `ResourceWarning: 0` |
+
+Синхронный contract: `docs/TASK_SESSION_COMMAND_API_V1_RU.md`. API не запускает модели/tools/skills; side effects требуют отдельного Trust Plane/Gatekeeper/ChildExecutionRuntime path.
