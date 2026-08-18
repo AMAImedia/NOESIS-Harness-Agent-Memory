@@ -1,7 +1,12 @@
 {
   "schema_version": "noesis.external-ab.v1",
   "revision_policy": "pin_exact_commit_before_run",
-  "systems": ["noesis", "hermes", "opencode"],
+  "systems": ["noesis", "hermes", "opencode", "deepseek_harness"],
+  "revisions": {
+    "hermes": "",
+    "opencode": "",
+    "deepseek_harness": ""
+  },
   "model_policy": {
     "mode": "same_model_required_for_coding_lane",
     "provider": "pinned_by_run_manifest",

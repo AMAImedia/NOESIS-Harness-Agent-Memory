@@ -34,6 +34,7 @@ The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-o
 | [`PROCESS_TREE_CANCELLATION_RU.md`](PROCESS_TREE_CANCELLATION_RU.md) | Process-group/job termination contract for non-cooperative children, timeout/recovery guarantees and native operator commands. |
 | [`NEXT_HIGH_LEVERAGE_GATE_RU.md`](NEXT_HIGH_LEVERAGE_GATE_RU.md) | Cross-platform task-execution parity gate: native sandbox, task/session, memory/skill governance and pinned external evidence lanes. |
 | [`TASK_EXECUTION_PARITY_RU.md`](TASK_EXECUTION_PARITY_RU.md) | Local end-to-end session/task → approval → child process → SSE → recovery smoke and explicit native/external `not_run` boundary. |
+| [`PINNED_EXTERNAL_LANES_OPERATOR_RUNBOOK_RU.md`](PINNED_EXTERNAL_LANES_OPERATOR_RUNBOOK_RU.md) | Unified Linux/macOS/Windows operator bundle and pinned Hermes/OpenCode/DeepSeek Harness lane procedure with fail-closed `not_run` semantics. |
 | [`ATTRIBUTION_SOURCE_NOTES_2026-08-18.md`](ATTRIBUTION_SOURCE_NOTES_2026-08-18.md) | Official source URLs and clean-room attribution boundaries for Cloudflare, Project Think, DeepSeek Harness, OpenClaw and Hermes. |
 | [`UI_CONTRACT_V1.md`](UI_CONTRACT_V1.md) | Versioned stdlib-only boundary for health, models, errors, redaction and optional Hermes/DeepSeek adapters. |
 | [`NATIVE_PACKAGING_RUNBOOK_RU.md`](NATIVE_PACKAGING_RUNBOOK_RU.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |

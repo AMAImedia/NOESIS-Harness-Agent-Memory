@@ -1,0 +1,97 @@
+{
+  "adapter_inventory": {
+    "deepseek_harness": {
+      "available": false,
+      "executable": null,
+      "execution": "not_run",
+      "host": "any",
+      "reason": "exact_revision_and_operator_approval_required",
+      "repository": "https://github.com/deepseek-ai/deepseek-harness"
+    },
+    "hermes": {
+      "available": false,
+      "executable": null,
+      "execution": "not_run",
+      "host": "any",
+      "reason": "exact_revision_and_operator_approval_required",
+      "repository": "https://github.com/NousResearch/hermes-agent"
+    },
+    "opencode": {
+      "available": false,
+      "executable": null,
+      "execution": "not_run",
+      "host": "any",
+      "reason": "exact_revision_and_operator_approval_required",
+      "repository": "https://github.com/anomalyco/opencode"
+    }
+  },
+  "external_execution": "not_run",
+  "host": {
+    "platform": "Linux-6.1.102-x86_64-with-glibc2.39",
+    "python": "3.14.7",
+    "system": "linux"
+  },
+  "lanes": {
+    "deepseek_harness": {
+      "execution": "not_run",
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "hermes": {
+      "execution": "not_run",
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "opencode": {
+      "execution": "not_run",
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    }
+  },
+  "manifest_systems": [
+    "noesis",
+    "hermes",
+    "opencode",
+    "deepseek_harness"
+  ],
+  "missing_manifest_systems": [],
+  "operator_bundle": {
+    "commands": {
+      "linux": [
+        "runtime/python-3.14.7/build/bin/python3.14",
+        "scripts/run_task_execution_parity.py",
+        "--output",
+        "artifacts/task_execution_parity.json"
+      ],
+      "macos": [
+        "python3.14",
+        "scripts/run_task_execution_parity.py",
+        "--output",
+        "artifacts/task_execution_parity.json"
+      ],
+      "windows": [
+        "py",
+        "-3.14",
+        "scripts\\run_task_execution_parity.py",
+        "--output",
+        "artifacts\\task_execution_parity.json"
+      ]
+    },
+    "current_host_execution": "available",
+    "native_host_required_for": [
+      "macos",
+      "windows"
+    ],
+    "python_policy": "3.14-only",
+    "schema_version": "noesis.parity-operator-bundle.v1"
+  },
+  "ranking": "not_run",
+  "reason": "pinned_environment_and_explicit_operator_approval_required",
+  "required_systems": [
+    "deepseek_harness",
+    "hermes",
+    "opencode"
+  ],
+  "schema_version": "noesis.pinned-lane-matrix.v1",
+  "scope": "connector_neutral"
+}

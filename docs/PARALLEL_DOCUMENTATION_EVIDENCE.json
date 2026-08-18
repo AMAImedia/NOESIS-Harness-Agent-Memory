@@ -27,7 +27,7 @@
       "error": "",
       "output": {
         "check": "json_evidence",
-        "files_checked": 14,
+        "files_checked": 15,
         "findings": 0,
         "status": "passed"
       },
@@ -40,8 +40,8 @@
       "error": "",
       "output": {
         "check": "markdown_links",
-        "local_links": 38,
-        "markdown_files": 76,
+        "local_links": 39,
+        "markdown_files": 77,
         "missing": 0,
         "status": "passed"
       },

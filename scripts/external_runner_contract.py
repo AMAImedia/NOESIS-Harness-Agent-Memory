@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-REQUIRED_SYSTEMS = ("noesis", "hermes", "opencode")
+REQUIRED_SYSTEMS = ("noesis", "hermes", "opencode", "deepseek_harness")
 REQUIRED_FIELDS = ("system", "revision", "model_provider", "task_manifest_sha256", "protocol_fingerprint", "environment", "workspace", "argv")
 ALLOWED_STATUS = frozenset({"passed", "failed", "unsupported", "not_run"})
 ALLOWED_EXECUTION = frozenset({"not_started", "denied", "started", "completed", "fixture_only"})
