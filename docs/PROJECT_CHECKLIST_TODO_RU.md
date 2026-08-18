@@ -782,4 +782,4 @@ Summary: `docs/PARALLEL_RELEASE_AUDIT_RU.md`. Remote Git parity, native target b
 
 ### AUD-06 evidence result
 
-Offline release audit на committed checkpoint завершён: **4/4 lanes passed**, secret hits `0`, syntax errors `0`, AST `eval/exec` calls `0`, package exports `8/8`, `git diff --check=true`, `working_tree_clean=true`, unique workspaces `4`, `remote_parity_checked=false`. Machine-readable evidence: `docs/PARALLEL_RELEASE_AUDIT_EVIDENCE.json`; SHA-256 `786013b8b0c33d092f3ccad6abc8c34ac3ac1b43a9f9dfcbf20bed504fb7b8fb`.
+Offline release audit на committed checkpoint завершён: **4/4 lanes passed**, secret hits `0`, syntax errors `0`, AST `eval/exec` calls `0`, package exports `8/8`, `git diff --check=true`, `working_tree_clean=true`, unique workspaces `4`, `remote_parity_checked=false`. Machine-readable evidence: `docs/PARALLEL_RELEASE_AUDIT_EVIDENCE.json`; SHA-256 `462b32364cfe9f4d34017c26278f9d81626c73b93d1172879a57c2437a45b944`.

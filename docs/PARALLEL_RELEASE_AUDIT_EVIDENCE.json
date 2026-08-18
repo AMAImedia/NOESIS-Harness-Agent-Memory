@@ -40,7 +40,7 @@
       "error": "",
       "output": {
         "check": "ru_checklist",
-        "line_count": 780,
+        "line_count": 785,
         "markers": [
           "NAT-",
           "CI-",
