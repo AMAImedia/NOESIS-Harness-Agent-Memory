@@ -21,11 +21,12 @@ class SkillRuntimeError(ValueError):
 class ExecutableSkillRuntime:
     """Execute only active, digest-verified skill entrypoints in a child process."""
 
-    def __init__(self, skill_store: SkillStore, child_runtime: ChildExecutionRuntime, gatekeeper: Gatekeeper, *, python_executable: str | None = None):
+    def __init__(self, skill_store: SkillStore, child_runtime: ChildExecutionRuntime, gatekeeper: Gatekeeper, *, python_executable: str | None = None, require_hardened_sandbox: bool = True):
         self.skill_store = skill_store
         self.child_runtime = child_runtime
         self.gatekeeper = gatekeeper
         self.python_executable = python_executable or sys.executable
+        self.require_hardened_sandbox = bool(require_hardened_sandbox)
 
     @staticmethod
     def _platform() -> str:
@@ -89,7 +90,9 @@ class ExecutableSkillRuntime:
                 workspace = Path(temp)
                 bundle = workspace / ".skill"
                 self._copy_bundle(installed, bundle)
-                request = ExecutionRequest(request_id, (self.python_executable, ".skill/" + manifest.entrypoint, *tuple(arguments)), str(workspace), (Path(self.python_executable).name,), timeout_seconds=30.0, network=False, skill_id=skill_id)
+                if self.require_hardened_sandbox and self.child_runtime.sandbox_backend is None:
+                    return ExecutionResult("denied", request_id, None, "", "", 0.0, "skill_requires_hardened_sandbox")
+                request = ExecutionRequest(request_id, (self.python_executable, ".skill/" + manifest.entrypoint, *tuple(arguments)), str(workspace), (Path(self.python_executable).name,), timeout_seconds=30.0, network=False, skill_id=skill_id, manifest=manifest if self.require_hardened_sandbox else None, granted_capabilities=("skill.execute",) if self.require_hardened_sandbox else ())
                 return self.child_runtime.run(request)
         except (OSError, SkillRuntimeError) as exc:
             return ExecutionResult("failed", request_id, None, "", "", 0.0, "skill_staging_failed:%s" % type(exc).__name__)

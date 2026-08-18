@@ -7,6 +7,7 @@ from pathlib import Path
 from noesis_harness.child_execution import ChildExecutionRuntime, ExecutionRequest
 from noesis_harness.gatekeeper import CapabilityRequest, Gatekeeper
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
+from noesis_harness.skill_manifest import SkillManifest
 
 
 class ChildExecutionTests(unittest.TestCase):
@@ -56,6 +57,22 @@ class ChildExecutionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn("child-ok", result.stdout)
         self.assertFalse(result.sandboxed)
+
+    def test_manifest_capability_grant_is_required(self):
+        request_id = self._approved_request()
+        manifest = SkillManifest("demo-skill", "Demo", "1.0.0", "sha256:" + "0" * 64, ("skill.execute",), ("linux",), {"source": "test"}, "ok.py")
+        request = ExecutionRequest(request_id, (sys.executable, "ok.py"), str(self.workspace), (Path(sys.executable).name,), skill_id="demo-skill", manifest=manifest)
+        result = self.runtime.run(request)
+        self.assertEqual(result.status, "denied")
+        self.assertEqual(result.reason, "manifest_capability_grant_missing")
+
+    def test_manifest_requires_hardened_backend_even_with_grant(self):
+        request_id = self._approved_request()
+        manifest = SkillManifest("demo-skill", "Demo", "1.0.0", "sha256:" + "0" * 64, ("skill.execute",), ("linux",), {"source": "test"}, "ok.py")
+        request = ExecutionRequest(request_id, (sys.executable, "ok.py"), str(self.workspace), (Path(sys.executable).name,), skill_id="demo-skill", manifest=manifest, granted_capabilities=("skill.execute",))
+        result = self.runtime.run(request)
+        self.assertEqual(result.status, "denied")
+        self.assertEqual(result.reason, "manifest_requires_hardened_sandbox")
 
     def test_network_and_inline_code_are_denied(self):
         request_id = self._approved_request()
@@ -128,6 +145,21 @@ class ChildExecutionTests(unittest.TestCase):
         self.assertEqual(result.status, "completed")
         self.assertTrue(result.sandboxed)
         self.assertIn("child-ok", result.stdout)
+
+    def test_bubblewrap_manifest_runtime_blocks_host_filesystem_and_network(self):
+        backend = BubblewrapBackend()
+        if not backend.available:
+            self.skipTest("bubblewrap unavailable")
+        probe = self.workspace / "probe.py"
+        probe.write_text("import pathlib, socket\ntry:\n pathlib.Path('/home/ubuntu/noesis-p3/README.md').read_text(); print('host_read=allowed')\nexcept Exception:\n print('host_read=blocked')\ntry:\n socket.create_connection(('1.1.1.1', 80), 0.2); print('network=allowed')\nexcept Exception:\n print('network=blocked')\n", encoding="utf-8")
+        request_id = self._approved_request(target="probe.py")
+        manifest = SkillManifest("demo-skill", "Demo", "1.0.0", "sha256:" + "0" * 64, ("skill.execute",), ("linux",), {"source": "test"}, "probe.py")
+        request = ExecutionRequest(request_id, (shutil.which("python3") or "/usr/bin/python3", "probe.py"), str(self.workspace), (Path(shutil.which("python3") or "/usr/bin/python3").name,), skill_id="demo-skill", manifest=manifest, granted_capabilities=("skill.execute",))
+        result = ChildExecutionRuntime(self.gate, sandbox_backend=backend).run(request)
+        self.assertEqual(result.status, "completed")
+        self.assertTrue(result.sandboxed)
+        self.assertIn("host_read=blocked", result.stdout)
+        self.assertIn("network=blocked", result.stdout)
 
     def test_unavailable_backend_fails_closed(self):
         class Unavailable:

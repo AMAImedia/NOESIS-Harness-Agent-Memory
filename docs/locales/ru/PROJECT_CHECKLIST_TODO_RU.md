@@ -10,7 +10,7 @@
 
 Последний подтверждённый remote commit: `3555f4d` — `Bind governed learning lifecycle in portable runtime`
 
-Текущий рабочий этап: **Gate 2 durable promotion state/evaluator deployment локально verified; следующий локальный gate — governed executable child runtime; native/external gates остаются blocked/not_run**
+Текущий рабочий этап: **Gate 3 child runtime в работе; manifest/grant contract и Linux/Bubblewrap filesystem/network adversarial isolation локально verified; native/external gates остаются blocked/not_run**
 
 ## Как мы используем этот документ
 
@@ -1216,6 +1216,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-PROD-03 | Automatic activation boundary | `DONE / LOCAL VERIFIED` | Readiness reports automatic evaluation/approval/promotion/activation disabled |
 | LEARN-PROD-04 | Concrete deployment binding | `DONE / BOUNDED LOCAL` | Portable launcher binds the facade to persistent session/reviewer stores and the injected HealthServer promotion action handler when signing configuration is explicit |
 | LEARN-PROD-05 | Durable promotion state/evaluator deployment | `DONE / LOCAL VERIFIED` | SQLite/WAL persistence, restart reconstruction, evaluator manifest conflict rejection, duplicate idempotency and bounded HealthServer/UI/SSE snapshot; 430-test full suite |
-| NEXT-03 | Governed executable child runtime | `NEXT LOCAL GATE` | Separate approved tool/skill execution from control plane with manifest, capability grants, workspace isolation, timeout, output limits, receipts, diff review and recovery |
+| NEXT-03 | Governed executable child runtime | `IN PROGRESS / BOUNDED LOCAL` | Manifest/grant contract, strict hardened-backend requirement and Linux/Bubblewrap filesystem/network isolation are verified; remaining receipt/diff/recovery integration and native backend evidence are open |
+
+### Gate 3 child runtime evidence
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-01 | Versioned manifest binding | `DONE / LOCAL VERIFIED` | `ExecutionRequest` validates skill identity and binds `SkillManifest` to the request |
+| CHILD-02 | Explicit capability grants | `DONE / LOCAL VERIFIED` | Missing grant and identity mismatch fail closed; committed Gatekeeper decision remains required |
+| CHILD-03 | Hardened backend boundary | `DONE / BOUNDED LOCAL` | Strict skill mode rejects absent backend; Bubblewrap uses unshare-all/unshare-net and workspace-only write binding |
+| CHILD-04 | Filesystem/network adversarial isolation | `DONE / LINUX VERIFIED` | Child probe blocks host-path read and outbound socket; Windows/macOS remain `not_run` |
+| CHILD-05 | Signed execution receipt, diff review and recovery integration | `NEXT LOCAL GATE` | Must be bound to child result, workspace patch review and interrupted execution recovery |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

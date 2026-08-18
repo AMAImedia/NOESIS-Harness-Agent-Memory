@@ -19,6 +19,7 @@ from typing import Mapping, Optional, Sequence
 from .gatekeeper import Gatekeeper
 from .security import safe_path
 from .sandbox_backend import SandboxBackend
+from .skill_manifest import SkillManifest
 from .process_control import terminate_process_tree
 
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -45,6 +46,8 @@ class ExecutionRequest:
     output_limit: int = MAX_OUTPUT_BYTES
     network: bool = False
     skill_id: Optional[str] = None
+    manifest: Optional[SkillManifest] = None
+    granted_capabilities: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,15 @@ class ChildExecutionRuntime:
             raise ChildExecutionError("output_limit_out_of_bounds")
         if request.network:
             raise ChildExecutionError("network_isolation_unavailable_fail_closed")
+        if request.manifest is not None:
+            if request.skill_id != request.manifest.skill_id:
+                raise ChildExecutionError("manifest_skill_identity_mismatch")
+            required = set(request.manifest.capabilities)
+            granted = set(str(item) for item in request.granted_capabilities)
+            if not required.issubset(granted):
+                raise ChildExecutionError("manifest_capability_grant_missing")
+            if self.sandbox_backend is None:
+                raise ChildExecutionError("manifest_requires_hardened_sandbox")
         executable = self._basename(request.argv[0])
         allowed = {self._basename(item) for item in request.allowed_executables}
         if executable not in allowed:

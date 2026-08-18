@@ -31,7 +31,20 @@
     "facade_status": "bounded_local_verified",
     "deployment_binding_status": "bounded_local_verified",
     "durable_state_status": "locally_verified",
-    "child_runtime_status": "next_local_gate",
+    "child_runtime_status": "in_progress_bounded_local",
+    "verified_subgates": [
+      "versioned_manifest_binding",
+      "explicit_capability_grants",
+      "hardened_backend_requirement",
+      "linux_bubblewrap_filesystem_isolation",
+      "linux_bubblewrap_network_isolation"
+    ],
+    "open_subgates": [
+      "signed_execution_receipt",
+      "diff_review",
+      "interrupted_execution_recovery",
+      "native_windows_macos_evidence"
+    ],
     "required_boundaries": [
       "terminal_task_to_receipt",
       "runtime_owned_policy",

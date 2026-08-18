@@ -34,9 +34,9 @@ Bounded production binding реализован: `ProductionLearningLifecycle` �
 
 Реализовано и проверено: receipts, evaluations, proposals, previous-active metadata и evaluator manifests сохраняются в SQLite/WAL; reopened pipeline восстанавливает bounded state; одинаковые retries idempotent; payload/content/manifest conflicts fail closed; `PromotionIntegration.snapshot()` показывает bounded counts и manifest digests через HealthServer/UI/SSE. Automatic activation остаётся отключённой. Полная Python 3.14 проверка: 430 тестов пройдено.
 
-### Gate 3 — Governed executable skill/tool runtime (следующий локальный gate)
+### Gate 3 — Governed executable skill/tool runtime (в работе)
 
-Реализовать отдельный child-runtime contract для approved tools и executable skills: manifest, capability grant, isolated workspace, bounded environment, timeout/cancellation, output limits, receipt, diff review и recovery. Parent control plane не должен импортировать или выполнять model-generated code. Linux/Bubblewrap — локальный reference backend; Windows/macOS остаются conformance targets до запуска на matching hosts.
+Manifest/grant contract и Linux reference path реализованы: `ExecutionRequest` связывает optional `SkillManifest` с explicit granted capabilities; strict executable-skill mode требует available hardened backend; `BubblewrapBackend` предоставляет Linux namespace/network/filesystem boundary. Parent control plane не импортирует и не выполняет model-generated code. Windows/macOS остаются conformance targets до запуска на matching hosts.
 
 Нужны тесты path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process tree, corrupted receipt, interrupted write и cross-agent workspace. Непроверенный backend получает `not_run`, `blocked` или `unavailable`, но не `passed`.
 

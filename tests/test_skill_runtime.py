@@ -27,7 +27,7 @@ class SkillRuntimeTests(unittest.TestCase):
         self.store.install_approved(assessment)
         self.gate = Gatekeeper(str(root / "gate.jsonl"))
         self.child = ChildExecutionRuntime(self.gate)
-        self.runtime = ExecutableSkillRuntime(self.store, self.child, self.gate)
+        self.runtime = ExecutableSkillRuntime(self.store, self.child, self.gate, require_hardened_sandbox=False)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -38,6 +38,12 @@ class SkillRuntimeTests(unittest.TestCase):
         self.gate.approve(decision.request_id)
         self.gate.commit(decision.request_id)
         return decision.request_id
+
+    def test_strict_manifest_execution_requires_hardened_backend(self):
+        strict = ExecutableSkillRuntime(self.store, self.child, self.gate)
+        result = strict.run("demo-skill", self._gate())
+        self.assertEqual(result.status, "denied")
+        self.assertEqual(result.reason, "skill_requires_hardened_sandbox")
 
     def test_verified_skill_runs_in_child_process(self):
         result = self.runtime.run("demo-skill", self._gate())

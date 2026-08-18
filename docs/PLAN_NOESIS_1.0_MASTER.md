@@ -34,9 +34,9 @@ The local facade gate is verified by positive, negative, replay and activation-b
 
 Implemented and verified: promotion receipts, evaluations, proposals, previous-active metadata and evaluator manifests persist in SQLite/WAL; reopened pipelines reconstruct bounded state; identical retries are idempotent; payload/content/manifest conflicts fail closed; `PromotionIntegration.snapshot()` exposes bounded counts and manifest digests to HealthServer/UI/SSE. Automatic activation remains disabled. Full Python 3.14 validation passed with 430 tests.
 
-### Gate 3 — Governed executable skill/tool runtime (next local gate)
+### Gate 3 — Governed executable skill/tool runtime (in progress)
 
-Implement the separate child-runtime contract for approved tools and executable skills. Require a manifest, capability grant, isolated workspace, bounded environment, timeout/cancellation, output limits, receipt, diff review and recovery. The parent control plane must never import or execute model-generated code. Linux/Bubblewrap is the local reference backend; Windows and macOS backends remain conformance targets until run on matching hosts.
+The manifest/grant contract and Linux reference path are implemented: `ExecutionRequest` binds an optional `SkillManifest` to explicit granted capabilities; strict executable-skill mode requires an available hardened backend; `BubblewrapBackend` provides the Linux namespace/network/filesystem boundary. The parent control plane never imports or executes model-generated code. Windows and macOS backends remain conformance targets until run on matching hosts.
 
 Acceptance requires path escape, network egress, credential-like output, environment poisoning, symlink, timeout, process-tree, corrupted receipt, interrupted write and cross-agent workspace tests. Unconfigured or unverifiable backends must return `not_run`, `blocked` or `unavailable`, never `passed`.
 
