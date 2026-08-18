@@ -750,3 +750,17 @@ Current boundary: static/native evidence plumbing verified locally; real Windows
 | NAT-11 | Machine-readable evidence | `DONE / LOCAL VERIFIED` | `docs/PARALLEL_BUILD_POLICY_EVIDENCE.json`; SHA-256 `9bbf15a92226c6ee15c53c569afefba7094910362a33d5a250848aa85554f18a` |
 
 Summary: `docs/PARALLEL_BUILD_POLICY_EVIDENCE_RU.md`. Native Windows/macOS build и signing evidence остаются external host gates.
+
+
+## 2026-08-18 — CI и packaging runbook consistency
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| CI-01 | CI Python 3.14 runtime gate | `DONE / LOCAL VERIFIED` | Workflow запускает `verify_python314.py --json` |
+| CI-02 | CI portable artifact verification | `DONE / LOCAL VERIFIED` | Workflow строит ZIP и запускает `verify_portable_artifact.py` |
+| CI-03 | Dual target honesty gate | `DONE / LOCAL VERIFIED` | Workflow проверяет Windows и macOS `target_host_or_python_mismatch` с exit `2` |
+| CI-04 | Runbook consistency checker | `DONE / LOCAL VERIFIED` | CI/runbook markers: `missing=[]` |
+| CI-05 | Parallel CI consistency lanes | `DONE / LOCAL VERIFIED` | **4/4 passed**, 4 unique workspaces, no network/credentials/model code |
+| CI-06 | Machine-readable evidence | `DONE / LOCAL VERIFIED` | `docs/PARALLEL_CI_CONSISTENCY_EVIDENCE.json`; SHA-256 `884dd1a55ab5deba55174276d83a45c160b822679ec083eff26d44855cb0ebb8` |
+
+Синхронный summary: `docs/PARALLEL_CI_CONSISTENCY_RU.md`. Native target builds и signatures всё ещё требуют Windows/macOS hosts.

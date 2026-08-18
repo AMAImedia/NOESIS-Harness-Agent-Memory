@@ -6,7 +6,7 @@ PyInstaller и Briefcase должны запускаться на самой tar
 
 Сначала используется PyInstaller `onedir`: он проще для диагностики missing imports и позволяет проверить состав артефакта. `onefile` не является default, потому что распаковывается во временную директорию и требует отдельного cleanup/crash review. На Windows нельзя добавлять UAC elevation как способ обхода ограничений.
 
-Briefcase является альтернативным native app/installer backend. Для macOS production distribution нужны code signing и notarization; identity и entitlements должны быть явными, минимальными и проверенными. Unsigned/ad-hoc artifacts разрешены только для локальной development verification.
+Briefcase является альтернативным native app/installer backend. Для macOS production distribution нужны code signing и notarization; identity и entitlements должны быть явными, минимальными и проверенными. Unsigned/ad-hoc artifacts разрешены только для локальной development verification. Для явного локального режима используется `scripts/verify_native_artifact.py --development-unsigned`; этот флаг запрещён как release evidence.
 
 ## Команды
 
@@ -30,12 +30,12 @@ python3 scripts/build_native.py --backend briefcase --target macos --run
 
 Перед публикацией нужно проверить install/uninstall в чистой системе, loopback binding, data-root separation, session persistence, child timeout/recovery, no-network mode, UI CSP, redacted logs, license/provenance artifacts, SHA-256 manifest и SBOM. На macOS дополнительно проверяются signing, notarization, entitlements и quarantine behavior. На Windows проверяются Authenticode signing, SmartScreen metadata, отсутствие неожиданного UAC и clean user data path.
 
-Текущая sandbox-среда — Linux/CPython 3.12.3, поэтому native commands здесь намеренно завершаются fail-closed и не являются native evidence.
+Текущая verification-среда — Linux/CPython 3.14.7. Поэтому native commands для Windows/macOS здесь намеренно завершаются fail-closed из-за target mismatch и не являются native evidence.
 
 
 ## Реализованный checksum/SBOM gate
 
-`python3 scripts/build_portable_artifact.py --root . --output dist/noesis-portable.zip` создаёт `PORTABLE_MANIFEST.json` с Python 3.14-only runtime policy, размером и SHA-256 каждого включённого файла, а также `PORTABLE_SBOM.spdx.json` в формате SPDX 2.3. SBOM содержит только фактически упакованные файлы и повторяет их SHA-256; `.env`, credential-like key files, model weights и virtual environments исключаются builder policy. Этот source-portable artifact gate не заменяет native Windows/macOS build evidence.
+`python3.14 scripts/build_portable_artifact.py --root . --output dist/noesis-portable.zip` создаёт `PORTABLE_MANIFEST.json` с Python 3.14-only runtime policy, размером и SHA-256 каждого включённого файла, а также `PORTABLE_SBOM.spdx.json` в формате SPDX 2.3. `python3.14 scripts/verify_portable_artifact.py --artifact dist/noesis-portable.zip` повторно проверяет archive coverage, размеры, SHA-256 и SPDX file inventory. `.env`, credential-like key files, model weights и virtual environments исключаются builder policy. Этот source-portable artifact gate не заменяет native Windows/macOS build evidence.
 
 Focused verification: `tests.test_packaging_artifact`; полный suite должен пройти без `ResourceWarning`. Target-host `.exe`/`.app` evidence по-прежнему требует запуска `scripts/build_native.py` на соответствующей Windows/macOS машине с Python 3.14.
 
@@ -49,4 +49,4 @@ Focused verification: `tests.test_packaging_artifact`; полный suite дол
 
 ## CI packaging-contract smoke
 
-CI job `packaging-contract` выполняется на Python 3.14 и проверяет оба static native manifest, строит source-portable ZIP с SHA-256/SBOM, затем намеренно запускает Windows native verifier на Linux и требует `exit 2` с причиной `target_host_or_python_mismatch`. Это проверяет honesty boundary и artifact evidence schema, но не является Windows/macOS native build evidence.
+CI job `packaging-contract` выполняется на Python 3.14, проверяет active runtime, оба static native manifest, строит и повторно проверяет source-portable ZIP с SHA-256/SBOM, затем намеренно запускает Windows и macOS native verifier на Linux и требует `exit 2` с причиной `target_host_or_python_mismatch`. Это проверяет honesty boundary и artifact evidence schema, но не является Windows/macOS native build evidence.

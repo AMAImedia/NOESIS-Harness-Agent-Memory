@@ -101,18 +101,25 @@ jobs:
         run: |
           python scripts/verify_packaging_contract.py --output /tmp/packaging-contract.json
 
+      - name: Verify active Python 3.14 runtime
+        run: |
+          python scripts/verify_python314.py --json
+
       - name: Build source-portable artifact with SHA-256 manifest and SPDX SBOM
         run: |
           python scripts/build_portable_artifact.py --root . --output /tmp/noesis-portable.zip
+          python scripts/verify_portable_artifact.py --artifact /tmp/noesis-portable.zip --output /tmp/portable-evidence.json
 
-      - name: Verify Linux never claims Windows native evidence
+      - name: Verify Linux never claims Windows or macOS native evidence
         run: |
-          set +e
-          python scripts/verify_native_artifact.py --target windows --artifact /tmp/noesis-portable.zip --output /tmp/native-evidence.json
-          code=$?
-          set -e
-          test "$code" -eq 2
-          grep -q 'target_host_or_python_mismatch' /tmp/native-evidence.json
+          for target in windows macos; do
+            set +e
+            python scripts/verify_native_artifact.py --target "$target" --artifact /tmp/noesis-portable.zip --output "/tmp/native-evidence-$target.json"
+            code=$?
+            set -e
+            test "$code" -eq 2
+            grep -q 'target_host_or_python_mismatch' "/tmp/native-evidence-$target.json"
+          done
 
   lint:
     name: Lint (pyflakes)
