@@ -4,7 +4,7 @@
 **Runtime policy:** только Python 3.14; детерминированное ядро — stdlib-only.
 **Модель эксплуатации:** local-first, private-by-default, human-governed, fail-closed.
 
-Это русская supplemental localization нормативного English master plan. Взвешенный execution plan от 25% до 100% находится в [`ROADMAP_25_TO_100_RU.md`](ROADMAP_25_TO_100_RU.md), machine-readable claim status — в [`CLAIMS_PROGRESS_MATRIX.json`](../../CLAIMS_PROGRESS_MATRIX.json). Это план поставки, а не заявление о превосходстве. Формулировка «лучшие в мире» допустима только после сопоставимого pinned A/B, native-доказательств Windows/macOS и независимо воспроизводимых метрик.
+Это русская supplemental localization нормативного English master plan. Взвешенный execution plan от 25% до 100% находится в [`ROADMAP_25_TO_100_RU.md`](ROADMAP_25_TO_100_RU.md), machine-readable claim status — в [`CLAIMS_PROGRESS_MATRIX.json`](../../CLAIMS_PROGRESS_MATRIX.json). Цель состоит из двух этапов: сначала создать действительно полноценный portable Python 3.14 Agent OS, затем доказать leading/worldwide-superiority claim через native parity, pinned external A/B, independent scoring, reproducibility и review. Это план поставки, а не заявление о превосходстве. Формулировка «лучшие в мире» допустима только после сопоставимого pinned A/B, native-доказательств Windows/macOS и независимо воспроизводимых метрик.
 
 ## Что уже доказано локально
 
