@@ -793,7 +793,7 @@ Offline release audit на committed checkpoint завершён: **4/4 lanes pa
 | META-02 | Python/license/private-release alignment | `DONE / LOCAL VERIFIED` | 9/9 metadata checks passed; Python 3.14, MIT, private GitHub и owner-approved public gate согласованы |
 | META-03 | Third-party provenance parity | `DONE / LOCAL VERIFIED` | 5 upstreams; NOTICE↔JSON parity; `code_copied=false`, `runtime_dependency=false` |
 | META-04 | CHANGELOG/docs navigation freshness | `DONE / LOCAL VERIFIED` | Unreleased 2026-08-18 snapshot, new evidence docs linked, missing markers `[]` |
-| META-05 | Parallel metadata/SBOM evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; evidence SHA-256 `34cf5bfa3f74e909f041600e9dd147d2400711a90e68d5dc1290772ceeca0608` |
+| META-05 | Parallel metadata/SBOM evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_METADATA_EVIDENCE.json`; evidence SHA-256 `34cf5bfa3f74e909f041600e9dd147d2400711a90e68d5dc1290772ceeca0608` |
 
 Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage закрыта локально; license review при будущем vendoring и external/native gates остаются отдельными задачами.
 
@@ -801,3 +801,16 @@ Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage �
 ## Progress snapshot после metadata/provenance audit — 2026-08-18
 
 По уникальным checklist IDs: **234/243 = 96,30%** имеют `DONE`, `PASS`, `VERIFIED`, `IMPLEMENTED`, `PREPARED` или эквивалентный локально закрытый статус. **9/243 = 3,70%** остаются открытыми: 5 external environment/evidence gates (`P6-05`, `P6-06`, `P6-09`, `P12-01`, `P13-01`) и 4 owner decisions (`P4-03`, `USER-03`, `USER-04`, `USER-05`). Этот процент отражает checklist coverage, а не доказанность superiority claim: native target evidence и external A/B всё ещё обязательны.
+
+
+## 2026-08-18 — Documentation security и link/schema audit
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| DOC-01 | Markdown fence security audit | `DONE / LOCAL VERIFIED` | 0 high и 0 medium findings по docs Markdown |
+| DOC-02 | Local relative-link audit | `DONE / LOCAL VERIFIED` | 65 Markdown files, 26 local links, missing targets `0`; generated runtime docs исключены |
+| DOC-03 | JSON evidence/schema coverage | `DONE / LOCAL VERIFIED` | 11 selected JSON files, valid JSON и `schema_version` coverage, findings `0` |
+| DOC-04 | Russian checklist/evidence navigation | `DONE / LOCAL VERIFIED` | Required markers и evidence paths присутствуют |
+| DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `1a92645ed97c36f3379847c933221ff639f1c6810ce5947603f289f0c5f486f2` |
+
+Summary: `docs/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.

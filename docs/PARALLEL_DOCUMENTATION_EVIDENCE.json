@@ -1,0 +1,68 @@
+{
+  "credentials_available": false,
+  "event_kinds": [
+    "lane_completed",
+    "lane_started"
+  ],
+  "model_generated_code_executed": false,
+  "native_builds_executed": false,
+  "network_allowed": false,
+  "results": [
+    {
+      "agent_id": "docs-security",
+      "error": "",
+      "output": {
+        "check": "docs_security",
+        "high": 0,
+        "markdown_files": 0,
+        "medium": 0,
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "docs-security",
+      "workspace": "docs-security"
+    },
+    {
+      "agent_id": "docs-json",
+      "error": "",
+      "output": {
+        "check": "json_evidence",
+        "files_checked": 11,
+        "findings": 0,
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "json-evidence",
+      "workspace": "json-evidence"
+    },
+    {
+      "agent_id": "docs-links",
+      "error": "",
+      "output": {
+        "check": "markdown_links",
+        "local_links": 26,
+        "markdown_files": 65,
+        "missing": 0,
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "markdown-links",
+      "workspace": "markdown-links"
+    },
+    {
+      "agent_id": "docs-checklist",
+      "error": "",
+      "output": {
+        "check": "ru_checklist",
+        "line_count": 803,
+        "missing": [],
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "ru-checklist",
+      "workspace": "ru-checklist"
+    }
+  ],
+  "schema_version": "noesis.parallel-documentation-audit.v1",
+  "workspace_count": 4
+}
