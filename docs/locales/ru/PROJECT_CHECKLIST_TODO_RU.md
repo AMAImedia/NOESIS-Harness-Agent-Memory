@@ -1180,3 +1180,18 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-READY-09 | Native/external readiness | `NOT_RUN` | Windows/macOS and external A/B remain environment-gated |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — UI Migration Readiness and Signed Mode Changes
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-UI-01 | Readiness in control-plane UI | `DONE / LOCAL VERIFIED` | Cloudflare-style policy card shows mode, status and rollback availability |
+| LEARN-UI-02 | Readiness in SSE | `DONE / LOCAL VERIFIED` | `/api/telemetry/events` carries `migration_readiness` and UI refreshes the same panel |
+| LEARN-UI-03 | Signed mode-change action | `DONE / LOCAL VERIFIED` | `OperatorMigrationModeSource.handle_action()` returns HMAC receipt |
+| LEARN-UI-04 | Authenticated mode endpoint | `DONE / LOCAL VERIFIED` | POST `/api/admin/migration-mode` requires configured operator context |
+| LEARN-UI-05 | Receipt tamper detection | `DONE / LOCAL VERIFIED` | `verify_signed_mode_change_receipt()` rejects changed fields |
+| LEARN-UI-06 | Legacy default | `DONE / LOCAL VERIFIED` | Startup and UI default to legacy; no automatic cutover |
+| LEARN-UI-07 | Mode-change authorization | `DONE / LOCAL VERIFIED` | Operator allow-list and identity mismatch fail closed |
+| LEARN-UI-08 | Native/external readiness | `NOT_RUN` | Windows/macOS and external A/B remain environment-gated |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

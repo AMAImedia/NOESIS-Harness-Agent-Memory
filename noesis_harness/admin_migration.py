@@ -1,6 +1,8 @@
 """Versioned adoption adapter for legacy append-only and SQLite admin stores."""
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import time
 from dataclasses import dataclass
@@ -21,13 +23,38 @@ class AdministrativeMigrationError(ValueError):
 class OperatorMigrationModeSource:
     """Persistent operator-owned source of migration mode; default is legacy."""
 
-    def __init__(self, path: str, *, operator_ids: tuple[str, ...] = (), default_mode: str = "legacy", clock=time.time) -> None:
+    def __init__(self, path: str, *, operator_ids: tuple[str, ...] = (), default_mode: str = "legacy", signing_key: bytes = b"", clock=time.time) -> None:
         if default_mode not in MODES or not path:
             raise ValueError("migration_mode_source_configuration_required")
         self.events = EventStore(path)
         self.operator_ids = frozenset(str(item) for item in operator_ids)
         self.default_mode = default_mode
+        self.signing_key = bytes(signing_key)
         self.clock = clock
+
+    def _sign(self, payload: Mapping[str, Any]) -> str:
+        if not self.signing_key:
+            raise AdministrativeMigrationError("migration_signing_key_required")
+        canonical = json.dumps(dict(payload), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+        return hmac.new(self.signing_key, canonical, hashlib.sha256).hexdigest()
+
+    def _signed(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        result = dict(payload)
+        result["signed_receipt"] = self._sign(payload)
+        return result
+
+    def handle_action(self, action: Mapping[str, Any], context: Any) -> Mapping[str, Any]:
+        if not getattr(context, "authenticated", False) or not getattr(context, "operator_id", "") or context.operator_id != str(action.get("operator_id", "")):
+            raise AdministrativeMigrationError("migration_operator_context_denied")
+        if action.get("schema_version") != "noesis.migration-mode-action.v1":
+            raise AdministrativeMigrationError("unsupported_migration_mode_action")
+        if action.get("action") == "set_mode":
+            result = self.set_mode(str(action.get("mode", "")), operator_id=context.operator_id, reason=str(action.get("reason", "")))
+        elif action.get("action") == "rollback":
+            result = self.rollback(operator_id=context.operator_id, reason=str(action.get("reason", "")))
+        else:
+            raise AdministrativeMigrationError("unsupported_migration_mode_action")
+        return result
 
     def _state(self) -> dict[str, Any]:
         current = {"schema_version": MIGRATION_SCHEMA, "mode": self.default_mode, "operator_id": "", "reason": "default"}
@@ -52,18 +79,20 @@ class OperatorMigrationModeSource:
         current = self.mode
         if mode == "sqlite" and current == "legacy":
             raise AdministrativeMigrationError("sqlite_mode_requires_dual_read")
-        payload = {"schema_version": MIGRATION_SCHEMA, "mode": mode, "previous_mode": current, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
-        self.events.append("migration_mode_set", payload, event_id="migration-source:set:" + mode + ":" + str(self.events.count()))
-        return payload
+        payload = {"schema_version": MIGRATION_SCHEMA, "action": "set_mode", "mode": mode, "previous_mode": current, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
+        result = self._signed(payload)
+        self.events.append("migration_mode_set", result, event_id="migration-source:set:" + mode + ":" + str(self.events.count()))
+        return result
 
     def rollback(self, *, operator_id: str, reason: str) -> Mapping[str, Any]:
         if self.mode == "legacy":
             raise AdministrativeMigrationError("migration_not_active")
         if self.operator_ids and str(operator_id) not in self.operator_ids:
             raise AdministrativeMigrationError("migration_operator_not_authorized")
-        payload = {"schema_version": MIGRATION_SCHEMA, "mode": "legacy", "previous_mode": self.mode, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
-        self.events.append("migration_mode_rollback", payload, event_id="migration-source:rollback:" + str(self.events.count()))
-        return payload
+        payload = {"schema_version": MIGRATION_SCHEMA, "action": "rollback", "mode": "legacy", "previous_mode": self.mode, "operator_id": str(operator_id), "reason": str(reason)[:256], "updated_at": float(self.clock())}
+        result = self._signed(payload)
+        self.events.append("migration_mode_rollback", result, event_id="migration-source:rollback:" + str(self.events.count()))
+        return result
 
     def readiness(self, *, verification: Optional["MigrationCheck"] = None) -> Mapping[str, Any]:
         mode = self.mode
@@ -199,4 +228,13 @@ class AdministrativeMigrationAdapter:
         return {"schema_version": MIGRATION_SCHEMA, "mode": self.mode, "action": "route_after_verification", "check": check.to_mapping(), "automatic_cutover": False}
 
 
-__all__ = ["MIGRATION_SCHEMA", "AdministrativeMigrationError", "OperatorMigrationModeSource", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter"]
+def verify_signed_mode_change_receipt(receipt: Mapping[str, Any], signing_key: bytes) -> bool:
+    if not isinstance(receipt, Mapping) or not receipt.get("signed_receipt") or not signing_key:
+        return False
+    payload = {str(key): value for key, value in receipt.items() if key != "signed_receipt"}
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    expected = hmac.new(bytes(signing_key), canonical, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(str(receipt.get("signed_receipt")), expected)
+
+
+__all__ = ["MIGRATION_SCHEMA", "AdministrativeMigrationError", "OperatorMigrationModeSource", "verify_signed_mode_change_receipt", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter"]

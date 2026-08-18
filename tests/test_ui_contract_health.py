@@ -1,4 +1,5 @@
 import json
+import tempfile
 import threading
 import time
 import unittest
@@ -6,7 +7,7 @@ import urllib.error
 import urllib.request
 
 from noesis_harness.health_server import HealthServer
-from noesis_harness.admin_migration import OperatorMigrationModeSource
+from noesis_harness.admin_migration import OperatorMigrationModeSource, verify_signed_mode_change_receipt
 from noesis_harness.ui_contract import CONTRACT_VERSION, UIContractError, failure, health_payload, model_payload, success
 
 
@@ -68,7 +69,7 @@ class HealthServerTests(unittest.TestCase):
         self.assertEqual(server._thread, None)
 
     def test_operator_owned_migration_readiness_is_exposed_at_startup(self):
-        source = OperatorMigrationModeSource('/tmp/noesis-test-migration-source-' + str(time.time_ns()), operator_ids=('operator-1',))
+        source = OperatorMigrationModeSource('/tmp/noesis-test-migration-source-' + str(time.time_ns()), operator_ids=('operator-1',), signing_key=b'readiness-signing-key')
         server = HealthServer(port=0, migration_mode_source=source)
         self.assertEqual(server._migration_readiness_snapshot()['mode'], 'legacy')
         source.set_mode('dual_read', operator_id='operator-1', reason='operator verification')
@@ -84,6 +85,42 @@ class HealthServerTests(unittest.TestCase):
         source.rollback(operator_id='operator-1', reason='restore legacy default')
         self.assertEqual(source.readiness()['mode'], 'legacy')
         self.assertFalse(source.readiness()['rollback_available'])
+
+    def test_authenticated_mode_change_returns_signed_receipt(self):
+        key = b'ui-migration-signing-key'
+        source = OperatorMigrationModeSource(tempfile.mktemp(), operator_ids=('operator-1',), signing_key=key)
+        server = HealthServer(port=0, migration_mode_source=source, migration_mode_change_handler=source.handle_action, operator_id='operator-1', operator_session_id='operator-session', operator_scopes=('admin:migration',))
+        payload = {'schema_version': 'noesis.migration-mode-action.v1', 'action': 'set_mode', 'mode': 'dual_read', 'operator_id': 'operator-1', 'reason': 'operator readiness test'}
+        with server:
+            base = f'http://{server.address[0]}:{server.address[1]}'
+            request = urllib.request.Request(base + '/api/admin/migration-mode', data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
+            with urllib.request.urlopen(request, timeout=2) as response:
+                result = json.loads(response.read().decode('utf-8'))
+            receipt = result['data']['result']
+            self.assertTrue(verify_signed_mode_change_receipt(receipt, key))
+            self.assertEqual(receipt['mode'], 'dual_read')
+            readiness_code, readiness_payload = self._request('GET', base + '/api/readiness')
+            self.assertEqual(readiness_code, 200)
+            self.assertEqual(readiness_payload['data']['migration_readiness']['mode'], 'dual_read')
+        tampered = dict(receipt)
+        tampered['mode'] = 'sqlite'
+        self.assertFalse(verify_signed_mode_change_receipt(tampered, key))
+
+    def test_mode_change_requires_authenticated_operator_context(self):
+        source = OperatorMigrationModeSource(tempfile.mktemp(), signing_key=b'ui-migration-signing-key')
+        server = HealthServer(port=0, migration_mode_source=source, migration_mode_change_handler=source.handle_action)
+        payload = {'schema_version': 'noesis.migration-mode-action.v1', 'action': 'set_mode', 'mode': 'dual_read', 'operator_id': 'operator-1', 'reason': 'denied test'}
+        with server:
+            request = urllib.request.Request(f'http://{server.address[0]}:{server.address[1]}/api/admin/migration-mode', data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                urllib.request.urlopen(request, timeout=2)
+            error = caught.exception
+            try:
+                body = json.loads(error.read().decode('utf-8'))
+            finally:
+                error.close()
+            self.assertEqual(error.code, 403)
+            self.assertEqual(body['error']['code'], 'operator_context_unavailable')
 
     def test_readiness_provider_failure_is_blocked_and_health_is_not_ready(self):
         server = HealthServer(port=0, migration_readiness_provider=lambda: (_ for _ in ()).throw(RuntimeError('broken')))
@@ -119,6 +156,7 @@ class HealthServerTests(unittest.TestCase):
             self.assertEqual(code, 200)
             self.assertEqual(payload["data"]["telemetry"]["counters"]["active_streams"], 1)
             self.assertEqual(payload["data"]["telemetry"]["streams"][0]["api_key"], "[REDACTED]")
+            self.assertEqual(payload["data"]["telemetry"]["migration_readiness"]["mode"], "legacy")
             code, child_payload = self._request("GET", base + "/api/child-runtimes")
             self.assertEqual(code, 200)
             self.assertEqual(child_payload["data"]["telemetry"]["child_runtimes"][0]["runtime_id"], "child-1")
@@ -128,6 +166,7 @@ class HealthServerTests(unittest.TestCase):
                 self.assertEqual(response.headers["Content-Type"], "text/event-stream; charset=utf-8")
                 self.assertIn("event: telemetry", body)
                 self.assertIn('"runtime_id":"child-1"', body)
+                self.assertIn('"migration_readiness"', body)
                 self.assertNotIn("hidden", body)
 
     def test_operator_session_and_admin_policy_endpoints_require_explicit_handlers(self):
