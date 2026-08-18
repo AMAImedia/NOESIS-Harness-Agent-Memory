@@ -894,3 +894,15 @@ Machine evidence: `docs/CROSS_PLATFORM_RELEASE_GATE_MATRIX.json`; English contra
 | BUILD-09 | Build refusal boundary | `DONE / LOCAL VERIFIED` | `network_allowed=false`, `credentials_available=false`, `model_generated_code_executed=false` |
 
 Machine evidence: `docs/PARALLEL_BUILD_POLICY_EVIDENCE.json`; English contract: `docs/BUILD_POLICY_HONESTY_GATE.md`. Реальные `.exe/.app`, signatures и notarization требуют matching target hosts.
+
+## 2026-08-18 — Parallel agent tracks
+
+| ID | Track | Статус | Доказательство |
+|---|---|---|---|
+| PAR-01 | Reliability/recovery и chaos | `DONE / LOCAL VERIFIED` | Recovery: 7 tests; chaos: 4 tests; оба track passed |
+| PAR-02 | Security holdouts и docs security | `DONE / LOCAL VERIFIED` | Security/holdout suites и docs security audit passed |
+| PAR-03 | Operator/UI/portable conformance | `DONE / LOCAL VERIFIED` | UI/portable suites и native/build-policy validators passed |
+| PAR-04 | Release/evidence/docs audit | `DONE / LOCAL VERIFIED` | Links, JSON evidence, release metadata и remote parity passed |
+| PAR-05 | Isolation and claim boundary | `DONE / LOCAL VERIFIED` | `network_allowed=false`, `credentials_available=false`, `external_processes_started=false`; native/external claims не создавались |
+
+Machine evidence: `docs/PARALLEL_AGENT_TRACKS_EVIDENCE.json`; English contract: `docs/PARALLEL_AGENT_TRACKS.md`. Отсутствующий rollback glob не был засчитан как pass: он явно исключён из финального Track A status из-за отсутствия matching test file.
