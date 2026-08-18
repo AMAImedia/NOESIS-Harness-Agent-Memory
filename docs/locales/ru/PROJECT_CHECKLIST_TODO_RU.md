@@ -883,3 +883,14 @@ Machine evidence: `docs/PARALLEL_NATIVE_EVIDENCE.json`; English contract: `docs/
 | XPLAT-05 | Claim boundary and negative status validation | `DONE / LOCAL VERIFIED` | Invalid status values fail closed to `blocked`; `native_or_external_execution_claim=false` |
 
 Machine evidence: `docs/CROSS_PLATFORM_RELEASE_GATE_MATRIX.json`; English contract: `docs/CROSS_PLATFORM_RELEASE_GATES.md`.
+
+## 2026-08-18 — Build policy honesty gate
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| BUILD-06 | Windows/macOS packaging dry-run | `DONE / LOCAL VERIFIED` | `scripts/run_parallel_build_policy_lanes.py`; обе команды `passed`, но `run_permitted=false` на Linux host |
+| BUILD-07 | Signing policy presence | `DONE / LOCAL VERIFIED` | Authenticode и codesign requirements проверены; `native_builds_executed=false` |
+| BUILD-08 | Python 3.14 build-policy identity | `DONE / LOCAL VERIFIED` | Local Python `3.14.7`; target-host artifact не заявляется |
+| BUILD-09 | Build refusal boundary | `DONE / LOCAL VERIFIED` | `network_allowed=false`, `credentials_available=false`, `model_generated_code_executed=false` |
+
+Machine evidence: `docs/PARALLEL_BUILD_POLICY_EVIDENCE.json`; English contract: `docs/BUILD_POLICY_HONESTY_GATE.md`. Реальные `.exe/.app`, signatures и notarization требуют matching target hosts.

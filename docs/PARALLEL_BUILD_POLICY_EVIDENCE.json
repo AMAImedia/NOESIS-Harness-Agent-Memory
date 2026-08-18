@@ -35,7 +35,7 @@
       },
       "status": "passed",
       "task_id": "macos-dry-run",
-      "workspace": "/tmp/parallel_build_policy_workspaces/macos-dry-run"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_build_policy_workspaces/macos-dry-run"
     },
     {
       "agent_id": "policy-python",
@@ -48,7 +48,7 @@
       },
       "status": "passed",
       "task_id": "python314-dry-run",
-      "workspace": "/tmp/parallel_build_policy_workspaces/python314-dry-run"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_build_policy_workspaces/python314-dry-run"
     },
     {
       "agent_id": "policy-signing",
@@ -70,7 +70,7 @@
       },
       "status": "passed",
       "task_id": "signing-policy",
-      "workspace": "/tmp/parallel_build_policy_workspaces/signing-policy"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_build_policy_workspaces/signing-policy"
     },
     {
       "agent_id": "policy-windows",
@@ -99,7 +99,7 @@
       },
       "status": "passed",
       "task_id": "windows-dry-run",
-      "workspace": "/tmp/parallel_build_policy_workspaces/windows-dry-run"
+      "workspace": "/home/ubuntu/noesis-p3/docs/parallel_build_policy_workspaces/windows-dry-run"
     }
   ],
   "schema_version": "noesis.parallel-build-policy.v1",
