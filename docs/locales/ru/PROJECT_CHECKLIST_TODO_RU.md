@@ -871,3 +871,15 @@ Release audit остаётся локальным/private gate. `not_run` для
 | NAT-10 | Target-host honesty matrix | `DONE / LOCAL VERIFIED` | Windows и macOS verifier lanes `passed` как honesty checks; actual evidence для обоих `not_run: target_host_or_python_mismatch` |
 
 Machine evidence: `docs/PARALLEL_NATIVE_EVIDENCE.json`; English contract: `docs/NATIVE_EVIDENCE_HONESTY_GATE.md`. Реальные Windows `.exe`, macOS `.app`, Authenticode/codesign/notarization и native execution требуют matching target hosts.
+
+## 2026-08-18 — Cross-platform release gate matrix
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| XPLAT-01 | Aggregate local/native/external matrix | `DONE / LOCAL VERIFIED` | `scripts/build_cross_platform_gate_matrix.py`; schema `noesis.cross-platform-release-gates.v1` |
+| XPLAT-02 | Current Linux local verifier | `passed` | Bounded native-evidence lanes прошли; network/credentials/model-generated code disabled |
+| XPLAT-03 | Windows/macOS native gates | `not_run / EXTERNAL HOST REQUIRED` | `target_host_or_python_mismatch`; native `.exe/.app` claim не создан |
+| XPLAT-04 | Hermes/OpenCode/DeepSeek external gates | `not_run / EXTERNAL ENV REQUIRED` | Exact immutable revisions отсутствуют; comparative readiness `false` |
+| XPLAT-05 | Claim boundary and negative status validation | `DONE / LOCAL VERIFIED` | Invalid status values fail closed to `blocked`; `native_or_external_execution_claim=false` |
+
+Machine evidence: `docs/CROSS_PLATFORM_RELEASE_GATE_MATRIX.json`; English contract: `docs/CROSS_PLATFORM_RELEASE_GATES.md`.
