@@ -1,0 +1,107 @@
+{
+  "credentials_available": false,
+  "event_kinds": [
+    "lane_completed",
+    "lane_started"
+  ],
+  "model_generated_code_executed": false,
+  "native_builds_executed": false,
+  "network_allowed": false,
+  "results": [
+    {
+      "agent_id": "policy-macos",
+      "error": "",
+      "output": {
+        "check": "macos_dry_run",
+        "command": [
+          "/home/ubuntu/noesis-p3/runtime/python-3.14.7/build/bin/python3.14",
+          "-m",
+          "PyInstaller",
+          "--clean",
+          "--noconfirm",
+          "packaging/noesis_portable.spec"
+        ],
+        "dry_run": true,
+        "run_permitted": false,
+        "status": "passed",
+        "target_report": {
+          "actual_platform": "linux",
+          "actual_python": "3.14.7",
+          "architecture": "x86_64",
+          "platform_ok": false,
+          "python_ok": true,
+          "target": "macos"
+        }
+      },
+      "status": "passed",
+      "task_id": "macos-dry-run",
+      "workspace": "/tmp/parallel_build_policy_workspaces/macos-dry-run"
+    },
+    {
+      "agent_id": "policy-python",
+      "error": "",
+      "output": {
+        "actual": "3.14.7",
+        "check": "python314_dry_run",
+        "required": "3.14.x",
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "python314-dry-run",
+      "workspace": "/tmp/parallel_build_policy_workspaces/python314-dry-run"
+    },
+    {
+      "agent_id": "policy-signing",
+      "error": "",
+      "output": {
+        "check": "signing_policy",
+        "native_builds_executed": false,
+        "policies": {
+          "macos": {
+            "evidence_status": "static-manifest-only-until-built-on-macos",
+            "signature_policy": "codesign --verify --deep --strict and spctl assessment required for release; --development-unsigned is local-only"
+          },
+          "windows": {
+            "evidence_status": "static-manifest-only-until-built-on-windows",
+            "signature_policy": "Authenticode verification required for release; --development-unsigned is local-only"
+          }
+        },
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "signing-policy",
+      "workspace": "/tmp/parallel_build_policy_workspaces/signing-policy"
+    },
+    {
+      "agent_id": "policy-windows",
+      "error": "",
+      "output": {
+        "check": "windows_dry_run",
+        "command": [
+          "/home/ubuntu/noesis-p3/runtime/python-3.14.7/build/bin/python3.14",
+          "-m",
+          "PyInstaller",
+          "--clean",
+          "--noconfirm",
+          "packaging/noesis_portable.spec"
+        ],
+        "dry_run": true,
+        "run_permitted": false,
+        "status": "passed",
+        "target_report": {
+          "actual_platform": "linux",
+          "actual_python": "3.14.7",
+          "architecture": "x86_64",
+          "platform_ok": false,
+          "python_ok": true,
+          "target": "windows"
+        }
+      },
+      "status": "passed",
+      "task_id": "windows-dry-run",
+      "workspace": "/tmp/parallel_build_policy_workspaces/windows-dry-run"
+    }
+  ],
+  "schema_version": "noesis.parallel-build-policy.v1",
+  "workspace_count": 4
+}

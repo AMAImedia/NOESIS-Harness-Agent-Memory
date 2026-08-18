@@ -737,3 +737,16 @@ Full regression после lease integration: **317/317 passed**, `ResourceWarni
 | NAT-06 | Native evidence documentation | `DONE / DOCUMENTED` | `docs/PARALLEL_NATIVE_EVIDENCE_RU.md` и `docs/PARALLEL_NATIVE_EVIDENCE.json` |
 
 Current boundary: static/native evidence plumbing verified locally; real Windows `.exe`, macOS `.app`, Authenticode, codesign и notarization требуют target hosts и остаются external gates.
+
+
+## 2026-08-18 — Native build dry-run и signing policy matrix
+
+| ID | Задача | Статус | Доказательство |
+|---|---|---|---|
+| NAT-07 | Windows/macOS build dry-run gates | `DONE / LOCAL VERIFIED` | 2 lanes passed; `dry_run=true`, `run_permitted=false`, target mismatch блокирует backend |
+| NAT-08 | No-subprocess target mismatch test | `DONE / LOCAL VERIFIED` | Windows/macOS `--run` при Linux host: exit `2`, patched `subprocess.run` не вызван |
+| NAT-09 | Signing-policy matrix | `DONE / LOCAL VERIFIED` | Authenticode/codesign/notarization requirements обнаружены; `native_builds_executed=false` |
+| NAT-10 | Parallel build-policy evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; CPython 3.14.7; unique workspaces; no network/credentials/model code |
+| NAT-11 | Machine-readable evidence | `DONE / LOCAL VERIFIED` | `docs/PARALLEL_BUILD_POLICY_EVIDENCE.json`; SHA-256 `9bbf15a92226c6ee15c53c569afefba7094910362a33d5a250848aa85554f18a` |
+
+Summary: `docs/PARALLEL_BUILD_POLICY_EVIDENCE_RU.md`. Native Windows/macOS build и signing evidence остаются external host gates.
