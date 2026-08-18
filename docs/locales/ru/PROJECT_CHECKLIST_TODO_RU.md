@@ -1096,3 +1096,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-EVIDENCE-06 | Atomic multi-log commit | `NEXT LOCAL GATE` | Replace sequential cross-store mutation/audit append with a transaction-coordinated journal when needed |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Coordinated Mutation Journal
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-JOURNAL-01 | Durable prepare/commit journal | `DONE / LOCAL VERIFIED` | `CoordinatedMutationJournal` records `prepared`, `committed`, `aborted` phases |
+| LEARN-JOURNAL-02 | Incomplete mutation visibility | `DONE / LOCAL VERIFIED` | `status()` returns `incomplete`; `incomplete()` lists prepared actions without terminal record |
+| LEARN-JOURNAL-03 | Executor wiring | `DONE / LOCAL VERIFIED` | Admin reviewer and session mutation executors optionally coordinate with the journal |
+| LEARN-JOURNAL-04 | Fail-closed recovery | `DONE / BOUNDED` | Interrupted operation is visible and not auto-promoted or silently reconciled |
+| LEARN-JOURNAL-05 | Honest atomicity boundary | `DONE / BOUNDED` | The journal coordinates separate logs but does not claim cross-file atomic commit |
+| LEARN-JOURNAL-06 | Single-store transactional backend | `NEXT LOCAL GATE` | Move state and audit records to a transaction-coordinated SQLite/WAL journal when required |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

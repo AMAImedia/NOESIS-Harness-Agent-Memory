@@ -532,6 +532,59 @@ def _signed_mutation_receipt(signing_key: bytes, *, action_id: str, operation: s
     return SignedMutationReceipt(action_id, operation, actor_id, target_id, previous_state, new_state, payload_digest, signature)
 
 
+class CoordinatedMutationJournal:
+    """Durable prepare/commit journal coordinating state and audit stores.
+
+    The journal does not pretend to provide cross-file atomicity: an uncommitted
+    prepared mutation is surfaced as incomplete and cannot be auto-promoted.
+    """
+
+    def __init__(self, path: str) -> None:
+        self.events = EventStore(path)
+
+    def prepare(self, action_id: str, operation: str, target_id: str, receipt: Mapping[str, Any]) -> None:
+        if not action_id or not operation or not target_id:
+            raise ValueError("mutation_journal_identity_required")
+        self.events.append("mutation_prepared", {"action_id": action_id, "operation": operation, "target_id": target_id, "receipt": dict(receipt)}, event_id="mutation-prepare:" + action_id)
+
+    def commit(self, action_id: str) -> None:
+        self.events.append("mutation_committed", {"action_id": action_id}, event_id="mutation-commit:" + action_id)
+
+    def abort(self, action_id: str, reason: str) -> None:
+        self.events.append("mutation_aborted", {"action_id": action_id, "reason": str(reason)[:128]}, event_id="mutation-abort:" + action_id)
+
+    def status(self, action_id: str) -> str:
+        prepared = committed = aborted = False
+        for event in self.events.iter_events():
+            payload = event.get("payload") or {}
+            if payload.get("action_id") != action_id:
+                continue
+            prepared |= event.get("type") == "mutation_prepared"
+            committed |= event.get("type") == "mutation_committed"
+            aborted |= event.get("type") == "mutation_aborted"
+        if committed:
+            return "committed"
+        if aborted:
+            return "aborted"
+        if prepared:
+            return "incomplete"
+        return "unknown"
+
+    def incomplete(self) -> tuple[Mapping[str, Any], ...]:
+        prepared: dict[str, Mapping[str, Any]] = {}
+        terminal: set[str] = set()
+        for event in self.events.iter_events():
+            payload = event.get("payload") or {}
+            action_id = str(payload.get("action_id", ""))
+            if not action_id:
+                continue
+            if event.get("type") == "mutation_prepared":
+                prepared[action_id] = dict(payload)
+            elif event.get("type") in {"mutation_committed", "mutation_aborted"}:
+                terminal.add(action_id)
+        return tuple(prepared[action_id] for action_id in sorted(prepared) if action_id not in terminal)
+
+
 @dataclass(frozen=True)
 class OperatorSessionAction:
     action_id: str
@@ -563,7 +616,7 @@ class OperatorSessionAction:
 class AdministrativePolicyStore:
     """Reviewed administrative source for reviewer grants and revocations."""
 
-    def __init__(self, event_path: str, reviewer_store: ReviewerAuthorizationStore, session_registry: OperatorSessionRegistry, *, admin_ids: Sequence[str], signing_key: bytes, required_scope: str = "admin:reviewers") -> None:
+    def __init__(self, event_path: str, reviewer_store: ReviewerAuthorizationStore, session_registry: OperatorSessionRegistry, *, admin_ids: Sequence[str], signing_key: bytes, required_scope: str = "admin:reviewers", journal: CoordinatedMutationJournal | None = None) -> None:
         if not admin_ids or not required_scope or not isinstance(signing_key, bytes) or len(signing_key) < 16:
             raise ValueError("administrative_policy_configuration_required")
         self.events = EventStore(event_path)
@@ -572,6 +625,7 @@ class AdministrativePolicyStore:
         self.admin_ids = frozenset(str(item) for item in admin_ids)
         self.signing_key = signing_key
         self.required_scope = str(required_scope)
+        self.journal = journal
 
     def _require_admin(self, context: OperatorAuthContext) -> None:
         self.session_registry.require_active(context)
@@ -585,10 +639,20 @@ class AdministrativePolicyStore:
         if current and current.get("active", False) and sorted(str(item) for item in current.get("scopes", ())) == normalized_scopes:
             raise PermissionError("administrative_policy_conflict")
         previous = "active" if current and current.get("active", False) else "inactive"
-        grant = self.reviewer_store.grant(operator_id, session_id, normalized_scopes)
-        receipt = _signed_mutation_receipt(self.signing_key, action_id="grant:" + operator_id + ":" + session_id + ":" + str(self.events.count()), operation="grant_reviewer", actor_id=context.operator_id, target_id=operator_id + ":" + session_id, previous_state=previous, new_state="active", payload=grant)
-        payload = {"requester_id": context.operator_id, "operation": "grant_reviewer", **dict(grant), "audit_receipt": receipt.to_mapping()}
-        self.events.append("administrative_policy_changed", payload, event_id="admin-policy:grant:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+        preview = {"operator_id": operator_id, "session_id": session_id, "scopes": normalized_scopes, "active": True}
+        receipt = _signed_mutation_receipt(self.signing_key, action_id="grant:" + operator_id + ":" + session_id + ":" + str(self.events.count()), operation="grant_reviewer", actor_id=context.operator_id, target_id=operator_id + ":" + session_id, previous_state=previous, new_state="active", payload=preview)
+        if self.journal is not None:
+            self.journal.prepare(receipt.action_id, "grant_reviewer", operator_id + ":" + session_id, receipt.to_mapping())
+        try:
+            grant = self.reviewer_store.grant(operator_id, session_id, normalized_scopes)
+            payload = {"requester_id": context.operator_id, "operation": "grant_reviewer", **dict(grant), "audit_receipt": receipt.to_mapping()}
+            self.events.append("administrative_policy_changed", payload, event_id="admin-policy:grant:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+            if self.journal is not None:
+                self.journal.commit(receipt.action_id)
+        except Exception as exc:
+            if self.journal is not None:
+                self.journal.abort(receipt.action_id, type(exc).__name__)
+            raise
         return payload
 
     def revoke_reviewer(self, context: OperatorAuthContext, operator_id: str, session_id: str) -> Mapping[str, Any]:
@@ -596,22 +660,33 @@ class AdministrativePolicyStore:
         current = self.reviewer_store._records().get((str(operator_id), str(session_id)))
         if not current or not current.get("active", False):
             raise PermissionError("administrative_policy_conflict")
-        revoked = self.reviewer_store.revoke(operator_id, session_id)
-        receipt = _signed_mutation_receipt(self.signing_key, action_id="revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()), operation="revoke_reviewer", actor_id=context.operator_id, target_id=operator_id + ":" + session_id, previous_state="active", new_state="inactive", payload=revoked)
-        payload = {"requester_id": context.operator_id, "operation": "revoke_reviewer", **dict(revoked), "audit_receipt": receipt.to_mapping()}
-        self.events.append("administrative_policy_changed", payload, event_id="admin-policy:revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+        preview = {"operator_id": operator_id, "session_id": session_id, "active": False}
+        receipt = _signed_mutation_receipt(self.signing_key, action_id="revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()), operation="revoke_reviewer", actor_id=context.operator_id, target_id=operator_id + ":" + session_id, previous_state="active", new_state="inactive", payload=preview)
+        if self.journal is not None:
+            self.journal.prepare(receipt.action_id, "revoke_reviewer", operator_id + ":" + session_id, receipt.to_mapping())
+        try:
+            revoked = self.reviewer_store.revoke(operator_id, session_id)
+            payload = {"requester_id": context.operator_id, "operation": "revoke_reviewer", **dict(revoked), "audit_receipt": receipt.to_mapping()}
+            self.events.append("administrative_policy_changed", payload, event_id="admin-policy:revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+            if self.journal is not None:
+                self.journal.commit(receipt.action_id)
+        except Exception as exc:
+            if self.journal is not None:
+                self.journal.abort(receipt.action_id, type(exc).__name__)
+            raise
         return payload
 
 
 class OperatorSessionActionExecutor:
     """Apply explicit open/close session actions with idempotent replay."""
 
-    def __init__(self, registry: OperatorSessionRegistry, event_path: str, *, signing_key: bytes) -> None:
+    def __init__(self, registry: OperatorSessionRegistry, event_path: str, *, signing_key: bytes, journal: CoordinatedMutationJournal | None = None) -> None:
         if not isinstance(signing_key, bytes) or len(signing_key) < 16:
             raise ValueError("signing_key_too_short")
         self.registry = registry
         self.events = EventStore(event_path)
         self.signing_key = signing_key
+        self.journal = journal
 
     def _existing(self, action_id: str) -> Mapping[str, Any] | None:
         for event in self.events.iter_events():
@@ -632,17 +707,29 @@ class OperatorSessionActionExecutor:
         if action.action == "open":
             if current.authenticated:
                 raise PermissionError("operator_session_conflict")
-            result = self.registry.open(action.operator_id, action.session_id, ttl_seconds=action.ttl_seconds, scopes=action.scopes)
             previous_state, new_state = "inactive", "active"
         else:
             if not current.authenticated:
                 raise PermissionError("operator_session_conflict")
-            result = self.registry.close(action.operator_id, action.session_id)
             previous_state, new_state = "active", "inactive"
-        receipt = _signed_mutation_receipt(self.signing_key, action_id=action.action_id, operation="operator_session_" + action.action, actor_id=context.operator_id, target_id=action.session_id, previous_state=previous_state, new_state=new_state, payload=result)
-        payload = {"action_id": action.action_id, **action.to_mapping(), "result": dict(result), "audit_receipt": receipt.to_mapping()}
-        self.events.append("operator_session_action_completed", payload, event_id="operator-session-action:" + action.action_id)
+        preview = {"operator_id": action.operator_id, "session_id": action.session_id, "action": action.action, "scopes": list(action.scopes), "ttl_seconds": action.ttl_seconds}
+        receipt = _signed_mutation_receipt(self.signing_key, action_id=action.action_id, operation="operator_session_" + action.action, actor_id=context.operator_id, target_id=action.session_id, previous_state=previous_state, new_state=new_state, payload=preview)
+        if self.journal is not None:
+            self.journal.prepare(action.action_id, "operator_session_" + action.action, action.session_id, receipt.to_mapping())
+        try:
+            if action.action == "open":
+                result = self.registry.open(action.operator_id, action.session_id, ttl_seconds=action.ttl_seconds, scopes=action.scopes)
+            else:
+                result = self.registry.close(action.operator_id, action.session_id)
+            payload = {"action_id": action.action_id, **action.to_mapping(), "result": dict(result), "audit_receipt": receipt.to_mapping()}
+            self.events.append("operator_session_action_completed", payload, event_id="operator-session-action:" + action.action_id)
+            if self.journal is not None:
+                self.journal.commit(action.action_id)
+        except Exception as exc:
+            if self.journal is not None:
+                self.journal.abort(action.action_id, type(exc).__name__)
+            raise
         return {"status": "applied", "result": payload}
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "CoordinatedMutationJournal", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

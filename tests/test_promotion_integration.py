@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import AdministrativePolicyStore, EvaluatorRegistry, OperatorAuthContext, OperatorSessionAction, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, verify_signed_mutation_receipt
+from noesis_harness.promotion_integration import AdministrativePolicyStore, CoordinatedMutationJournal, EvaluatorRegistry, OperatorAuthContext, OperatorSessionAction, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, verify_signed_mutation_receipt
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -119,13 +119,27 @@ class PromotionIntegrationTests(unittest.TestCase):
         evaluation = integration.evaluate(receipt.receipt_id, "eval-1")
         return integration.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="skill-" + task_id, content="# skill\n")
 
+    def test_coordinated_mutation_journal_is_fail_closed_for_incomplete_commit(self):
+        journal = CoordinatedMutationJournal(tempfile.mktemp())
+        receipt = {"schema_version": "noesis.signed-mutation-receipt.v1", "signature": "sig"}
+        journal.prepare("mutation-1", "grant_reviewer", "reviewer-1:session-1", receipt)
+        self.assertEqual(journal.status("mutation-1"), "incomplete")
+        self.assertEqual(len(journal.incomplete()), 1)
+        journal.commit("mutation-1")
+        self.assertEqual(journal.status("mutation-1"), "committed")
+        journal.prepare("mutation-2", "close_session", "session-2", receipt)
+        journal.abort("mutation-2", "simulated_interrupted_write")
+        self.assertEqual(journal.status("mutation-2"), "aborted")
+        self.assertEqual(journal.incomplete(), ())
+
     def test_administrative_policy_requires_reviewed_admin_context(self):
         now = [100.0]
         sessions = OperatorSessionRegistry(tempfile.mktemp(), clock=lambda: now[0])
         sessions.open("admin-1", "admin-session", ttl_seconds=60, scopes=("admin:reviewers",))
         sessions.open("reviewer-1", "reviewer-session", ttl_seconds=60, scopes=("promotion:review",))
         reviewer_store = ReviewerAuthorizationStore(tempfile.mktemp())
-        policy = AdministrativePolicyStore(tempfile.mktemp(), reviewer_store, sessions, admin_ids=("admin-1",), signing_key=b"admin-signing-key-123")
+        journal = CoordinatedMutationJournal(tempfile.mktemp())
+        policy = AdministrativePolicyStore(tempfile.mktemp(), reviewer_store, sessions, admin_ids=("admin-1",), signing_key=b"admin-signing-key-123", journal=journal)
         admin = sessions.context("admin-1", "admin-session")
         grant = policy.grant_reviewer(admin, "reviewer-1", "reviewer-session", ("promotion:review",))
         self.assertEqual(grant["requester_id"], "admin-1")
@@ -135,6 +149,7 @@ class PromotionIntegrationTests(unittest.TestCase):
         tampered["new_state"] = "inactive"
         self.assertFalse(verify_signed_mutation_receipt(tampered, b"admin-signing-key-123"))
         self.assertTrue(policy.events.count() >= 1)
+        self.assertEqual(journal.status(grant["audit_receipt"]["action_id"]), "committed")
         reviewer_store.authorize(sessions.context("reviewer-1", "reviewer-session"), required_scope="promotion:review")
         with self.assertRaisesRegex(PermissionError, "administrative_policy_denied"):
             policy.revoke_reviewer(sessions.context("reviewer-1", "reviewer-session"), "reviewer-1", "reviewer-session")
@@ -149,7 +164,8 @@ class PromotionIntegrationTests(unittest.TestCase):
 
     def test_operator_session_action_executor_is_explicit_and_idempotent(self):
         registry = OperatorSessionRegistry(tempfile.mktemp())
-        executor = OperatorSessionActionExecutor(registry, tempfile.mktemp(), signing_key=b"session-signing-key-123")
+        journal = CoordinatedMutationJournal(tempfile.mktemp())
+        executor = OperatorSessionActionExecutor(registry, tempfile.mktemp(), signing_key=b"session-signing-key-123", journal=journal)
         context = OperatorAuthContext("admin-1", "admin-session", ("admin:session",))
         action = OperatorSessionAction("session-action-1", "open", "admin-1", "target-session", ttl_seconds=60, scopes=("promotion:review",))
         first = executor.handle(action, context)
@@ -157,6 +173,7 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertEqual(first["status"], "applied")
         self.assertEqual(first["result"]["audit_receipt"]["new_state"], "active")
         self.assertTrue(verify_signed_mutation_receipt(first["result"]["audit_receipt"], b"session-signing-key-123"))
+        self.assertEqual(journal.status("session-action-1"), "committed")
         self.assertEqual(replay["status"], "replayed")
         self.assertTrue(registry.context("admin-1", "target-session").authenticated)
         closed = executor.handle(OperatorSessionAction("session-action-2", "close", "admin-1", "target-session"), context)
