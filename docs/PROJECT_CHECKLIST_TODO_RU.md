@@ -808,9 +808,9 @@ Summary: `docs/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance coverage �
 | ID | Задача | Статус | Доказательство |
 |---|---|---|---|
 | DOC-01 | Markdown fence security audit | `DONE / LOCAL VERIFIED` | 0 high и 0 medium findings по docs Markdown |
-| DOC-02 | Local relative-link audit | `DONE / LOCAL VERIFIED` | 65 Markdown files, 26 local links, missing targets `0`; generated runtime docs исключены |
+| DOC-02 | Local relative-link audit | `DONE / LOCAL VERIFIED` | 66 Markdown files, 27 local links, missing targets `0`; generated runtime docs исключены |
 | DOC-03 | JSON evidence/schema coverage | `DONE / LOCAL VERIFIED` | 11 selected JSON files, valid JSON и `schema_version` coverage, findings `0` |
 | DOC-04 | Russian checklist/evidence navigation | `DONE / LOCAL VERIFIED` | Required markers и evidence paths присутствуют |
-| DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `1a92645ed97c36f3379847c933221ff639f1c6810ce5947603f289f0c5f486f2` |
+| DOC-05 | Parallel documentation evidence | `DONE / LOCAL VERIFIED` | 4/4 lanes passed; 4 unique workspaces; no network/credentials/model code; file `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`; SHA-256 `55d092ff760c9e07381266fbb1dde206d9e8759b2a0e17ac10713ad03504ff16` |
 
 Summary: `docs/PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`.

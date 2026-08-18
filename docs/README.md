@@ -30,4 +30,5 @@ The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-o
 | [`NATIVE_PACKAGING_RUNBOOK_RU.md`](NATIVE_PACKAGING_RUNBOOK_RU.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |
 | [`PARALLEL_RELEASE_AUDIT_RU.md`](PARALLEL_RELEASE_AUDIT_RU.md) | Offline release audit, secret/AST/export/Git cleanliness gates. |
 | [`PARALLEL_CI_CONSISTENCY_RU.md`](PARALLEL_CI_CONSISTENCY_RU.md) | CI/runbook consistency and portable artifact evidence. |
+| [`PARALLEL_DOCUMENTATION_EVIDENCE_RU.md`](PARALLEL_DOCUMENTATION_EVIDENCE_RU.md) | Markdown security, local-link and JSON schema evidence. |
 | [`third_party_provenance.json`](third_party_provenance.json) | Machine-readable upstream reference/license/provenance manifest. |

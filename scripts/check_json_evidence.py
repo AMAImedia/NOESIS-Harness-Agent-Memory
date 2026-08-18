@@ -7,21 +7,24 @@ from pathlib import Path
 from typing import Any
 
 
-def selected_files(base: Path) -> list[Path]:
+def selected_files(base: Path, exclude_names: set[str] | None = None) -> list[Path]:
+    excluded = exclude_names or set()
     candidates: list[Path] = []
     for root in (base / "docs", base / "packaging", base / "benchmarks"):
         if not root.is_dir():
             continue
         for path in root.rglob("*.json"):
             name = path.name.casefold()
+            if path.name in excluded:
+                continue
             if "evidence" in name or "provenance" in name or "manifest" in name or name in {"windows_manifest.json", "macos_manifest.json"}:
                 candidates.append(path)
     return sorted(set(candidates))
 
 
-def audit(root: str) -> dict[str, Any]:
+def audit(root: str, *, exclude_names: set[str] | None = None) -> dict[str, Any]:
     base = Path(root).expanduser().resolve()
-    files = selected_files(base)
+    files = selected_files(base, exclude_names)
     findings: list[dict[str, str]] = []
     records: list[dict[str, Any]] = []
     for path in files:

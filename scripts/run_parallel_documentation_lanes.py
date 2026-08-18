@@ -29,7 +29,7 @@ def lane(ctx: AgentLaneContext) -> dict[str, Any]:
         return {"check": "markdown_links", "status": "passed", "local_links": report["local_links"], "markdown_files": report["markdown_files"], "missing": report["missing_count"]}
 
     if ctx.task_id == "json-evidence":
-        report = audit_json(str(ROOT))
+        report = audit_json(str(ROOT), exclude_names={"PARALLEL_DOCUMENTATION_EVIDENCE.json"})
         if not report["clean"]:
             raise AssertionError("json_evidence_findings")
         return {"check": "json_evidence", "status": "passed", "files_checked": len(report["records"]), "findings": len(report["findings"])}

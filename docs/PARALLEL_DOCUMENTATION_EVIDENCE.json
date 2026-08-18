@@ -40,8 +40,8 @@
       "error": "",
       "output": {
         "check": "markdown_links",
-        "local_links": 26,
-        "markdown_files": 65,
+        "local_links": 27,
+        "markdown_files": 66,
         "missing": 0,
         "status": "passed"
       },
@@ -54,7 +54,7 @@
       "error": "",
       "output": {
         "check": "ru_checklist",
-        "line_count": 803,
+        "line_count": 816,
         "missing": [],
         "status": "passed"
       },

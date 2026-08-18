@@ -3,14 +3,14 @@
 **Статус:** локально verified  
 **Runtime:** CPython 3.14.7 Linux  
 **Machine-readable evidence:** `docs/PARALLEL_DOCUMENTATION_EVIDENCE.json`  
-**Evidence SHA-256:** `1a92645ed97c36f3379847c933221ff639f1c6810ce5947603f289f0c5f486f2`
+**Evidence SHA-256:** `55d092ff760c9e07381266fbb1dde206d9e8759b2a0e17ac10713ad03504ff16`
 
 ## Parallel lanes
 
 | Lane | Проверка | Результат |
 |---|---|---|
 | `docs-security` | Markdown fenced examples: credential literals, pipe-to-shell, destructive commands, eval/exec, shell interpolation и privilege patterns | `passed`; high `0`, medium `0` |
-| `markdown-links` | Local relative links без network; generated `runtime/` docs исключены из project scope | `passed`; 65 Markdown files, 26 local links, missing `0` |
+| `markdown-links` | Local relative links без network; generated `runtime/` docs исключены из project scope | `passed`; 66 Markdown files, 27 local links, missing `0` |
 | `json-evidence` | JSON parseability и `schema_version` для selected evidence/manifests | `passed`; 11 files, findings `0` |
 | `ru-checklist` | Russian master checklist markers и paths к machine-readable evidence | `passed`; missing `[]` |
 
