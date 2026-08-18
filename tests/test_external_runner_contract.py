@@ -16,10 +16,25 @@ class ExternalRunnerContractTests(unittest.TestCase):
 
     def test_result_validation_accepts_explicit_not_run(self):
         spec = make_spec("opencode", "rev-opencode-123", ["opencode", "run"], "b" * 64)
-        result = {**spec, "status": "not_run", "execution": "not_run"}
+        result = {**spec, "status": "not_run", "execution": "not_started"}
         ok, errors = validate_result(result)
         self.assertTrue(ok)
         self.assertEqual(errors, ())
+
+    def test_unknown_execution_and_invalid_digests_fail_closed(self):
+        spec = make_spec("opencode", "rev-opencode-123", ["opencode", "run"], "b" * 64)
+        result = {**spec, "status": "not_run", "execution": "not_run", "task_manifest_sha256": "short"}
+        ok, errors = validate_result(result)
+        self.assertFalse(ok)
+        self.assertIn("invalid:execution", errors)
+        self.assertIn("invalid:task_manifest_sha256", errors)
+
+    def test_started_not_run_status_mismatch_fails_closed(self):
+        spec = make_spec("hermes", "rev-hermes-123", ["hermes", "run"], "c" * 64)
+        result = {**spec, "status": "not_run", "execution": "started"}
+        ok, errors = validate_result(result)
+        self.assertFalse(ok)
+        self.assertIn("execution_status_mismatch:completed_or_failed_required", errors)
 
     def test_result_validation_rejects_shell_string_and_non_disposable_workspace(self):
         spec = make_spec("noesis", "local-sha", ["python", "run"], "c" * 64)

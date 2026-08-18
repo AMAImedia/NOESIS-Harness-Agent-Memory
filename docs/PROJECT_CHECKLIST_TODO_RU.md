@@ -627,7 +627,7 @@ Phase 5 закрыт только как локально проверенный
 | ID | Задача | Статус | Доказательство |
 |---|---|---|---|
 | P6-07 | Operator runbook для pinned lanes | `DONE / LOCAL VERIFIED` | `docs/PHASE6_PINNED_LANE_RUNBOOK_RU.md`: generate → validate → explicit execute → signed ingestion |
-| P6-08 | Placeholder/false-evidence prevention | `DONE / LOCAL VERIFIED` | Exact revision, manifest SHA-256, disposable workspace и HMAC key объявлены обязательными; placeholders не принимаются как evidence |
+| P6-08 | Placeholder/false-evidence prevention | `DONE / LOCAL VERIFIED` | Exact revision, manifest SHA-256, disposable workspace и HMAC key обязательны; strict execution/status combinations и 64-hex digest validation fail closed; placeholders не принимаются как evidence |
 | P6-09 | Реальный запуск lanes | `BLOCKED / EXTERNAL ENV REQUIRED` | Hermes/OpenCode exact revisions и disposable operator environments отсутствуют; статус остаётся `not_run` |
 
 Операторский runbook не включает Hermes/OpenCode в NOESIS core. Он нужен только для независимых reproducible baseline runs.

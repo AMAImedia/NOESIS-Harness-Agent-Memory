@@ -14,7 +14,7 @@ class RunnerEvidenceTests(unittest.TestCase):
         self.spec = make_spec("hermes", "hermes-rev-1", ["hermes", "run", "--json"], "a" * 64)
         self.result = {
             **self.spec,
-            "execution": "completed",
+            "execution": "not_started",
             "status": "not_run",
             "metrics": {
                 "task_success": {"status": "not_run", "reason": "runner unavailable"},

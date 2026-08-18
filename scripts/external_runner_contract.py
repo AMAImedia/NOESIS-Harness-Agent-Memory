@@ -17,6 +17,13 @@ from typing import Any, Mapping, Sequence
 REQUIRED_SYSTEMS = ("noesis", "hermes", "opencode")
 REQUIRED_FIELDS = ("system", "revision", "model_provider", "task_manifest_sha256", "protocol_fingerprint", "environment", "workspace", "argv")
 ALLOWED_STATUS = frozenset({"passed", "failed", "unsupported", "not_run"})
+ALLOWED_EXECUTION = frozenset({"not_started", "denied", "started", "completed", "fixture_only"})
+_HEX64 = frozenset("0123456789abcdef")
+
+
+def _is_sha256(value: object) -> bool:
+    text = str(value)
+    return len(text) == 64 and text.casefold() and all(char in _HEX64 for char in text.casefold())
 
 
 def file_sha256(path: str) -> str:
@@ -67,6 +74,20 @@ def validate_result(result: Mapping[str, Any]) -> tuple[bool, tuple[str, ...]]:
         errors.append("invalid:system")
     if result.get("status") not in ALLOWED_STATUS:
         errors.append("invalid:status")
+    execution = result.get("execution")
+    if execution not in ALLOWED_EXECUTION:
+        errors.append("invalid:execution")
+    elif execution in {"not_started", "denied"} and result.get("status") != "not_run":
+        errors.append("execution_status_mismatch:not_run_required")
+    elif execution in {"started", "completed", "fixture_only"} and result.get("status") == "not_run":
+        errors.append("execution_status_mismatch:completed_or_failed_required")
+    if not _is_sha256(result.get("task_manifest_sha256")):
+        errors.append("invalid:task_manifest_sha256")
+    if not _is_sha256(result.get("protocol_fingerprint")):
+        errors.append("invalid:protocol_fingerprint")
+    environment = result.get("environment")
+    if not isinstance(environment, Mapping) or not environment.get("python") or not environment.get("platform"):
+        errors.append("invalid:environment")
     workspace = result.get("workspace")
     if not isinstance(workspace, Mapping) or workspace.get("mode") != "disposable":
         errors.append("workspace_not_disposable")

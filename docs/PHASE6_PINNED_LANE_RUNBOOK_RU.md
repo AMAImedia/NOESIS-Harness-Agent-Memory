@@ -69,7 +69,7 @@ $PY314 scripts/ingest_runner_result.py \
   --output /tmp/noesis-lanes/hermes/evidence.json
 ```
 
-Evidence принимается только если identity fields, workspace, argv, metrics и schema совпадают со spec, credential-like content отсутствует, а HMAC envelope успешно проверяется. HMAC envelope подтверждает controlled operator integrity; это не public release signature.
+Evidence принимается только если identity fields, workspace, argv, metrics и schema совпадают со spec, credential-like content отсутствует, SHA-256/protocol fingerprint имеют строгий 64-hex формат, а execution/status согласованы: `not_started` или `denied` только с `not_run`; `started`, `completed` или `fixture_only` не могут иметь `not_run`. HMAC envelope успешно проверяется. HMAC envelope подтверждает controlled operator integrity; это не public release signature.
 
 ## 4. Acceptance gate
 
