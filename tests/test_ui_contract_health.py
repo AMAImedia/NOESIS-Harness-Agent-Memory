@@ -100,6 +100,34 @@ class HealthServerTests(unittest.TestCase):
                 self.assertIn('"runtime_id":"child-1"', body)
                 self.assertNotIn("hidden", body)
 
+    def test_operator_session_and_admin_policy_endpoints_require_explicit_handlers(self):
+        session_payload = {"schema_version": "noesis.operator-session-action.v1", "action_id": "session-action", "action": "open", "operator_id": "operator-1", "session_id": "session-target", "ttl_seconds": 60, "scopes": ["promotion:review"]}
+        admin_payload = {"schema_version": "noesis.administrative-policy.v1", "action": "grant_reviewer", "operator_id": "reviewer-1", "session_id": "session-target", "scopes": ["promotion:review"]}
+        with HealthServer(port=0) as server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            for path, payload in (("/api/operator-sessions", session_payload), ("/api/admin/reviewer-policy", admin_payload)):
+                request = urllib.request.Request(base + path, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+                with self.assertRaises(urllib.error.HTTPError) as context:
+                    urllib.request.urlopen(request, timeout=2)
+                error = context.exception
+                try:
+                    body = json.loads(error.read().decode("utf-8"))
+                finally:
+                    error.close()
+                self.assertEqual(error.code, 405)
+                self.assertEqual(body["status"], "denied")
+
+        calls = []
+        with HealthServer(port=0, operator_id="operator-1", operator_session_id="session-admin", operator_scopes=("admin:reviewers",), operator_session_action_handler=lambda action, auth: calls.append(("session", action.to_mapping(), auth.operator_id)) or {"status": "queued"}, administrative_policy_handler=lambda payload, auth: calls.append(("admin", payload, auth.operator_id)) or {"status": "queued"}) as server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            for path, payload in (("/api/operator-sessions", session_payload), ("/api/admin/reviewer-policy", admin_payload)):
+                request = urllib.request.Request(base + path, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(request, timeout=2) as response:
+                    self.assertEqual(response.status, 202)
+                    body = json.loads(response.read().decode("utf-8"))
+                    self.assertEqual(body["data"]["result"]["status"], "queued")
+        self.assertEqual([item[0] for item in calls], ["session", "admin"])
+
     def test_operator_promotion_action_requires_handler_and_returns_contract(self):
         action_payload = {"schema_version": "noesis.promotion-approval.v1", "action_id": "action-1", "action": "approve", "proposal_id": "proposal-1", "operator_id": "operator-1"}
         with HealthServer(port=0) as server:

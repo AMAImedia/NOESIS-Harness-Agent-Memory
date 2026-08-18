@@ -494,4 +494,95 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+@dataclass(frozen=True)
+class OperatorSessionAction:
+    action_id: str
+    action: str
+    operator_id: str
+    session_id: str
+    ttl_seconds: float = 900.0
+    scopes: tuple[str, ...] = ()
+    schema_version: str = "noesis.operator-session-action.v1"
+
+    def __post_init__(self) -> None:
+        if not self.action_id or not self.operator_id or not self.session_id:
+            raise ValueError("operator_session_action_identity_required")
+        if self.action not in {"open", "close"}:
+            raise ValueError("unsupported_operator_session_action")
+        if self.action == "open" and (self.ttl_seconds <= 0 or self.ttl_seconds > 86400):
+            raise ValueError("invalid_operator_session_ttl")
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "OperatorSessionAction":
+        if not isinstance(value, Mapping) or value.get("schema_version") != "noesis.operator-session-action.v1":
+            raise ValueError("unsupported_operator_session_action_schema")
+        return cls(str(value.get("action_id", "")), str(value.get("action", "")), str(value.get("operator_id", "")), str(value.get("session_id", "")), float(value.get("ttl_seconds", 900.0)), tuple(str(item) for item in value.get("scopes", ())))
+
+    def to_mapping(self) -> dict[str, Any]:
+        return {"schema_version": self.schema_version, "action_id": self.action_id, "action": self.action, "operator_id": self.operator_id, "session_id": self.session_id, "ttl_seconds": self.ttl_seconds, "scopes": list(self.scopes)}
+
+
+class AdministrativePolicyStore:
+    """Reviewed administrative source for reviewer grants and revocations."""
+
+    def __init__(self, event_path: str, reviewer_store: ReviewerAuthorizationStore, session_registry: OperatorSessionRegistry, *, admin_ids: Sequence[str], required_scope: str = "admin:reviewers") -> None:
+        if not admin_ids or not required_scope:
+            raise ValueError("administrative_policy_configuration_required")
+        self.events = EventStore(event_path)
+        self.reviewer_store = reviewer_store
+        self.session_registry = session_registry
+        self.admin_ids = frozenset(str(item) for item in admin_ids)
+        self.required_scope = str(required_scope)
+
+    def _require_admin(self, context: OperatorAuthContext) -> None:
+        self.session_registry.require_active(context)
+        if context.operator_id not in self.admin_ids or self.required_scope not in context.scopes:
+            raise PermissionError("administrative_policy_denied")
+
+    def grant_reviewer(self, context: OperatorAuthContext, operator_id: str, session_id: str, scopes: Sequence[str]) -> Mapping[str, Any]:
+        self._require_admin(context)
+        grant = self.reviewer_store.grant(operator_id, session_id, scopes)
+        payload = {"requester_id": context.operator_id, "operation": "grant_reviewer", **dict(grant)}
+        self.events.append("administrative_policy_changed", payload, event_id="admin-policy:grant:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+        return payload
+
+    def revoke_reviewer(self, context: OperatorAuthContext, operator_id: str, session_id: str) -> Mapping[str, Any]:
+        self._require_admin(context)
+        revoked = self.reviewer_store.revoke(operator_id, session_id)
+        payload = {"requester_id": context.operator_id, "operation": "revoke_reviewer", **dict(revoked)}
+        self.events.append("administrative_policy_changed", payload, event_id="admin-policy:revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+        return payload
+
+
+class OperatorSessionActionExecutor:
+    """Apply explicit open/close session actions with idempotent replay."""
+
+    def __init__(self, registry: OperatorSessionRegistry, event_path: str) -> None:
+        self.registry = registry
+        self.events = EventStore(event_path)
+
+    def _existing(self, action_id: str) -> Mapping[str, Any] | None:
+        for event in self.events.iter_events():
+            payload = event.get("payload") or {}
+            if event.get("type") == "operator_session_action_completed" and payload.get("action_id") == action_id:
+                return dict(payload)
+        return None
+
+    def handle(self, action: OperatorSessionAction, context: OperatorAuthContext) -> Mapping[str, Any]:
+        if not isinstance(action, OperatorSessionAction) or not isinstance(context, OperatorAuthContext):
+            raise ValueError("operator_session_action_required")
+        if context.operator_id != action.operator_id or not context.authenticated:
+            raise PermissionError("operator_identity_mismatch")
+        existing = self._existing(action.action_id)
+        if existing is not None:
+            return {"status": "replayed", "result": existing}
+        if action.action == "open":
+            result = self.registry.open(action.operator_id, action.session_id, ttl_seconds=action.ttl_seconds, scopes=action.scopes)
+        else:
+            result = self.registry.close(action.operator_id, action.session_id)
+        payload = {"action_id": action.action_id, **action.to_mapping(), "result": dict(result)}
+        self.events.append("operator_session_action_completed", payload, event_id="operator-session-action:" + action.action_id)
+        return {"status": "applied", "result": payload}
+
+
+__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]

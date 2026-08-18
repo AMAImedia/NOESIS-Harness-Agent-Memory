@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import EvaluatorRegistry, OperatorAuthContext, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
+from noesis_harness.promotion_integration import AdministrativePolicyStore, EvaluatorRegistry, OperatorAuthContext, OperatorSessionAction, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -118,6 +118,40 @@ class PromotionIntegrationTests(unittest.TestCase):
         receipt = integration.capture_task_completion({"task_id": task_id, "status": "completed"}, payload={"result": "ok"}, source_digest="src", policy_digest="pol", agent_id="agent-owner", scope="project:demo")
         evaluation = integration.evaluate(receipt.receipt_id, "eval-1")
         return integration.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="skill-" + task_id, content="# skill\n")
+
+    def test_administrative_policy_requires_reviewed_admin_context(self):
+        now = [100.0]
+        sessions = OperatorSessionRegistry(tempfile.mktemp(), clock=lambda: now[0])
+        sessions.open("admin-1", "admin-session", ttl_seconds=60, scopes=("admin:reviewers",))
+        sessions.open("reviewer-1", "reviewer-session", ttl_seconds=60, scopes=("promotion:review",))
+        reviewer_store = ReviewerAuthorizationStore(tempfile.mktemp())
+        policy = AdministrativePolicyStore(tempfile.mktemp(), reviewer_store, sessions, admin_ids=("admin-1",))
+        admin = sessions.context("admin-1", "admin-session")
+        grant = policy.grant_reviewer(admin, "reviewer-1", "reviewer-session", ("promotion:review",))
+        self.assertEqual(grant["requester_id"], "admin-1")
+        reviewer_store.authorize(sessions.context("reviewer-1", "reviewer-session"), required_scope="promotion:review")
+        with self.assertRaisesRegex(PermissionError, "administrative_policy_denied"):
+            policy.revoke_reviewer(sessions.context("reviewer-1", "reviewer-session"), "reviewer-1", "reviewer-session")
+        policy.revoke_reviewer(admin, "reviewer-1", "reviewer-session")
+        with self.assertRaisesRegex(PermissionError, "reviewer_authorization_required"):
+            reviewer_store.authorize(sessions.context("reviewer-1", "reviewer-session"), required_scope="promotion:review")
+        now[0] = 161.0
+        with self.assertRaisesRegex(PermissionError, "operator_session_inactive_or_expired"):
+            policy.grant_reviewer(admin, "reviewer-1", "reviewer-session", ("promotion:review",))
+
+    def test_operator_session_action_executor_is_explicit_and_idempotent(self):
+        registry = OperatorSessionRegistry(tempfile.mktemp())
+        executor = OperatorSessionActionExecutor(registry, tempfile.mktemp())
+        context = OperatorAuthContext("admin-1", "admin-session", ("admin:session",))
+        action = OperatorSessionAction("session-action-1", "open", "admin-1", "target-session", ttl_seconds=60, scopes=("promotion:review",))
+        first = executor.handle(action, context)
+        replay = executor.handle(action, context)
+        self.assertEqual(first["status"], "applied")
+        self.assertEqual(replay["status"], "replayed")
+        self.assertTrue(registry.context("admin-1", "target-session").authenticated)
+        closed = executor.handle(OperatorSessionAction("session-action-2", "close", "admin-1", "target-session"), context)
+        self.assertEqual(closed["status"], "applied")
+        self.assertFalse(registry.context("admin-1", "target-session").authenticated)
 
     def test_operator_session_registry_persists_and_expires_fail_closed(self):
         now = [100.0]

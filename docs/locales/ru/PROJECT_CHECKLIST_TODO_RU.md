@@ -1070,3 +1070,16 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-SESSION-06 | Administrative policy source | `NEXT LOCAL GATE` | Replace local injected session configuration with a reviewed administrative policy lifecycle and operator UI integration |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Reviewed Administrative Policy and Session UI Actions
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-ADMIN-01 | Reviewed reviewer grant/revoke policy | `DONE / LOCAL VERIFIED` | `AdministrativePolicyStore` requires active admin session and `admin:reviewers` scope |
+| LEARN-ADMIN-02 | Unauthorized admin mutation denial | `DONE / LOCAL VERIFIED` | Non-admin or expired admin context is rejected before reviewer policy mutation |
+| LEARN-ADMIN-03 | Explicit operator session actions | `DONE / LOCAL VERIFIED` | `OperatorSessionAction` and executor implement only open/close with idempotent replay |
+| LEARN-ADMIN-04 | Safe UI mutation endpoints | `DONE / LOCAL VERIFIED` | `/api/operator-sessions` and `/api/admin/reviewer-policy` validate and delegate only via POST handlers |
+| LEARN-ADMIN-05 | No implicit promotion/activation | `DONE / BOUNDED` | Administrative operations cannot create active skill pointers or trigger promotion |
+| LEARN-ADMIN-06 | External identity provider | `NEXT LOCAL GATE` | Replace local admin allow-list with reviewed external/operator identity integration when a pinned provider exists |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
