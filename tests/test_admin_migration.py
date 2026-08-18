@@ -73,6 +73,24 @@ class AdministrativeMigrationAdapterTests(unittest.TestCase):
         self.assertEqual(result['mode'], 'sqlite')
         self.assertEqual(result['result']['backend'], 'sqlite')
 
+    def test_promotion_handler_parses_versioned_action_and_calls_executor(self):
+        adapter, *_ = self.make()
+        router = AdministrativeActionRouter(adapter)
+        context = OperatorAuthContext('admin-1', 'admin-session', ('promotion:review',))
+        class RecordingExecutor:
+            def __init__(self):
+                self.calls = []
+            def handle(self, action, auth):
+                self.calls.append((action.action_id, action.action, auth.operator_id))
+                return {'status': 'delegated', 'action_id': action.action_id}
+        legacy = RecordingExecutor()
+        sqlite = RecordingExecutor()
+        handler = router.promotion_handler(legacy_executor=legacy, sqlite_executor=sqlite, verification_provider=lambda action, auth: {})
+        result = handler({'schema_version': 'noesis.promotion-approval.v1', 'action_id': 'promotion-route', 'action': 'approve', 'proposal_id': 'proposal-1', 'operator_id': 'admin-1', 'expected_state': 'review', 'session_id': 'admin-session', 'scope': 'promotion:review'}, context)
+        self.assertEqual(result['result']['status'], 'delegated')
+        self.assertEqual(legacy.calls, [('promotion-route', 'approve', 'admin-1')])
+        self.assertEqual(sqlite.calls, [])
+
     def test_health_handler_uses_same_explicit_router_contract(self):
         adapter, *_ = self.make()
         router = AdministrativeActionRouter(adapter)

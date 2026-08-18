@@ -50,6 +50,17 @@ class AdministrativeActionRouter:
         self.migration.events.append("administrative_action_routed", payload, event_id="admin-route:" + payload["action_id"] + ":" + str(self.migration.events.count()))
         return payload
 
+    def promotion_handler(self, *, legacy_executor: Any, sqlite_executor: Any, verification_provider: Any):
+        from .promotion_integration import PromotionApprovalAction
+        if not callable(getattr(legacy_executor, "handle", None)) or not callable(getattr(sqlite_executor, "handle", None)):
+            raise AdministrativeMigrationError("promotion_executors_required")
+        def handle(action: Any, context: OperatorAuthContext) -> Mapping[str, Any]:
+            envelope = action.to_mapping() if isinstance(action, PromotionApprovalAction) else action
+            parsed = PromotionApprovalAction.from_mapping(envelope)
+            verification = verification_provider(parsed, context)
+            return self.route(envelope, context, legacy_handler=lambda value, auth: legacy_executor.handle(PromotionApprovalAction.from_mapping(value), auth), sqlite_handler=lambda value, auth: sqlite_executor.handle(PromotionApprovalAction.from_mapping(value), auth), verification=verification)
+        return handle
+
     def health_handler(self, *, legacy_handler: Any, sqlite_handler: Any, verification_provider: Any):
         def handle(action: Mapping[str, Any], context: OperatorAuthContext) -> Mapping[str, Any]:
             verification = verification_provider(action, context)

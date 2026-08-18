@@ -1150,3 +1150,17 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-ROUTE-07 | Production executor replacement | `NEXT LOCAL GATE` | Connect router to real PromotionActionExecutor and HealthServer deployment configuration |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-18 — Promotion Executor Production Wiring
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-WIRE-01 | Executor-aware router | `DONE / LOCAL VERIFIED` | `promotion_handler()` parses `PromotionApprovalAction` and delegates to executor `handle()` |
+| LEARN-WIRE-02 | Authorization preservation | `DONE / LOCAL VERIFIED` | Router does not bypass executor reviewer/session/identity checks |
+| LEARN-WIRE-03 | HealthServer injection | `DONE / BOUNDED` | Handler is compatible with HealthServer injected mutation route; no GET/SSE side effects |
+| LEARN-WIRE-04 | Legacy default | `DONE / LOCAL VERIFIED` | Legacy executor remains selected unless migration mode changes explicitly |
+| LEARN-WIRE-05 | SQLite guard | `DONE / LOCAL VERIFIED` | SQLite executor selection requires verified dual-read and explicit `sqlite` mode |
+| LEARN-WIRE-06 | Automatic activation | `NOT_RUN / DISABLED` | Router cannot activate skills or infer promotion from routing evidence |
+| LEARN-WIRE-07 | Deployment adoption | `NEXT LOCAL GATE` | Wire handler into concrete HealthServer deployment configuration with operator-managed mode source |
+
+English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
