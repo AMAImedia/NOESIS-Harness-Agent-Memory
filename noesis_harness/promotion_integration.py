@@ -495,6 +495,31 @@ class PromotionIntegration:
         return self.telemetry.snapshot()
 
 
+class ProductionLearningLifecycle:
+    """Bind durable task capture and explicit operator actions without implicit promotion."""
+
+    def __init__(self, *, task_store: Any, event_bridge: PromotionEventBridge, policy_simulator: Callable[[Mapping[str, Any]], Mapping[str, Any] | PolicySimulation], action_executor: PromotionActionExecutor) -> None:
+        if task_store is None or not isinstance(event_bridge, PromotionEventBridge) or not callable(policy_simulator) or not isinstance(action_executor, PromotionActionExecutor):
+            raise ValueError("production_learning_lifecycle_configuration_required")
+        self.task_store = task_store
+        self.event_bridge = event_bridge
+        self.policy_simulator = policy_simulator
+        self.action_executor = action_executor
+
+    def capture_terminal_events(self, *, operator_trigger: bool = False) -> tuple[Mapping[str, Any], ...]:
+        """Capture terminal task events only after an explicit operator lifecycle trigger."""
+        if not operator_trigger:
+            raise PermissionError("operator_trigger_required")
+        return self.event_bridge.poll(self.task_store, self.policy_simulator)
+
+    def handle_operator_action(self, action: PromotionApprovalAction, context: OperatorAuthContext) -> Mapping[str, Any]:
+        """Apply only a validated, authenticated, independently reviewed action."""
+        return self.action_executor.handle(action, context)
+
+    def readiness(self) -> Mapping[str, Any]:
+        return {"schema_version": "noesis.production-learning-lifecycle.v1", "capture": "operator_trigger_only", "automatic_evaluation": False, "automatic_approval": False, "automatic_promotion": False, "automatic_activation": False, "operator_action_handler": True}
+
+
 @dataclass(frozen=True)
 class SignedMutationReceipt:
     action_id: str
@@ -732,4 +757,5 @@ class OperatorSessionActionExecutor:
         return {"status": "applied", "result": payload}
 
 
-__all__ = ["EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "CoordinatedMutationJournal", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration"]
+__all__ = [
+"EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "CoordinatedMutationJournal", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration", "ProductionLearningLifecycle"]

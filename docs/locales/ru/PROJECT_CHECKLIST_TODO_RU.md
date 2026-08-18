@@ -1,6 +1,6 @@
 # NOESIS — совместный checklist и TODO
 
-Дата контрольного состояния: **2026-08-17**
+Дата контрольного состояния: **2026-08-18**
 
 Репозиторий: `AMAImedia/NOESIS-Harness-Agent-Memory`
 
@@ -8,9 +8,9 @@
 
 Текущая ветка: `main`
 
-Последний подтверждённый remote commit: `66eb5be` — `docs: record desktop wrapper decision memo`
+Последний подтверждённый remote commit: `4925e52` — `Persist signed migration receipts in admin audit store`; текущая reconciliation-правка ожидает commit
 
-Текущий рабочий этап: **release-readiness audit remote verified; P4-03 decision memo ready; следующий gate — owner decisions по branch protection, native runners, wrapper и public release**
+Текущий рабочий этап: **roadmap reconciliation и code/docs sync; следующий локальный gate — production learning lifecycle binding; native/external gates остаются blocked/not_run**
 
 ## Как мы используем этот документ
 
@@ -802,7 +802,7 @@ Summary: `docs/locales/ru/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance
 
 ## Progress snapshot после metadata/provenance audit — 2026-08-18
 
-По уникальным checklist IDs: **234/243 = 96,30%** имеют `DONE`, `PASS`, `VERIFIED`, `IMPLEMENTED`, `PREPARED` или эквивалентный локально закрытый статус. **9/243 = 3,70%** остаются открытыми: 5 external environment/evidence gates (`P6-05`, `P6-06`, `P6-09`, `P12-01`, `P13-01`) и 4 owner decisions (`P4-03`, `USER-03`, `USER-04`, `USER-05`). Этот процент отражает checklist coverage, а не доказанность superiority claim: native target evidence и external A/B всё ещё обязательны.
+Progress snapshot: historical checklist coverage is retained below, but the normative remaining work is now defined by `docs/PLAN_NOESIS_1.0_MASTER.md`. The current next local gate is `NEXT-01` production learning lifecycle binding. Native Windows/macOS evidence and Hermes/OpenCode/DeepSeek Harness A/B remain `not_run` or `blocked`; no percentage is treated as proof of superiority.
 
 
 ## 2026-08-18 — Documentation security и link/schema audit
@@ -1119,7 +1119,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-SQLITE-03 | Rollback/no orphan evidence | `DONE / LOCAL VERIFIED` | Denied actor/session and conflict paths leave no audit row or partial state |
 | LEARN-SQLITE-04 | Restart/recovery | `DONE / LOCAL VERIFIED` | Reopened backend reconstructs sessions and detects active-state conflicts |
 | LEARN-SQLITE-05 | Resource hygiene | `DONE / LOCAL VERIFIED` | Managed connections close cleanly under Python 3.14 ResourceWarning policy |
-| LEARN-SQLITE-06 | Runtime adoption | `NEXT LOCAL GATE` | Replace optional append-only stores in production operator wiring only after migration/recovery plan review |
+| LEARN-SQLITE-06 | Runtime adoption | `DONE / BOUNDED LOCAL` | Portable launcher supports explicit SQLite/WAL admin backend adoption only when a valid signing key is configured; default remains fail-closed/legacy |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1133,7 +1133,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-MIGRATE-04 | Mismatch fail-closed | `DONE / LOCAL VERIFIED` | State mismatch returns `blocked` and `require_dual_read` raises |
 | LEARN-MIGRATE-05 | Explicit rollback | `DONE / LOCAL VERIFIED` | `sqlite`/`dual_read` can explicitly roll back to `legacy` |
 | LEARN-MIGRATE-06 | Automatic cutover | `NOT_RUN / DISABLED` | No silent replacement of append-only stores |
-| LEARN-MIGRATE-07 | Production routing adoption | `NEXT LOCAL GATE` | Connect verified adapter to HealthServer and executor mutation routing |
+| LEARN-MIGRATE-07 | Production routing adoption | `DONE / BOUNDED LOCAL` | Operator mode source is wired to HealthServer readiness and portable startup; automatic cutover remains disabled |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1147,7 +1147,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-ROUTE-04 | HealthServer handler | `DONE / BOUNDED` | `health_handler()` delegates validated action/context without performing implicit promotion |
 | LEARN-ROUTE-05 | Routing evidence | `DONE / LOCAL VERIFIED` | Bounded `administrative_action_routed` event records mode and verification result |
 | LEARN-ROUTE-06 | Automatic cutover | `NOT_RUN / DISABLED` | No silent replacement of legacy stores |
-| LEARN-ROUTE-07 | Production executor replacement | `NEXT LOCAL GATE` | Connect router to real PromotionActionExecutor and HealthServer deployment configuration |
+| LEARN-ROUTE-07 | Production executor replacement | `NEXT LOCAL GATE` | Remaining Gate 1: bind real PromotionActionExecutor to authenticated operator lifecycle and independent reviewer policy in deployment configuration |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1161,7 +1161,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-WIRE-04 | Legacy default | `DONE / LOCAL VERIFIED` | Legacy executor remains selected unless migration mode changes explicitly |
 | LEARN-WIRE-05 | SQLite guard | `DONE / LOCAL VERIFIED` | SQLite executor selection requires verified dual-read and explicit `sqlite` mode |
 | LEARN-WIRE-06 | Automatic activation | `NOT_RUN / DISABLED` | Router cannot activate skills or infer promotion from routing evidence |
-| LEARN-WIRE-07 | Deployment adoption | `NEXT LOCAL GATE` | Wire handler into concrete HealthServer deployment configuration with operator-managed mode source |
+| LEARN-WIRE-07 | Deployment adoption | `NEXT LOCAL GATE` | Remaining Gate 1: bind handler to concrete deployment configuration with durable operator session and reviewer policy |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1193,5 +1193,28 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-UI-06 | Legacy default | `DONE / LOCAL VERIFIED` | Startup and UI default to legacy; no automatic cutover |
 | LEARN-UI-07 | Mode-change authorization | `DONE / LOCAL VERIFIED` | Operator allow-list and identity mismatch fail closed |
 | LEARN-UI-08 | Native/external readiness | `NOT_RUN` | Windows/macOS and external A/B remain environment-gated |
+
+## 2026-08-18 — Roadmap reconciliation and persistent migration audit checkpoint
+
+| ID | Gate | Status | Evidence |
+|---|---|---|---|
+| RECON-01 | English master roadmap | `DONE / LOCAL VERIFIED` | `docs/PLAN_NOESIS_1.0_MASTER.md` is now the status-driven normative plan with measurable Gates 1–7 |
+| RECON-02 | Russian master localization | `DONE / LOCAL VERIFIED` | `docs/locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md` mirrors the English gate order and claim boundary |
+| RECON-03 | Self-learning maturity synchronization | `DONE / LOCAL VERIFIED` | English/Russian self-learning audits now record completed promotion primitives and the remaining production lifecycle binding gate |
+| RECON-04 | Migration receipt persistence | `DONE / LOCAL VERIFIED` | Signed mode-change receipts persist transactionally in SQLite/WAL and survive backend reopen |
+| RECON-05 | Audit timeline contract | `DONE / LOCAL VERIFIED` | `/api/audit/migration`, telemetry snapshot and SSE/UI timeline render bounded signed receipts |
+| NEXT-01 | Production learning lifecycle binding | `DONE / BOUNDED LOCAL` | `ProductionLearningLifecycle` and portable launcher compose terminal capture, runtime policy, authenticated configuration and explicit operator actions; automatic activation remains disabled |
+| BLOCKED-01 | Native Windows/macOS evidence | `NOT_RUN / HOST REQUIRED` | Matching hosts and Python 3.14 native evidence are unavailable in the local lane |
+| BLOCKED-02 | External Hermes/OpenCode/DeepSeek A/B | `NOT_RUN / PINNED ENV REQUIRED` | Exact revisions, executables, disposable environments and signed operator-approved runs are unavailable |
+
+### Production learning lifecycle facade
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| LEARN-PROD-01 | Explicit lifecycle composition | `DONE / BOUNDED LOCAL` | `ProductionLearningLifecycle` composes durable task store, event bridge, injected policy simulator and action executor |
+| LEARN-PROD-02 | Operator-trigger boundary | `DONE / LOCAL VERIFIED` | Capture without `operator_trigger=True` fails closed; terminal capture is replay-idempotent |
+| LEARN-PROD-03 | Automatic activation boundary | `DONE / LOCAL VERIFIED` | Readiness reports automatic evaluation/approval/promotion/activation disabled |
+| LEARN-PROD-04 | Concrete deployment binding | `DONE / BOUNDED LOCAL` | Portable launcher binds the facade to persistent session/reviewer stores and the injected HealthServer promotion action handler when signing configuration is explicit |
+| LEARN-PROD-05 | Durable promotion state/evaluator deployment | `NEXT LOCAL GATE` | Persist receipts/evaluations/proposals and evaluator manifests across restart; expose bounded state in operator UI; keep activation separately gated |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.

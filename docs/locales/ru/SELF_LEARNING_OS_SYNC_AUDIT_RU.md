@@ -2,13 +2,13 @@
 
 **Дата аудита:** 2026-08-18  
 **Репозиторий:** `AMAImedia/NOESIS-Harness-Agent-Memory`  
-**Проверенный commit:** `3a5e8c81867d3a80122e8d9f32b884a744b3aaad`
+**Контрольная точка:** `4925e52` плюс текущая reconciliation-правка плана до её commit.
 
 ## Вывод
 
 NOESIS-Harness-Agent-Memory имеет проверенное local-first ядро agent OS и bounded foundation для work loop. Но это ещё не полностью автономный product-level self-learning loop уровня зрелой системы создания skills и не native Windows/macOS или external benchmark distribution.
 
-Система сильнее prompt-only loop: sessions, tasks, leases, approvals, child-process control, provenance, recovery, SSE telemetry и fail-closed evidence представлены кодом и тестами. При этом текущий agent loop — это execution primitive: он получает lease, вызывает injected action, сохраняет optional memory item и возвращает результат. Полный lifecycle `observe → evaluate → propose → approve → promote → verify` ещё не реализован как единый продуктовый контур.
+Система сильнее prompt-only loop: sessions, tasks, leases, approvals, child-process control, provenance, recovery, SSE telemetry и fail-closed evidence представлены кодом и тестами. Learning path теперь включает provenance-bound experience receipts, deterministic holdout evaluation, review-only proposals, explicit approval, immutable promotion и rollback, durable task-event capture, runtime-owned policy simulation, authenticated operator actions, persistent reviewer/session administration, SQLite/WAL audit persistence и signed migration mode receipts. Automatic activation executable skills намеренно отделена и по умолчанию отключена.
 
 ## Gap matrix
 
@@ -20,8 +20,13 @@ NOESIS-Harness-Agent-Memory имеет проверенное local-first ядр
 | Experience reuse со scope/provenance checks | `implemented / locally verified` | `experience_reuse.py` и tests |
 | Multi-agent leases, signals, dependencies и cancellation | `implemented / locally verified` | `coordination.py`, governance и multi-agent tests |
 | Skill import/store/version/rollback safety | `implemented / bounded` | Import/store/rollback есть; executable skill entrypoints намеренно disabled |
-| Автономный self-learning loop | `partial / not product-complete` | Нет полного evaluator-driven promotion lifecycle и automatic verified activation |
-| Human-approved learning promotion | `partial / contract-ready` | Approval/governance primitives есть; end-to-end proposal-to-promotion workflow остаётся следующим gate |
+| Human-governed learning promotion | `implemented / bounded local` | Receipt -> evaluator -> proposal -> approval -> immutable version -> rollback; activation отдельно ограничена |
+| Production lifecycle binding | `implemented / bounded local` | `ProductionLearningLifecycle` и portable launcher соединяют task capture, runtime policy и explicit operator actions; durable promotion-state/evaluator deployment остаётся следующим gate |
+| Durable promotion event bridge | `implemented / bounded local` | Idempotent terminal-task replay и fail-closed policy boundary |
+| Authenticated operator lifecycle | `implemented / bounded local` | Session/reviewer stores, signed action receipts и явные UI handlers |
+| Administrative SQLite/WAL migration | `implemented / locally verified` | Dual-read guard, explicit rollback, transactional state/audit и signed mode receipts |
+| Operator audit timeline и SSE | `implemented / locally verified` | `/api/audit/migration`, telemetry snapshot и bounded SSE UI |
+| Executable skill activation | `not activated / intentional boundary` | Promotion/control plane не выполняют skill content |
 | OS/control plane: sessions, tasks, approvals, recovery | `implemented / locally verified` | Versioned command API и recovery evidence |
 | OS/control plane: child runtime и sandbox | `implemented / Linux verified` | Bubblewrap verified; Windows/macOS native lanes `not_run` |
 | OS/control plane: SSE/operator telemetry | `implemented / locally verified` | `/api/telemetry`, `/api/child-runtimes`, bounded SSE dashboard |
@@ -39,16 +44,14 @@ NOESIS-Harness-Agent-Memory имеет проверенное local-first ядр
 
 ## Следующий self-learning gate
 
-Следующий high-leverage gate — **Human-Governed Learning Promotion Pipeline**:
+Следующий high-leverage gate — **durable promotion state and evaluator deployment**. Bounded production facade уже соединяет durable task/session lifecycle, runtime-owned policy, authenticated operator configuration и explicit proposal executor. Следующий шаг — сохранять receipts, evaluations, proposals и evaluator manifests после restart и показывать их bounded state в operator surface.
 
-1. Сохранять experience record завершённой задачи с provenance, scope, policy context и outcome receipt.
-2. Запускать deterministic evaluator на holdout task set с evaluator version и evidence digest.
-3. Создавать review-only learning proposal; не изменять active skills/policy автоматически.
-4. Требовать explicit approval и scoped promotion decision.
-5. Устанавливать immutable skill/experience version transactionally с rollback.
-6. Перед activation повторять holdout, leakage, regression и rollback tests.
-7. Выпускать signed promotion receipt и показывать lifecycle в operator telemetry.
+Путь должен оставаться явным: `terminal task -> receipt -> holdout -> review proposal -> independent approval -> immutable promotion -> verification -> signed receipt -> separately approved activation`.
 
-До реализации этого gate memory и experience reuse следует называть **provenance-aware reuse и governance primitives**, а не полноценным self-learning loop.
+Нужны positive и negative tests для replay, duplicate action, reviewer conflict, session expiry, scope confusion, cancellation, interrupted write, corrupted receipt, rollback, leakage и activation bypass. Завершение task никогда не должно неявно approve, promote или activate skill.
+
+После этого локальные приоритеты: governed executable child runtime, end-to-end multi-agent work-product loop, memory/long-context quality benchmarks, native host evidence и pinned external A/B.
+
+До появления соответствующих signed evidence проект нельзя называть готовой native Windows/macOS distribution, полностью autonomous self-improving platform или benchmark-proven superior system. Корректное описание: **local-first, provenance-aware и human-governed Agent OS kernel с проверенным Linux control plane**.
 
 Нормативная English-версия: [`SELF_LEARNING_OS_SYNC_AUDIT.md`](../../SELF_LEARNING_OS_SYNC_AUDIT.md).

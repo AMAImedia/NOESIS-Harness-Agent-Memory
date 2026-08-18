@@ -2,55 +2,47 @@
 
 **Audit date:** 2026-08-18  
 **Repository:** `AMAImedia/NOESIS-Harness-Agent-Memory`  
-**Verified commit:** `3a5e8c81867d3a80122e8d9f32b884a744b3aaad`
+**Checkpoint:** `4925e52` plus the current roadmap reconciliation change pending commit.
 
 ## Executive finding
 
-NOESIS-Harness-Agent-Memory has a verified local-first agent operating system kernel and a bounded work-loop foundation. It does **not** yet implement a fully autonomous self-learning product loop comparable to a mature skill-creation system, and it does not yet provide native Windows/macOS or external competitor evidence.
+NOESIS-Harness-Agent-Memory has a verified local-first agent OS kernel and a bounded, human-governed learning promotion pipeline. It is not yet a fully autonomous self-improving product, a native Windows/macOS distribution, or a benchmark-proven superior system.
 
-The implementation is stronger than a prompt-only loop because sessions, tasks, leases, approvals, child-process control, provenance, recovery, SSE telemetry, and fail-closed evidence are represented in code and tests. However, the current agent loop is an execution primitive: it acquires a lease, invokes an injected action, persists an optional memory item, and returns a result. It is not yet a complete observe\u2192evaluate\u2192propose\u2192approve\u2192promote\u2192verify learning lifecycle.
+The implemented learning path now covers provenance-bound experience receipts, deterministic holdout evaluation, review-only proposals, explicit approval, immutable promotion and rollback, durable task-event capture, runtime-owned policy simulation, authenticated operator actions, persistent reviewer/session administration, SQLite/WAL audit persistence, signed migration mode receipts, and read-only operator telemetry. Automatic activation of executable skills remains deliberately separate and disabled by default.
 
-## Gap matrix
+## Capability matrix
 
 | Capability | Status | Evidence or boundary |
 |---|---|---|
-| Agent action loop with lease ownership | `implemented / locally verified` | `noesis_harness/agent_loop.py`, coordination and multi-agent tests |
-| Durable sessions/tasks and recovery | `implemented / locally verified` | Session/task APIs, SQLite event state, recovery and chaos tests |
-| Memory tiers, provenance, confidence, decay and conflicts | `implemented / locally verified` | Memory/evidence/context/consolidation modules and focused tests |
-| Experience reuse with scope and provenance checks | `implemented / locally verified` | `experience_reuse.py`, experience reuse tests |
-| Multi-agent leases, signals, action dependencies and cancellation | `implemented / locally verified` | `coordination.py`, governance and multi-agent tests |
-| Skill import/store/version/rollback safety | `implemented / bounded` | Import/store/rollback contracts exist; executable skill entrypoints remain intentionally disabled |
-| Autonomous self-learning loop | `partial / not product-complete` | No complete evaluator-driven promotion loop, durable learned skill generation, or automatic verified skill activation |
-| Human-approved learning promotion | `partial / contract-ready` | Governance and approval primitives exist; end-to-end learning proposal-to-promotion workflow remains a next implementation gate |
-| OS/control plane: sessions, tasks, approvals, recovery | `implemented / locally verified` | Versioned command API and recovery evidence |
-| OS/control plane: child runtime and sandbox | `implemented / Linux verified` | Bubblewrap/process control verified; Windows/macOS native lanes remain `not_run` |
-| OS/control plane: SSE/operator telemetry | `implemented / locally verified` | `/api/telemetry`, `/api/child-runtimes`, bounded SSE dashboard |
-| OS control plane: native Windows/macOS packaging | `source/static policy only` | Real `.exe`/`.app` builds require matching hosts and Python 3.14 native evidence |
-| External Hermes/OpenCode/DeepSeek Harness execution | `not_run / blocked` | Exact revisions, executables and disposable approved environments are absent |
-| English primary code/docs policy | `passed` | Primary code-facing scope is free of Cyrillic; English contracts are normative |
-| Russian supplemental localization | `passed` | Localizations live under `docs/locales/ru/` and stale root paths are absent |
-| Code/docs/GitHub synchronization | `passed at audit checkpoint` | Link, security, JSON evidence, release metadata and local/remote parity checks passed |
+| Agent action loop with lease ownership | `implemented / locally verified` | `agent_loop.py`, coordination and multi-agent tests |
+| Durable sessions/tasks and recovery | `implemented / locally verified` | Versioned task/session APIs, event replay, recovery and chaos tests |
+| Memory tiers, provenance, confidence, decay and conflicts | `implemented / locally verified` | Memory/evidence/context/consolidation tests |
+| Experience reuse with scope and provenance checks | `implemented / locally verified` | `experience_reuse.py` and leakage/scope tests |
+| Human-governed learning promotion | `implemented / bounded local` | Receipt -> evaluator -> proposal -> approval -> immutable version -> rollback; activation is separately gated |
+| Production lifecycle binding | `implemented / bounded local` | `ProductionLearningLifecycle` and portable launcher compose task capture, runtime policy and explicit operator actions; durable promotion-state/evaluator deployment remains next |
+| Durable promotion event bridge | `implemented / bounded local` | Idempotent terminal-task replay and fail-closed policy boundary |
+| Authenticated operator lifecycle | `implemented / bounded local` | Session/reviewer stores, signed action receipts and explicit UI handlers |
+| Administrative SQLite/WAL migration | `implemented / locally verified` | Dual-read guard, explicit rollback, transactional state/audit and signed mode receipts |
+| Operator audit timeline and SSE | `implemented / locally verified` | `/api/audit/migration`, telemetry snapshot and bounded SSE UI |
+| Executable skill activation | `not activated / intentional boundary` | Skill content is never executed by the promotion or control plane |
+| Child runtime and sandbox | `implemented / Linux verified` | Bubblewrap/process conformance; Windows/macOS native lanes remain `not_run` |
+| Native Windows/macOS packaging | `not_run / host required` | Static manifests and refusal policy only |
+| Hermes/OpenCode/DeepSeek Harness external A/B | `not_run / environment required` | Exact revisions, executables and disposable approved environments absent |
+| English primary code/docs policy | `passed` | English contracts and code-facing files are normative |
+| Russian supplemental localization | `passed / sync pending checkpoint` | Localizations under `docs/locales/ru/`; this reconciliation updates the master plan |
 
-## What the OS already is
+## Next local gate
 
-The project is a **local-first agent OS kernel/control plane**, not yet a complete cross-platform distribution. The verified kernel includes durable session and task state, explicit approval gates, event/state recovery, multi-agent coordination, isolated child-process primitives, Linux sandbox conformance, signed evidence ingestion, operator telemetry, and a portable/static packaging policy.
+The highest-leverage remaining local gate is **durable promotion state and evaluator deployment**. The bounded production facade now connects the durable task/session lifecycle, runtime-owned policy, authenticated operator configuration and explicit proposal executor. The next step is to persist receipts, evaluations, proposals and evaluator manifests across restart and expose their bounded state through the operator surface. The workflow must remain explicit and observable:
 
-The project should not currently be described as a finished native Windows/macOS OS distribution, a fully autonomous self-improving agent platform, or a benchmark-proven superior system. Those claims require additional evidence listed below.
+`terminal task -> receipt -> holdout -> review proposal -> independent approval -> immutable promotion -> verification -> signed receipt -> separately approved activation`.
 
-## Next implementation gate for self-learning
+Acceptance requires positive and negative tests for replay, duplicate action, reviewer conflict, session expiry, scope confusion, task cancellation, interrupted write, corrupted receipt, rollback, leakage and activation bypass. Task completion must never implicitly approve, promote or activate a skill.
 
-The highest-leverage remaining local gate is a **Human-Governed Learning Promotion Pipeline**:
+After that gate, the next local priorities are the governed executable child runtime, end-to-end multi-agent work-product loop, memory/long-context quality benchmarks, native host evidence and pinned external A/B.
 
-1. Capture an experience record from a completed task with provenance, scope, policy context, and outcome receipt.
-2. Run a deterministic evaluator against a holdout task set and record the evaluator version and evidence digest.
-3. Produce a review-only learning proposal; do not modify active skills or durable policy automatically.
-4. Require explicit approval and a scoped promotion decision.
-5. Install an immutable skill/experience version transactionally with rollback support.
-6. Re-run holdout, leakage, regression, and rollback tests before activation.
-7. Emit a signed promotion receipt and expose the lifecycle through the operator telemetry surface.
+## Honest claim boundary
 
-Until this gate exists, current memory and experience reuse must be described as **provenance-aware reuse and governance primitives**, not as a complete self-learning loop.
+The project should currently be described as a **local-first, provenance-aware and human-governed agent OS kernel with a verified Linux control plane**. It should not be described as a finished native Windows/macOS distribution, a fully autonomous self-improving agent, or a benchmark-proven best system until the corresponding signed evidence exists.
 
-## External and owner blockers
-
-The remaining external gates are native Windows/macOS execution, exact pinned Hermes/OpenCode/DeepSeek Harness revisions and executable environments, and comparative A/B execution. Owner decisions remain required for the optional desktop wrapper, branch protection, native runners, and public release. No local simulation may promote these states to `passed`.
+See the normative roadmap: [`PLAN_NOESIS_1.0_MASTER.md`](PLAN_NOESIS_1.0_MASTER.md). Russian localization: [`locales/ru/SELF_LEARNING_OS_SYNC_AUDIT_RU.md`](locales/ru/SELF_LEARNING_OS_SYNC_AUDIT_RU.md).

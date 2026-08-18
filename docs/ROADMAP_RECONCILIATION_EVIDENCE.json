@@ -1,0 +1,50 @@
+{
+  "schema_version": "noesis.roadmap-reconciliation.v1",
+  "checkpoint_commit": "4925e52",
+  "status": "local_reconciliation_and_gate1_bounded_verified_pending_validation",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only_core": true
+  },
+  "documents": {
+    "english_master_plan": "docs/PLAN_NOESIS_1.0_MASTER.md",
+    "russian_master_plan": "docs/locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md",
+    "english_self_learning_audit": "docs/SELF_LEARNING_OS_SYNC_AUDIT.md",
+    "russian_self_learning_audit": "docs/locales/ru/SELF_LEARNING_OS_SYNC_AUDIT_RU.md",
+    "operational_checklist": "docs/locales/ru/PROJECT_CHECKLIST_TODO_RU.md",
+    "root_roadmap": "ROADMAP.md"
+  },
+  "closed_local_surfaces": [
+    "learning_promotion_contracts",
+    "durable_promotion_event_bridge",
+    "operator_session_and_reviewer_authorization",
+    "sqlite_wal_administrative_backend",
+    "migration_mode_source_and_dual_read_guard",
+    "signed_migration_audit_persistence",
+    "healthserver_readiness_and_ui_sse_audit_timeline"
+  ],
+  "next_local_gate": {
+    "id": "NEXT-02",
+    "name": "durable_promotion_state_and_evaluator_deployment",
+    "automatic_activation": false,
+    "facade_status": "bounded_local_verified",
+    "deployment_binding_status": "bounded_local_verified",
+    "durable_state_status": "next_local_gate",
+    "required_boundaries": [
+      "terminal_task_to_receipt",
+      "runtime_owned_policy",
+      "authenticated_operator_session",
+      "independent_reviewer_authorization",
+      "explicit_proposal_executor",
+      "rollback_and_activation_boundary"
+    ]
+  },
+  "external_boundaries": {
+    "windows_native": "not_run",
+    "macos_native": "not_run",
+    "hermes_external_ab": "not_run",
+    "opencode_external_ab": "not_run",
+    "deepseek_harness_external_ab": "not_run",
+    "superiority_claim": false
+  }
+}

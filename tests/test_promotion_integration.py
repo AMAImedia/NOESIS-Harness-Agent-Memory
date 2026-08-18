@@ -2,7 +2,7 @@ import tempfile
 import unittest
 
 from noesis_harness.learning_promotion import LearningPromotionPipeline
-from noesis_harness.promotion_integration import AdministrativePolicyStore, CoordinatedMutationJournal, EvaluatorRegistry, OperatorAuthContext, OperatorSessionAction, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, verify_signed_mutation_receipt
+from noesis_harness.promotion_integration import AdministrativePolicyStore, CoordinatedMutationJournal, EvaluatorRegistry, OperatorAuthContext, OperatorSessionAction, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, PolicySimulation, ProductionLearningLifecycle, PromotionApprovalAction, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, verify_signed_mutation_receipt
 from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.health_server import HealthServer
 
@@ -59,6 +59,25 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertEqual(calls, ["task-bridge"])
         self.assertEqual(len(integration.pipeline._receipts), 1)
         self.assertFalse(integration.snapshot()["automatic_activation"])
+
+    def test_production_learning_lifecycle_requires_operator_trigger_and_keeps_activation_disabled(self):
+        integration = self.integration()
+        task_store = TaskSessionStore(tempfile.mktemp())
+        session = task_store.create_session("owner", session_id="session-production")
+        task_store.create_task(session.session_id, "learn", "owner", task_id="task-production")
+        task_store.transition_task("task-production", "planned")
+        task_store.transition_task("task-production", "executing")
+        task_store.transition_task("task-production", "review")
+        task_store.transition_task("task-production", "committed")
+        lifecycle = ProductionLearningLifecycle(task_store=task_store, event_bridge=PromotionEventBridge(integration, tempfile.mktemp()), policy_simulator=lambda _: PolicySimulation(True, "source", "policy", "agent", "project:demo", {"result": "ok"}), action_executor=PromotionActionExecutor(integration, tempfile.mktemp()))
+        self.assertFalse(lifecycle.readiness()["automatic_activation"])
+        with self.assertRaisesRegex(PermissionError, "operator_trigger_required"):
+            lifecycle.capture_terminal_events()
+        first = lifecycle.capture_terminal_events(operator_trigger=True)
+        second = lifecycle.capture_terminal_events(operator_trigger=True)
+        self.assertEqual(first[0]["status"], "completed")
+        self.assertEqual(second, ())
+        self.assertEqual(len(integration.pipeline._receipts), 1)
 
     def test_event_bridge_denies_policy_and_malformed_simulation_fail_closed(self):
         integration = self.integration()

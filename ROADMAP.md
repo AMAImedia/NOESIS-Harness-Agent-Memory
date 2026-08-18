@@ -1,6 +1,22 @@
 # Roadmap
 
-Status legend: `[x]` done, `[~]` in progress, `[ ]` planned.
+> **Current source of truth:** [`docs/PLAN_NOESIS_1.0_MASTER.md`](docs/PLAN_NOESIS_1.0_MASTER.md). Russian supplemental localization: [`docs/locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md`](docs/locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md).
+>
+> The versioned milestones below are historical context. They are not a substitute for the status-driven 1.0 plan.
+
+## Current verified position — 2026-08-18
+
+NOESIS is a **local-first, provenance-aware and human-governed agent OS kernel with a verified Linux control plane**. The local Python 3.14-only suite, durable sessions/tasks, bounded multi-agent coordination, memory/provenance layer, human-governed learning promotion, SQLite/WAL administrative state, signed evidence and Cloudflare-style operator telemetry are locally implemented and tested.
+
+The project does not yet claim a finished native Windows/macOS distribution, fully autonomous executable-skill activation, or superiority over Hermes, OpenCode, DeepSeek Harness or other systems. Those claims require matching native hosts, exact pinned external revisions, disposable environments, signed evidence and comparable A/B metrics.
+
+## Next gate
+
+The next local gate is **production learning lifecycle binding**: connect terminal task completion, runtime-owned policy, authenticated operator sessions, independent reviewer authorization and the real proposal executor into one explicit workflow. Activation remains a separate approval-gated operation.
+
+After that, the roadmap proceeds through governed executable child runtime, end-to-end multi-agent work-product execution, memory/long-context quality benchmarks, native Windows/macOS evidence, pinned external A/B and release-claim review.
+
+Status legend for the historical section: `[x]` done, `[~]` in progress, `[ ]` planned.
 
 ## 0.2.x - Framework hardening
 
