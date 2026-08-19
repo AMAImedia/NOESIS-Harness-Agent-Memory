@@ -32,6 +32,8 @@ The implementation remains separate from the memory and control plane. The paren
 
 For delegated multi-agent work products, `execute_and_submit()` adds a second boundary: the request workspace must resolve exactly to the claimed agent workspace; the execution result must be `completed`; its signed receipt must be discoverable in the runtime-owned receipt store with `committed` outcome; and only then may a head snapshot be submitted for independent review. Failed execution, missing receipt store, unverified receipt, cross-agent workspace path or missing runtime are rejected before the work-product state changes.
 
+`TaskExecutionBridge.execute_runtime()` applies the same envelope to approved parallel lanes. It validates task session and `waiting_approval` state before lane start, preserves the existing action-store lease/claim lifecycle, propagates cancellation/deadline/retry controls to `SafeParallelExecutor`, and exposes only bounded execution metadata in `AgentLaneResult.output`. Lane events never contain workspace paths, stdout, receipt-store objects or child output. A runtime mismatch becomes a failed lane and cannot advance the task to review.
+
 ## References
 
 [1]: https://github.com/cloudflare/cloudflare-os "Cloudflare OS"

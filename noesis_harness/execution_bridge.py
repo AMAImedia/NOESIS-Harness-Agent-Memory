@@ -7,6 +7,7 @@ Trust Plane and ChildExecutionRuntime boundaries.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 from .promotion_integration import PolicySimulation, PromotionEventBridge
@@ -64,6 +65,10 @@ class TaskExecutionBridge:
         *,
         approval: bool = False,
         event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
+        lease_store: object | None = None,
+        cancellation: object | None = None,
+        max_duration_seconds: float | None = None,
+        retry_limit: int = 0,
     ) -> TaskExecutionReport:
         if not approval:
             raise TaskExecutionBridgeError("explicit_execution_approval_required")
@@ -93,6 +98,10 @@ class TaskExecutionBridge:
                 approval=True,
                 action_store=self.actions,
                 event_sink=event_sink,
+                lease_store=lease_store,
+                cancellation=cancellation,
+                max_duration_seconds=max_duration_seconds,
+                retry_limit=retry_limit,
             )
         except ParallelExecutionError as exc:
             raise TaskExecutionBridgeError(str(exc)) from exc
@@ -114,6 +123,55 @@ class TaskExecutionBridge:
             except TaskSessionError as exc:
                 raise TaskExecutionBridgeError("task_state_update_failed") from exc
         return TaskExecutionReport(session_id, tuple(results))
+
+    @staticmethod
+    def _runtime_evidence(runtime: Any, result: Any) -> Mapping[str, Any]:
+        if getattr(result, "status", "") != "completed":
+            raise ParallelExecutionError("runtime_execution_not_completed")
+        receipt = getattr(result, "receipt", None)
+        receipt_id = str(getattr(receipt, "receipt_id", ""))
+        if getattr(receipt, "outcome", "") != "committed" or not receipt_id:
+            raise ParallelExecutionError("runtime_signed_receipt_required")
+        store = getattr(runtime, "receipt_store", None)
+        if store is None or not callable(getattr(store, "get", None)):
+            raise ParallelExecutionError("runtime_receipt_store_required")
+        stored = store.get(receipt_id)
+        if stored is None or str(getattr(stored, "receipt_id", "")) != receipt_id or getattr(stored, "outcome", "") != "committed":
+            raise ParallelExecutionError("runtime_receipt_not_verified")
+        return {"request_id": str(getattr(result, "request_id", "")), "receipt_id": receipt_id, "outcome": "committed", "sandboxed": bool(getattr(result, "sandboxed", False))}
+
+    def execute_runtime(
+        self,
+        session_id: str,
+        requests: Sequence[TaskExecutionRequest],
+        runtime_factory: Callable[[AgentLaneContext], tuple[Any, Any]],
+        *,
+        approval: bool = False,
+        event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
+        lease_store: object | None = None,
+        cancellation: object | None = None,
+        max_duration_seconds: float | None = None,
+        retry_limit: int = 0,
+    ) -> TaskExecutionReport:
+        """Run approved lanes through an injected ChildExecutionRuntime and expose only receipt metadata."""
+        if not callable(runtime_factory):
+            raise TaskExecutionBridgeError("runtime_factory_required")
+
+        def callback(context: AgentLaneContext) -> Mapping[str, Any]:
+            runtime, request = runtime_factory(context)
+            request_workspace = Path(str(getattr(request, "workspace", ""))).expanduser().resolve()
+            if request_workspace != context.workspace.resolve():
+                raise ParallelExecutionError("runtime_workspace_mismatch")
+            runner = getattr(runtime, "run", None)
+            if not callable(runner):
+                raise ParallelExecutionError("runtime_required")
+            result = runner(request)
+            evidence = self._runtime_evidence(runtime, result)
+            if not evidence["request_id"]:
+                raise ParallelExecutionError("runtime_request_identity_required")
+            return {"execution": evidence}
+
+        return self.execute(session_id, requests, callback, approval=approval, event_sink=event_sink, lease_store=lease_store, cancellation=cancellation, max_duration_seconds=max_duration_seconds, retry_limit=retry_limit)
 
 
 __all__ = ["TaskExecutionBridge", "TaskExecutionBridgeError", "TaskExecutionReport", "TaskExecutionRequest"]

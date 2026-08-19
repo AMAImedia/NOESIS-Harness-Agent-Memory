@@ -32,4 +32,6 @@ Implementation отделена от memory и control plane. Parent process н�
 
 Для delegated multi-agent work products `execute_and_submit()` добавляет вторую границу: request workspace должен точно совпадать с claimed agent workspace; execution result должен быть `completed`; signed receipt должен находиться в runtime-owned receipt store и иметь outcome `committed`; только после этого head snapshot можно передать на independent review. Failed execution, отсутствующий receipt store, непроверенный receipt, cross-agent path или отсутствующий runtime отклоняются до изменения work-product state.
 
+`TaskExecutionBridge.execute_runtime()` применяет ту же границу к approved parallel lanes. До старта lane он проверяет session и `waiting_approval`, сохраняет action-store lease/claim lifecycle, передаёт cancellation/deadline/retry в `SafeParallelExecutor` и отдаёт в `AgentLaneResult.output` только bounded execution metadata. Lane events не содержат workspace paths, stdout, receipt-store objects или child output. Runtime mismatch становится failed lane и не переводит task в review.
+
 English primary contract: [`GATE3_EXECUTION_ASSURANCE.md`](../../GATE3_EXECUTION_ASSURANCE.md).

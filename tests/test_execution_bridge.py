@@ -2,6 +2,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from noesis_harness.coordination import Actions
 from noesis_harness.execution_bridge import TaskExecutionBridge, TaskExecutionBridgeError, TaskExecutionRequest
@@ -75,6 +76,44 @@ class ExecutionBridgeTests(unittest.TestCase):
             self.assertNotIn("workspace", event)
             self.assertNotIn("output", event)
             self.assertEqual(event["session_id"], self.session.session_id)
+
+    def test_runtime_backed_lane_requires_verified_receipt_and_exposes_metadata_only(self):
+        self.create_waiting_task("task-runtime", "Runtime")
+        events = []
+
+        class Runtime:
+            def __init__(self, request_id):
+                self.receipt_store = SimpleNamespace(get=lambda receipt_id: SimpleNamespace(receipt_id=receipt_id, outcome="committed"))
+                self.request_id = request_id
+
+            def run(self, request):
+                Path(request.workspace, "runtime.txt").write_text("runtime output", encoding="utf-8")
+                return SimpleNamespace(status="completed", request_id=self.request_id, sandboxed=True, receipt=SimpleNamespace(receipt_id="receipt-" + self.request_id, outcome="committed"))
+
+        def factory(context):
+            request_id = "exec-" + context.task_id
+            return Runtime(request_id), SimpleNamespace(workspace=str(context.workspace), request_id=request_id)
+
+        report = self.bridge.execute_runtime(self.session.session_id, [TaskExecutionRequest("task-runtime", "agent-runtime", "runtime-lane")], factory, approval=True, event_sink=events.append)
+        self.assertEqual(report.results[0].status, "passed")
+        self.assertEqual(self.store.task("task-runtime").state, "review")
+        self.assertEqual(report.results[0].output["execution"]["receipt_id"], "receipt-exec-task-runtime")
+        for event in events:
+            self.assertNotIn("runtime output", repr(event))
+            self.assertNotIn("receipt_store", repr(event))
+
+    def test_runtime_backed_lane_rejects_workspace_mismatch_before_child_run(self):
+        self.create_waiting_task("task-runtime-mismatch", "Runtime mismatch")
+        called = []
+
+        def factory(context):
+            return SimpleNamespace(run=lambda _: called.append(True)), SimpleNamespace(workspace=str(Path(self.tmp.name)), request_id="exec-mismatch")
+
+        report = self.bridge.execute_runtime(self.session.session_id, [TaskExecutionRequest("task-runtime-mismatch", "agent-runtime", "runtime-lane-mismatch")], factory, approval=True)
+        self.assertEqual(report.results[0].status, "failed")
+        self.assertIn("runtime_workspace_mismatch", report.results[0].error)
+        self.assertEqual(called, [])
+        self.assertEqual(self.store.task("task-runtime-mismatch").state, "failed")
 
     def test_operator_trigger_is_required_and_runtime_policy_wiring_is_capture_only(self):
         pipeline = LearningPromotionPipeline(str(Path(self.tmp.name) / "promotion"), b"execution-bridge-key")
