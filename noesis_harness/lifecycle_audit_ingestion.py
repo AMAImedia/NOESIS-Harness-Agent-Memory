@@ -12,6 +12,7 @@ import json
 import sqlite3
 import threading
 import time
+import uuid
 from contextlib import closing
 from pathlib import Path
 from typing import Any, Mapping
@@ -20,6 +21,7 @@ from .report_bundle import verify_report_bundle
 from .report_export_lifecycle import lifecycle_audit_readiness
 
 SCHEMA = "noesis.lifecycle-audit-ingestion.v1"
+RECEIPT_SCHEMA = "noesis.lifecycle-audit-ingestion-receipt.v1"
 STATES = frozenset({"preflight", "awaiting_approval", "approved", "imported", "blocked", "rejected"})
 
 
@@ -71,7 +73,7 @@ class LifecycleAuditIngestionAdapter:
         with closing(sqlite3.connect(self.path)) as db:
             return db.execute("SELECT 1 FROM lifecycle_imports WHERE json_extract(payload, '$.bundle_digest')=? LIMIT 1", (bundle_digest,)).fetchone() is not None
 
-    def preflight(self, bundle_path: str | Path, lifecycle_path: str | Path, *, now: float | None = None) -> Mapping[str, Any]:
+    def preflight(self, bundle_path: str | Path, lifecycle_path: str | Path, *, now: float | None = None, operator_id: str = "", action_id: str | None = None) -> Mapping[str, Any]:
         bundle_result = verify_report_bundle(bundle_path, self.signing_key)
         if bundle_result.get("status") != "passed":
             return {"schema_version": SCHEMA, "state": "blocked", "reason": "bundle_verification:" + str(bundle_result.get("reason", "failed")), "execution_allowed": False, "automatic_execution": False, "claim": False}
@@ -86,24 +88,29 @@ class LifecycleAuditIngestionAdapter:
         if self._record_exists_for_digest(bundle_digest):
             return {"schema_version": SCHEMA, "state": "blocked", "reason": "duplicate_bundle_digest", "bundle_digest": bundle_digest, "execution_allowed": False, "automatic_execution": False, "claim": False}
         record_id = "lifecycle-import-" + _digest({"bundle_digest": bundle_digest, "audit_digest": lifecycle_result.get("audit_digest")})[:24]
+        action_id = str(action_id or "ingestion-action-" + uuid.uuid4().hex)
         payload = {"schema_version": SCHEMA, "record_id": record_id, "bundle_digest": bundle_digest, "audit_digest": lifecycle_result.get("audit_digest", ""), "event_count": lifecycle_result.get("event_count", 0), "state": "awaiting_approval", "execution_allowed": False, "automatic_execution": False, "claim": False, "execution_claim": False, "comparative_claim": False, "reason": "awaiting_explicit_operator_approval"}
-        self._append(record_id, "awaiting_approval", payload)
-        return payload
+        receipt = self._action_receipt(action_id, "preflight", operator_id, record_id, payload["state"], payload)
+        self._append(record_id, "awaiting_approval", {**payload, "receipt": receipt})
+        return {**payload, "receipt": receipt}
 
-    def approve(self, record_id: str, *, operator_id: str, ttl_seconds: float = 300.0, now: float | None = None) -> Mapping[str, Any]:
+    def approve(self, record_id: str, *, operator_id: str, ttl_seconds: float = 300.0, now: float | None = None, action_id: str | None = None) -> Mapping[str, Any]:
         latest = self._latest(record_id)
         if latest is None or latest[0] != "awaiting_approval":
             raise LifecycleAuditIngestionError("approval_not_allowed")
         issued = time.time() if now is None else float(now)
         approval = {"schema_version": SCHEMA, "record_id": record_id, "operator_id": str(operator_id), "issued_at": issued, "expires_at": issued + float(ttl_seconds), "bundle_digest": latest[1].get("bundle_digest"), "audit_digest": latest[1].get("audit_digest"), "execution_allowed": False, "automatic_execution": False, "claim": False}
         receipt = {**approval, "signature": _sign(approval, self.signing_key)}
-        self._append(record_id, "approved", {**latest[1], "approval": receipt})
-        return receipt
+        action_receipt = self._action_receipt(str(action_id or "ingestion-action-" + uuid.uuid4().hex), "approve", operator_id, record_id, "approved", latest[1])
+        self._append(record_id, "approved", {**latest[1], "approval": receipt, "receipt": action_receipt})
+        return {**receipt, "receipt": action_receipt, "record_id": record_id, "state": "approved", "claim": False}
 
-    def import_approved(self, record_id: str, approval: Mapping[str, Any], *, now: float | None = None) -> Mapping[str, Any]:
+    def import_approved(self, record_id: str, approval: Mapping[str, Any], *, now: float | None = None, operator_id: str = "", action_id: str | None = None) -> Mapping[str, Any]:
         latest = self._latest(record_id)
         if latest is None or latest[0] != "approved":
             raise LifecycleAuditIngestionError("import_requires_approved_record")
+        if isinstance(approval.get("approval"), Mapping):
+            approval = approval["approval"]
         expected = {name: approval.get(name) for name in ("schema_version", "record_id", "operator_id", "issued_at", "expires_at", "bundle_digest", "audit_digest", "execution_allowed", "automatic_execution", "claim")}
         if not hmac.compare_digest(str(approval.get("signature", "")), _sign(expected, self.signing_key)):
             self._append(record_id, "rejected", {**latest[1], "reason": "approval_signature_invalid"})
@@ -113,14 +120,20 @@ class LifecycleAuditIngestionAdapter:
             self._append(record_id, "rejected", {**latest[1], "reason": "approval_stale_or_identity_mismatch"})
             raise LifecycleAuditIngestionError("approval_stale_or_identity_mismatch")
         result = {"status": "accepted_audit_only", "record_id": record_id, "bundle_digest": latest[1].get("bundle_digest"), "audit_digest": latest[1].get("audit_digest"), "claim": False, "execution_claim": False, "comparative_claim": False, "claim_boundary": "lifecycle_audit_only"}
-        self._append(record_id, "imported", {**latest[1], "result": result})
-        return {"schema_version": SCHEMA, "record_id": record_id, "state": "imported", "result": result, "execution_allowed": False, "automatic_execution": False, "claim": False}
+        action_receipt = self._action_receipt(str(action_id or "ingestion-action-" + uuid.uuid4().hex), "import", operator_id, record_id, "imported", latest[1])
+        self._append(record_id, "imported", {**latest[1], "result": result, "receipt": action_receipt})
+        return {"schema_version": SCHEMA, "record_id": record_id, "state": "imported", "result": result, "receipt": action_receipt, "execution_allowed": False, "automatic_execution": False, "claim": False}
+
+    def _action_receipt(self, action_id: str, action: str, operator_id: str, record_id: str, state: str, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        unsigned = {"schema_version": RECEIPT_SCHEMA, "action_id": str(action_id), "action": str(action), "operator_id": str(operator_id), "record_id": str(record_id), "state": str(state), "bundle_digest": str(payload.get("bundle_digest", "")), "audit_digest": str(payload.get("audit_digest", "")), "execution_allowed": False, "automatic_import": False, "claim": False, "created_at": int(time.time())}
+        return {**unsigned, "signature": _sign(unsigned, self.signing_key)}
 
     def status(self, record_id: str) -> Mapping[str, Any]:
         latest = self._latest(record_id)
         if latest is None:
             return {"schema_version": SCHEMA, "record_id": record_id, "state": "not_found", "available": False}
-        return {"schema_version": SCHEMA, "record_id": record_id, "state": latest[0], "available": True, "execution_allowed": False, "automatic_execution": False, "claim": False, "reason": latest[1].get("reason", "")}
+        receipt = latest[1].get("receipt") if isinstance(latest[1].get("receipt"), Mapping) else {}
+        return {"schema_version": SCHEMA, "record_id": record_id, "state": latest[0], "available": True, "execution_allowed": False, "automatic_execution": False, "automatic_import": False, "claim": False, "reason": latest[1].get("reason", ""), "last_action": {"schema_version": receipt.get("schema_version", ""), "action_id": receipt.get("action_id", ""), "action": receipt.get("action", ""), "state": receipt.get("state", ""), "operator_id": receipt.get("operator_id", "")}}
 
 
 def build_healthserver_wiring(adapter: LifecycleAuditIngestionAdapter):
@@ -163,4 +176,4 @@ def build_healthserver_wiring(adapter: LifecycleAuditIngestionAdapter):
     return status_provider, action_handler
 
 
-__all__ = ["SCHEMA", "STATES", "LifecycleAuditIngestionError", "LifecycleAuditIngestionAdapter", "build_healthserver_wiring"]
+__all__ = ["SCHEMA", "RECEIPT_SCHEMA", "STATES", "LifecycleAuditIngestionError", "LifecycleAuditIngestionAdapter", "build_healthserver_wiring"]

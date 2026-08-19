@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added signed `noesis.lifecycle-audit-ingestion-receipt.v1` receipts for preflight, approval and import actions, with bounded `last_action` status metadata and no signature/key exposure.
+- Added English and Russian receipt contracts and receipt integrity/status tests.
 - Added `build_healthserver_wiring(adapter)` for standard HealthServer preflight/approve/import integration with absolute existing path checks and durable status projection.
 - Added English and Russian standard wiring contracts and end-to-end tests for approval/import and automatic-import prevention.
 - Added HealthServer `lifecycle_ingestion` status projection and authenticated `POST /api/lifecycle-audit-ingestion` control path with explicit `lifecycle:audit:write` scope; HTTP output forces `automatic_import=false` and `operator_approval_required`.
