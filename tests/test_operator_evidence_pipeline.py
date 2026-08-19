@@ -1,0 +1,61 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from scripts.run_operator_evidence_pipeline import run_pipeline
+from tests.test_external_evidence_readiness import evidence_for, manifest
+
+KEY = "readiness-test-key-2026"
+
+
+class OperatorEvidencePipelineTests(unittest.TestCase):
+    def write_json(self, path, value):
+        path.write_text(json.dumps(value, sort_keys=True), encoding="utf-8")
+
+    def test_pipeline_writes_matrix_aggregate_and_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = [evidence_for("hermes", "h1"), evidence_for("opencode", "o1"), evidence_for("deepseek_harness", "d1")]
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, manifest(protocol_fingerprint=evidence[0]["protocol_fingerprint"]))
+            evidence_paths = []
+            for index, record in enumerate(evidence):
+                path = root / ("evidence-%d.json" % index)
+                self.write_json(path, record)
+                evidence_paths.append(str(path))
+            snapshot_path = root / "snapshot.json"
+            self.write_json(snapshot_path, {"local_execution": {"status": "passed"}, "native_parity": {"status": "not_run"}, "external_comparative": {"status": "not_run"}})
+            report_path = root / "report.zip"
+            result = run_pipeline(str(manifest_path), evidence_paths, KEY, str(root / "artifacts"), str(snapshot_path), str(report_path))
+            self.assertEqual(result["status"], "passed")
+            self.assertTrue((root / "artifacts/external-evidence-readiness.json").is_file())
+            self.assertTrue((root / "artifacts/signed-external-evidence-aggregate.json").is_file())
+            self.assertTrue(report_path.is_file())
+            self.assertFalse(result["external_execution_claim"])
+
+    def test_missing_lane_is_explicit_and_report_is_optional(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = evidence_for("hermes", "h1")
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, manifest())
+            evidence_path = root / "evidence.json"
+            self.write_json(evidence_path, record)
+            result = run_pipeline(str(manifest_path), [str(evidence_path)], KEY, str(root / "artifacts"))
+            self.assertEqual(result["status"], "blocked")
+            self.assertIsNone(result["artifacts"]["report_bundle"])
+            matrix = json.loads((root / "artifacts/external-evidence-readiness.json").read_text(encoding="utf-8"))
+            self.assertEqual(matrix["lanes"]["opencode"]["status"], "blocked")
+
+    def test_report_output_requires_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, {"revisions": {}})
+            with self.assertRaisesRegex(ValueError, "report_output_requires_snapshot"):
+                run_pipeline(str(manifest_path), [], KEY, str(root / "artifacts"), report_output=str(root / "report.zip"))
+
+
+if __name__ == "__main__":
+    unittest.main()
