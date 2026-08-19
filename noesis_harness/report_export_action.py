@@ -83,6 +83,20 @@ class ReportExportActionExecutor:
                 except json.JSONDecodeError:
                     continue
 
+    def lifecycle_snapshot(self) -> Mapping[str, Any]:
+        latest: Mapping[str, Any] | None = None
+        if self.audit_path.exists():
+            for line in self.audit_path.read_text(encoding="utf-8").splitlines()[-32:]:
+                try:
+                    value = json.loads(line)
+                    if isinstance(value, Mapping) and value.get("schema_version") == RECEIPT_SCHEMA:
+                        latest = value
+                except json.JSONDecodeError:
+                    continue
+        if latest is None:
+            return {"available": True, "status": "available", "action_id": "", "output_name": "", "automatic_export": False, "control": "read_only"}
+        return {"available": True, "status": "completed", "action_id": str(latest.get("action_id", "")), "session_id": str(latest.get("session_id", "")), "output_name": str(latest.get("output_name", "")), "bundle_digest": str(latest.get("bundle_digest", "")), "automatic_export": False, "control": "read_only"}
+
     def _authorize(self, action: ReportExportAction, context: Any) -> None:
         if action.schema_version != SCHEMA_VERSION or not action.action_id or not action.operator_id or not action.session_id or len(action.snapshot_digest) != 64:
             raise ReportExportActionError("action_schema_invalid")
