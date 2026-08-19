@@ -23,6 +23,7 @@ from scripts.external_evidence_readiness import build_matrix
 from scripts.release_readiness_snapshot import build_snapshot, verify_snapshot
 from scripts.release_gate_artifact import build_gate_artifact
 from scripts.signed_readiness_receipt import sign_readiness_receipt
+from scripts.execution_conformance import build_conformance
 
 SCHEMA = "noesis.operator-evidence-pipeline.v1"
 
@@ -34,7 +35,7 @@ def _read(path: str) -> dict[str, Any]:
     return value
 
 
-def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output_dir: str, snapshot_path: str | None = None, report_output: str | None = None, readiness_snapshot_path: str | None = None, readiness_test_count: int | None = None, readiness_python_version: str | None = None, native_status: str = "not_run", external_status: str = "not_run") -> dict[str, Any]:
+def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output_dir: str, snapshot_path: str | None = None, report_output: str | None = None, readiness_snapshot_path: str | None = None, readiness_test_count: int | None = None, readiness_python_version: str | None = None, native_status: str = "not_run", external_status: str = "not_run", conformance_replay_path: str | None = None) -> dict[str, Any]:
     if not isinstance(key, str) or len(key.encode("utf-8")) < 16:
         raise ValueError("pipeline_signing_key_too_short")
     root = Path(output_dir)
@@ -73,6 +74,7 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
     readiness_snapshot_file = None
     gate_artifact_file = None
     readiness_receipt_file = None
+    conformance_file = None
     if readiness_test_count is not None or readiness_python_version is not None or readiness_snapshot_path:
         if readiness_test_count is None or readiness_python_version is None:
             raise ValueError("readiness_metadata_incomplete")
@@ -92,6 +94,10 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         readiness_receipt = sign_readiness_receipt(readiness_snapshot, gate_artifact, readiness_test_count, readiness_python_version, key)
         readiness_receipt_file = root / "signed-readiness-receipt.json"
         readiness_receipt_file.write_text(json.dumps(readiness_receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        replay_result = _read(conformance_replay_path) if conformance_replay_path else {"status": "not_run"}
+        conformance = build_conformance(readiness_snapshot, matrix, replay_result, gate_artifact)
+        conformance_file = root / "execution-conformance.json"
+        conformance_file.write_text(json.dumps(conformance, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     status = aggregate["overall_status"]
     lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
     status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}
@@ -104,7 +110,7 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         "comparative_ready": bool(aggregate["comparative_ready"]),
         "matrix_status": matrix["overall_status"],
         "aggregate_status": aggregate["overall_status"],
-        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path), "chain_summary": str(chain_summary_path), "reproducibility_receipt": str(reproducibility_path), "release_readiness": str(readiness_snapshot_file) if readiness_snapshot_file else None, "release_gate": str(gate_artifact_file) if gate_artifact_file else None, "signed_readiness_receipt": str(readiness_receipt_file) if readiness_receipt_file else None},
+        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path), "chain_summary": str(chain_summary_path), "reproducibility_receipt": str(reproducibility_path), "release_readiness": str(readiness_snapshot_file) if readiness_snapshot_file else None, "release_gate": str(gate_artifact_file) if gate_artifact_file else None, "signed_readiness_receipt": str(readiness_receipt_file) if readiness_receipt_file else None, "execution_conformance": str(conformance_file) if conformance_file else None},
         "verification_result_digest": signed_verification["result_digest"],
         "chain_summary_digest": chain_summary["chain_digest"],
         "reproducibility_receipt_digest": reproducibility["receipt_digest"],
@@ -128,9 +134,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--readiness-python-version")
     parser.add_argument("--native-status", default="not_run")
     parser.add_argument("--external-status", default="not_run")
+    parser.add_argument("--conformance-replay")
     args = parser.parse_args(argv)
     try:
-        result = run_pipeline(args.manifest, args.evidence, args.key, args.output_dir, args.snapshot, args.report_output, args.readiness_snapshot, args.readiness_test_count, args.readiness_python_version, args.native_status, args.external_status)
+        result = run_pipeline(args.manifest, args.evidence, args.key, args.output_dir, args.snapshot, args.report_output, args.readiness_snapshot, args.readiness_test_count, args.readiness_python_version, args.native_status, args.external_status, args.conformance_replay)
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0 if result["status"] == "passed" else 2
     except (OSError, ValueError, json.JSONDecodeError) as exc:

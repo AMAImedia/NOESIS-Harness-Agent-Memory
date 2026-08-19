@@ -59,8 +59,11 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
             artifact_root = root / "artifacts"
             result = run_pipeline(str(manifest_path), evidence_paths, KEY, str(artifact_root), readiness_test_count=636, readiness_python_version="3.14.7")
             self.assertEqual(result["status"], "passed")
-            for name in ("release-readiness.json", "release-gate.json", "signed-readiness-receipt.json"):
+            for name in ("release-readiness.json", "release-gate.json", "signed-readiness-receipt.json", "execution-conformance.json"):
                 self.assertTrue((artifact_root / name).is_file())
+            conformance = json.loads((artifact_root / "execution-conformance.json").read_text(encoding="utf-8"))
+            self.assertEqual(conformance["overall_status"], "not_run")
+            self.assertEqual(conformance["execution_classes"]["local_replay"]["status"], "not_run")
             self.assertEqual(post_transfer_audit(artifact_root, KEY)["status"], "passed")
             self.assertFalse(result["external_execution_claim"])
 
