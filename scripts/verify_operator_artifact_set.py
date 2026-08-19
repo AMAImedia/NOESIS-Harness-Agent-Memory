@@ -19,6 +19,7 @@ from scripts.signed_verification_result import sign_verification_result, verify_
 from scripts.chain_summary import verify_chain_summary
 from scripts.transfer_audit import audit_transfer_set
 from scripts.reproducibility_receipt import verify_reproducibility_receipt
+from scripts.release_gate_artifact import verify_gate_artifact
 
 SCHEMA = "noesis.operator-artifact-set-verification.v1"
 
@@ -97,6 +98,19 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             checks["reproducibility"] = reproducibility_check
             if reproducibility_check.get("status") != "passed":
                 return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+        status = str(aggregate.get("overall_status", "blocked"))
+        gate_artifact_path = base / "release-gate.json"
+        if gate_artifact_path.is_file():
+            gate_artifact = _read(gate_artifact_path)
+            gate_check = verify_gate_artifact(gate_artifact)
+            checks["release_gate_artifact"] = gate_check
+            if gate_check.get("status") != "passed":
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+            gate_stages = gate_artifact.get("stages", {})
+            if str(gate_artifact.get("status")) != status or str(gate_stages.get("post_transfer_audit", {}).get("status")) != str(status) or str(gate_stages.get("release_readiness_snapshot", {}).get("status")) != "passed":
+                checks["release_gate_artifact"] = {"status": "blocked", "reason": "release_gate_stage_status_mismatch"}
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+            checks["release_gate_artifact"]["status_consistency"] = "passed"
         if report_path:
             report = Path(report_path).resolve()
             if base not in report.parents or not report.is_file():
@@ -105,7 +119,6 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             checks["report_bundle"] = {"status": report_result.get("status", "blocked"), "bundle_digest": report_result.get("bundle_digest", "")}
             if report_result.get("status") != "passed":
                 return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
-        status = str(aggregate.get("overall_status", "blocked"))
         return {"schema_version": SCHEMA, "status": status, "comparative_ready": bool(aggregate.get("comparative_ready")), "checks": checks, "automatic_execution": False, "external_execution_claim": False}
     except (OSError, ValueError, json.JSONDecodeError, TypeError) as exc:
         return {"schema_version": SCHEMA, "status": "blocked", "reason": type(exc).__name__ + ":" + str(exc)[:160], "automatic_execution": False}
