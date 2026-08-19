@@ -6,6 +6,7 @@ from pathlib import Path
 from scripts.run_operator_evidence_pipeline import run_pipeline
 from scripts.ingest_runner_result import signature
 from scripts.post_transfer_audit import audit as post_transfer_audit
+from scripts.replay_operator_evidence_pipeline import replay_clean_room
 from tests.test_external_evidence_readiness import evidence_for, manifest
 
 KEY = "readiness-test-key-2026"
@@ -62,6 +63,33 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
                 self.assertTrue((artifact_root / name).is_file())
             self.assertEqual(post_transfer_audit(artifact_root, KEY)["status"], "passed")
             self.assertFalse(result["external_execution_claim"])
+
+    def test_clean_room_replay_matches_generated_bundle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = [evidence_for("hermes", "h1"), evidence_for("opencode", "o1"), evidence_for("deepseek_harness", "d1")]
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, manifest(protocol_fingerprint=evidence[0]["protocol_fingerprint"]))
+            evidence_paths = []
+            for index, record in enumerate(evidence):
+                path = root / ("evidence-%d.json" % index)
+                self.write_json(path, record)
+                evidence_paths.append(str(path))
+            expected = root / "expected"
+            run_pipeline(str(manifest_path), evidence_paths, KEY, str(expected), readiness_test_count=638, readiness_python_version="3.14.7")
+            result = replay_clean_room(expected, str(manifest_path), evidence_paths, KEY, root / "replay", readiness_test_count=638, readiness_python_version="3.14.7")
+            self.assertEqual(result["status"], "passed")
+            self.assertEqual(result["release_gate_status"], "passed")
+
+    def test_clean_room_replay_rejects_dirty_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dirty = root / "dirty"
+            dirty.mkdir()
+            (dirty / "hidden-state").write_text("unexpected", encoding="utf-8")
+            result = replay_clean_room(root, str(root / "missing-manifest"), [], KEY, dirty)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["reason"], "replay_root_not_clean")
 
     def test_missing_lane_is_explicit_and_report_is_optional(self):
         with tempfile.TemporaryDirectory() as directory:
