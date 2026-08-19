@@ -34,5 +34,9 @@
   "report_builder": "scripts/build_comparative_report.py",
   "case_receipt_schema": "noesis.comparative-case-receipt.v1",
   "score_available_requires_complete_corpus": true,
+  "operator_bundle_schema": "noesis.operator-case-bundle.v1",
+  "operator_bundle_mode": "readiness_only",
+  "operator_bundle_execution_allowed": false,
+  "operator_bundle_automatic_execution": false,
   "evidence_boundary": "Local evaluator and ingestion behavior only; no external runner was executed and no competitor score was produced."
 }
