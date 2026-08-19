@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import sqlite3
+import threading
 import time
 from contextlib import closing
 from pathlib import Path
@@ -122,4 +123,44 @@ class LifecycleAuditIngestionAdapter:
         return {"schema_version": SCHEMA, "record_id": record_id, "state": latest[0], "available": True, "execution_allowed": False, "automatic_execution": False, "claim": False, "reason": latest[1].get("reason", "")}
 
 
-__all__ = ["SCHEMA", "STATES", "LifecycleAuditIngestionError", "LifecycleAuditIngestionAdapter"]
+def build_healthserver_wiring(adapter: LifecycleAuditIngestionAdapter):
+    """Return a status provider and operator action handler for HealthServer."""
+    current_record = {"record_id": ""}
+    lock = threading.RLock()
+
+    def status_provider() -> Mapping[str, Any]:
+        with lock:
+            record_id = current_record["record_id"]
+        if not record_id:
+            return {"schema_version": SCHEMA, "state": "not_run", "available": False, "execution_allowed": False, "automatic_execution": False, "automatic_import": False, "claim": False, "control": "operator_approval_required"}
+        return dict(adapter.status(record_id))
+
+    def action_handler(payload: Mapping[str, Any], context: Any) -> Mapping[str, Any]:
+        action = str(payload.get("action", ""))
+        if action == "preflight":
+            bundle_path = Path(str(payload.get("bundle_path", "")))
+            lifecycle_path = Path(str(payload.get("lifecycle_path", "")))
+            if not bundle_path.is_absolute() or not lifecycle_path.is_absolute() or not bundle_path.is_file() or not lifecycle_path.is_file():
+                raise LifecycleAuditIngestionError("input_paths_must_be_existing_absolute_files")
+            result = adapter.preflight(bundle_path, lifecycle_path)
+            if result.get("record_id"):
+                with lock:
+                    current_record["record_id"] = str(result["record_id"])
+            return result
+        record_id = str(payload.get("record_id", ""))
+        if not record_id:
+            raise LifecycleAuditIngestionError("record_id_required")
+        if action == "approve":
+            result = adapter.approve(record_id, operator_id=str(context.operator_id), ttl_seconds=float(payload.get("ttl_seconds", 300.0)))
+            return {"state": "approved", "record_id": record_id, "approval": result, "claim": False}
+        if action == "import":
+            approval = payload.get("approval")
+            if not isinstance(approval, Mapping):
+                raise LifecycleAuditIngestionError("approval_required")
+            return adapter.import_approved(record_id, approval)
+        raise LifecycleAuditIngestionError("unsupported_lifecycle_ingestion_action")
+
+    return status_provider, action_handler
+
+
+__all__ = ["SCHEMA", "STATES", "LifecycleAuditIngestionError", "LifecycleAuditIngestionAdapter", "build_healthserver_wiring"]

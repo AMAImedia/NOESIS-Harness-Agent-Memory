@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `build_healthserver_wiring(adapter)` for standard HealthServer preflight/approve/import integration with absolute existing path checks and durable status projection.
+- Added English and Russian standard wiring contracts and end-to-end tests for approval/import and automatic-import prevention.
 - Added HealthServer `lifecycle_ingestion` status projection and authenticated `POST /api/lifecycle-audit-ingestion` control path with explicit `lifecycle:audit:write` scope; HTTP output forces `automatic_import=false` and `operator_approval_required`.
 - Added English and Russian operator control contracts and tests for scope denial, authenticated dispatch, redaction and automatic-import prevention.
 - Added `LifecycleAuditIngestionAdapter` with durable SQLite preflight/approval/import lifecycle for verified report bundles and signed lifecycle audit logs; stale, duplicate, mismatched and tampered imports fail closed.
