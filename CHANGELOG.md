@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `verify_ingestion_receipt()` and `verify_ingestion_receipt_audit()` for fail-closed signature, identity, ordering, duplicate and claim checks before audit-only report inclusion.
+- Added English and Russian receipt verifier contracts and adversarial verifier tests.
 - Added signed `noesis.lifecycle-audit-ingestion-receipt.v1` receipts for preflight, approval and import actions, with bounded `last_action` status metadata and no signature/key exposure.
 - Added English and Russian receipt contracts and receipt integrity/status tests.
 - Added `build_healthserver_wiring(adapter)` for standard HealthServer preflight/approve/import integration with absolute existing path checks and durable status projection.

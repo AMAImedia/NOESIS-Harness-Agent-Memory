@@ -1,0 +1,54 @@
+import copy
+import tempfile
+import unittest
+from pathlib import Path
+
+from noesis_harness import LifecycleAuditIngestionAdapter, verify_ingestion_receipt, verify_ingestion_receipt_audit
+from test_lifecycle_audit_ingestion import LifecycleAuditIngestionTests
+
+
+class LifecycleIngestionReceiptVerifierTests(unittest.TestCase):
+    key = b"receipt-verifier-key-123456"
+
+    def build_receipts(self):
+        fixture = LifecycleAuditIngestionTests()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture.key = self.key
+            bundle, audit = fixture.make_inputs(root)
+            adapter = LifecycleAuditIngestionAdapter(root / "ledger.sqlite", signing_key=self.key)
+            preflight = adapter.preflight(bundle, audit)
+            approval = adapter.approve(preflight["record_id"], operator_id="operator")
+            imported = adapter.import_approved(preflight["record_id"], approval)
+            return preflight["record_id"], preflight["bundle_digest"], preflight["audit_digest"], [preflight["receipt"], approval["receipt"], imported["receipt"]]
+
+    def test_valid_audit_projection_is_claim_conservative(self):
+        record, bundle, audit, receipts = self.build_receipts()
+        result = verify_ingestion_receipt_audit(receipts, signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)
+        self.assertEqual(result["status"], "passed")
+        self.assertFalse(result["claim"])
+        self.assertFalse(result["execution_claim"])
+        self.assertFalse(result["comparative_claim"])
+
+    def test_tamper_identity_duplicate_order_and_escalation_block(self):
+        record, bundle, audit, receipts = self.build_receipts()
+        tampered = copy.deepcopy(receipts[0])
+        tampered["state"] = "imported"
+        self.assertEqual(verify_ingestion_receipt(tampered, signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_signature_invalid")
+        drift = copy.deepcopy(receipts[0])
+        drift["record_id"] = "other"
+        self.assertEqual(verify_ingestion_receipt(drift, signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_signature_invalid")
+        self.assertEqual(verify_ingestion_receipt_audit(receipts + [receipts[-1]], signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_duplicate_action_id")
+        self.assertEqual(verify_ingestion_receipt_audit([receipts[1], receipts[0], receipts[2]], signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_order_invalid")
+        escalated = copy.deepcopy(receipts[0])
+        escalated["claim"] = True
+        self.assertEqual(verify_ingestion_receipt(escalated, signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_signature_invalid")
+
+    def test_missing_receipts_is_not_run(self):
+        result = verify_ingestion_receipt_audit([], signing_key=self.key, record_id="r", bundle_digest="b", audit_digest="a")
+        self.assertEqual(result["status"], "not_run")
+        self.assertFalse(result["claim"])
+
+
+if __name__ == "__main__":
+    unittest.main()

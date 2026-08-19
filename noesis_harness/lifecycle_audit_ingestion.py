@@ -136,6 +136,43 @@ class LifecycleAuditIngestionAdapter:
         return {"schema_version": SCHEMA, "record_id": record_id, "state": latest[0], "available": True, "execution_allowed": False, "automatic_execution": False, "automatic_import": False, "claim": False, "reason": latest[1].get("reason", ""), "last_action": {"schema_version": receipt.get("schema_version", ""), "action_id": receipt.get("action_id", ""), "action": receipt.get("action", ""), "state": receipt.get("state", ""), "operator_id": receipt.get("operator_id", "")}}
 
 
+def verify_ingestion_receipt(receipt: Mapping[str, Any], *, signing_key: bytes, record_id: str, bundle_digest: str, audit_digest: str) -> Mapping[str, Any]:
+    if not isinstance(receipt, Mapping) or receipt.get("schema_version") != RECEIPT_SCHEMA:
+        return {"status": "blocked", "reason": "receipt_schema_invalid", "claim": False}
+    unsigned = {key: value for key, value in receipt.items() if key != "signature"}
+    if not hmac.compare_digest(str(receipt.get("signature", "")), _sign(unsigned, signing_key)):
+        return {"status": "blocked", "reason": "receipt_signature_invalid", "claim": False}
+    if receipt.get("record_id") != record_id or receipt.get("bundle_digest") != bundle_digest or receipt.get("audit_digest") != audit_digest:
+        return {"status": "blocked", "reason": "receipt_identity_mismatch", "claim": False}
+    if receipt.get("execution_allowed") is not False or receipt.get("automatic_import") is not False or receipt.get("claim") is not False:
+        return {"status": "blocked", "reason": "receipt_claim_escalation", "claim": False}
+    if receipt.get("action") not in {"preflight", "approve", "import"} or receipt.get("state") not in {"awaiting_approval", "approved", "imported"}:
+        return {"status": "blocked", "reason": "receipt_action_state_invalid", "claim": False}
+    return {"status": "passed", "action_id": str(receipt.get("action_id", "")), "action": str(receipt.get("action")), "state": str(receipt.get("state")), "claim": False, "execution_claim": False, "comparative_claim": False}
+
+
+def verify_ingestion_receipt_audit(receipts: Any, *, signing_key: bytes, record_id: str, bundle_digest: str, audit_digest: str) -> Mapping[str, Any]:
+    if not isinstance(receipts, (list, tuple)) or not receipts:
+        return {"status": "not_run", "reason": "receipts_missing", "claim": False, "execution_claim": False, "comparative_claim": False}
+    verified = []
+    seen = set()
+    order = {"preflight": 0, "approve": 1, "import": 2}
+    previous = -1
+    for receipt in receipts:
+        result = verify_ingestion_receipt(receipt, signing_key=signing_key, record_id=record_id, bundle_digest=bundle_digest, audit_digest=audit_digest)
+        if result.get("status") != "passed":
+            return {"status": "blocked", "reason": str(result.get("reason", "receipt_verification_failed")), "claim": False, "execution_claim": False, "comparative_claim": False}
+        action_id = result["action_id"]
+        if not action_id or action_id in seen:
+            return {"status": "blocked", "reason": "receipt_duplicate_action_id", "claim": False, "execution_claim": False, "comparative_claim": False}
+        if order[result["action"]] < previous:
+            return {"status": "blocked", "reason": "receipt_order_invalid", "claim": False, "execution_claim": False, "comparative_claim": False}
+        seen.add(action_id)
+        previous = order[result["action"]]
+        verified.append(result)
+    return {"status": "passed", "record_id": record_id, "receipt_count": len(verified), "actions": verified, "claim": False, "execution_claim": False, "comparative_claim": False, "claim_boundary": "lifecycle_audit_only"}
+
+
 def build_healthserver_wiring(adapter: LifecycleAuditIngestionAdapter):
     """Return a status provider and operator action handler for HealthServer."""
     current_record = {"record_id": ""}
@@ -176,4 +213,4 @@ def build_healthserver_wiring(adapter: LifecycleAuditIngestionAdapter):
     return status_provider, action_handler
 
 
-__all__ = ["SCHEMA", "RECEIPT_SCHEMA", "STATES", "LifecycleAuditIngestionError", "LifecycleAuditIngestionAdapter", "build_healthserver_wiring"]
+__all__ = ["SCHEMA", "RECEIPT_SCHEMA", "STATES", "LifecycleAuditIngestionError", "LifecycleAuditIngestionAdapter", "verify_ingestion_receipt", "verify_ingestion_receipt_audit", "build_healthserver_wiring"]
