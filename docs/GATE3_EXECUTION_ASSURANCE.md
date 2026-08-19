@@ -30,6 +30,8 @@ The machine-readable artifact is [`GATE3_EXECUTION_ASSURANCE_EVIDENCE.json`](GAT
 
 The implementation remains separate from the memory and control plane. The parent process does not import or execute model-generated skill code, and executable skill activation requires a separate reviewed runtime contract.
 
+For delegated multi-agent work products, `execute_and_submit()` adds a second boundary: the request workspace must resolve exactly to the claimed agent workspace; the execution result must be `completed`; its signed receipt must be discoverable in the runtime-owned receipt store with `committed` outcome; and only then may a head snapshot be submitted for independent review. Failed execution, missing receipt store, unverified receipt, cross-agent workspace path or missing runtime are rejected before the work-product state changes.
+
 ## References
 
 [1]: https://github.com/cloudflare/cloudflare-os "Cloudflare OS"

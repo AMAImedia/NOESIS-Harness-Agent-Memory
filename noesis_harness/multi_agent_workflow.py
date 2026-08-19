@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Mapping
 
 from .event_store import EventStore
@@ -62,7 +63,51 @@ class MultiAgentWorkProductLoop:
                 return dict(payload)
         return None
 
-    def submit(self, *, task_id: str, agent_id: str, base_snapshot_id: str, head_snapshot_id: str, summary: str = "", artifact_digest: str = "", result_type: str = "workspace_patch") -> WorkProductEnvelope | Mapping[str, Any]:
+    @staticmethod
+    def _execution_evidence(execution_result: Any) -> Mapping[str, Any]:
+        if isinstance(execution_result, Mapping):
+            status = execution_result.get("status", "completed")
+            request_id = str(execution_result.get("request_id", ""))
+            receipt_id = str(execution_result.get("receipt_id", ""))
+            outcome = str(execution_result.get("outcome", ""))
+            sandboxed = bool(execution_result.get("sandboxed", False))
+        else:
+            status = getattr(execution_result, "status", "")
+            receipt = getattr(execution_result, "receipt", None)
+            request_id = str(getattr(execution_result, "request_id", ""))
+            receipt_id = str(getattr(receipt, "receipt_id", ""))
+            outcome = str(getattr(receipt, "outcome", ""))
+            sandboxed = bool(getattr(execution_result, "sandboxed", False))
+        if status != "completed":
+            raise WorkProductError("delegated_execution_not_completed")
+        if outcome != "committed" or not receipt_id:
+            raise WorkProductError("signed_execution_receipt_required")
+        if not request_id:
+            raise WorkProductError("execution_identity_required")
+        return {"request_id": request_id, "receipt_id": receipt_id, "outcome": "committed", "sandboxed": sandboxed}
+
+    def execute_and_submit(self, *, runtime: Any, request: Any, task_id: str, agent_id: str, base_snapshot_id: str, head_snapshot_id: str, summary: str = "", result_type: str = "workspace_patch") -> WorkProductEnvelope | Mapping[str, Any]:
+        claim = self.coordinator._claims.get(task_id)
+        if claim is None or claim.agent_id != agent_id:
+            raise WorkProductError("claim_owner_required")
+        request_workspace = Path(str(getattr(request, "workspace", ""))).expanduser().resolve()
+        claimed_workspace = self.coordinator.workspaces.path(claim.workspace_id).resolve()
+        if request_workspace != claimed_workspace:
+            raise WorkProductError("execution_workspace_mismatch")
+        runner = getattr(runtime, "run", None)
+        if not callable(runner):
+            raise WorkProductError("execution_runtime_required")
+        result = runner(request)
+        execution = self._execution_evidence(result)
+        receipt_store = getattr(runtime, "receipt_store", None)
+        if receipt_store is None or not callable(getattr(receipt_store, "get", None)):
+            raise WorkProductError("execution_receipt_store_required")
+        stored_receipt = receipt_store.get(execution["receipt_id"])
+        if stored_receipt is None or str(getattr(stored_receipt, "receipt_id", "")) != execution["receipt_id"] or str(getattr(stored_receipt, "outcome", "")) != "committed":
+            raise WorkProductError("execution_receipt_not_verified")
+        return self.submit(task_id=task_id, agent_id=agent_id, base_snapshot_id=base_snapshot_id, head_snapshot_id=head_snapshot_id, summary=summary, result_type=result_type, execution_evidence=execution)
+
+    def submit(self, *, task_id: str, agent_id: str, base_snapshot_id: str, head_snapshot_id: str, summary: str = "", artifact_digest: str = "", result_type: str = "workspace_patch", execution_evidence: Mapping[str, Any] | None = None) -> WorkProductEnvelope | Mapping[str, Any]:
         claim = self.coordinator._claims.get(task_id)
         if claim is None or claim.agent_id != agent_id:
             raise WorkProductError("claim_owner_required")
@@ -76,12 +121,15 @@ class MultiAgentWorkProductLoop:
             raise WorkProductError("work_product_base_mismatch")
         if not artifact_digest:
             artifact_digest = "sha256:" + hashlib.sha256(json.dumps([entry.as_dict() for entry in head.files], sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        execution = None if execution_evidence is None else dict(self._execution_evidence(execution_evidence))
         envelope = WorkProductEnvelope(task_id, agent_id, claim.workspace_id, base_snapshot_id, head_snapshot_id, str(summary)[:4096], artifact_digest, result_type)
         existing = self._existing(envelope.product_id, "work_product_submitted")
         if existing is not None:
             return existing
         self.coordinator.complete_for_review(task_id, agent_id, summary)
         payload = {"schema_version": WORK_PRODUCT_SCHEMA, "product_id": envelope.product_id, **envelope.to_mapping(), "status": "needs_review"}
+        if execution is not None:
+            payload["execution"] = execution
         self.events.append("work_product_submitted", payload, event_id="work-product-submit:" + envelope.product_id)
         return envelope
 

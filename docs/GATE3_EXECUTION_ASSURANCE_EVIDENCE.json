@@ -15,6 +15,9 @@
     "interrupted_run_requires_explicit_recovery": "passed",
     "recovery_does_not_claim_rollback": "passed",
     "recovery_replay_is_rejected": "passed",
+    "work_product_claimed_workspace_binding": "passed",
+    "work_product_requires_verified_receipt": "passed",
+    "work_product_independent_review_boundary": "passed",
     "resource_warning_policy": "passed"
   },
   "negative_reasons": [
@@ -34,7 +37,7 @@
     "deepseek_harness": "not_run",
     "reason": "pinned_external_environment_required"
   },
-  "targeted_tests": 24,
+  "targeted_tests": 26,
   "evidence_boundary": "This artifact proves local deterministic execution-assurance behavior only; it is not native sandbox or external A/B evidence."
 }
 

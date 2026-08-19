@@ -30,4 +30,6 @@ Machine-readable artifact: [`GATE3_EXECUTION_ASSURANCE_EVIDENCE.json`](../../GAT
 
 Implementation отделена от memory и control plane. Parent process не импортирует и не выполняет model-generated skill code; executable skill activation требует отдельного reviewed runtime contract.
 
+Для delegated multi-agent work products `execute_and_submit()` добавляет вторую границу: request workspace должен точно совпадать с claimed agent workspace; execution result должен быть `completed`; signed receipt должен находиться в runtime-owned receipt store и иметь outcome `committed`; только после этого head snapshot можно передать на independent review. Failed execution, отсутствующий receipt store, непроверенный receipt, cross-agent path или отсутствующий runtime отклоняются до изменения work-product state.
+
 English primary contract: [`GATE3_EXECUTION_ASSURANCE.md`](../../GATE3_EXECUTION_ASSURANCE.md).
