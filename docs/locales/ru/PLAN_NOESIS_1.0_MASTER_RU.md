@@ -1,6 +1,6 @@
 # NOESIS 1.0 — master-план развития
 
-**Контрольная точка:** 2026-08-18, MEM-09 implementation checkpoint
+**Контрольная точка:** 2026-08-19, governed learning review UI checkpoint
 **Runtime policy:** только Python 3.14; детерминированное ядро — stdlib-only.
 **Модель эксплуатации:** local-first, private-by-default, human-governed, fail-closed.
 
@@ -24,11 +24,11 @@
 
 ### Gate 1 — Bounded production learning lifecycle binding: текущая контрольная точка
 
-Bounded production binding реализован: `ProductionLearningLifecycle` соединяет durable task store, terminal-event bridge, runtime-owned policy simulator и explicit operator action executor. Portable launcher подключает эту композицию к HealthServer только при явно заданном valid signing key. Путь остаётся явным:
+Bounded production binding реализован: `ProductionLearningLifecycle` соединяет durable task store, terminal-event bridge, runtime-owned policy simulator и explicit operator action executor. Portable launcher подключает эту композицию к HealthServer только при явно заданном valid signing key. Authenticated read-only `/api/learning/review` и Cloudflare-style UI panel показывают bounded proposal/evaluator metadata, provenance status и disabled activation state без content и execution side effects. Путь остаётся явным:
 
 `terminal task -> provenance receipt -> deterministic holdout -> review proposal -> independent approval -> immutable promotion -> verification -> signed receipt -> optional activation`.
 
-Локальный facade gate проверен positive, negative, replay и activation-boundary tests. Завершение task не оценивает, не одобряет, не продвигает и не активирует skill скрыто. Для полного закрытия нужны durable promotion-state/evaluator deployment и operator UI workflow для явно зарегистрированных evaluators и proposals.
+Локальный facade gate проверен positive, negative, replay и activation-boundary tests. Завершение task не оценивает, не одобряет, не продвигает и не активирует skill скрыто. Durable promotion/evaluator state, provenance-bound proposals и bounded operator review workflow локально проверены. Оставшаяся работа — отдельно управляемый governed executable skill/tool runtime и более широкие independent learning corpora.
 
 ### Gate 2 — Durable promotion state and evaluator deployment (локальный gate закрыт)
 
@@ -62,7 +62,7 @@ Manifest/grant contract и Linux reference path реализованы: `Executi
 
 ## Правило синхронизации
 
-Порядок работы: **(1) реализовать governed executable child runtime, (2) в одном focused change обновить код, tests, English docs, Russian docs и machine-readable evidence, (3) выполнить полную проверку, commit и remote verification, (4) связать end-to-end multi-agent work-product loop, (5) измерить memory quality gates и только потом запускать native/external lanes**. Gate не считается закрытым, если код, тесты, документация и evidence расходятся.
+Порядок работы: **(1) усилить и проверить governed executable skill/tool runtime, (2) в одном focused change обновить код, tests, English docs, Russian docs и machine-readable evidence, (3) выполнить полную проверку, commit и remote verification, (4) связать end-to-end multi-agent work-product loop, (5) измерить memory quality gates и только потом запускать native/external lanes**. Gate не считается закрытым, если код, тесты, документация и evidence расходятся.
 
 ## Честный критерий завершения
 

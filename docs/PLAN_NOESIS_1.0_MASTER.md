@@ -1,6 +1,6 @@
 # NOESIS 1.0 Master Plan
 
-**Status checkpoint:** 2026-08-18, MEM-09 implementation checkpoint
+**Status checkpoint:** 2026-08-19, governed learning review UI checkpoint
 **Runtime policy:** Python 3.14 only; deterministic core is stdlib-only.
 **Operating model:** local-first, private-by-default, human-governed, fail-closed.
 
@@ -24,11 +24,11 @@ This is the normative English roadmap. The weighted 25%→100% execution plan is
 
 ### Gate 1 — Bounded production learning lifecycle binding (current checkpoint)
 
-The bounded production binding is now implemented: `ProductionLearningLifecycle` composes the durable task store, terminal-event bridge, runtime-owned policy simulator and explicit operator action executor. The portable launcher wires this composition to HealthServer only when a valid signing key is explicitly configured. The path remains explicit:
+The bounded production binding is now implemented: `ProductionLearningLifecycle` composes the durable task store, terminal-event bridge, runtime-owned policy simulator and explicit operator action executor. The portable launcher wires this composition to HealthServer only when a valid signing key is explicitly configured. The authenticated read-only `/api/learning/review` endpoint and Cloudflare-style UI panel now expose bounded proposal/evaluator metadata, provenance status and disabled activation state without content or execution side effects. The path remains explicit:
 
 `terminal task -> provenance receipt -> deterministic holdout -> review proposal -> independent approval -> immutable promotion -> verification -> signed receipt -> optional activation`.
 
-The local facade gate is verified by positive, negative, replay and activation-boundary tests. A task completion event never silently evaluates, approves, promotes or activates a skill. The remaining completion work is durable promotion-state/evaluator deployment and an operator UI workflow that can safely manage those explicitly registered evaluators and proposals.
+The local facade gate is verified by positive, negative, replay and activation-boundary tests. A task completion event never silently evaluates, approves, promotes or activates a skill. Durable promotion/evaluator state, provenance-bound proposals and the bounded operator review workflow are locally verified. Remaining work is the separately governed executable skill/tool runtime and broader independent learning corpora.
 
 ### Gate 2 — Durable promotion state and evaluator deployment (completed local gate)
 
@@ -62,7 +62,7 @@ Only after Gates 1–7 produce evidence may the project consider a public releas
 
 ## Execution order and synchronization rule
 
-The next work sequence is: **(1) implement the governed executable child runtime, (2) update code/docs/evidence in one focused change, (3) run full validation, commit and verify the private remote, (4) bind the end-to-end multi-agent work-product loop, (5) measure memory quality gates, and only then run native/external lanes**. No new gate is considered complete until code, tests, English primary documentation, Russian supplemental documentation and machine-readable evidence agree.
+The next work sequence is: **(1) harden and verify the governed executable skill/tool runtime, (2) update code/docs/evidence in one focused change, (3) run full validation, commit and verify the private remote, (4) bind the end-to-end multi-agent work-product loop, (5) measure memory quality gates, and only then run native/external lanes**. No new gate is considered complete until code, tests, English primary documentation, Russian supplemental documentation and machine-readable evidence agree.
 
 ## Honest completion criterion
 

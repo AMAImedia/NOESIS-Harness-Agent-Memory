@@ -1,6 +1,6 @@
 {
   "schema_version": "noesis.claims-progress.v1",
-  "baseline_percent_local_os": 68,
+  "baseline_percent_local_os": 70,
   "baseline_percent_proven_world_leader_claim": 30,
   "progress_is_weighted_evidence_not_feature_count": true,
   "milestones": {
@@ -12,8 +12,8 @@
     "100": {"label": "claim_ready_evidence_package", "status": "blocked_until_external_review"}
   },
   "tracks": {
-    "A_control_plane_operator_surface": {"status": "local_in_progress", "blocking": ["complete integrated operator workflow"]},
-    "B_governed_self_learning": {"status": "bounded_local", "blocking": ["durable evaluator deployment", "review UI", "activation boundary evidence"]},
+    "A_control_plane_operator_surface": {"status": "local_verified", "blocking": ["expand interactive provider/tool execution surfaces under explicit capability gates"]},
+    "B_governed_self_learning": {"status": "local_verified_bounded", "blocking": ["governed executable skill activation runtime", "broader independent learning corpora"]},
     "C_memory_long_context": {"status": "bounded_local_plus_multisession", "blocking": ["broader independent non_fixture distributions", "repeated evaluation across pinned corpora"]},
     "D_isolation_adversarial_reliability": {"status": "linux_local", "blocking": ["matching Windows/macOS conformance"]},
     "E_portable_native_packaging": {"status": "portable_artifact_verified_native_host_gated", "blocking": ["matching Windows/macOS execution", "native artifact replay"]},
@@ -35,5 +35,5 @@
     "stage_1_requires": ["control_plane", "governed_learning", "durable_memory", "multi_agent_isolation", "portable_artifacts", "native_parity"],
     "stage_2_requires": ["pinned_external_ab", "independent_scoring", "repeated_runs", "reproducibility", "security_and_provenance_review"]
   },
-  "next_gate": "complete_local_control_plane_and_operator_experience"
+  "next_gate": "governed_executable_skill_tool_runtime"
 }
