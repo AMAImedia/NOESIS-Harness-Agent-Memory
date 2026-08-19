@@ -30,8 +30,11 @@ class _Leases:
 
 
 class _Pack:
+    def __init__(self, ok=True):
+        self.ok = ok
+
     def pack(self, query):
-        return {"ok": True, "tokens": 4}
+        return {"ok": self.ok, "tokens": 4}
 
 
 class _Guard:
@@ -43,13 +46,18 @@ class _Guard:
 
 
 class _Judge:
+    def __init__(self, ok=True):
+        self.ok = ok
+
     def judge(self, outputs):
+        if not self.ok:
+            raise RuntimeError("judge failure")
         return {"pass": True}
 
 
 class AgentLoopTests(unittest.TestCase):
-    def make_loop(self, leases=None, guard=None, max_turns=2):
-        return AgentLoop("agent", _Memory(), leases or _Leases(), _Pack(), guard or _Guard(), _Judge(), max_turns=max_turns)
+    def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None):
+        return AgentLoop("agent", _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock)
 
     def test_max_turns_is_bounded(self):
         calls = []
@@ -72,6 +80,31 @@ class AgentLoopTests(unittest.TestCase):
         result = self.make_loop(guard=_Guard(ok=False)).run("task", "query", lambda context: calls.append(context) or {"done": True})
         self.assertEqual(result["status"], "loop")
         self.assertEqual(calls, [])
+
+    def test_context_failure_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, pack=_Pack(ok=False)).run("task", "query", lambda context: {"done": True})
+        self.assertEqual(result["status"], "context_over")
+        self.assertEqual(leases.released, 1)
+
+    def test_action_exception_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases).run("task", "query", lambda context: (_ for _ in ()).throw(ValueError("bad action")))
+        self.assertEqual(result["status"], "act_error")
+        self.assertEqual(result["reason"], "ValueError")
+        self.assertEqual(leases.released, 1)
+
+    def test_judge_exception_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, judge=_Judge(ok=False)).run("task", "query", lambda context: {"output": "candidate"})
+        self.assertEqual(result["status"], "judge_error")
+        self.assertEqual(result["reason"], "RuntimeError")
+        self.assertEqual(leases.released, 1)
+
+    def test_clock_is_injected_for_deterministic_turn_receipts(self):
+        loop = self.make_loop(max_turns=1, clock=lambda: 123.0)
+        result = loop.run("task", "query", lambda context: {"done": True, "output": "accepted"})
+        self.assertEqual(result["turns"][0]["ts"], 123.0)
 
     def test_done_requires_passing_judge(self):
         loop = self.make_loop(max_turns=3)

@@ -15,7 +15,7 @@ import time
 
 class AgentLoop:
     def __init__(self, agent_id, memory, leases, pack, guard, judge,
-                 budget=None, hitl=None, events=None, max_turns=8):
+                 budget=None, hitl=None, events=None, max_turns=8, clock=None):
         self.agent_id = agent_id
         self.memory = memory
         self.leases = leases
@@ -26,6 +26,7 @@ class AgentLoop:
         self.hitl = hitl
         self.events = events
         self.max_turns = max_turns
+        self.clock = clock or time.time
 
     def _log(self, kind, payload):
         if self.events is not None:
@@ -43,19 +44,31 @@ class AgentLoop:
                         "turns": turns, "outputs": outputs}
             packed = self.pack.pack(query)
             if not packed.get("ok"):
+                self.leases.release(task_key, self.agent_id)
                 return {"status": "context_over", "turns": turns, "outputs": outputs}
             chk = self.guard.check("%s|%s" % (task_key, query))
             if not chk.get("ok"):
                 self._log("loop_block", {"task": task_key, "turn": n})
+                self.leases.release(task_key, self.agent_id)
                 return {"status": "loop", "turns": turns, "outputs": outputs}
             ctx = {"turn": n, "query": query, "pack": packed,
                    "agent": self.agent_id, "task": task_key}
-            result = act(ctx) or {}
+            try:
+                result = act(ctx) or {}
+            except Exception as exc:
+                self.leases.release(task_key, self.agent_id)
+                self._log("act_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                return {"status": "act_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
             out = str(result.get("output") or "")
             outputs.append(out)
-            verdict = self.judge.judge(outputs)
+            try:
+                verdict = self.judge.judge(outputs)
+            except Exception as exc:
+                self.leases.release(task_key, self.agent_id)
+                self._log("judge_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                return {"status": "judge_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
             turn = {"n": n, "output": out, "judge": verdict,
-                    "tokens": packed.get("tokens"), "ts": time.time()}
+                    "tokens": packed.get("tokens"), "ts": self.clock()}
             turns.append(turn)
             self._log("turn", {"n": n, "agent": self.agent_id, "ok": verdict.get("pass")})
             if result.get("memory"):
