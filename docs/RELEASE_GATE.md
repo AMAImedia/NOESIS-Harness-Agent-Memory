@@ -8,6 +8,7 @@
 |---|---|---|
 | `post_transfer_audit` | Evidence directory and signing key | Composition, full chain, and reproducibility integrity. |
 | `release_readiness_snapshot` | `release-readiness.json` | Snapshot digest and claim-boundary integrity. |
+| `release_gate_artifact` | `release-gate.json` or `--gate-artifact` | Canonical gate digest and independent stage-status consistency. |
 
 The second stage runs only after the first passes. The result preserves both stage outputs and reports the first failed stage as `failed_stage`.
 
@@ -22,4 +23,4 @@ A fully passing gate returns one JSON object with `status=passed` and exit code 
 
 The gate is an integrity/readiness composition only. It does not prove native Windows/macOS execution, external lane execution, performance, or worldwide superiority.
 
-An existing `release-gate.json` can be checked for consistency with `--gate-artifact`. When the file is present under the evidence root, post-transfer audit also verifies its digest automatically. A tampered or malformed optional artifact is reported as a separate `release_gate_artifact` stage and fails closed; absence remains allowed for older transfers.
+An existing `release-gate.json` is automatically checked when present under the evidence root; `--gate-artifact` can provide an explicit artifact path. The gate verifies its canonical digest and independently requires that the artifact status, `post_transfer_audit` stage, and `release_readiness_snapshot` stage agree with the current results. A tampered, malformed, stale, or status-inconsistent artifact is reported as a separate `release_gate_artifact` stage and fails closed. Absence remains allowed for older transfers that do not claim a generated readiness bundle.

@@ -45,7 +45,7 @@ class ReleaseGateTests(unittest.TestCase):
             artifact_root, snapshot = self.build_set(Path(directory))
             result = run_gate(artifact_root, KEY, snapshot)
             self.assertEqual(result["status"], "passed")
-            self.assertEqual(set(result["stages"]), {"post_transfer_audit", "release_readiness_snapshot"})
+            self.assertEqual(set(result["stages"]), {"post_transfer_audit", "release_readiness_snapshot", "release_gate_artifact"})
 
     def test_gate_preserves_failed_stage(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -58,6 +58,18 @@ class ReleaseGateTests(unittest.TestCase):
             self.write(snapshot, {"schema_version": "bad"})
             result = run_gate(artifact_root, KEY, snapshot)
             self.assertEqual(result["failed_stage"], "release_readiness_snapshot")
+
+    def test_gate_stage_status_mismatch_is_blocked_independently(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact_root, snapshot = self.build_set(root)
+            mismatch_path = root / "mismatch-gate.json"
+            mismatch = build_gate_artifact({"status": "passed", "stages": {"post_transfer_audit": {"status": "blocked"}, "release_readiness_snapshot": {"status": "passed"}}})
+            self.write(mismatch_path, mismatch)
+            result = run_gate(artifact_root, KEY, snapshot, mismatch_path)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["failed_stage"], "release_gate_artifact")
+            self.assertEqual(result["stages"]["release_gate_artifact"]["reason"], "release_gate_stage_status_mismatch")
 
     def test_existing_gate_artifact_consistency(self):
         with tempfile.TemporaryDirectory() as directory:

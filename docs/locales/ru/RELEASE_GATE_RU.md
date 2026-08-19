@@ -8,6 +8,7 @@
 |---|---|---|
 | `post_transfer_audit` | Evidence directory и signing key | Composition, full chain и reproducibility integrity. |
 | `release_readiness_snapshot` | `release-readiness.json` | Snapshot digest и claim-boundary integrity. |
+| `release_gate_artifact` | `release-gate.json` или `--gate-artifact` | Canonical gate digest и независимая stage-status consistency. |
 
 Вторая stage запускается только после успешной первой. Result сохраняет outputs обеих stages и указывает первую failed stage в `failed_stage`.
 
@@ -22,4 +23,4 @@
 
 Gate является только integrity/readiness composition. Он не доказывает native Windows/macOS execution, external lane execution, performance или worldwide superiority.
 
-Существующий `release-gate.json` можно проверить на consistency через `--gate-artifact`. Если file находится внутри evidence root, post-transfer audit также автоматически проверяет его digest. Tampered или malformed optional artifact возвращается отдельной `release_gate_artifact` stage и fail-closed блокируется; отсутствие остаётся допустимым для старых transfers.
+Существующий `release-gate.json` автоматически проверяется, если находится внутри evidence root; `--gate-artifact` позволяет передать явный путь. Gate проверяет canonical digest и независимо требует, чтобы artifact status, stages `post_transfer_audit` и `release_readiness_snapshot` совпадали с текущими результатами. Tampered, malformed, stale или status-inconsistent artifact возвращается отдельной `release_gate_artifact` stage и блокируется fail-closed. Отсутствие остаётся допустимым для старых transfers, которые не заявляют generated readiness bundle.

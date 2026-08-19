@@ -26,15 +26,22 @@ def run_gate(root: str | Path, key: str, snapshot: str | Path, gate_artifact: st
     if readiness.get("status") != "passed":
         return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_readiness_snapshot", "stages": {"post_transfer_audit": transfer, "release_readiness_snapshot": readiness}, "automatic_execution": False, "external_execution_claim": False}
     stages = {"post_transfer_audit": transfer, "release_readiness_snapshot": readiness}
-    if gate_artifact:
-        artifact_path = Path(gate_artifact).resolve()
+    artifact_path = Path(gate_artifact).resolve() if gate_artifact else (Path(root).resolve() / "release-gate.json")
+    if artifact_path.is_file() or gate_artifact:
         if not artifact_path.is_file():
             stages["release_gate_artifact"] = {"status": "blocked", "reason": "release_gate_artifact_missing"}
             return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_gate_artifact", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
-        gate_check = verify_gate_artifact(json.loads(artifact_path.read_text(encoding="utf-8")))
+        gate_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+        gate_check = verify_gate_artifact(gate_payload)
         stages["release_gate_artifact"] = gate_check
+        expected_status = str(transfer.get("status", "blocked"))
+        gate_stages = gate_payload.get("stages", {})
         if gate_check.get("status") != "passed":
             return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_gate_artifact", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
+        if str(gate_payload.get("status")) != expected_status or str(gate_stages.get("post_transfer_audit", {}).get("status")) != expected_status or str(gate_stages.get("release_readiness_snapshot", {}).get("status")) != str(readiness.get("status", "blocked")):
+            stages["release_gate_artifact"] = {"status": "blocked", "reason": "release_gate_stage_status_mismatch"}
+            return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_gate_artifact", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
+        stages["release_gate_artifact"]["status_consistency"] = "passed"
     return {"schema_version": SCHEMA, "status": "passed", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
 
 
