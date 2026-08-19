@@ -20,6 +20,7 @@ from scripts.chain_summary import verify_chain_summary
 from scripts.transfer_audit import audit_transfer_set
 from scripts.reproducibility_receipt import verify_reproducibility_receipt
 from scripts.release_gate_artifact import verify_gate_artifact
+from scripts.signed_readiness_receipt import verify_readiness_receipt
 
 SCHEMA = "noesis.operator-artifact-set-verification.v1"
 
@@ -39,7 +40,7 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
     if not manifest_path.is_file():
         return {"schema_version": SCHEMA, "status": "blocked", "reason": "artifact_manifest_missing", "automatic_execution": False}
     try:
-        composition = audit_transfer_set(base, report_path)
+        composition = audit_transfer_set(base, report_path, require_readiness_receipt=require_signed_result)
         if require_signed_result and composition.get("status") != "passed":
             return {"schema_version": SCHEMA, "status": "blocked", "checks": {"transfer_composition": composition}, "automatic_execution": False}
         inventory = _read(manifest_path)
@@ -62,6 +63,23 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         checks["cross_artifact_binding"] = {"status": "passed"}
         signed_result_path = base / "verification-result.json"
+        readiness_receipt_path = base / "signed-readiness-receipt.json"
+        if require_signed_result and not readiness_receipt_path.is_file():
+            checks["signed_readiness_receipt"] = {"status": "blocked", "reason": "signed_readiness_receipt_missing"}
+            return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+        if readiness_receipt_path.is_file():
+            snapshot_path = base / "release-readiness.json"
+            gate_path = base / "release-gate.json"
+            if not snapshot_path.is_file() or not gate_path.is_file():
+                checks["signed_readiness_receipt"] = {"status": "blocked", "reason": "readiness_receipt_components_missing"}
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+            readiness_receipt = _read(readiness_receipt_path)
+            snapshot = _read(snapshot_path)
+            gate = _read(gate_path)
+            readiness_check = verify_readiness_receipt(readiness_receipt, snapshot, gate, int(readiness_receipt.get("validated_test_count", -1)), key)
+            checks["signed_readiness_receipt"] = readiness_check
+            if readiness_check.get("status") != "passed":
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         if require_signed_result and not signed_result_path.is_file():
             checks["signed_verification_result"] = {"status": "blocked", "reason": "signed_verification_result_missing"}
             return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}

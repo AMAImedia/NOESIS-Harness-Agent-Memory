@@ -20,7 +20,7 @@ SCHEMA = "noesis.post-transfer-audit.v1"
 
 
 def audit(root: str | Path, key: str, report: str | None = None) -> dict[str, Any]:
-    composition = audit_transfer_set(root, report)
+    composition = audit_transfer_set(root, report, require_readiness_receipt=True)
     if composition.get("status") != "passed":
         return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "composition", "stages": {"composition": composition}, "automatic_execution": False, "external_execution_claim": False}
     chain = verify_artifact_set(root, key, report, require_signed_result=True)

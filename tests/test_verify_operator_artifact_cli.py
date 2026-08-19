@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 
 from scripts.run_operator_evidence_pipeline import run_pipeline
+from scripts.release_gate_artifact import build_gate_artifact
+from scripts.signed_readiness_receipt import sign_readiness_receipt
 from tests.test_external_evidence_readiness import evidence_for, manifest
 
 KEY = "readiness-test-key-2026"
@@ -31,6 +33,11 @@ class VerifyOperatorArtifactCliTests(unittest.TestCase):
         artifact_root = root / "artifacts"
         report = artifact_root / "operator-report.zip"
         run_pipeline(str(manifest_path), paths, KEY, str(artifact_root), str(snapshot), str(report))
+        readiness_snapshot = {"schema_version": "noesis.release-readiness-snapshot.v1", "overall_status": "passed", "snapshot_digest": "cli-snapshot-fixture", "native_host_status": "not_run", "external_lanes_status": "not_run"}
+        gate = build_gate_artifact({"status": "passed", "stages": {"post_transfer_audit": {"status": "passed"}, "release_readiness_snapshot": {"status": "passed"}}})
+        self.write(artifact_root / "release-readiness.json", readiness_snapshot)
+        self.write(artifact_root / "release-gate.json", gate)
+        self.write(artifact_root / "signed-readiness-receipt.json", sign_readiness_receipt(readiness_snapshot, gate, 0, "3.14.7", KEY))
         return artifact_root, report
 
     def run_cli(self, artifact_root, report=None):

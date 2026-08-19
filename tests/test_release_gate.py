@@ -7,6 +7,8 @@ from pathlib import Path
 
 from scripts.release_gate import run_gate
 from scripts.release_readiness_snapshot import build_snapshot
+from scripts.release_gate_artifact import build_gate_artifact
+from scripts.signed_readiness_receipt import sign_readiness_receipt
 from scripts.run_operator_evidence_pipeline import run_pipeline
 from tests.test_external_evidence_readiness import evidence_for, manifest
 
@@ -30,7 +32,12 @@ class ReleaseGateTests(unittest.TestCase):
         artifact_root = root / "artifacts"
         run_pipeline(str(manifest_path), paths, KEY, str(artifact_root))
         snapshot_path = root / "release-readiness.json"
-        self.write(snapshot_path, build_snapshot({"status": "passed"}, 624, "3.14.7"))
+        snapshot = build_snapshot({"status": "passed"}, 624, "3.14.7")
+        self.write(snapshot_path, snapshot)
+        gate = build_gate_artifact({"status": "passed", "stages": {"post_transfer_audit": {"status": "passed"}, "release_readiness_snapshot": {"status": "passed"}}})
+        self.write(artifact_root / "release-readiness.json", snapshot)
+        self.write(artifact_root / "release-gate.json", gate)
+        self.write(artifact_root / "signed-readiness-receipt.json", sign_readiness_receipt(snapshot, gate, 624, "3.14.7", KEY))
         return artifact_root, snapshot_path
 
     def test_gate_passes_with_separate_stage_results(self):

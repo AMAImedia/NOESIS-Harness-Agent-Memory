@@ -18,10 +18,10 @@ REQUIRED = frozenset({
     "chain-summary.json",
     "reproducibility-receipt.json",
 })
-OPTIONAL = frozenset({"operator-report.zip", "release-gate.json"})
+OPTIONAL = frozenset({"operator-report.zip", "release-gate.json", "release-readiness.json", "signed-readiness-receipt.json"})
 
 
-def audit_transfer_set(root: str | Path, report_path: str | None = None) -> dict[str, Any]:
+def audit_transfer_set(root: str | Path, report_path: str | None = None, require_readiness_receipt: bool = False) -> dict[str, Any]:
     base = Path(root).resolve()
     if not base.is_dir():
         return {"schema_version": SCHEMA, "status": "blocked", "reason": "transfer_root_missing", "automatic_execution": False}
@@ -32,6 +32,8 @@ def audit_transfer_set(root: str | Path, report_path: str | None = None) -> dict
         report = Path(report_path).resolve()
         if base not in report.parents or report.name not in OPTIONAL or not report.is_file():
             return {"schema_version": SCHEMA, "status": "blocked", "reason": "transfer_report_invalid", "missing": missing, "unexpected": unexpected, "automatic_execution": False}
+    if require_readiness_receipt and "signed-readiness-receipt.json" not in names:
+        return {"schema_version": SCHEMA, "status": "blocked", "reason": "transfer_readiness_receipt_missing", "missing": ["signed-readiness-receipt.json"], "unexpected": unexpected, "automatic_execution": False}
     if missing:
         return {"schema_version": SCHEMA, "status": "blocked", "reason": "transfer_required_artifact_missing", "missing": missing, "unexpected": unexpected, "automatic_execution": False}
     if unexpected:
