@@ -13,18 +13,29 @@ from typing import Any
 from scripts.post_transfer_audit import audit as audit_transfer
 from scripts.release_gate_artifact import build_gate_artifact
 from scripts.verify_release_readiness import verify_file
+from scripts.release_gate_artifact import verify_gate_artifact
 
 SCHEMA = "noesis.release-gate.v1"
 
 
-def run_gate(root: str | Path, key: str, snapshot: str | Path) -> dict[str, Any]:
+def run_gate(root: str | Path, key: str, snapshot: str | Path, gate_artifact: str | Path | None = None) -> dict[str, Any]:
     transfer = audit_transfer(root, key)
     if transfer.get("status") != "passed":
         return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "post_transfer_audit", "stages": {"post_transfer_audit": transfer}, "automatic_execution": False, "external_execution_claim": False}
     readiness = verify_file(snapshot)
     if readiness.get("status") != "passed":
         return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_readiness_snapshot", "stages": {"post_transfer_audit": transfer, "release_readiness_snapshot": readiness}, "automatic_execution": False, "external_execution_claim": False}
-    return {"schema_version": SCHEMA, "status": "passed", "stages": {"post_transfer_audit": transfer, "release_readiness_snapshot": readiness}, "automatic_execution": False, "external_execution_claim": False}
+    stages = {"post_transfer_audit": transfer, "release_readiness_snapshot": readiness}
+    if gate_artifact:
+        artifact_path = Path(gate_artifact).resolve()
+        if not artifact_path.is_file():
+            stages["release_gate_artifact"] = {"status": "blocked", "reason": "release_gate_artifact_missing"}
+            return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_gate_artifact", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
+        gate_check = verify_gate_artifact(json.loads(artifact_path.read_text(encoding="utf-8")))
+        stages["release_gate_artifact"] = gate_check
+        if gate_check.get("status") != "passed":
+            return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_gate_artifact", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
+    return {"schema_version": SCHEMA, "status": "passed", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,9 +44,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--key", required=True)
     parser.add_argument("--snapshot", required=True)
     parser.add_argument("--output", help="Optional path for a deterministic release-gate artifact")
+    parser.add_argument("--gate-artifact", help="Optional existing gate artifact to verify for consistency")
     args = parser.parse_args(argv)
     try:
-        result = run_gate(args.root, args.key, args.snapshot)
+        result = run_gate(args.root, args.key, args.snapshot, args.gate_artifact)
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         result = {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "input", "reason": type(exc).__name__ + ":" + str(exc)[:160], "automatic_execution": False, "external_execution_claim": False}
     if args.output:

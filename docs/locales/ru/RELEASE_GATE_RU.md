@@ -21,3 +21,5 @@
 Полностью passed gate возвращает один JSON object со `status=passed` и exit code `0`. Любая missing, blocked, unsupported, malformed или tampered stage возвращает `status=blocked` и exit code `2`. Gate не преобразует non-passed native или external states в success.
 
 Gate является только integrity/readiness composition. Он не доказывает native Windows/macOS execution, external lane execution, performance или worldwide superiority.
+
+Существующий `release-gate.json` можно проверить на consistency через `--gate-artifact`. Если file находится внутри evidence root, post-transfer audit также автоматически проверяет его digest. Tampered или malformed optional artifact возвращается отдельной `release_gate_artifact` stage и fail-closed блокируется; отсутствие остаётся допустимым для старых transfers.

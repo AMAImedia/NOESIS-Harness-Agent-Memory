@@ -52,6 +52,15 @@ class ReleaseGateTests(unittest.TestCase):
             result = run_gate(artifact_root, KEY, snapshot)
             self.assertEqual(result["failed_stage"], "release_readiness_snapshot")
 
+    def test_existing_gate_artifact_consistency(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root, snapshot = self.build_set(Path(directory))
+            first = run_gate(artifact_root, KEY, snapshot)
+            gate_path = artifact_root / "release-gate.json"
+            gate_path.write_text(json.dumps({"schema_version": "noesis.release-gate-artifact.v1", "status": first["status"], "failed_stage": first.get("failed_stage"), "stages": first["stages"], "automatic_execution": False, "external_execution_claim": False, "claim_boundary": "release_gate_integrity_summary_only", "artifact_digest": "invalid"}), encoding="utf-8")
+            blocked = run_gate(artifact_root, KEY, snapshot, gate_path)
+            self.assertEqual(blocked["failed_stage"], "post_transfer_audit")
+
     def test_posix_wrapper_returns_json(self):
         with tempfile.TemporaryDirectory() as directory:
             artifact_root, snapshot = self.build_set(Path(directory))

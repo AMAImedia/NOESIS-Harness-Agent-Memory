@@ -14,6 +14,7 @@ from typing import Any
 from scripts.transfer_audit import audit_transfer_set
 from scripts.verify_operator_artifact_set import verify_artifact_set
 from scripts.verify_reproducibility_receipt import verify_reproducibility_set
+from scripts.release_gate_artifact import verify_gate_artifact
 
 SCHEMA = "noesis.post-transfer-audit.v1"
 
@@ -28,7 +29,15 @@ def audit(root: str | Path, key: str, report: str | None = None) -> dict[str, An
     reproducibility = verify_reproducibility_set(root, key)
     if reproducibility.get("status") != "passed":
         return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "reproducibility", "stages": {"composition": composition, "artifact_chain": chain, "reproducibility": reproducibility}, "automatic_execution": False, "external_execution_claim": False}
-    return {"schema_version": SCHEMA, "status": "passed", "stages": {"composition": composition, "artifact_chain": chain, "reproducibility": reproducibility}, "automatic_execution": False, "external_execution_claim": False}
+    stages = {"composition": composition, "artifact_chain": chain, "reproducibility": reproducibility}
+    gate_path = Path(root).resolve() / "release-gate.json"
+    if gate_path.is_file():
+        gate = verify_gate_artifact(json.loads(gate_path.read_text(encoding="utf-8")))
+        if gate.get("status") != "passed":
+            stages["release_gate_artifact"] = gate
+            return {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "release_gate_artifact", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
+        stages["release_gate_artifact"] = gate
+    return {"schema_version": SCHEMA, "status": "passed", "stages": stages, "automatic_execution": False, "external_execution_claim": False}
 
 
 def main(argv: list[str] | None = None) -> int:
