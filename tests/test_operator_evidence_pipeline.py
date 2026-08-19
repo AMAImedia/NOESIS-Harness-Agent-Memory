@@ -27,7 +27,7 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
                 evidence_paths.append(str(path))
             snapshot_path = root / "snapshot.json"
             self.write_json(snapshot_path, {"local_execution": {"status": "passed"}, "native_parity": {"status": "not_run"}, "external_comparative": {"status": "not_run"}})
-            report_path = root / "report.zip"
+            report_path = root / "artifacts" / "report.zip"
             result = run_pipeline(str(manifest_path), evidence_paths, KEY, str(root / "artifacts"), str(snapshot_path), str(report_path))
             self.assertEqual(result["status"], "passed")
             self.assertTrue((root / "artifacts/external-evidence-readiness.json").is_file())

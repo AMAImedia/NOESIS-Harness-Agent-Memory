@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.aggregate_external_evidence import aggregate_external_evidence
+from scripts.artifact_inventory import build_inventory
 from scripts.export_operator_report import export_snapshot
 from scripts.external_evidence_readiness import build_matrix
 
@@ -46,6 +47,12 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         snapshot = _read(snapshot_path)
         export_snapshot(snapshot, report_output, key.encode("utf-8"), external_aggregate=aggregate)
         report_path = str(Path(report_output))
+    artifact_paths = [matrix_path, aggregate_path]
+    if report_path:
+        artifact_paths.append(Path(report_path))
+    inventory = build_inventory(root, artifact_paths, key, {"pipeline_schema": SCHEMA, "status": aggregate["overall_status"], "comparative_ready": bool(aggregate["comparative_ready"]), "required_lanes": list(aggregate["required_lanes"])})
+    inventory_path = root / "artifact-manifest.json"
+    inventory_path.write_text(json.dumps(inventory, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     status = aggregate["overall_status"]
     lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
     status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}
@@ -58,7 +65,8 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         "comparative_ready": bool(aggregate["comparative_ready"]),
         "matrix_status": matrix["overall_status"],
         "aggregate_status": aggregate["overall_status"],
-        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path},
+        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path)},
+        "artifact_manifest_digest": inventory["inventory_digest"],
         "required_lanes": list(aggregate["required_lanes"]),
         "external_execution_claim": False,
         "automatic_execution": False,
