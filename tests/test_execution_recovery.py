@@ -38,6 +38,17 @@ class ExecutionRecoveryTests(unittest.TestCase):
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
 
+    def test_interrupted_run_requires_explicit_authenticated_recovery(self):
+        self.recovery.begin("run-interrupted", "sha256:before", "sha256:request")
+        action = ExecutionRecoveryAction("action-recover", "recover", "run-interrupted", "", "proposal-not-required", "ws-1", "snap-base", "operator-1", "session-1")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=str(Path(self.tmp.name) / "recovery-events.jsonl"), rollback_handler=lambda _: True)
+        result = executor.handle(action, self.context)
+        self.assertEqual(result["status"], "recovered")
+        self.assertFalse(result["rollback_performed"])
+        self.assertEqual(self.recovery.get("run-interrupted")["status"], "recovered")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "interrupted_run_required"):
+            executor.handle(ExecutionRecoveryAction("action-recover-again", "recover", "run-interrupted", "", "proposal-not-required", "ws-1", "snap-base", "operator-1", "session-1"), self.context)
+
     def test_rollback_rejects_unauthorized_stale_or_unapproved_state(self):
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=str(Path(self.tmp.name) / "events.jsonl"), rollback_handler=lambda _: True)
         with self.assertRaisesRegex(PermissionError, "scope_denied"):

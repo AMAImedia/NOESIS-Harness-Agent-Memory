@@ -6,7 +6,7 @@
 
 A governed child execution run has one immutable `request_id` and one canonical request fingerprint. The fingerprint covers the command arguments, resolved workspace, executable allowlist, environment, timeout and output budgets, network flag, skill manifest, skill identity and granted capabilities. The recovery ledger persists this fingerprint before execution.
 
-A second invocation with the same `request_id` is not allowed to execute again after the run reaches a terminal state. It returns `execution_replay_denied`. A second invocation that reuses the `request_id` with a different request fingerprint returns `execution_request_identity_conflict`. An interrupted `running` record remains visible to recovery and must not be silently treated as a fresh run.
+A second invocation with the same `request_id` is not allowed to execute again after the run reaches a terminal state. It returns `execution_replay_denied`. A second invocation that reuses the `request_id` with a different request fingerprint returns `execution_request_identity_conflict`. An interrupted `running` record remains visible to recovery and must not be silently treated as a fresh run. It can transition to `recovered` only through an authenticated, scoped `recover` action with an injected handler that confirms the recovery transition. The action is explicit and idempotent; it does not claim rollback and it does not execute the child again.
 
 The execution receipt is signed and persisted before the recovery record is marked terminal. A successful child run maps to recovery status `completed`; timeout, denial and failure map to their corresponding bounded terminal states. The recovery ledger never claims rollback unless an explicit recovery executor performs and confirms that mutation.
 
@@ -20,7 +20,8 @@ The execution receipt is signed and persisted before the recovery record is mark
 | Network request without verified isolation | Denied fail-closed |
 | Credential-like child output | Redacted and blocked |
 | Receipt tampering or conflict | Rejected |
-| Interrupted run | Explicit recovery-required state; no automatic rollback claim |
+| Interrupted run | Explicit recovery-required state; only authenticated `recover` action may mark it recovered |
+| Recovery without explicit action | Remains `running`/recovery-required; no automatic rollback or rerun |
 | Automatic skill activation | Disabled; outside this runtime contract |
 
 ## Evidence boundary

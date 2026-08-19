@@ -36,9 +36,11 @@ class ExecutionRecoveryAction:
     def __post_init__(self) -> None:
         if self.schema_version != RECOVERY_ACTION_SCHEMA:
             raise ExecutionRecoveryError("unsupported_recovery_action_schema")
-        for value, field in ((self.action_id, "action_id"), (self.run_id, "run_id"), (self.receipt_id, "receipt_id"), (self.proposal_id, "proposal_id"), (self.workspace_id, "workspace_id"), (self.current_base_snapshot_id, "current_base_snapshot_id"), (self.operator_id, "operator_id"), (self.session_id, "session_id")):
+        for value, field in ((self.action_id, "action_id"), (self.run_id, "run_id"), (self.proposal_id, "proposal_id"), (self.workspace_id, "workspace_id"), (self.current_base_snapshot_id, "current_base_snapshot_id"), (self.operator_id, "operator_id"), (self.session_id, "session_id")):
             if not value:
                 raise ExecutionRecoveryError(field + "_required")
+        if self.operation == "rollback" and not self.receipt_id:
+            raise ExecutionRecoveryError("receipt_id_required")
         if self.operation not in {"rollback", "recover"}:
             raise ExecutionRecoveryError("unsupported_recovery_operation")
         if not self.scope:
@@ -88,19 +90,27 @@ class ExecutionRecoveryExecutor:
         existing = self._existing(action.action_id)
         if existing is not None:
             return {"status": "replayed", "result": existing}
-        receipt = self.receipt_store.get(action.receipt_id)
-        if receipt is None or receipt.outcome not in {"committed", "failed", "timed_out"}:
-            raise ExecutionRecoveryError("execution_receipt_not_recoverable")
         run = self.recovery_store.get(action.run_id)
-        if run.get("receipt_id") != action.receipt_id:
-            raise ExecutionRecoveryError("recovery_receipt_mismatch")
-        proposal = self.patch_store.get(action.proposal_id)
-        if proposal.workspace_id != action.workspace_id:
-            raise ExecutionRecoveryError("recovery_workspace_mismatch")
-        if proposal.status != "approved":
-            raise ExecutionRecoveryError("approved_patch_required")
-        if proposal.base_snapshot_id != action.current_base_snapshot_id:
-            raise ExecutionRecoveryError("recovery_base_stale")
+        receipt = None
+        proposal = None
+        if action.operation == "recover":
+            if run.get("status") != "running":
+                raise ExecutionRecoveryError("interrupted_run_required")
+            if action.receipt_id and run.get("receipt_id") not in {None, "", action.receipt_id}:
+                raise ExecutionRecoveryError("recovery_receipt_mismatch")
+        else:
+            receipt = self.receipt_store.get(action.receipt_id)
+            if receipt is None or receipt.outcome not in {"committed", "failed", "timed_out"}:
+                raise ExecutionRecoveryError("execution_receipt_not_recoverable")
+            if run.get("receipt_id") != action.receipt_id:
+                raise ExecutionRecoveryError("recovery_receipt_mismatch")
+            proposal = self.patch_store.get(action.proposal_id)
+            if proposal.workspace_id != action.workspace_id:
+                raise ExecutionRecoveryError("recovery_workspace_mismatch")
+            if proposal.status != "approved":
+                raise ExecutionRecoveryError("approved_patch_required")
+            if proposal.base_snapshot_id != action.current_base_snapshot_id:
+                raise ExecutionRecoveryError("recovery_base_stale")
         if self.rollback_handler is None:
             raise ExecutionRecoveryError("rollback_handler_required")
         applied = bool(self.rollback_handler(action))
@@ -112,7 +122,7 @@ class ExecutionRecoveryExecutor:
         else:
             state = self.recovery_store.mark_recovered(action.run_id)
             operation_status = "recovered"
-        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id, "proposal_id": proposal.proposal_id, "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "recovery_state": state}
+        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "recovery_state": state}
         self.events.append("execution_recovery_completed", payload, event_id="execution-recovery:" + action.action_id)
         return payload
 
