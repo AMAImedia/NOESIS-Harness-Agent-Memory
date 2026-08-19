@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 from noesis_harness.report_bundle import build_report_bundle
 from noesis_harness.lifecycle_audit_ingestion import verify_ingestion_receipt_audit
+from scripts.aggregate_external_evidence import verify_aggregate
 
 
 def _read(path: str) -> dict[str, Any]:
@@ -53,10 +54,17 @@ def _receipt_audit(path: str, key: bytes) -> dict[str, Any]:
     return dict(result)
 
 
-def export_snapshot(snapshot: Mapping[str, Any], output: str, key: bytes, receipt_audit: Mapping[str, Any] | None = None) -> Mapping[str, Any]:
+def export_snapshot(snapshot: Mapping[str, Any], output: str, key: bytes, receipt_audit: Mapping[str, Any] | None = None, external_aggregate: Mapping[str, Any] | None = None) -> Mapping[str, Any]:
     local = _domain(snapshot, "local_execution", {"status": "not_run", "reason": "local_execution_projection_unavailable", "execution_claim": False})
     native = _domain(snapshot, "native_parity", {"status": "not_run", "reason": "native_parity_projection_unavailable", "execution_claim": False})
     external = _domain(snapshot, "external_comparative", {"status": "not_run", "reason": "external_comparative_projection_unavailable", "comparative_claim": False, "external_execution_claim": False})
+    if external_aggregate is not None:
+        verification = verify_aggregate(external_aggregate, key.decode("utf-8"))
+        if verification.get("status") != "passed":
+            raise ValueError("external_aggregate_verification:" + str(verification.get("reason", "failed")))
+        external["signed_evidence_aggregate"] = dict(external_aggregate)
+        external["comparative_claim"] = False
+        external["external_execution_claim"] = False
     for value in (local, native, external):
         value.pop("signing_key", None)
         value.pop("operator_token", None)
@@ -69,11 +77,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True)
     parser.add_argument("--key-env", default="NOESIS_REPORT_SIGNING_KEY")
     parser.add_argument("--receipt-audit", help="Optional verified lifecycle receipt audit JSON")
+    parser.add_argument("--external-aggregate", help="Optional verified signed external evidence aggregate JSON")
     args = parser.parse_args(argv)
     try:
         key = _key(args.key_env)
         receipt_audit = _receipt_audit(args.receipt_audit, key) if args.receipt_audit else None
-        result = export_snapshot(_read(args.snapshot), args.output, key, receipt_audit)
+        external_aggregate = _read(args.external_aggregate) if args.external_aggregate else None
+        result = export_snapshot(_read(args.snapshot), args.output, key, receipt_audit, external_aggregate)
         print(json.dumps(result, sort_keys=True))
         return 0
     except (OSError, ValueError, json.JSONDecodeError) as exc:

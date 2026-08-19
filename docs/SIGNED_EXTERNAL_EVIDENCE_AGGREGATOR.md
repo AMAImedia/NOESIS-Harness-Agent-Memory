@@ -32,3 +32,7 @@ python scripts/aggregate_external_evidence.py \
 ```
 
 A non-passed aggregate exits with code `2`. The command writes no executable configuration and never infers missing evidence as success.
+
+## Operator report integration
+
+A verified aggregate can be attached to the bounded operator snapshot export with `scripts/export_operator_report.py --external-aggregate`. The exporter verifies the aggregate with the report signing key before archive creation and stores it only under the `external_comparative` projection as `signed_evidence_aggregate`. This does not escalate `comparative_claim` or `external_execution_claim`; malformed or tampered aggregate input blocks the export and creates no ZIP.
