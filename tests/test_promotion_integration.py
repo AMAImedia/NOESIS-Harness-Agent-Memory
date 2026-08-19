@@ -21,6 +21,21 @@ class PromotionIntegrationTests(unittest.TestCase):
         receipt = integration.capture_task_completion({"task_id": "task-1", "status": "done"}, payload={"result": "ok"}, source_digest="src", policy_digest="pol", agent_id="agent", scope="project:demo")
         self.assertEqual(receipt.experience_id, "task-1")
 
+    def test_evaluator_readiness_blocks_persisted_manifest_without_runtime_builder(self):
+        root = tempfile.mkdtemp()
+        pipe = LearningPromotionPipeline(root, b"evaluator-readiness-key")
+        first = EvaluatorRegistry(state=pipe.durable_state)
+        first.register("eval-persisted", lambda receipt: [{"case_id": "a", "passed": True}])
+        self.assertEqual(first.readiness()["status"], "ready")
+        reopened = LearningPromotionPipeline(root, b"evaluator-readiness-key")
+        restored = EvaluatorRegistry(state=reopened.durable_state)
+        readiness = restored.readiness()
+        self.assertEqual(readiness["status"], "blocked")
+        self.assertEqual(readiness["missing_runtime_versions"], ["eval-persisted"])
+        self.assertFalse(readiness["runtime_available"])
+        restored.register("eval-persisted", lambda receipt: [{"case_id": "a", "passed": True}], manifest_digest=first.manifests()["eval-persisted"])
+        self.assertEqual(restored.readiness()["status"], "ready")
+
     def test_registry_and_review_only_flow_defaults_to_no_activation(self):
         integration = self.integration()
         receipt = integration.capture_task_completion({"task_id": "task-2", "status": "completed"}, payload={"result": "ok"}, source_digest="src", policy_digest="pol", agent_id="agent", scope="project:demo")

@@ -17,7 +17,7 @@
 
 **Track A — control plane и operator surface.** Завершить versioned task/session API, interactive streaming, SSE telemetry, approvals, diff/patch review, per-agent workspaces и session resume. Read-only endpoint `/api/operator/snapshot` объединяет health, model capabilities, readiness, telemetry и authenticated operator context с recursive secret redaction.
 
-**Track B — governed self-learning.** Связать terminal outcomes с provenance, holdout, review-only proposal, explicit approval, immutable promotion, verification и rollback. Automatic activation без approval остаётся запрещённой.
+**Track B — governed self-learning.** Связать terminal outcomes с provenance, holdout, review-only proposal, explicit approval, immutable promotion, verification и rollback. Добавить durable evaluator manifests и `noesis.evaluator-readiness.v1`: persisted manifest после restart не считается runtime availability, пока callable evaluator не зарегистрирован заново с matching digest. Automatic activation без approval остаётся запрещённой.
 
 **Track C — memory и long context.** Расширить реальные durable trajectories, multi-session reuse, decay, conflicts, compaction, attribution leakage, hard budgets и independent repeated evaluation.
 

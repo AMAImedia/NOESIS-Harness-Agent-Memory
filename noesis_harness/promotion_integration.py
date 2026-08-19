@@ -22,6 +22,7 @@ class EvaluatorRegistry:
     """Explicit evaluator registry; no implicit evaluator or automatic promotion."""
     def __init__(self, *, state: DurablePromotionState | None = None) -> None:
         self._items: dict[str, EvaluatorSpec] = {}
+        self._manifest_digests: dict[str, str] = {}
         self._state = state
 
     def register(self, version: str, build_cases: Callable[[ExperienceReceipt], Iterable[Mapping[str, Any]]], *, manifest_digest: str | None = None) -> EvaluatorSpec:
@@ -29,19 +30,46 @@ class EvaluatorRegistry:
             raise ValueError("invalid_or_duplicate_evaluator_version")
         if not callable(build_cases):
             raise TypeError("evaluator_builder_required")
-        digest = manifest_digest or _digest({"version": version, "builder": getattr(build_cases, "__qualname__", type(build_cases).__name__)})
+        digest = manifest_digest or self._manifest_digest(version, build_cases)
         if not isinstance(digest, str) or not digest:
             raise ValueError("evaluator_manifest_digest_required")
         if self._state is not None:
             self._state.register_evaluator(version, digest)
         spec = EvaluatorSpec(version, build_cases)
         self._items[version] = spec
+        self._manifest_digests[version] = digest
         return spec
+
+    @staticmethod
+    def _manifest_digest(version: str, builder: Callable[[ExperienceReceipt], Iterable[Mapping[str, Any]]]) -> str:
+        return _digest({"version": version, "builder": getattr(builder, "__qualname__", type(builder).__name__)})
 
     def manifests(self) -> Mapping[str, str]:
         if self._state is not None:
             return dict(self._state.evaluator_manifests())
-        return {version: _digest({"version": version, "builder": getattr(spec.build_cases, "__qualname__", type(spec.build_cases).__name__)}) for version, spec in sorted(self._items.items())}
+        return {version: self._manifest_digests.get(version, self._manifest_digest(version, spec.build_cases)) for version, spec in sorted(self._items.items())}
+
+    def readiness(self) -> Mapping[str, Any]:
+        persisted = dict(self._state.evaluator_manifests()) if self._state is not None else {}
+        registered = {version: self._manifest_digests.get(version, self._manifest_digest(version, spec.build_cases)) for version, spec in sorted(self._items.items())}
+        missing_runtime = sorted(set(persisted) - set(registered))
+        manifest_conflicts = sorted(version for version in set(persisted) & set(registered) if persisted[version] != registered[version])
+        if missing_runtime or manifest_conflicts:
+            status = "blocked"
+        elif registered:
+            status = "ready"
+        else:
+            status = "not_configured"
+        return {
+            "schema_version": "noesis.evaluator-readiness.v1",
+            "status": status,
+            "registered_versions": sorted(registered),
+            "persisted_versions": sorted(persisted),
+            "missing_runtime_versions": missing_runtime,
+            "manifest_conflicts": manifest_conflicts,
+            "runtime_available": status == "ready",
+            "automatic_registration": False,
+        }
 
     def get(self, version: str) -> EvaluatorSpec:
         try:
@@ -506,6 +534,7 @@ class PromotionIntegration:
         snapshot = self.telemetry.snapshot()
         snapshot["promotion_state"] = {"receipts": len(self.pipeline._receipts), "evaluations": len(self.pipeline._evaluations), "proposals": len(self.pipeline._proposals), "active_versions": sum(1 for name in {proposal.skill_name for proposal in self.pipeline._proposals.values()} if self.pipeline.active_version(name))}
         snapshot["evaluator_manifests"] = dict(self.registry.manifests())
+        snapshot["evaluator_readiness"] = self.registry.readiness()
         return snapshot
 
 

@@ -23,7 +23,7 @@ Complete versioned task/session command APIs, interactive chat/streaming contrac
 
 ### Track B — Governed self-learning
 
-Bind terminal task outcomes to provenance receipts, deterministic holdouts, review-only proposals, explicit human approval, immutable promotion, post-promotion verification and rollback. Add evaluator registration, operator UI workflow, skill proposal provenance, conflict handling and disabled-by-default executable activation. Automatic activation without approval remains a permanent negative test.
+Bind terminal task outcomes to provenance receipts, deterministic holdouts, review-only proposals, explicit human approval, immutable promotion, post-promotion verification and rollback. Add evaluator registration, durable manifest tracking and `noesis.evaluator-readiness.v1`: a persisted manifest is not runtime availability after restart until the callable evaluator is explicitly re-registered with the matching digest. Add operator UI workflow, skill proposal provenance, conflict handling and disabled-by-default executable activation. Automatic activation without approval remains a permanent negative test.
 
 ### Track C — Memory and long context
 
