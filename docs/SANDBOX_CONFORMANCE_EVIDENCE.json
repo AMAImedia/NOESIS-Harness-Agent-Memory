@@ -1,0 +1,64 @@
+{
+  "external_boundary": "macOS/Windows execution evidence requires matching native host; Linux does not simulate it; command inspection and Linux execution probes are not native parity proof",
+  "records": [
+    {
+      "available": true,
+      "backend_id": "linux-bubblewrap",
+      "checks": [
+        {
+          "name": "argv_present",
+          "status": "passed"
+        },
+        {
+          "name": "workspace_binding",
+          "status": "passed"
+        },
+        {
+          "name": "network_policy_declared",
+          "status": "passed"
+        },
+        {
+          "name": "shell_not_selected",
+          "status": "passed"
+        },
+        {
+          "name": "execution_runner",
+          "status": "passed"
+        },
+        {
+          "name": "workspace_write",
+          "status": "passed"
+        },
+        {
+          "name": "process_exit",
+          "status": "passed"
+        }
+      ],
+      "host_platform": "linux",
+      "reason": "",
+      "status": "passed"
+    },
+    {
+      "available": false,
+      "backend_id": "macos-sandbox-exec",
+      "checks": [],
+      "host_platform": "macos",
+      "reason": "backend_unavailable_on_host",
+      "status": "not_run"
+    },
+    {
+      "available": false,
+      "backend_id": "windows-native",
+      "checks": [],
+      "host_platform": "windows",
+      "reason": "matching_windows_host_required",
+      "status": "not_run"
+    }
+  ],
+  "runtime": {
+    "platform": "Linux-6.1.102-x86_64-with-glibc2.39",
+    "python": "3.14.7",
+    "system": "Linux"
+  },
+  "schema_version": "noesis.sandbox-conformance.v2"
+}

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, Sequence
+from typing import Any, Protocol, Sequence
 
 
 @dataclass(frozen=True)
@@ -41,6 +41,38 @@ class SandboxBackend(Protocol):
     def command(self, argv: Sequence[str], workspace: Path) -> list[str]: ...
 
 
+def run_conformance(backend: SandboxBackend, *, workspace: Path) -> BackendConformanceResult:
+    """Run a bounded write/exit probe after command-level inspection.
+
+    The runner never substitutes an unavailable backend. It records `not_run`
+    for unavailable hosts and only adds execution checks when the selected
+    backend explicitly exposes a `run` method.
+    """
+    inspected = inspect_backend(backend, workspace=workspace)
+    if not inspected.available:
+        return inspected
+    runner = getattr(backend, "run", None)
+    if not callable(runner):
+        return BackendConformanceResult(backend.backend_id, backend.host_platform, True, inspected.checks + (("execution_runner", "failed"),), "backend_run_method_required")
+    marker = workspace / ".noesis-conformance-marker"
+    code = "from pathlib import Path; Path('.noesis-conformance-marker').write_text('conformance', encoding='utf-8'); print('conformance')"
+    try:
+        result: Any = runner(("/usr/bin/python3", "-c", code), workspace, timeout_seconds=5.0)
+        checks = list(inspected.checks)
+        checks.append(("execution_runner", "passed" if result.status == "passed" else "failed"))
+        checks.append(("workspace_write", "passed" if marker.is_file() and marker.read_text(encoding="utf-8") == "conformance" else "failed"))
+        checks.append(("process_exit", "passed" if result.returncode == 0 else "failed"))
+        reason = "" if all(status == "passed" for _, status in checks) else (result.reason or "conformance_probe_failed")
+        return BackendConformanceResult(backend.backend_id, backend.host_platform, True, tuple(checks), reason)
+    except Exception as exc:
+        return BackendConformanceResult(backend.backend_id, backend.host_platform, True, inspected.checks + (("execution_runner", "failed"),), "conformance_probe_error:%s" % type(exc).__name__)
+    finally:
+        try:
+            marker.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def inspect_backend(backend: SandboxBackend, *, probe_argv: Sequence[str] = ("/usr/bin/printf", "conformance"), workspace: Path) -> BackendConformanceResult:
     """Validate command-level invariants without executing a child process."""
     if not backend.available:
@@ -59,4 +91,4 @@ def inspect_backend(backend: SandboxBackend, *, probe_argv: Sequence[str] = ("/u
     return BackendConformanceResult(backend.backend_id, backend.host_platform, True, checks)
 
 
-__all__ = ["BackendConformanceResult", "SandboxBackend", "inspect_backend"]
+__all__ = ["BackendConformanceResult", "SandboxBackend", "inspect_backend", "run_conformance"]

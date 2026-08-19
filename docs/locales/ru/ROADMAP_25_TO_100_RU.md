@@ -21,7 +21,7 @@
 
 **Track C — memory и long context.** Расширить реальные durable trajectories, multi-session reuse, decay, conflicts, compaction, attribution leakage, hard budgets и independent repeated evaluation.
 
-**Track D — isolation и adversarial reliability.** Объединить Bubblewrap, Windows и macOS под единым conformance contract и расширить tests на filesystem/network/credentials, symlink, timeout, process tree, leakage, corrupted receipt и recovery.
+**Track D — isolation и adversarial reliability.** Объединить Bubblewrap, Windows и macOS под единым conformance contract. `run_conformance()` выполняет command-level policy checks и bounded workspace-write/process-exit probe только для available backend; unavailable host остаётся `not_run`, а command-only backend не может получить `passed`. Расширить tests на filesystem/network/credentials, symlink, timeout, process tree, leakage, corrupted receipt и recovery. Linux evidence остаётся Bubblewrap-local; native Windows/macOS требуют matching hosts.
 
 **Track E — portable/native packaging.** Выпустить reproducible Python 3.14 layouts, SBOM, checksums и operator bundles; фактический Windows/macOS execution остаётся host-gated.
 

@@ -9,7 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from noesis_harness.sandbox_backend import inspect_backend
+from noesis_harness.sandbox_backend import run_conformance
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
 from noesis_harness.sandbox_macos import MacOSSandboxBackend
 
@@ -18,7 +18,7 @@ def build_report() -> dict[str, object]:
     with tempfile.TemporaryDirectory(prefix="noesis-sandbox-conformance-") as temp:
         workspace = Path(temp)
         backends = (BubblewrapBackend(), MacOSSandboxBackend())
-        records = [inspect_backend(backend, workspace=workspace).as_dict() for backend in backends]
+        records = [run_conformance(backend, workspace=workspace).as_dict() for backend in backends]
     records.append({
         "backend_id": "windows-native",
         "host_platform": "windows",
@@ -28,10 +28,10 @@ def build_report() -> dict[str, object]:
         "status": "not_run",
     })
     return {
-        "schema_version": "noesis.sandbox-conformance.v1",
+        "schema_version": "noesis.sandbox-conformance.v2",
         "runtime": {"python": platform.python_version(), "platform": platform.platform(), "system": platform.system()},
         "records": records,
-        "external_boundary": "macOS/Windows execution evidence requires matching native host; Linux does not simulate it",
+        "external_boundary": "macOS/Windows execution evidence requires matching native host; Linux does not simulate it; command inspection and Linux execution probes are not native parity proof",
     }
 
 

@@ -31,7 +31,7 @@ Extend real durable trajectories beyond fixtures: multi-session reuse, temporal 
 
 ### Track D — Isolation and adversarial reliability
 
-Unify Bubblewrap, Windows and macOS sandbox interfaces under one conformance contract. Expand filesystem, network, credential, symlink, environment-poisoning, timeout, process-tree, cross-agent leakage, corrupted receipt, interrupted write, rollback and stale-base tests. Every unsupported host must return `not_run`, `blocked` or `unavailable`, never `passed`.
+Unify Bubblewrap, Windows and macOS sandbox interfaces under one conformance contract. `run_conformance()` now performs command-level policy checks plus a bounded workspace-write/process-exit probe only when the selected backend is available; an unavailable host remains `not_run`, and a command-only backend cannot be reported as passed. Expand filesystem, network, credential, symlink, environment-poisoning, timeout, process-tree, cross-agent leakage, corrupted receipt, interrupted write, rollback and stale-base tests. Current Linux evidence is Bubblewrap-local; every unsupported host must return `not_run`, `blocked` or `unavailable`, never `passed`.
 
 ### Track E — Portable and native packaging
 
