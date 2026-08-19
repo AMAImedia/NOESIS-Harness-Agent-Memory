@@ -16,3 +16,5 @@
 | Valid signed lifecycle log | `passed`, только audit |
 
 Replayed action может иметь terminal `blocked` event после ранее completed sequence; второй completed receipt не создаётся, comparative claim не повышается.
+
+`lifecycle_audit_readiness()` показывает verified result как отдельный domain `report_export_lifecycle_audit`. Он всегда возвращает `execution_lane_satisfied=false`, `native_lane_satisfied=false` и `external_lane_satisfied=false`, даже если audit log успешно проверен. HealthServer проецирует этот domain в operator snapshot, telemetry, readiness surfaces и `/api/readiness`.

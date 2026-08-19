@@ -77,8 +77,18 @@ def verify_lifecycle_file(path: str | Path, signing_key: bytes) -> Mapping[str, 
     return verify_lifecycle_events(events, signing_key)
 
 
+def lifecycle_audit_readiness(path: str | Path, signing_key: bytes) -> Mapping[str, Any]:
+    verification = verify_lifecycle_file(path, signing_key)
+    projection = lifecycle_audit_only_projection(verification)
+    projection["domain"] = "report_export_lifecycle_audit"
+    projection["execution_lane_satisfied"] = False
+    projection["native_lane_satisfied"] = False
+    projection["external_lane_satisfied"] = False
+    return projection
+
+
 def lifecycle_audit_only_projection(verification: Mapping[str, Any]) -> Mapping[str, Any]:
     return {"status": str(verification.get("status", "blocked")), "reason": str(verification.get("reason", "")), "event_count": int(verification.get("event_count", 0)), "audit_digest": str(verification.get("audit_digest", "")), "claim": False, "execution_claim": False, "comparative_claim": False, "claim_boundary": "audit_only_lifecycle_evidence"}
 
 
-__all__ = ["verify_lifecycle_events", "verify_lifecycle_file", "lifecycle_audit_only_projection"]
+__all__ = ["verify_lifecycle_events", "verify_lifecycle_file", "lifecycle_audit_only_projection", "lifecycle_audit_readiness"]

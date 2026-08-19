@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `lifecycle_audit_readiness()` and HealthServer `lifecycle_audit_readiness` projections for `/api/readiness`, operator snapshot and telemetry; the domain is always audit-only and cannot satisfy execution/native/external lanes.
 - Added `verify_lifecycle_events()`/`verify_lifecycle_file()` and an audit-only lifecycle projection that validate signed event logs without upgrading execution, native, external, or comparative claims.
 - Added English and Russian lifecycle verifier contracts and adversarial signature/order/duplicate/import tests.
 - Added signed append-only `noesis.report-export-lifecycle-event.v1` JSONL evidence records for every report export lifecycle event; replayed or failed actions can record `blocked`, but cannot create a second completed receipt.

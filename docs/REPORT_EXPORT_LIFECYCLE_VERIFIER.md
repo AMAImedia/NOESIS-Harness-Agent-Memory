@@ -16,3 +16,5 @@ A valid lifecycle log produces `status=passed` only for audit verification. `lif
 | Valid signed lifecycle log | `passed`, audit-only |
 
 A replayed action may have a terminal `blocked` event after an earlier completed sequence; it does not create a second completed receipt and does not upgrade any comparative claim.
+
+`lifecycle_audit_readiness()` exposes this verified result as the separate `report_export_lifecycle_audit` domain. It always reports `execution_lane_satisfied=false`, `native_lane_satisfied=false`, and `external_lane_satisfied=false`, even when the audit log verifies successfully. HealthServer projects the same domain into operator snapshot, telemetry, SSE-related readiness, and `/api/readiness`.
