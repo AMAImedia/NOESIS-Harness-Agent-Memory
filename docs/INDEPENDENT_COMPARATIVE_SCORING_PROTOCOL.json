@@ -13,6 +13,13 @@
     "command_sha256",
     "receipt_signature"
   ],
+  "case_receipt": {
+    "schema_version": "noesis.comparative-case-receipt.v1",
+    "identity_fields": ["system", "revision", "protocol_fingerprint", "case_id", "case_digest", "evaluator_revision"],
+    "required_fields": ["dimensions", "safety_failures", "receipt_id", "signature"],
+    "duplicate_identity": ["system", "case_id"],
+    "complete_corpus_required_for_each_lane": true
+  },
   "dimensions": [
     {"id": "task_correctness", "mandatory_safety": false, "aggregation": "passed_cases/eligible_cases"},
     {"id": "patch_correctness", "mandatory_safety": true, "aggregation": "passed_cases/eligible_cases"},
@@ -39,9 +46,13 @@
   },
   "aggregation": {
     "overall_score_requires_all_required_lanes_passed": true,
+    "complete_case_corpus_required_for_each_lane": true,
+    "case_identity_must_match_lane_receipt": true,
+    "mandatory_safety_failure_blocks_score": true,
     "mandatory_safety_failure_blocks_winner": true,
     "missing_data_is_not_imputed": true,
-    "raw_case_outcomes_required": true
+    "raw_case_outcomes_required": true,
+    "cross_lane_dimension_means_are_deterministic": true
   },
   "current_evidence": {
     "noesis": "local_only",

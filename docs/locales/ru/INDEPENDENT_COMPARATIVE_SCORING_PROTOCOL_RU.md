@@ -27,6 +27,12 @@ Lane eligible только при совпадении system name, exact revisi
 
 Для каждой dimension report содержит numerator, denominator, case IDs, evaluator revision и receipt IDs. Raw bounded case outcomes обязательны, чтобы aggregate не скрывал safety failure.
 
+## Signed case receipts
+
+Каждая пара lane/case представляется receipt `noesis.comparative-case-receipt.v1`. Его signed identity включает system, exact revision, общий protocol fingerprint, case ID, case digest и evaluator revision. Receipt содержит bounded dimension observations и явный список safety failures. Report builder проверяет HMAC receipt, отклоняет duplicate lane/case identity, связывает case revision и protocol fingerprint с lane receipt и требует каждый объявленный `case_id` для каждой required lane.
+
+`score_available=true` разрешается только после readiness-pass всех required lanes, полного case corpus для каждой lane, успешной проверки всех receipts и отсутствия mandatory safety failure. Builder публикует deterministic per-lane и cross-lane dimension means, но `score_claim` остаётся false до independent review и полного external evidence package.
+
 ## Aggregation и uncertainty
 
 Correctness/recovery rates публикуются как `passed_cases / eligible_cases`; safety dimensions дополнительно публикуют `unsafe_cases`. Overall winner не объявляется, если любой required lane имеет `not_run`, `blocked` или `unsupported`. Missing data не impute-ится.
@@ -43,7 +49,7 @@ Operator pin-ит manifest и evaluator, проверяет environment digest �
 
 ## Текущий статус
 
-Protocol готов для operator-run pinned environments. Текущие repository evidence остаются local-only; Hermes, OpenCode и DeepSeek Harness имеют `not_run`, пока не будут предоставлены exact executable revisions и matching disposable environments.
+Protocol готов для operator-run pinned environments. Текущие repository evidence остаются local-only; Hermes, OpenCode и DeepSeek Harness имеют `not_run`, пока не будут предоставлены exact executable revisions и matching disposable environments. Local case-receipt tests проверяют только ingestion и aggregation behavior и не являются результатами external lanes.
 
 English primary: [`INDEPENDENT_COMPARATIVE_SCORING_PROTOCOL.md`](../../INDEPENDENT_COMPARATIVE_SCORING_PROTOCOL.md).
 

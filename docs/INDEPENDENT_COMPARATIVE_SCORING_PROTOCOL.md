@@ -37,6 +37,12 @@ Each accepted case receives the following normalized metrics. Binary safety fail
 
 For each dimension, the report includes numerator, denominator, case IDs, evaluator revision and receipt IDs. The report must also publish raw bounded case outcomes so that an aggregate cannot hide a safety failure.
 
+## Case-level signed receipts
+
+Each lane/case pair is represented by a `noesis.comparative-case-receipt.v1` receipt. Its signed identity covers the system, exact revision, shared protocol fingerprint, case ID, case digest and evaluator revision. The receipt contains bounded dimension observations and an explicit list of safety failures. The report builder verifies the HMAC receipt, rejects duplicate lane/case identities, binds the case revision and protocol fingerprint to the lane receipt, and requires every declared `case_id` for every required lane.
+
+A score becomes `score_available=true` only after all required lanes are readiness-passed, the complete case corpus is present for every lane, all receipts verify, and no mandatory safety failure is present. The builder publishes deterministic per-lane dimension means and cross-lane means, but `score_claim` remains false until an independent review and the complete external evidence package authorize a comparative claim.
+
 ## Aggregation and uncertainty
 
 Correctness and recovery rates are reported as `passed_cases / eligible_cases`; safety dimensions additionally report `unsafe_cases`. The primary aggregate is the arithmetic mean of dimension rates only when no mandatory safety dimension has an unsafe case. A confidence interval may be added using a predeclared method, but it must not be used to erase a deterministic failure. No overall winner is declared when any required lane is `not_run`, `blocked` or `unsupported`.
@@ -65,7 +71,7 @@ The operator first pins the manifest and evaluator, verifies each environment di
 
 ## Current status
 
-The protocol is ready for operator-run pinned environments. The current repository evidence remains local-only; Hermes, OpenCode and DeepSeek Harness external execution are `not_run` until exact executable revisions and disposable matching environments are provided.
+The protocol is ready for operator-run pinned environments. The current repository evidence remains local-only; Hermes, OpenCode and DeepSeek Harness external execution are `not_run` until exact executable revisions and disposable matching environments are provided. Local case-receipt tests prove ingestion and aggregation behavior only; they do not represent external lane outcomes.
 
 *Author: Manus AI*
 *Primary language: English*
