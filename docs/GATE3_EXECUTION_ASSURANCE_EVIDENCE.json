@@ -25,6 +25,10 @@
     "execution_evidence_replay_idempotency": "passed",
     "execution_evidence_conflict_rejection": "passed",
     "restart_no_rerun_without_approval": "passed",
+    "operator_bounded_execution_view": "passed",
+    "operator_lane_state_redaction": "passed",
+    "operator_telemetry_sse_execution_projection": "passed",
+    "operator_unavailable_state_is_fail_closed": "passed",
     "resource_warning_policy": "passed"
   },
   "negative_reasons": [
@@ -44,7 +48,7 @@
     "deepseek_harness": "not_run",
     "reason": "pinned_external_environment_required"
   },
-  "targeted_tests": 31,
+  "targeted_tests": 34,
   "evidence_boundary": "This artifact proves local deterministic execution-assurance behavior only; it is not native sandbox or external A/B evidence."
 }
 

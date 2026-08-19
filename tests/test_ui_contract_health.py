@@ -161,6 +161,7 @@ class HealthServerTests(unittest.TestCase):
             store.create_session("owner", session_id="operator-session")
             store.create_task("operator-session", "secret task content", "owner", task_id="task-1")
             store.append_message("operator-session", "user", "private message content")
+            store.record_execution_evidence("operator-session", "task-1", {"request_id": "exec-1", "receipt_id": "receipt-1", "outcome": "committed", "sandboxed": True, "stdout": "must-not-leak"})
             server = HealthServer(port=0, session_store=store, operator_id="operator-1", operator_session_id="operator-session", operator_scopes=("telemetry:read",))
             snapshot = server.operator_snapshot()
             context = snapshot["session_context"]
@@ -168,6 +169,9 @@ class HealthServerTests(unittest.TestCase):
             self.assertEqual(context["session_id"], "operator-session")
             self.assertEqual(context["task_count"], 1)
             self.assertEqual(context["message_count"], 1)
+            self.assertEqual(context["lane_states"][0]["task_id"], "task-1")
+            self.assertEqual(context["execution_evidence"][0]["receipt_id"], "receipt-1")
+            self.assertNotIn("must-not-leak", str(snapshot))
             self.assertNotIn("secret task content", str(snapshot))
             self.assertNotIn("private message content", str(snapshot))
 
@@ -199,6 +203,7 @@ class HealthServerTests(unittest.TestCase):
                 self.assertIn("event: telemetry", body)
                 self.assertIn('"runtime_id":"child-1"', body)
                 self.assertIn('"migration_readiness"', body)
+                self.assertIn('"session_context"', body)
                 self.assertNotIn("hidden", body)
 
     def test_operator_session_and_admin_policy_endpoints_require_explicit_handlers(self):

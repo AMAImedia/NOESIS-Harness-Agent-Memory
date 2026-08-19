@@ -7,11 +7,14 @@
 | `/api/telemetry` | `GET` | Текущий redacted snapshot streams, child runtimes и counters. |
 | `/api/child-runtimes` | `GET` | Подмножество child-runtime и counters. |
 | `/api/telemetry/events` | `GET` | Bounded SSE snapshot с `event: telemetry`; client reconnects для обновления snapshot. |
+| `/api/operator/snapshot` | `GET` | Authenticated read-only operator view с bounded session lane states и execution receipt metadata. |
 
 Telemetry records recursively redacted для secret-shaped keys: tokens, credentials, authorization, API keys, passwords и private keys. Dashboard не получает provider credentials, raw authorization headers или hidden memory.
 
 Реализация намеренно использует bounded SSE snapshot вместо unbounded server-side queue. Это не позволяет idle browser накапливать неограниченную память. Producer может вызвать `HealthServer.set_telemetry()` с stream и child-runtime records; server atomically заменяет snapshot под lock.
 
-Dashboard показывает counters active streams/child runtimes, state details и reconnect status. Он не предоставляет tool execution, provider invocation, arbitrary commands, LAN exposure или approval bypass. Server по умолчанию остаётся loopback-only; для telemetry действуют существующие authentication и non-loopback warning gates.
+Dashboard показывает counters active streams/child runtimes, state details и reconnect status. При настроенной authenticated operator session telemetry snapshot дополнительно содержит не более 50 lane states и не более 50 durable execution-evidence records: только task ID, request ID, receipt ID, committed outcome и sandboxed flag. В него не попадают task titles, messages, stdout/stderr, workspace paths или receipt-store objects. Если session store недоступен, view сообщает bounded unavailable reason и не выдумывает lane state.
+
+Dashboard не предоставляет tool execution, provider invocation, arbitrary commands, LAN exposure или approval bypass. Server по умолчанию остаётся loopback-only; для telemetry действуют существующие authentication и non-loopback warning gates.
 
 English primary contract: [`OPERATOR_TELEMETRY_DASHBOARD.md`](../../OPERATOR_TELEMETRY_DASHBOARD.md).

@@ -138,6 +138,7 @@ class HealthServer:
         snapshot = dict(snapshot)
         snapshot["migration_readiness"] = self._migration_readiness_snapshot()
         snapshot["migration_audit"] = self._migration_audit_snapshot()
+        snapshot["session_context"] = self._operator_session_snapshot()
         if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
@@ -153,6 +154,16 @@ class HealthServer:
             session = resumed.get("session")
             tasks = resumed.get("tasks", ())
             messages = resumed.get("messages", ())
+            evidence = resumed.get("execution_evidence", {})
+            task_states = []
+            if isinstance(tasks, Sequence):
+                for task in tasks[:50]:
+                    task_states.append({"task_id": str(getattr(task, "task_id", "")), "state": str(getattr(task, "state", "")), "owner": str(getattr(task, "owner", ""))})
+            execution_evidence = []
+            if isinstance(evidence, Mapping):
+                for task_id, item in list(evidence.items())[:50]:
+                    if isinstance(item, Mapping):
+                        execution_evidence.append({"task_id": str(task_id), "request_id": str(item.get("request_id", "")), "receipt_id": str(item.get("receipt_id", "")), "outcome": str(item.get("outcome", "")), "sandboxed": bool(item.get("sandboxed", False))})
             return {
                 "available": True,
                 "session_id": context.session_id,
@@ -160,6 +171,8 @@ class HealthServer:
                 "task_count": len(tasks) if isinstance(tasks, Sequence) else 0,
                 "message_count": len(messages) if isinstance(messages, Sequence) else 0,
                 "event_count": int(resumed.get("event_count", 0)),
+                "lane_states": task_states,
+                "execution_evidence": execution_evidence,
             }
         except Exception as exc:
             return {"available": False, "session_id": context.session_id, "reason": "session_snapshot_error:" + type(exc).__name__}

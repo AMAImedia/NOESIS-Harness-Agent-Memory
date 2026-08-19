@@ -7,6 +7,7 @@ import hmac
 import json
 import os
 import sqlite3
+import threading
 import time
 from pathlib import Path
 from typing import Any, Mapping
@@ -98,7 +99,10 @@ def verify_approval_receipt(receipt: Mapping[str, Any], plan_report: Mapping[str
     return True, "approved"
 
 
-def consume_approval_receipt(receipt: Mapping[str, Any], store_path: str) -> tuple[bool, str]:
+_CONSUME_LOCK = threading.Lock()
+
+
+def _consume_approval_receipt(receipt: Mapping[str, Any], store_path: str) -> tuple[bool, str]:
     """Consume an approval exactly once using a transactional SQLite/WAL store."""
     path = Path(store_path)
     approval_id = str(receipt.get("approval_id", ""))
@@ -127,6 +131,12 @@ def consume_approval_receipt(receipt: Mapping[str, Any], store_path: str) -> tup
         if db is not None:
             db.close()
     return True, "consumed"
+
+
+def consume_approval_receipt(receipt: Mapping[str, Any], store_path: str) -> tuple[bool, str]:
+    """Consume an approval exactly once, serializing local concurrent callers."""
+    with _CONSUME_LOCK:
+        return _consume_approval_receipt(receipt, store_path)
 
 
 def record_execution_state(receipt_store: str, approval_id: str, state: str, detail: str = "") -> tuple[bool, str]:
