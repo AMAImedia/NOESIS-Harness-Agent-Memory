@@ -46,5 +46,9 @@
   "operator_import_ui_projection": "passed",
   "operator_import_sse_projection": "passed",
   "operator_import_ui_execution_channel": false,
+  "operator_ingestion_schema": "noesis.operator-ingestion.v1",
+  "operator_ingestion_append_only_ledger": "passed",
+  "operator_ingestion_explicit_approval": "passed",
+  "operator_ingestion_no_external_execution": true,
   "evidence_boundary": "Local evaluator and ingestion behavior only; no external runner was executed and no competitor score was produced."
 }
