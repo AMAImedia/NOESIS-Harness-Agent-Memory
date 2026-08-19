@@ -18,6 +18,7 @@ from scripts.aggregate_external_evidence import verify_aggregate
 from scripts.signed_verification_result import sign_verification_result, verify_signed_verification_result
 from scripts.chain_summary import verify_chain_summary
 from scripts.transfer_audit import audit_transfer_set
+from scripts.reproducibility_receipt import verify_reproducibility_receipt
 
 SCHEMA = "noesis.operator-artifact-set-verification.v1"
 
@@ -85,6 +86,16 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             chain_check = verify_chain_summary(chain_summary, inventory, aggregate, signed_result if signed_result_path.is_file() else {}, key)
             checks["chain_summary"] = chain_check
             if chain_check.get("status") != "passed":
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+        reproducibility_path = base / "reproducibility-receipt.json"
+        if require_signed_result and not reproducibility_path.is_file():
+            checks["reproducibility"] = {"status": "blocked", "reason": "reproducibility_receipt_missing"}
+            return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+        if reproducibility_path.is_file() and chain_summary_path.is_file() and signed_result_path.is_file():
+            reproducibility = _read(reproducibility_path)
+            reproducibility_check = verify_reproducibility_receipt(reproducibility, inventory_result.get("inventory_digest", ""), aggregate.get("aggregate_digest", ""), chain_summary.get("chain_digest", ""), key)
+            checks["reproducibility"] = reproducibility_check
+            if reproducibility_check.get("status") != "passed":
                 return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         if report_path:
             report = Path(report_path).resolve()

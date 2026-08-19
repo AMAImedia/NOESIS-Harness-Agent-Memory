@@ -15,9 +15,12 @@ Strict transfer содержит ровно следующие required files:
 | `signed-external-evidence-aggregate.json` | Signed lane aggregate. |
 | `verification-result.json` | Signed offline verification result. |
 | `chain-summary.json` | Signed digest binding полного chain. |
+| `reproducibility-receipt.json` | Signed runtime/contract fingerprint, timestamp исключён из digest. |
 
 `operator-report.zip` является optional. Другие files в strict mode отклоняются, чтобы debug logs, temporary outputs или unreviewed sidecars не могли незаметно попасть в transferred evidence set.
 
 Linux/macOS и Windows wrappers запускают strict mode по умолчанию. Direct Python invocation без `--require-signed-result` остаётся legacy compatibility path для старых sets, но для новых transfer следует использовать wrappers или strict flag. Composition mismatch возвращает `blocked` и exit code `2` до более глубоких проверок.
 
 Audit подтверждает expected artifact composition и дополняет, но не заменяет SHA-256, HMAC, cross-artifact и report-bundle verification. Это не native packaging evidence и не доказательство external execution.
+
+Reproducibility receipt содержит Python implementation/version, platform system/machine, contract versions и stable timestamp policy. `observed_at`, если присутствует, намеренно исключён из signed canonical payload, поэтому повторная verification остаётся deterministic. Runtime metadata является descriptive provenance, а не native-host или performance evidence.

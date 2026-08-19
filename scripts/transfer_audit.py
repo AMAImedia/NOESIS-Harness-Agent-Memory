@@ -16,6 +16,7 @@ REQUIRED = frozenset({
     "signed-external-evidence-aggregate.json",
     "verification-result.json",
     "chain-summary.json",
+    "reproducibility-receipt.json",
 })
 OPTIONAL = frozenset({"operator-report.zip"})
 

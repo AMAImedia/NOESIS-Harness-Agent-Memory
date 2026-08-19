@@ -14,6 +14,7 @@ from typing import Any
 
 from scripts.aggregate_external_evidence import aggregate_external_evidence
 from scripts.chain_summary import build_chain_summary
+from scripts.reproducibility_receipt import build_reproducibility_receipt
 from scripts.artifact_inventory import build_inventory
 from scripts.signed_verification_result import sign_verification_result
 from scripts.verify_operator_artifact_set import verify_artifact_set
@@ -63,6 +64,9 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
     chain_summary = build_chain_summary(inventory, aggregate, signed_verification, key)
     chain_summary_path = root / "chain-summary.json"
     chain_summary_path.write_text(json.dumps(chain_summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    reproducibility = build_reproducibility_receipt(inventory["inventory_digest"], aggregate["aggregate_digest"], chain_summary["chain_digest"], key)
+    reproducibility_path = root / "reproducibility-receipt.json"
+    reproducibility_path.write_text(json.dumps(reproducibility, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     status = aggregate["overall_status"]
     lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
     status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}
@@ -75,9 +79,10 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         "comparative_ready": bool(aggregate["comparative_ready"]),
         "matrix_status": matrix["overall_status"],
         "aggregate_status": aggregate["overall_status"],
-        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path), "chain_summary": str(chain_summary_path)},
+        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path), "chain_summary": str(chain_summary_path), "reproducibility_receipt": str(reproducibility_path)},
         "verification_result_digest": signed_verification["result_digest"],
         "chain_summary_digest": chain_summary["chain_digest"],
+        "reproducibility_receipt_digest": reproducibility["receipt_digest"],
         "artifact_manifest_digest": inventory["inventory_digest"],
         "required_lanes": list(aggregate["required_lanes"]),
         "external_execution_claim": False,
