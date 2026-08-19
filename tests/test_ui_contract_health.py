@@ -155,6 +155,24 @@ class HealthServerTests(unittest.TestCase):
         self.assertEqual(snapshot["health"]["contract_version"], CONTRACT_VERSION)
         self.assertIn("migration_readiness", snapshot["telemetry"])
 
+    def test_import_validation_projection_is_bounded_and_read_only(self):
+        provider = lambda: {"schema_version": "noesis.operator-import.v1", "status": "blocked", "errors": ["manifest_drift", "credential_like_detail"], "score_status": "blocked", "score_claim": True, "external_execution_claim": True, "report_digest": "d" * 64, "secret_payload": "must-not-leak"}
+        server = HealthServer(port=0, import_validation_provider=provider, operator_id="operator-1", operator_session_id="session-1", operator_scopes=("telemetry:read",))
+        item = server.operator_snapshot()["import_validation"]
+        self.assertEqual(item["status"], "blocked")
+        self.assertEqual(item["errors"], ["manifest_drift", "credential_like_detail"])
+        self.assertFalse(item["score_claim"])
+        self.assertFalse(item["external_execution_claim"])
+        self.assertNotIn("must-not-leak", str(item))
+        with server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            request = urllib.request.Request(base + "/api/telemetry/events", method="GET")
+            with urllib.request.urlopen(request, timeout=2) as response:
+                body = response.read().decode("utf-8")
+            self.assertIn('"import_validation"', body)
+            self.assertIn('"status":"blocked"', body)
+            self.assertNotIn("must-not-leak", body)
+
     def test_operator_snapshot_binds_bounded_session_context(self):
         with tempfile.TemporaryDirectory() as directory:
             store = TaskSessionStore(str(__import__("pathlib").Path(directory) / "events.jsonl"))
@@ -217,6 +235,7 @@ class HealthServerTests(unittest.TestCase):
                 self.assertIn('"runtime_id":"child-1"', body)
                 self.assertIn('"migration_readiness"', body)
                 self.assertIn('"session_context"', body)
+                self.assertIn('"import_validation"', body)
                 self.assertNotIn("hidden", body)
 
     def test_operator_session_and_admin_policy_endpoints_require_explicit_handlers(self):

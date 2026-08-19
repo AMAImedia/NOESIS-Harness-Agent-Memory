@@ -26,7 +26,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -52,6 +52,7 @@ class HealthServer:
         self.migration_mode_source = migration_mode_source
         self.migration_audit_provider = migration_audit_provider
         self.migration_readiness_provider = migration_readiness_provider
+        self.import_validation_provider = import_validation_provider
         self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
@@ -133,6 +134,25 @@ class HealthServer:
             return [HealthServer._redact_telemetry(item) for item in value]
         return value
 
+    def _import_validation_snapshot(self) -> Mapping[str, Any]:
+        if self.import_validation_provider is None:
+            return {"available": False, "status": "unavailable", "reason": "import_validation_provider_unavailable", "execution_claim": "read_only_import_status"}
+        try:
+            value = self.import_validation_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("import_validation_must_be_object")
+            allowed = {"schema_version", "status", "errors", "score_status", "score_claim", "external_execution_claim", "report_digest"}
+            bounded = {key: value[key] for key in allowed if key in value}
+            errors = bounded.get("errors", ())
+            bounded["errors"] = [str(item)[:256] for item in errors[:32]] if isinstance(errors, Sequence) and not isinstance(errors, (str, bytes)) else []
+            bounded["available"] = True
+            bounded["execution_claim"] = "read_only_import_status"
+            bounded["external_execution_claim"] = False
+            bounded["score_claim"] = False
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"available": False, "status": "unavailable", "reason": "import_validation_provider_error:" + type(exc).__name__, "execution_claim": "read_only_import_status"}
+
     def telemetry_snapshot(self, *, task_id: str = "", receipt_id: str = "") -> Mapping[str, Any]:
         with self._telemetry_lock:
             snapshot = self._redact_telemetry(self._telemetry)
@@ -140,6 +160,7 @@ class HealthServer:
         snapshot["migration_readiness"] = self._migration_readiness_snapshot()
         snapshot["migration_audit"] = self._migration_audit_snapshot()
         snapshot["session_context"] = self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id)
+        snapshot["import_validation"] = self._import_validation_snapshot()
         if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
@@ -209,6 +230,7 @@ class HealthServer:
             "models": self.models_envelope().to_dict(),
             "telemetry": self.telemetry_snapshot(task_id=task_id, receipt_id=receipt_id),
             "session_context": self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id),
+            "import_validation": self._import_validation_snapshot(),
             "operator_context": {
                 "configured": context is not None,
                 "operator_id": context.operator_id if context is not None else "",

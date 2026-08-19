@@ -43,5 +43,8 @@
   "operator_import_manifest_drift_check": "passed",
   "operator_import_lane_identity_check": "passed",
   "operator_import_no_score_claim": true,
+  "operator_import_ui_projection": "passed",
+  "operator_import_sse_projection": "passed",
+  "operator_import_ui_execution_channel": false,
   "evidence_boundary": "Local evaluator and ingestion behavior only; no external runner was executed and no competitor score was produced."
 }
