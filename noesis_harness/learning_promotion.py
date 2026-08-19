@@ -84,6 +84,7 @@ class PromotionProposal:
     created_at: float
     approved_by: str = ""
     version: str = ""
+    provenance_digest: str = ""
     schema_version: str = _SCHEMA
 
 
@@ -283,7 +284,14 @@ class LearningPromotionPipeline:
                     return existing
                 raise LearningPromotionError("proposal_content_conflict")
         state = "review" if evaluation.accepted else "blocked"
-        proposal = PromotionProposal(uuid.uuid4().hex, receipt_id, evaluation_id, skill_name, content_digest, state, time.time())
+        proposal_id = uuid.uuid4().hex
+        provenance_digest = _digest({
+            "receipt": receipt.unsigned(),
+            "evaluation": asdict(evaluation),
+            "skill_name": skill_name,
+            "content_digest": content_digest,
+        })
+        proposal = PromotionProposal(proposal_id, receipt_id, evaluation_id, skill_name, content_digest, state, time.time(), provenance_digest=provenance_digest)
         self._proposals[proposal.proposal_id] = proposal
         self._state.put("promotion_proposals", proposal.proposal_id, proposal)
         if state == "blocked":
@@ -297,6 +305,7 @@ class LearningPromotionPipeline:
             raise KeyError(proposal_id)
         if proposal.state != "review":
             raise LearningPromotionError("proposal_not_in_review")
+        self._require_current_provenance(proposal)
         try:
             passed = bool(tests())
         except Exception:
@@ -320,12 +329,62 @@ class LearningPromotionPipeline:
         self._state.put("promotion_proposals", proposal_id, updated)
         return updated
 
+    def _current_provenance(self, proposal: PromotionProposal) -> str:
+        receipt = self._receipts.get(proposal.receipt_id)
+        evaluation = self._evaluations.get(proposal.evaluation_id)
+        if receipt is None or evaluation is None or evaluation.receipt_id != receipt.receipt_id:
+            raise LearningPromotionError("proposal_provenance_missing")
+        return _digest({"receipt": receipt.unsigned(), "evaluation": asdict(evaluation), "skill_name": proposal.skill_name, "content_digest": proposal.content_digest})
+
+    def _require_current_provenance(self, proposal: PromotionProposal) -> None:
+        current = self._current_provenance(proposal)
+        if not proposal.provenance_digest or not hmac.compare_digest(current, proposal.provenance_digest):
+            raise LearningPromotionError("proposal_provenance_mismatch")
+
+    def review_snapshot(self, *, max_proposals: int = 64) -> dict[str, Any]:
+        """Return bounded review metadata only; never returns skill or payload content."""
+        if not isinstance(max_proposals, int) or not 1 <= max_proposals <= 256:
+            raise ValueError("invalid_review_snapshot_bound")
+        proposals = []
+        for proposal in sorted(self._proposals.values(), key=lambda item: (item.created_at, item.proposal_id), reverse=True)[:max_proposals]:
+            receipt = self._receipts.get(proposal.receipt_id)
+            evaluation = self._evaluations.get(proposal.evaluation_id)
+            current = ""
+            provenance_status = "blocked"
+            try:
+                current = self._current_provenance(proposal)
+                provenance_status = "verified" if proposal.provenance_digest and hmac.compare_digest(current, proposal.provenance_digest) else "mismatch"
+            except LearningPromotionError:
+                provenance_status = "missing"
+            proposals.append({
+                "proposal_id": proposal.proposal_id,
+                "skill_name": proposal.skill_name,
+                "state": proposal.state,
+                "created_at": proposal.created_at,
+                "approved_by": proposal.approved_by,
+                "version": proposal.version,
+                "receipt_id": proposal.receipt_id,
+                "evaluation_id": proposal.evaluation_id,
+                "content_digest": proposal.content_digest,
+                "provenance_digest": proposal.provenance_digest,
+                "provenance_status": provenance_status,
+                "source_digest": receipt.source_digest if receipt else "",
+                "policy_digest": receipt.policy_digest if receipt else "",
+                "payload_digest": receipt.payload_digest if receipt else "",
+                "evaluation_status": evaluation.status if evaluation else "missing",
+                "evaluator_version": evaluation.evaluator_version if evaluation else "",
+                "holdout_digest": evaluation.holdout_digest if evaluation else "",
+                "automatic_activation": False,
+            })
+        return {"schema_version": "noesis.learning-review-snapshot.v1", "bounded": True, "max_proposals": max_proposals, "proposal_count": len(proposals), "proposals": proposals, "automatic_activation": False, "execution_claim": "read_only_review_metadata"}
+
     def promote(self, proposal_id: str, *, content: str, verify: Callable[[Path], bool], activate: bool = True) -> tuple[PromotionProposal, str]:
         proposal = self._proposals.get(proposal_id)
         if proposal is None:
             raise KeyError(proposal_id)
         if proposal.state != "approved":
             raise LearningPromotionError("explicit_approval_required")
+        self._require_current_provenance(proposal)
         if _digest(content) != proposal.content_digest:
             raise LearningPromotionError("content_digest_mismatch")
         version = f"v-{int(time.time())}-{proposal.proposal_id[:8]}"

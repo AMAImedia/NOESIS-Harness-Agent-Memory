@@ -1,3 +1,4 @@
+import dataclasses
 import tempfile
 import unittest
 from pathlib import Path
@@ -85,6 +86,34 @@ class LearningPromotionTests(unittest.TestCase):
         self.assertEqual(reopened_registry.manifests(), {"eval-1": "manifest-eval-1"})
         with self.assertRaisesRegex(LearningPromotionError, "evaluator_manifest_conflict"):
             reopened_registry.register("eval-1", lambda _: [], manifest_digest="tampered-manifest")
+
+    def test_review_snapshot_is_bounded_redacted_and_provenance_bound(self):
+        pipe = self.pipeline(); receipt = self.receipt(pipe)
+        evaluation = pipe.evaluate(receipt.receipt_id, [{"case_id": "a", "passed": True}], evaluator_version="eval-1")
+        proposal = pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="review-skill", content="# secret-content\n")
+        snapshot = pipe.review_snapshot(max_proposals=1)
+        self.assertEqual(snapshot["schema_version"], "noesis.learning-review-snapshot.v1")
+        self.assertTrue(snapshot["automatic_activation"] is False)
+        item = snapshot["proposals"][0]
+        self.assertEqual(item["provenance_status"], "verified")
+        self.assertNotIn("secret-content", repr(snapshot))
+        self.assertNotIn("answer", repr(snapshot))
+        tampered = dataclasses.replace(proposal, content_digest="0" * 64)
+        pipe._proposals[proposal.proposal_id] = tampered
+        with self.assertRaisesRegex(LearningPromotionError, "proposal_provenance_mismatch"):
+            pipe.approve(proposal.proposal_id, approved_by="reviewer", tests=lambda: True)
+        self.assertEqual(pipe.review_snapshot()["proposals"][0]["provenance_status"], "mismatch")
+
+    def test_review_snapshot_bound_and_missing_provenance_fail_closed(self):
+        pipe = self.pipeline()
+        with self.assertRaisesRegex(ValueError, "invalid_review_snapshot_bound"):
+            pipe.review_snapshot(max_proposals=0)
+        receipt = self.receipt(pipe)
+        evaluation = pipe.evaluate(receipt.receipt_id, [{"case_id": "a", "passed": True}], evaluator_version="eval-1")
+        proposal = pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="legacy-skill", content="# legacy\n")
+        pipe._proposals[proposal.proposal_id] = dataclasses.replace(proposal, provenance_digest="")
+        with self.assertRaisesRegex(LearningPromotionError, "proposal_provenance_mismatch"):
+            pipe.approve(proposal.proposal_id, approved_by="reviewer", tests=lambda: True)
 
     def test_immutable_promotion_signature_and_rollback(self):
         pipe = self.pipeline(); receipt = self.receipt(pipe)

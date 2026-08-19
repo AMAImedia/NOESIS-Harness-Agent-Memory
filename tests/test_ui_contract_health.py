@@ -229,6 +229,32 @@ class HealthServerTests(unittest.TestCase):
                     self.assertEqual(body["data"]["result"]["status"], "queued")
         self.assertEqual([item[0] for item in calls], ["session", "admin"])
 
+    def test_learning_review_endpoint_is_bounded_and_read_only(self):
+        with HealthServer(port=0, learning_review_provider=lambda: {"schema_version": "noesis.learning-review-snapshot.v1", "proposals": [{"proposal_id": "p-1", "skill_name": "safe", "content_digest": "digest", "secret_content": "must-not-leak"}], "automatic_activation": False}) as server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            code, payload = self._request("GET", base + "/api/learning/review")
+            self.assertEqual(code, 200)
+            review = payload["data"]["learning_review"]
+            self.assertEqual(review["execution_claim"], "read_only_review_metadata")
+            self.assertFalse(review["automatic_activation"])
+            self.assertEqual(review["proposals"][0]["secret_content"], "[REDACTED]")
+
+    def test_learning_review_endpoint_fails_closed_without_provider(self):
+        with HealthServer(port=0) as server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            code, payload = self._request("GET", base + "/api/learning/review")
+            self.assertEqual(code, 503)
+            self.assertEqual(payload["status"], "unavailable")
+            self.assertEqual(payload["error"]["code"], "learning_review_unavailable")
+
+    def test_learning_review_provider_errors_are_blocked(self):
+        with HealthServer(port=0, learning_review_provider=lambda: (_ for _ in ()).throw(RuntimeError("broken"))) as server:
+            base = f"http://{server.address[0]}:{server.address[1]}"
+            code, payload = self._request("GET", base + "/api/learning/review")
+            self.assertEqual(code, 503)
+            self.assertEqual(payload["status"], "unavailable")
+            self.assertEqual(payload["error"]["code"], "learning_review_failed")
+
     def test_operator_promotion_action_requires_handler_and_returns_contract(self):
         action_payload = {"schema_version": "noesis.promotion-approval.v1", "action_id": "action-1", "action": "approve", "proposal_id": "proposal-1", "operator_id": "operator-1"}
         with HealthServer(port=0) as server:

@@ -25,7 +25,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None, operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -43,6 +43,7 @@ class HealthServer:
         self.provider_registry = provider_registry or ProviderRegistry()
         self.session_store = session_store
         self.promotion_telemetry = promotion_telemetry
+        self.learning_review_provider = learning_review_provider
         self.promotion_action_handler = promotion_action_handler
         self.operator_session_action_handler = operator_session_action_handler
         self.administrative_policy_handler = administrative_policy_handler
@@ -275,6 +276,20 @@ class HealthServer:
                     self._send(success({"migration_readiness": parent._migration_readiness_snapshot()}), 200)
                 elif self.path == "/api/operator/snapshot":
                     self._send(success(parent.operator_snapshot()), 200)
+                elif self.path == "/api/learning/review":
+                    if parent.learning_review_provider is None:
+                        self._send(failure("unavailable", "learning_review_unavailable", "review provider is not configured"), 503)
+                        return
+                    try:
+                        review = parent.learning_review_provider()
+                        if not isinstance(review, Mapping):
+                            raise ValueError("review_snapshot_must_be_object")
+                        bounded = dict(review)
+                        bounded.setdefault("execution_claim", "read_only_review_metadata")
+                        bounded.setdefault("automatic_activation", False)
+                        self._send(success({"learning_review": parent._redact_telemetry(bounded)}), 200)
+                    except Exception as exc:
+                        self._send(failure("unavailable", "learning_review_failed", "review snapshot unavailable: " + type(exc).__name__), 503)
                 elif self.path in {"/api/telemetry", "/api/child-runtimes"}:
                     snapshot = parent.telemetry_snapshot()
                     if self.path == "/api/child-runtimes":

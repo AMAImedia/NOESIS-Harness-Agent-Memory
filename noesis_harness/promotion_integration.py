@@ -530,6 +530,14 @@ class PromotionIntegration:
         self.telemetry.record("promotion_rolled_back", proposal_id=proposal_id, state=proposal.state)
         return proposal
 
+    def review_snapshot(self, *, max_proposals: int = 64) -> dict[str, Any]:
+        """Expose bounded proposal/evaluator metadata without skill or payload content."""
+        snapshot = self.pipeline.review_snapshot(max_proposals=max_proposals)
+        snapshot["evaluator_readiness"] = dict(self.registry.readiness())
+        snapshot["operator_review_required"] = True
+        snapshot["automatic_activation"] = False
+        return snapshot
+
     def snapshot(self) -> dict[str, Any]:
         snapshot = self.telemetry.snapshot()
         snapshot["promotion_state"] = {"receipts": len(self.pipeline._receipts), "evaluations": len(self.pipeline._evaluations), "proposals": len(self.pipeline._proposals), "active_versions": sum(1 for name in {proposal.skill_name for proposal in self.pipeline._proposals.values()} if self.pipeline.active_version(name))}

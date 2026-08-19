@@ -21,9 +21,9 @@ experience receipt → deterministic holdout evaluation → review proposal
 
 Receipt связывает experience ID, agent ID, scope, source/policy digests, outcome, payload digest, timestamp и schema version. Holdout принимается только при наличии хотя бы одного case, полном pass и нулевом leakage. Cases сортируются по `case_id` до hashing, поэтому digest deterministic.
 
-Proposal остаётся review-only до explicit approval. Promotion отклоняет content digest mismatch, отсутствие approval, failed verification, duplicate version directory и исключения verification callback. Module не создаёт executable entrypoint и не запускает skill content.
+Proposal остаётся review-only до explicit approval. Каждый proposal содержит `provenance_digest`, который связывает receipt facts, evaluation record, skill name и content digest. Approval и promotion заново вычисляют этот digest и fail-closed отклоняют stale или tampered records. Promotion отклоняет content digest mismatch, отсутствие approval, failed verification, duplicate version directory и исключения verification callback. Module не создаёт executable entrypoint и не запускает skill content.
 
-Activation представлена только `ACTIVE` pointer на immutable version. Rollback удаляет pointer или восстанавливает предыдущий. Promotion receipt подписывается HMAC-SHA256 и проверяется constant-time comparison.
+Operator review surface предоставляется через bounded metadata `noesis.learning-review-snapshot.v1` и `/api/learning/review`: возвращаются только proposal/evaluator IDs, digests, states и provenance status; skill и payload content не раскрываются. Endpoint authenticated на server boundary, read-only и fail-closed при отсутствии provider или ошибке provider. В review metadata `automatic_activation` всегда равно `false`. Capture, evaluation, proposal, review snapshot и evaluator registration не выполняют activation. Activation представлена только `ACTIVE` pointer на immutable version. Rollback удаляет pointer или восстанавливает предыдущий. Promotion receipt подписывается HMAC-SHA256 и проверяется constant-time comparison.
 
 > Local promotion evidence доказывает только целостность lifecycle. Это не доказывает общую capability, защиту от всех prompt injections или superiority над другим агентом.
 
