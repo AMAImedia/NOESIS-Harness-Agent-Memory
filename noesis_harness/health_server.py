@@ -27,7 +27,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_action_handler: Optional[Callable[[DelegatedResumeAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_id: Optional[str] = None,
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_action_handler: Optional[Callable[[DelegatedResumeAction, OperatorAuthContext], Mapping[str, Any]]] = None, evidence_aggregate_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None,
  operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
@@ -57,6 +57,7 @@ class HealthServer:
         self.import_validation_provider = import_validation_provider
         self.delegated_resume_provider = delegated_resume_provider
         self.delegated_resume_action_handler = delegated_resume_action_handler
+        self.evidence_aggregate_provider = evidence_aggregate_provider
         self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
@@ -157,6 +158,22 @@ class HealthServer:
         except Exception as exc:
             return {"available": False, "status": "unavailable", "reason": "import_validation_provider_error:" + type(exc).__name__, "execution_claim": "read_only_import_status"}
 
+    def _evidence_aggregate_snapshot(self) -> Mapping[str, Any]:
+        if self.evidence_aggregate_provider is None:
+            return {"available": False, "status": "not_run", "reason": "evidence_aggregate_provider_unavailable", "comparative_claim": False, "execution_claim": False, "claim_boundary": "read_only_evidence_status"}
+        try:
+            value = self.evidence_aggregate_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("evidence_aggregate_snapshot_must_be_object")
+            allowed = {"schema_version", "status", "reason", "evidence_count", "lanes", "aggregate_digest", "comparative_claim", "execution_claim"}
+            bounded = {key: value[key] for key in allowed if key in value}
+            bounded["available"] = True
+            bounded["comparative_claim"] = False
+            bounded["claim_boundary"] = "read_only_evidence_status"
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"available": False, "status": "blocked", "reason": "evidence_aggregate_provider_error:" + type(exc).__name__, "comparative_claim": False, "execution_claim": False, "claim_boundary": "read_only_evidence_status"}
+
     def _delegated_resume_snapshot(self) -> Mapping[str, Any]:
         if self.delegated_resume_provider is None:
             return {"available": False, "status": "unavailable", "reason": "delegated_resume_provider_unavailable", "execution_claim": "read_only_resume_status"}
@@ -181,6 +198,7 @@ class HealthServer:
         snapshot["session_context"] = self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id)
         snapshot["import_validation"] = self._import_validation_snapshot()
         snapshot["delegated_resume"] = self._delegated_resume_snapshot()
+        snapshot["evidence_aggregate"] = self._evidence_aggregate_snapshot()
         if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
@@ -252,6 +270,7 @@ class HealthServer:
             "session_context": self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id),
             "import_validation": self._import_validation_snapshot(),
             "delegated_resume": self._delegated_resume_snapshot(),
+            "evidence_aggregate": self._evidence_aggregate_snapshot(),
             "operator_context": {
                 "configured": context is not None,
                 "operator_id": context.operator_id if context is not None else "",
@@ -357,7 +376,7 @@ class HealthServer:
                 elif path == "/models":
                     self._send(parent.models_envelope(), 200)
                 elif path == "/api/readiness":
-                    self._send(success({"migration_readiness": parent._migration_readiness_snapshot()}), 200)
+                    self._send(success({"migration_readiness": parent._migration_readiness_snapshot(), "evidence_aggregate": parent._evidence_aggregate_snapshot()}), 200)
                 elif path == "/api/operator/snapshot":
                     self._send(success(parent.operator_snapshot(task_id=task_filter, receipt_id=receipt_filter)), 200)
                 elif path == "/api/learning/review":

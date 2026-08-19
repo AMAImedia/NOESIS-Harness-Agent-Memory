@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added bounded `evidence_aggregate` projection to HealthServer operator snapshot, telemetry/SSE and `/api/readiness`; provider absence remains `not_run`, provider failure is `blocked`, and comparative claims are forcibly disabled.
+- Added English and Russian operator evidence projection contracts covering local, native and external readiness separation.
 - Added `SignedEvidenceAggregator` with `noesis.signed-evidence-aggregate.v1` deterministic digest, signed receipt verification, lane/session/task/request binding, duplicate rejection and explicit `not_run`/`blocked`/`passed` states without comparative escalation.
 - Added English and Russian signed evidence aggregation contracts and adversarial tests for tamper, replay, missing lane, identity drift and non-passed evidence.
 - Added `bridge_runtime_resume_callback()` and `TaskExecutionBridge.resume_delegated_runtime()` for end-to-end signed operator resume through approval consumption, Actions claim, child-runtime execution and verified execution receipt.
