@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added deterministic `noesis.signed-report-bundle.v1` ZIP export and verifier for separate local execution, native parity and external comparative domains, with fixed metadata, per-domain digests, manifest signature and export-only claim boundary.
+- Added English and Russian signed report bundle contracts and adversarial archive/signature/domain-drift tests.
 - Added bounded `evidence_aggregate` projection to HealthServer operator snapshot, telemetry/SSE and `/api/readiness`; provider absence remains `not_run`, provider failure is `blocked`, and comparative claims are forcibly disabled.
 - Added English and Russian operator evidence projection contracts covering local, native and external readiness separation.
 - Added `SignedEvidenceAggregator` with `noesis.signed-evidence-aggregate.v1` deterministic digest, signed receipt verification, lane/session/task/request binding, duplicate rejection and explicit `not_run`/`blocked`/`passed` states without comparative escalation.
