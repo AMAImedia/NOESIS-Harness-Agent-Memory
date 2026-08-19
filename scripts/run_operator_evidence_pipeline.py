@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.aggregate_external_evidence import aggregate_external_evidence
+from scripts.chain_summary import build_chain_summary
 from scripts.artifact_inventory import build_inventory
 from scripts.signed_verification_result import sign_verification_result
 from scripts.verify_operator_artifact_set import verify_artifact_set
@@ -59,6 +60,9 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
     signed_verification = sign_verification_result(verification, inventory["inventory_digest"], inventory["inventory_digest"], key)
     verification_path = root / "verification-result.json"
     verification_path.write_text(json.dumps(signed_verification, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    chain_summary = build_chain_summary(inventory, aggregate, signed_verification, key)
+    chain_summary_path = root / "chain-summary.json"
+    chain_summary_path.write_text(json.dumps(chain_summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     status = aggregate["overall_status"]
     lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
     status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}
@@ -71,8 +75,9 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         "comparative_ready": bool(aggregate["comparative_ready"]),
         "matrix_status": matrix["overall_status"],
         "aggregate_status": aggregate["overall_status"],
-        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path)},
+        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path), "chain_summary": str(chain_summary_path)},
         "verification_result_digest": signed_verification["result_digest"],
+        "chain_summary_digest": chain_summary["chain_digest"],
         "artifact_manifest_digest": inventory["inventory_digest"],
         "required_lanes": list(aggregate["required_lanes"]),
         "external_execution_claim": False,
