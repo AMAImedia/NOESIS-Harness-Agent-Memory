@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Integrated `TaskExecutionBridge.resume_delegated()` with durable delegation approvals, unique recovery transition command IDs, normal Actions claims, and existing child execution gates.
+- Added bounded read-only delegated resume status to HealthServer operator snapshot, telemetry and SSE projections; automatic resume remains disabled.
 - Added `DelegatedResumeStore` with `noesis.delegated-resume.v1` append-only identity, checkpoint, interruption, fresh approval and single-use resume evidence for delegated child tasks.
 - Added English and Russian delegated resume/replay contracts covering immutable request identity, stale checkpoint rejection and terminal replay denial.
 - Added adversarial tests for crash resume, duplicate approval consumption, request mutation, checkpoint drift and terminal delegation protection.

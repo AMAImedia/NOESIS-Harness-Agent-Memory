@@ -21,4 +21,6 @@ After an approval is consumed, a second attempt is rejected as `resume_approval_
 
 ## Evidence boundary
 
-The store provides durable state and deterministic replay guards for integration by `TaskExecutionBridge` and `ChildExecutionRuntime`. It does not itself grant capabilities, bypass sandbox policy, invoke providers, or activate executable skills. Those actions remain subject to the existing Trust Plane, Child Execution Runtime, sandbox backend, and operator approval contracts.
+The store provides durable state and deterministic replay guards for integration by `TaskExecutionBridge` and `ChildExecutionRuntime`. `TaskExecutionBridge.resume_delegated()` consumes the single-use approval before moving a failed task back through `planned` to `waiting_approval`; it then reuses the normal Actions claim, workspace binding, child runtime, and receipt verification gates. A missing or replayed approval stops before the callback can start.
+
+The store does not itself grant capabilities, bypass sandbox policy, invoke providers, or activate executable skills. Those actions remain subject to the existing Trust Plane, Child Execution Runtime, sandbox backend, Actions claim, and operator approval contracts. HealthServer exposes only bounded read-only resume status with `automatic_resume=false`; telemetry is not a control action.

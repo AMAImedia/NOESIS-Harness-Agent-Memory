@@ -21,4 +21,6 @@ Append-only `DelegatedResumeStore` не запускает child process. Он �
 
 ## Граница доказательств
 
-Store предоставляет durable state и deterministic replay guards для интеграции с `TaskExecutionBridge` и `ChildExecutionRuntime`. Он сам не выдаёт capabilities, не обходит sandbox policy, не запускает providers и не активирует executable skills. Эти действия остаются под контролем Trust Plane, Child Execution Runtime, sandbox backend и operator approval contracts.
+Store предоставляет durable state и deterministic replay guards для интеграции с `TaskExecutionBridge` и `ChildExecutionRuntime`. `TaskExecutionBridge.resume_delegated()` потребляет одноразовый approval до перевода failed task через `planned` в `waiting_approval`, после чего использует обычные Actions claim, workspace binding, child runtime и receipt verification gates. Отсутствующий или повторный approval останавливает процесс до запуска callback.
+
+Store сам не выдаёт capabilities, не обходит sandbox policy, не запускает providers и не активирует executable skills. Эти действия остаются под контролем Trust Plane, Child Execution Runtime, sandbox backend, Actions claim и operator approval contracts. HealthServer показывает только ограниченный read-only статус resume с `automatic_resume=false`; telemetry не является управляющей командой.

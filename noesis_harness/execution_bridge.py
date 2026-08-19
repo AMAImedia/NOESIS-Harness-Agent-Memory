@@ -15,6 +15,7 @@ from .promotion_integration import PolicySimulation, PromotionEventBridge
 from .coordination import Actions
 from .parallel_agent import AgentLane, AgentLaneContext, AgentLaneResult, ParallelExecutionError, SafeParallelExecutor
 from .task_session_api import TaskSessionError, TaskSessionStore
+from .delegated_resume import DelegatedResumeError, DelegatedResumeStore
 
 
 class TaskExecutionBridgeError(ValueError):
@@ -38,12 +39,13 @@ class TaskExecutionReport:
 class TaskExecutionBridge:
     """Connect versioned task state with Actions and safe parallel callbacks."""
 
-    def __init__(self, tasks: TaskSessionStore, actions: Actions, executor: SafeParallelExecutor, *, promotion_bridge: PromotionEventBridge | None = None, policy_simulator: Callable[[Mapping[str, Any]], Mapping[str, Any] | PolicySimulation] | None = None):
+    def __init__(self, tasks: TaskSessionStore, actions: Actions, executor: SafeParallelExecutor, *, promotion_bridge: PromotionEventBridge | None = None, policy_simulator: Callable[[Mapping[str, Any]], Mapping[str, Any] | PolicySimulation] | None = None, delegated_resume_store: DelegatedResumeStore | None = None):
         self.tasks = tasks
         self.actions = actions
         self.executor = executor
         self.promotion_bridge = promotion_bridge
         self.policy_simulator = policy_simulator
+        self.delegated_resume_store = delegated_resume_store
 
     def poll_promotion_events(self, *, operator_trigger: bool = False) -> tuple[Mapping[str, Any], ...]:
         """Poll promotion capture only after an explicit operator lifecycle trigger."""
@@ -142,6 +144,47 @@ class TaskExecutionBridge:
         if stored is None or str(getattr(stored, "receipt_id", "")) != receipt_id or getattr(stored, "outcome", "") != "committed":
             raise ParallelExecutionError("runtime_receipt_not_verified")
         return {"request_id": str(getattr(result, "request_id", "")), "receipt_id": receipt_id, "outcome": "committed", "sandboxed": bool(getattr(result, "sandboxed", False))}
+
+    def resume_delegated(
+        self,
+        session_id: str,
+        requests: Sequence[TaskExecutionRequest],
+        callback: Callable[[AgentLaneContext], object],
+        *,
+        approval_ids: Mapping[str, str],
+        request_digests: Mapping[str, str],
+        event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
+        lease_store: object | None = None,
+        cancellation: object | None = None,
+        max_duration_seconds: float | None = None,
+        retry_limit: int = 0,
+    ) -> TaskExecutionReport:
+        """Resume interrupted delegated tasks only after explicit single-use approvals."""
+        if self.delegated_resume_store is None:
+            raise TaskExecutionBridgeError("delegated_resume_store_required")
+        if not requests:
+            raise TaskExecutionBridgeError("execution_requests_required")
+        for request in requests:
+            approval_id = str(approval_ids.get(request.task_id, ""))
+            request_digest = str(request_digests.get(request.task_id, ""))
+            if not approval_id or not request_digest:
+                raise TaskExecutionBridgeError("fresh_resume_approval_required")
+            try:
+                self.delegated_resume_store.consume_resume_approval(request.task_id, approval_id, request_digest=request_digest)
+                task = self.tasks.task(request.task_id)
+                if task.session_id != session_id:
+                    raise TaskExecutionBridgeError("task_session_mismatch")
+                if task.state == "failed":
+                    self.tasks.transition_task(request.task_id, "planned", reason="approved_delegated_resume", command_id="delegated-resume-planned-" + request.task_id + "-" + approval_id)
+                if self.tasks.task(request.task_id).state != "waiting_approval":
+                    self.tasks.transition_task(request.task_id, "waiting_approval", reason="approved_delegated_resume", command_id="delegated-resume-approval-" + request.task_id + "-" + approval_id)
+            except (DelegatedResumeError, TaskSessionError) as exc:
+                if isinstance(exc, TaskExecutionBridgeError):
+                    raise
+                raise TaskExecutionBridgeError(str(exc)) from exc
+            if event_sink is not None:
+                event_sink({"kind": "delegation_resume_approved", "session_id": session_id, "task_id": request.task_id, "approval_id": approval_id, "execution_claim": "resume_authorized"})
+        return self.execute(session_id, requests, callback, approval=True, event_sink=event_sink, lease_store=lease_store, cancellation=cancellation, max_duration_seconds=max_duration_seconds, retry_limit=retry_limit)
 
     def execute_runtime(
         self,
