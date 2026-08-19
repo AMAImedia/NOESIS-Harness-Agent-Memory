@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `verify_lifecycle_events()`/`verify_lifecycle_file()` and an audit-only lifecycle projection that validate signed event logs without upgrading execution, native, external, or comparative claims.
+- Added English and Russian lifecycle verifier contracts and adversarial signature/order/duplicate/import tests.
 - Added signed append-only `noesis.report-export-lifecycle-event.v1` JSONL evidence records for every report export lifecycle event; replayed or failed actions can record `blocked`, but cannot create a second completed receipt.
 - Added ordered report export SSE lifecycle events `approved`, `exporting`, `completed` and fail-closed `blocked` events through the existing session stream buffer; payloads force `automatic_export=false` and `control=read_only`.
 - Added English and Russian report export SSE contracts covering event ordering, redaction and Last-Event-ID behavior.
