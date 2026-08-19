@@ -2,4 +2,4 @@
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 PYTHON=${PYTHON:-python3}
-exec "$PYTHON" "$ROOT/scripts/verify_operator_artifact_set.py" "$@"
+exec "$PYTHON" "$ROOT/scripts/verify_operator_artifact_set.py" --require-signed-result "$@"

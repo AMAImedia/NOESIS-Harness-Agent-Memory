@@ -27,7 +27,7 @@ def _read(path: Path) -> dict[str, Any]:
     return value
 
 
-def verify_artifact_set(root: str | Path, key: str, report_path: str | None = None) -> dict[str, Any]:
+def verify_artifact_set(root: str | Path, key: str, report_path: str | None = None, require_signed_result: bool = False) -> dict[str, Any]:
     base = Path(root).resolve()
     if not base.is_dir():
         return {"schema_version": SCHEMA, "status": "blocked", "reason": "artifact_root_missing", "automatic_execution": False}
@@ -55,6 +55,9 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         checks["cross_artifact_binding"] = {"status": "passed"}
         signed_result_path = base / "verification-result.json"
+        if require_signed_result and not signed_result_path.is_file():
+            checks["signed_verification_result"] = {"status": "blocked", "reason": "signed_verification_result_missing"}
+            return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         if signed_result_path.is_file():
             signed_result = _read(signed_result_path)
             signed_result_check = verify_signed_verification_result(signed_result, key)
@@ -88,8 +91,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--key", required=True)
     parser.add_argument("--report")
     parser.add_argument("--signed-output", help="Optional path for a signed offline verification result")
+    parser.add_argument("--require-signed-result", action="store_true", help="Require the complete inventory to aggregate to signed-result chain")
     args = parser.parse_args(argv)
-    result = verify_artifact_set(args.root, args.key, args.report)
+    result = verify_artifact_set(args.root, args.key, args.report, args.require_signed_result)
     if args.signed_output:
         inventory_digest = str(result.get("checks", {}).get("inventory", {}).get("inventory_digest", ""))
         signed = sign_verification_result(result, inventory_digest, inventory_digest, args.key)

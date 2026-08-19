@@ -71,6 +71,16 @@ class VerifyOperatorArtifactSetTests(unittest.TestCase):
             result = verify_artifact_set(artifact_root, KEY)
             self.assertEqual(result["checks"]["signed_result_binding"]["reason"], "verification_inventory_digest_mismatch")
 
+    def test_strict_mode_requires_signed_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact_root, _ = self.build_set(root, with_report=False)
+            (artifact_root / "verification-result.json").unlink()
+            result = verify_artifact_set(artifact_root, KEY, require_signed_result=True)
+            self.assertEqual(result["checks"]["signed_verification_result"]["reason"], "signed_verification_result_missing")
+            legacy = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(legacy["status"], "passed")
+
     def test_missing_manifest_and_outside_report_are_blocked(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

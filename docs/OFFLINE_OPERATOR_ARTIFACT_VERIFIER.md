@@ -31,9 +31,11 @@ A successful result has `status=passed`, `checks.inventory.status=passed`, `chec
 |---|---|---:|---:|
 | Linux/macOS | `scripts/verify_operator_artifacts.sh` | `0` | `2` |
 | Windows PowerShell | `scripts/verify_operator_artifacts.ps1` | `0` | `2` |
-| Direct Python | `scripts/verify_operator_artifact_set.py` | `0` | `2` |
+| Direct Python | `scripts/verify_operator_artifact_set.py --require-signed-result` | `0` | `2` |
 
-The wrappers do not alter paths, invoke shells on artifact content, or add platform-specific claims. A subprocess caller can parse stdout as one JSON object; stderr remains available for runtime diagnostics. This is wrapper parity evidence, not native packaging evidence.
+The wrappers do not alter paths, invoke shells on artifact content, or add platform-specific claims. They enable strict full-chain mode by default, requiring `verification-result.json`. A subprocess caller can parse stdout as one JSON object; stderr remains available for runtime diagnostics. This is wrapper parity evidence, not native packaging evidence.
+
+Direct Python invocation without `--require-signed-result` remains available only for backward-compatible verification of older artifact sets. New transfers should use strict mode.
 
 ## Signed verification result
 
