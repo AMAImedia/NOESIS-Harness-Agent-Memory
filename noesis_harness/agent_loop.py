@@ -72,10 +72,20 @@ class AgentLoop:
             turns.append(turn)
             self._log("turn", {"n": n, "agent": self.agent_id, "ok": verdict.get("pass")})
             if result.get("memory"):
-                self.memory.save(str(result["memory"]), kind="semantic", confidence=0.6)
+                try:
+                    self.memory.save(str(result["memory"]), kind="semantic", confidence=0.6)
+                except Exception as exc:
+                    self.leases.release(task_key, self.agent_id)
+                    self._log("memory_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                    return {"status": "memory_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
             if self.budget is not None:
                 key = "%s:%s:%s" % (self.agent_id, task_key, n)
-                spent = self.budget.spend(key, units=1, validated=bool(verdict.get("pass")))
+                try:
+                    spent = self.budget.spend(key, units=1, validated=bool(verdict.get("pass")))
+                except Exception as exc:
+                    self.leases.release(task_key, self.agent_id)
+                    self._log("budget_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                    return {"status": "budget_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
                 if not spent.get("ok") and spent.get("reason") == "exhausted":
                     self.leases.release(task_key, self.agent_id)
                     return {"status": "budget", "turns": turns, "outputs": outputs}

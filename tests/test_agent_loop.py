@@ -45,6 +45,16 @@ class _Guard:
         return {"ok": self.ok}
 
 
+class _MemoryError(_Memory):
+    def save(self, value, kind, confidence):
+        raise OSError("memory failure")
+
+
+class _BudgetError:
+    def spend(self, key, units, validated):
+        raise RuntimeError("budget failure")
+
+
 class _Judge:
     def __init__(self, ok=True):
         self.ok = ok
@@ -56,8 +66,8 @@ class _Judge:
 
 
 class AgentLoopTests(unittest.TestCase):
-    def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None):
-        return AgentLoop("agent", _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock)
+    def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None, memory=None, budget=None):
+        return AgentLoop("agent", memory or _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock, budget=budget)
 
     def test_max_turns_is_bounded(self):
         calls = []
@@ -98,6 +108,20 @@ class AgentLoopTests(unittest.TestCase):
         leases = _Leases()
         result = self.make_loop(leases=leases, judge=_Judge(ok=False)).run("task", "query", lambda context: {"output": "candidate"})
         self.assertEqual(result["status"], "judge_error")
+        self.assertEqual(result["reason"], "RuntimeError")
+        self.assertEqual(leases.released, 1)
+
+    def test_memory_exception_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, memory=_MemoryError()).run("task", "query", lambda context: {"memory": "candidate"})
+        self.assertEqual(result["status"], "memory_error")
+        self.assertEqual(result["reason"], "OSError")
+        self.assertEqual(leases.released, 1)
+
+    def test_budget_exception_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, budget=_BudgetError()).run("task", "query", lambda context: {"output": "candidate"})
+        self.assertEqual(result["status"], "budget_error")
         self.assertEqual(result["reason"], "RuntimeError")
         self.assertEqual(leases.released, 1)
 
