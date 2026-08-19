@@ -15,6 +15,7 @@ from typing import Any
 from noesis_harness.report_bundle import verify_report_bundle
 from scripts.artifact_inventory import verify_inventory
 from scripts.aggregate_external_evidence import verify_aggregate
+from scripts.signed_verification_result import sign_verification_result
 
 SCHEMA = "noesis.operator-artifact-set-verification.v1"
 
@@ -72,8 +73,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", required=True)
     parser.add_argument("--key", required=True)
     parser.add_argument("--report")
+    parser.add_argument("--signed-output", help="Optional path for a signed offline verification result")
     args = parser.parse_args(argv)
     result = verify_artifact_set(args.root, args.key, args.report)
+    if args.signed_output:
+        inventory_digest = str(result.get("checks", {}).get("inventory", {}).get("inventory_digest", ""))
+        signed = sign_verification_result(result, inventory_digest, inventory_digest, args.key)
+        signed_path = Path(args.signed_output).resolve()
+        signed_path.parent.mkdir(parents=True, exist_ok=True)
+        signed_path.write_text(json.dumps(signed, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        result["signed_result_path"] = str(signed_path)
+        result["signed_result_digest"] = signed["result_digest"]
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result.get("status") == "passed" else 2
 

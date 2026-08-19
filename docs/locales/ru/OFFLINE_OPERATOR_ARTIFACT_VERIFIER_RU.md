@@ -38,3 +38,16 @@ Wrappers выбирают только Python и сохраняют одинак
 | Direct Python | `scripts/verify_operator_artifact_set.py` | `0` | `2` |
 
 Wrappers не изменяют paths, не запускают содержимое artifacts и не добавляют platform-specific claims. Это wrapper parity evidence, а не native packaging evidence.
+
+## Signed verification result
+
+Используйте `--signed-output`, когда результат offline verification должен войти в последующую evidence chain:
+
+```sh
+./scripts/verify_operator_artifacts.sh \
+  --root reports/evidence-pipeline \
+  --key "$NOESIS_EXTERNAL_EVIDENCE_KEY" \
+  --signed-output reports/evidence-pipeline/verification-result.json
+```
+
+Output schema — `noesis.signed-operator-artifact-verification.v1`. Он связывает verified inventory digest, check projections, verification status, deterministic result digest и HMAC-SHA256 signature. Signed result содержит `automatic_execution=false`, `external_execution_claim=false` и claim boundary `offline_artifact_verification_only`. Он доказывает только integrity transferred artifact set и не является evidence запуска external lane.

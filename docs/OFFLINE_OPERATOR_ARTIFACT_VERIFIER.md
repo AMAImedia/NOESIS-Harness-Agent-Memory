@@ -34,3 +34,16 @@ A successful result has `status=passed`, `checks.inventory.status=passed`, `chec
 | Direct Python | `scripts/verify_operator_artifact_set.py` | `0` | `2` |
 
 The wrappers do not alter paths, invoke shells on artifact content, or add platform-specific claims. A subprocess caller can parse stdout as one JSON object; stderr remains available for runtime diagnostics. This is wrapper parity evidence, not native packaging evidence.
+
+## Signed verification result
+
+Use `--signed-output` when the offline verification result must enter a later evidence chain:
+
+```sh
+./scripts/verify_operator_artifacts.sh \
+  --root reports/evidence-pipeline \
+  --key "$NOESIS_EXTERNAL_EVIDENCE_KEY" \
+  --signed-output reports/evidence-pipeline/verification-result.json
+```
+
+The output schema is `noesis.signed-operator-artifact-verification.v1`. It binds the verified inventory digest, check projections, verification status, deterministic result digest, and HMAC-SHA256 signature. The signed result has `automatic_execution=false`, `external_execution_claim=false`, and claim boundary `offline_artifact_verification_only`. It proves integrity of the transferred artifact set only; it is not evidence that an external lane executed.
