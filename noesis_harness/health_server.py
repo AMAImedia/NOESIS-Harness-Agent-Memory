@@ -17,6 +17,7 @@ from .task_session_api import TaskSessionError, TaskSessionStore
 from .promotion_integration import OperatorAuthContext, OperatorSessionAction, PromotionApprovalAction
 from .ui_contract import UIEnvelope, failure, health_payload, success
 from .delegated_resume_action import DelegatedResumeAction
+from .report_export_action import ReportExportAction
 
 
 class _HealthHTTPServer(ThreadingHTTPServer):
@@ -27,7 +28,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_action_handler: Optional[Callable[[DelegatedResumeAction, OperatorAuthContext], Mapping[str, Any]]] = None, evidence_aggregate_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None,
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_action_handler: Optional[Callable[[DelegatedResumeAction, OperatorAuthContext], Mapping[str, Any]]] = None, evidence_aggregate_provider: Optional[Callable[[], Mapping[str, Any]]] = None, report_export_action_handler: Optional[Callable[[ReportExportAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_id: Optional[str] = None,
  operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
@@ -58,6 +59,7 @@ class HealthServer:
         self.delegated_resume_provider = delegated_resume_provider
         self.delegated_resume_action_handler = delegated_resume_action_handler
         self.evidence_aggregate_provider = evidence_aggregate_provider
+        self.report_export_action_handler = report_export_action_handler
         self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
@@ -444,6 +446,19 @@ class HealthServer:
                     return
                 try:
                     payload = self._body()
+                    if self.path == "/api/report-export":
+                        if parent.report_export_action_handler is None:
+                            self._send(failure("denied", "report_export_actions_unavailable", "report export action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        action = ReportExportAction.from_mapping(payload)
+                        result = parent.report_export_action_handler(action, parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("report_export_action_handler_must_return_object")
+                        self._send(success({"action": {"schema_version": action.schema_version, "action_id": action.action_id, "session_id": action.session_id}, "result": parent._redact_telemetry(dict(result))}), 202)
+                        return
                     if self.path == "/api/delegated-resume":
                         if parent.delegated_resume_action_handler is None:
                             self._send(failure("denied", "delegated_resume_actions_unavailable", "delegated resume action handler is not enabled"), 405)

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added authenticated `POST /api/report-export` with `noesis.report-export-action.v1`, explicit `report:export` scope, snapshot digest binding, safe ZIP output policy, single-use action IDs and signed `noesis.report-export-receipt.v1` audit records.
+- Added English and Russian operator report export action contracts and adversarial authorization/path/replay/provider tests.
 - Added `scripts/export_operator_report.py` offline snapshot-to-bundle export with explicit local/native/external mapping, `not_run` fallbacks, redaction and no external execution.
 - Added Linux/macOS `scripts/export_operator_report.sh` and Windows PowerShell `scripts/export_operator_report.ps1` wrappers.
 - Added provider-neutral `scripts/report_bundle.py` create/verify CLI with env-based signing key handling, exit code `0` for verified bundles and `2` for fail-closed blocked results.
