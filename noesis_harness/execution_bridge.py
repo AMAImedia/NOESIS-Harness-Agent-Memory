@@ -145,21 +145,7 @@ class TaskExecutionBridge:
             raise ParallelExecutionError("runtime_receipt_not_verified")
         return {"request_id": str(getattr(result, "request_id", "")), "receipt_id": receipt_id, "outcome": "committed", "sandboxed": bool(getattr(result, "sandboxed", False))}
 
-    def resume_delegated(
-        self,
-        session_id: str,
-        requests: Sequence[TaskExecutionRequest],
-        callback: Callable[[AgentLaneContext], object],
-        *,
-        approval_ids: Mapping[str, str],
-        request_digests: Mapping[str, str],
-        event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
-        lease_store: object | None = None,
-        cancellation: object | None = None,
-        max_duration_seconds: float | None = None,
-        retry_limit: int = 0,
-    ) -> TaskExecutionReport:
-        """Resume interrupted delegated tasks only after explicit single-use approvals."""
+    def _prepare_delegated_resume(self, session_id: str, requests: Sequence[TaskExecutionRequest], *, approval_ids: Mapping[str, str], request_digests: Mapping[str, str], event_sink: Optional[Callable[[Mapping[str, object]], None]] = None) -> None:
         if self.delegated_resume_store is None:
             raise TaskExecutionBridgeError("delegated_resume_store_required")
         if not requests:
@@ -179,12 +165,45 @@ class TaskExecutionBridge:
                 if self.tasks.task(request.task_id).state != "waiting_approval":
                     self.tasks.transition_task(request.task_id, "waiting_approval", reason="approved_delegated_resume", command_id="delegated-resume-approval-" + request.task_id + "-" + approval_id)
             except (DelegatedResumeError, TaskSessionError) as exc:
-                if isinstance(exc, TaskExecutionBridgeError):
-                    raise
                 raise TaskExecutionBridgeError(str(exc)) from exc
             if event_sink is not None:
                 event_sink({"kind": "delegation_resume_approved", "session_id": session_id, "task_id": request.task_id, "approval_id": approval_id, "execution_claim": "resume_authorized"})
+
+    def resume_delegated(
+        self,
+        session_id: str,
+        requests: Sequence[TaskExecutionRequest],
+        callback: Callable[[AgentLaneContext], object],
+        *,
+        approval_ids: Mapping[str, str],
+        request_digests: Mapping[str, str],
+        event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
+        lease_store: object | None = None,
+        cancellation: object | None = None,
+        max_duration_seconds: float | None = None,
+        retry_limit: int = 0,
+    ) -> TaskExecutionReport:
+        """Resume interrupted delegated tasks only after explicit single-use approvals."""
+        self._prepare_delegated_resume(session_id, requests, approval_ids=approval_ids, request_digests=request_digests, event_sink=event_sink)
         return self.execute(session_id, requests, callback, approval=True, event_sink=event_sink, lease_store=lease_store, cancellation=cancellation, max_duration_seconds=max_duration_seconds, retry_limit=retry_limit)
+
+    def resume_delegated_runtime(
+        self,
+        session_id: str,
+        requests: Sequence[TaskExecutionRequest],
+        runtime_factory: Callable[[AgentLaneContext], tuple[Any, Any]],
+        *,
+        approval_ids: Mapping[str, str],
+        request_digests: Mapping[str, str],
+        event_sink: Optional[Callable[[Mapping[str, object]], None]] = None,
+        lease_store: object | None = None,
+        cancellation: object | None = None,
+        max_duration_seconds: float | None = None,
+        retry_limit: int = 0,
+    ) -> TaskExecutionReport:
+        """Resume through the ChildExecutionRuntime receipt-verification path."""
+        self._prepare_delegated_resume(session_id, requests, approval_ids=approval_ids, request_digests=request_digests, event_sink=event_sink)
+        return self.execute_runtime(session_id, requests, runtime_factory, approval=True, event_sink=event_sink, lease_store=lease_store, cancellation=cancellation, max_duration_seconds=max_duration_seconds, retry_limit=retry_limit)
 
     def execute_runtime(
         self,

@@ -21,4 +21,4 @@ Authenticated endpoint: `POST /api/delegated-resume`. Он принимает т
 
 ## Граница автоматизации
 
-Команда принадлежит operator, а не autonomous loop. Background process её не опрашивает, telemetry не может её вызвать, а endpoint не создаёт approval IDs самостоятельно. Caller обязан передать свежий approval из delegated resume lifecycle. Actions claim, workspace binding, sandbox, child-runtime и execution-receipt guards остаются обязательными.
+Команда принадлежит operator, а не autonomous loop. Background process её не опрашивает, telemetry не может её вызвать, а endpoint не создаёт approval IDs самостоятельно. Caller обязан передать свежий approval из delegated resume lifecycle. Reusable wiring `bridge_runtime_resume_callback()` связывает signed action с `TaskExecutionBridge.resume_delegated_runtime()`. Полный путь такой: проверка signed command, потребление fresh approval, восстановление task state, Actions claim, workspace binding, child-runtime execution, signed receipt verification и только затем operator audit receipt. Actions claim, workspace binding, sandbox, child-runtime и execution-receipt guards остаются обязательными.

@@ -81,6 +81,40 @@ class DelegatedResumeActionError(ValueError):
     """Raised when an operator resume action fails closed."""
 
 
+def bridge_resume_callback(bridge: Any, request: Any, callback: Callable[[Any], object]) -> Callable[[DelegatedResumeAction], Mapping[str, Any]]:
+    """Bind one signed action to the normal TaskExecutionBridge resume path."""
+    def run(action: DelegatedResumeAction) -> Mapping[str, Any]:
+        if str(getattr(request, "task_id", "")) != action.task_id or str(getattr(request, "workspace", "")) == "":
+            raise DelegatedResumeActionError("bridge_resume_request_binding_mismatch")
+        report = bridge.resume_delegated(
+            action.session_id,
+            [request],
+            callback,
+            approval_ids={action.task_id: action.approval_id},
+            request_digests={action.task_id: action.request_digest},
+        )
+        result = report.results[0]
+        return {"status": str(getattr(result, "status", "")), "task_id": str(getattr(result, "task_id", "")), "agent_id": str(getattr(result, "agent_id", "")), "attempts": int(getattr(result, "attempts", 0)), "recovered": bool(getattr(result, "recovered", False))}
+    return run
+
+
+def bridge_runtime_resume_callback(bridge: Any, request: Any, runtime_factory: Callable[[Any], tuple[Any, Any]]) -> Callable[[DelegatedResumeAction], Mapping[str, Any]]:
+    """Bind one signed action to TaskExecutionBridge ChildExecutionRuntime resume."""
+    def run(action: DelegatedResumeAction) -> Mapping[str, Any]:
+        if str(getattr(request, "task_id", "")) != action.task_id or str(getattr(request, "workspace", "")) == "":
+            raise DelegatedResumeActionError("bridge_resume_request_binding_mismatch")
+        report = bridge.resume_delegated_runtime(
+            action.session_id,
+            [request],
+            runtime_factory,
+            approval_ids={action.task_id: action.approval_id},
+            request_digests={action.task_id: action.request_digest},
+        )
+        result = report.results[0]
+        return {"status": str(getattr(result, "status", "")), "task_id": str(getattr(result, "task_id", "")), "agent_id": str(getattr(result, "agent_id", "")), "attempts": int(getattr(result, "attempts", 0)), "recovered": bool(getattr(result, "recovered", False))}
+    return run
+
+
 class DelegatedResumeActionExecutor:
     """Validate, execute once, and durably sign an operator resume action."""
 
@@ -136,4 +170,4 @@ class DelegatedResumeActionExecutor:
         return record
 
 
-__all__ = ["SCHEMA_VERSION", "REQUIRED_SCOPE", "DelegatedResumeAction", "DelegatedResumeActionReceipt", "DelegatedResumeActionError", "DelegatedResumeActionExecutor"]
+__all__ = ["SCHEMA_VERSION", "REQUIRED_SCOPE", "DelegatedResumeAction", "DelegatedResumeActionReceipt", "DelegatedResumeActionError", "DelegatedResumeActionExecutor", "bridge_resume_callback", "bridge_runtime_resume_callback"]

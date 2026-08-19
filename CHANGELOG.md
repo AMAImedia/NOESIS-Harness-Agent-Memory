@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `bridge_runtime_resume_callback()` and `TaskExecutionBridge.resume_delegated_runtime()` for end-to-end signed operator resume through approval consumption, Actions claim, child-runtime execution and verified execution receipt.
 - Added `noesis.delegated-resume-action.v1` signed operator command, single-use `noesis.delegated-resume-receipt.v1` audit receipts, scope `task:resume`, and authenticated `POST /api/delegated-resume` dispatch.
 - Integrated `TaskExecutionBridge.resume_delegated()` with durable delegation approvals, unique recovery transition command IDs, normal Actions claims, and existing child execution gates.
 - Added bounded read-only delegated resume status to HealthServer operator snapshot, telemetry and SSE projections; automatic resume remains disabled.
