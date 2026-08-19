@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `noesis.native-artifact-replay.v1` reports and `scripts/build_native_replay_report.py` for deterministic, host-gated validation of operator-produced Windows/macOS artifacts without executing native binaries.
+- Added English and Russian native artifact replay contracts covering `passed`, `not_run`, `blocked`, checksum/SBOM requirements, and explicit no-claim invariants.
+- Added adversarial replay tests for host mismatch, missing artifacts, and prevention of false native execution claims.
 - Trust Plane provenance, lineage, Gatekeeper and child-runtime security closeout evidence.
 - Versioned task/session command API, bounded SSE stream contract and approval-gated TaskExecutionBridge.
 - SafeParallelExecutor with per-agent workspaces, durable Actions lifecycle and RecoveryCoordinator requeue.
@@ -16,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Read-only `/api/audit/migration` endpoint and SSE/UI audit timeline rendering for the latest signed migration receipts.
 
 ### Changed
+- Gate 6 reporting now distinguishes static artifact replay validation from actual native host execution; unavailable matching hosts remain `not_run`.
 - Python 3.14 is the sole target runtime; CI packaging gates now verify portable SHA-256/SPDX coverage and both native target mismatch paths.
 
 ### Security
