@@ -17,7 +17,7 @@ def _digest(value: Mapping[str, Any]) -> str:
     return hashlib.sha256(_canonical(value)).hexdigest()
 
 
-def sign_readiness_receipt(snapshot: Mapping[str, Any], gate_artifact: Mapping[str, Any], test_count: int, python_version: str, key: str) -> dict[str, Any]:
+def sign_readiness_receipt(snapshot: Mapping[str, Any], gate_artifact: Mapping[str, Any], test_count: int, python_version: str, key: str, conformance_digest: str | None = None) -> dict[str, Any]:
     if not isinstance(key, str) or len(key.encode("utf-8")) < 16:
         raise ValueError("readiness_signing_key_too_short")
     if test_count < 0:
@@ -36,10 +36,12 @@ def sign_readiness_receipt(snapshot: Mapping[str, Any], gate_artifact: Mapping[s
         "external_execution_claim": False,
         "claim_boundary": "signed_release_readiness_summary_only",
     }
+    if conformance_digest is not None:
+        unsigned["conformance_digest"] = str(conformance_digest)
     return {**unsigned, "receipt_digest": _digest(unsigned), "signature": hmac.new(key.encode("utf-8"), _canonical(unsigned), hashlib.sha256).hexdigest()}
 
 
-def verify_readiness_receipt(receipt: Mapping[str, Any], snapshot: Mapping[str, Any], gate_artifact: Mapping[str, Any], test_count: int, key: str) -> dict[str, Any]:
+def verify_readiness_receipt(receipt: Mapping[str, Any], snapshot: Mapping[str, Any], gate_artifact: Mapping[str, Any], test_count: int, key: str, conformance_digest: str | None = None) -> dict[str, Any]:
     if not isinstance(receipt, Mapping) or receipt.get("schema_version") != SCHEMA:
         return {"status": "blocked", "reason": "readiness_receipt_schema_invalid"}
     if not isinstance(key, str) or len(key.encode("utf-8")) < 16:
@@ -60,4 +62,6 @@ def verify_readiness_receipt(receipt: Mapping[str, Any], snapshot: Mapping[str, 
         return {"status": "blocked", "reason": "readiness_receipt_test_count_drift"}
     if receipt.get("readiness_status") != snapshot.get("overall_status") or receipt.get("gate_status") != gate_artifact.get("status"):
         return {"status": "blocked", "reason": "readiness_receipt_status_drift"}
+    if conformance_digest is not None and receipt.get("conformance_digest") != str(conformance_digest):
+        return {"status": "blocked", "reason": "readiness_receipt_conformance_drift"}
     return {"status": "passed", "receipt_digest": str(receipt["receipt_digest"]), "readiness_status": str(receipt.get("readiness_status"))}

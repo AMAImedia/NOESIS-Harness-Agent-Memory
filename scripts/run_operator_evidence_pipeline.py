@@ -91,13 +91,13 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         gate_artifact = build_gate_artifact(gate_result)
         gate_artifact_file = root / "release-gate.json"
         gate_artifact_file.write_text(json.dumps(gate_artifact, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        readiness_receipt = sign_readiness_receipt(readiness_snapshot, gate_artifact, readiness_test_count, readiness_python_version, key)
-        readiness_receipt_file = root / "signed-readiness-receipt.json"
-        readiness_receipt_file.write_text(json.dumps(readiness_receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         replay_result = _read(conformance_replay_path) if conformance_replay_path else {"status": "not_run"}
         conformance = build_conformance(readiness_snapshot, matrix, replay_result, gate_artifact)
         conformance_file = root / "execution-conformance.json"
         conformance_file.write_text(json.dumps(conformance, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        readiness_receipt = sign_readiness_receipt(readiness_snapshot, gate_artifact, readiness_test_count, readiness_python_version, key, conformance["conformance_digest"])
+        readiness_receipt_file = root / "signed-readiness-receipt.json"
+        readiness_receipt_file.write_text(json.dumps(readiness_receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     status = aggregate["overall_status"]
     lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
     status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}

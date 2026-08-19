@@ -21,6 +21,7 @@ from scripts.transfer_audit import audit_transfer_set
 from scripts.reproducibility_receipt import verify_reproducibility_receipt
 from scripts.release_gate_artifact import verify_gate_artifact
 from scripts.signed_readiness_receipt import verify_readiness_receipt
+from scripts.execution_conformance import verify_conformance
 
 SCHEMA = "noesis.operator-artifact-set-verification.v1"
 
@@ -76,7 +77,19 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             readiness_receipt = _read(readiness_receipt_path)
             snapshot = _read(snapshot_path)
             gate = _read(gate_path)
-            readiness_check = verify_readiness_receipt(readiness_receipt, snapshot, gate, int(readiness_receipt.get("validated_test_count", -1)), key)
+            conformance_digest = None
+            conformance_path = base / "execution-conformance.json"
+            if readiness_receipt.get("conformance_digest") is not None:
+                if not conformance_path.is_file():
+                    checks["execution_conformance"] = {"status": "blocked", "reason": "conformance_artifact_missing"}
+                    return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+                conformance = _read(conformance_path)
+                conformance_check = verify_conformance(conformance)
+                checks["execution_conformance"] = conformance_check
+                if conformance_check.get("status") != "passed":
+                    return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+                conformance_digest = conformance.get("conformance_digest")
+            readiness_check = verify_readiness_receipt(readiness_receipt, snapshot, gate, int(readiness_receipt.get("validated_test_count", -1)), key, conformance_digest)
             checks["signed_readiness_receipt"] = readiness_check
             if readiness_check.get("status") != "passed":
                 return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
