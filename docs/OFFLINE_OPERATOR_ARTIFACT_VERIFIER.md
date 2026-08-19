@@ -1,0 +1,28 @@
+# Offline Operator Artifact Verifier
+
+## Purpose
+
+`scripts/verify_operator_artifact_set.py` verifies a transferred pipeline artifact directory without executing any artifact content. It checks `artifact-manifest.json`, every inventory-listed file, the readiness matrix, the signed external aggregate, and an optional report bundle.
+
+## Cross-artifact checks
+
+The verifier performs these checks in order:
+
+1. It verifies the signed artifact inventory and all listed file digests under the supplied root.
+2. It requires the readiness matrix and signed aggregate to exist and have their expected schemas.
+3. It verifies the aggregate signature and requires its `matrix_digest` to equal the readiness matrix digest.
+4. If `--report` is supplied, it requires the report ZIP to be inside the artifact root and verifies it with the operator key.
+5. It returns the aggregate readiness status while preserving `comparative_ready=false` and `external_execution_claim=false` when the evidence does not support a comparative claim.
+
+Any schema, signature, digest, missing-file, traversal, report-path, or cross-artifact mismatch is `blocked` and exits with code `2`. Verification reads JSON and ZIP metadata only; it does not import, launch, or interpret artifact content.
+
+## Command
+
+```sh
+python scripts/verify_operator_artifact_set.py \
+  --root reports/evidence-pipeline \
+  --key "$NOESIS_EXTERNAL_EVIDENCE_KEY" \
+  --report reports/evidence-pipeline/operator-report.zip
+```
+
+A successful result has `status=passed`, `checks.inventory.status=passed`, `checks.aggregate.status=passed`, and `checks.cross_artifact_binding.status=passed`. `not_run`, `blocked`, and `unsupported` remain explicit if the signed aggregate contains those states. The verifier is portable across Linux, macOS, and Windows because it uses only Python standard-library file and archive operations.
