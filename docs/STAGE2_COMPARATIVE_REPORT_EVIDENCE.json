@@ -38,5 +38,10 @@
   "operator_bundle_mode": "readiness_only",
   "operator_bundle_execution_allowed": false,
   "operator_bundle_automatic_execution": false,
+  "operator_import_schema": "noesis.operator-import.v1",
+  "operator_import_bundle_digest_check": "passed",
+  "operator_import_manifest_drift_check": "passed",
+  "operator_import_lane_identity_check": "passed",
+  "operator_import_no_score_claim": true,
   "evidence_boundary": "Local evaluator and ingestion behavior only; no external runner was executed and no competitor score was produced."
 }
