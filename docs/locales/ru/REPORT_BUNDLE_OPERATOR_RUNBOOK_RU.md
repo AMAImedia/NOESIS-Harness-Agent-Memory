@@ -58,3 +58,22 @@ export NOESIS_REPORT_SIGNING_KEY='use-an-operator-secret-at-least-16-bytes'
 Команда использует только существующие snapshot projections. Отсутствующие local, native или external domains становятся `not_run`; provider и external lane не вызываются. PowerShell equivalent: `./scripts/export_operator_report.ps1 --snapshot reports/operator-snapshot.json --output reports/noesis-report.zip`; для v2 добавьте `--receipt-audit reports/lifecycle-receipt-audit.json`. Receipt audit file должен содержать `record_id`, `bundle_digest`, `audit_digest` и verified `receipts` array. Invalid или tampered input возвращает `2`, bundle не создаётся.
 
 Успешная verification возвращает exit code `0`. Отсутствующая key, malformed input, signature failure, archive drift, missing domains или digest mismatch возвращают `2` и JSON со `status=blocked`. Verified bundle остаётся только результатом проверки export integrity с `claim=false`; это не comparative score и не native execution receipt.
+
+## Authenticated operator action
+
+`POST /api/report-export` принимает signed `noesis.report-export-action.v1` JSON object. Action создаётся тем же operator signing key, который настроен на server. Optional `receipt_audit_path` должен указывать на существующий absolute `.json` path и входит в signed action. Executor проверяет полный receipt audit до записи bundle. Без поля создаётся v1, с полем — v2. Action single-use; snapshot drift, path escape, malformed или stale receipts, signature mismatch и replay блокируются fail-closed. Endpoint не запускает providers, child runtimes или external lanes.
+
+Пример формы action:
+
+```json
+{
+  "schema_version": "noesis.report-export-action.v1",
+  "action_id": "export-2026-08-19-001",
+  "operator_id": "operator-1",
+  "session_id": "session-1",
+  "output_name": "report-v2.zip",
+  "snapshot_digest": "<sha256-of-bounded-snapshot>",
+  "receipt_audit_path": "/absolute/path/lifecycle-receipt-audit.json",
+  "signature": "<hmac-sha256>"
+}
+```

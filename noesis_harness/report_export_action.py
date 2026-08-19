@@ -44,23 +44,27 @@ class ReportExportAction:
     snapshot_digest: str
     signature: str
     schema_version: str = SCHEMA_VERSION
+    receipt_audit_path: str = ""
 
     @classmethod
-    def sign(cls, *, action_id: str, operator_id: str, session_id: str, output_name: str, snapshot_digest: str, signing_key: bytes) -> "ReportExportAction":
-        unsigned = {"schema_version": SCHEMA_VERSION, "action_id": action_id, "operator_id": operator_id, "session_id": session_id, "output_name": output_name, "snapshot_digest": snapshot_digest}
+    def sign(cls, *, action_id: str, operator_id: str, session_id: str, output_name: str, snapshot_digest: str, signing_key: bytes, receipt_audit_path: str = "") -> "ReportExportAction":
+        unsigned = {"schema_version": SCHEMA_VERSION, "action_id": action_id, "operator_id": operator_id, "session_id": session_id, "output_name": output_name, "snapshot_digest": snapshot_digest, "receipt_audit_path": receipt_audit_path}
         if not action_id or not operator_id or not session_id or not output_name or len(snapshot_digest) != 64:
             raise ValueError("report_export_action_identity_required")
-        return cls(action_id, operator_id, session_id, output_name, snapshot_digest, hmac.new(signing_key, _canonical(unsigned), hashlib.sha256).hexdigest())
+        return cls(action_id, operator_id, session_id, output_name, snapshot_digest, hmac.new(signing_key, _canonical(unsigned), hashlib.sha256).hexdigest(), SCHEMA_VERSION, receipt_audit_path)
 
     def unsigned(self) -> dict[str, Any]:
-        return {"schema_version": self.schema_version, "action_id": self.action_id, "operator_id": self.operator_id, "session_id": self.session_id, "output_name": self.output_name, "snapshot_digest": self.snapshot_digest}
+        return {"schema_version": self.schema_version, "action_id": self.action_id, "operator_id": self.operator_id, "session_id": self.session_id, "output_name": self.output_name, "snapshot_digest": self.snapshot_digest, "receipt_audit_path": self.receipt_audit_path}
 
     def to_mapping(self) -> dict[str, Any]:
         return {**self.unsigned(), "signature": self.signature}
 
+    def legacy_unsigned(self) -> dict[str, Any]:
+        return {key: value for key, value in self.unsigned().items() if key != "receipt_audit_path"}
+
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> "ReportExportAction":
-        return cls(str(value.get("action_id", "")), str(value.get("operator_id", "")), str(value.get("session_id", "")), str(value.get("output_name", "")), str(value.get("snapshot_digest", "")), str(value.get("signature", "")), str(value.get("schema_version", "")))
+        return cls(str(value.get("action_id", "")), str(value.get("operator_id", "")), str(value.get("session_id", "")), str(value.get("output_name", "")), str(value.get("snapshot_digest", "")), str(value.get("signature", "")), str(value.get("schema_version", "")), str(value.get("receipt_audit_path", "")))
 
 
 class ReportExportActionExecutor:
@@ -119,12 +123,18 @@ class ReportExportActionExecutor:
             raise ReportExportActionError("operator_identity_mismatch")
         if self.required_scope not in tuple(getattr(context, "scopes", ())):
             raise ReportExportActionError("scope_required")
-        if not hmac.compare_digest(action.signature, hmac.new(self.signing_key, _canonical(action.unsigned()), hashlib.sha256).hexdigest()):
+        expected_signature = hmac.new(self.signing_key, _canonical(action.unsigned()), hashlib.sha256).hexdigest()
+        legacy_signature = hmac.new(self.signing_key, _canonical(action.legacy_unsigned()), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(action.signature, expected_signature) and not (not action.receipt_audit_path and hmac.compare_digest(action.signature, legacy_signature)):
             raise ReportExportActionError("signature_invalid")
         if action.action_id in self._used:
             raise ReportExportActionError("action_replayed")
         if Path(action.output_name).name != action.output_name or action.output_name in {"", ".", ".."} or not action.output_name.endswith(".zip"):
             raise ReportExportActionError("output_name_invalid")
+        if action.receipt_audit_path:
+            receipt_path = Path(action.receipt_audit_path)
+            if not receipt_path.is_absolute() or not receipt_path.is_file() or receipt_path.suffix != ".json":
+                raise ReportExportActionError("receipt_audit_path_invalid")
 
     def handle(self, action: ReportExportAction, context: Any) -> Mapping[str, Any]:
         try:
@@ -139,9 +149,10 @@ class ReportExportActionExecutor:
             output = (self.output_dir / action.output_name).resolve()
             if self.output_dir not in output.parents:
                 raise ReportExportActionError("output_path_escape")
-            from scripts.export_operator_report import export_snapshot
-            result = export_snapshot(snapshot, str(output), self.signing_key)
-            receipt_unsigned = {"schema_version": RECEIPT_SCHEMA, "action_id": action.action_id, "operator_id": action.operator_id, "session_id": action.session_id, "output_name": action.output_name, "snapshot_digest": action.snapshot_digest, "bundle_digest": str(result["bundle_digest"]), "status": "completed", "created_at": int(time.time())}
+            from scripts.export_operator_report import _receipt_audit, export_snapshot
+            receipt_audit = _receipt_audit(action.receipt_audit_path, self.signing_key) if action.receipt_audit_path else None
+            result = export_snapshot(snapshot, str(output), self.signing_key, receipt_audit)
+            receipt_unsigned = {"schema_version": RECEIPT_SCHEMA, "action_id": action.action_id, "operator_id": action.operator_id, "session_id": action.session_id, "output_name": action.output_name, "snapshot_digest": action.snapshot_digest, "receipt_audit_path": action.receipt_audit_path, "bundle_digest": str(result["bundle_digest"]), "status": "completed", "created_at": int(time.time())}
             receipt = {**receipt_unsigned, "signature": hmac.new(self.signing_key, _canonical(receipt_unsigned), hashlib.sha256).hexdigest()}
             with self.audit_path.open("a", encoding="utf-8") as stream:
                 stream.write(json.dumps(receipt, sort_keys=True, ensure_ascii=False) + "\n")

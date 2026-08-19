@@ -31,3 +31,7 @@ result = verify_report_bundle("reports/noesis-report.zip", operator_key)
 ```
 
 Signing keys are supplied by the operator and never written into the archive. The export is suitable for durable audit attachment, but it is not an approval, execution receipt, or comparative result by itself.
+
+## Authenticated operator export
+
+`POST /api/report-export` accepts a signed `noesis.report-export-action.v1` mapping. The optional `receipt_audit_path` is included in the signed action payload, must identify an existing absolute `.json` file, and is verified with the same operator key before bundle creation. Omitting it produces v1. Supplying a verified audit produces v2 with the normalized `lifecycle_receipt_audit` domain. The action remains single-use; replay, path failure, snapshot drift, malformed receipt identity, stale receipt, signature mismatch, or domain verification failure is fail-closed and cannot produce a completed export receipt.
