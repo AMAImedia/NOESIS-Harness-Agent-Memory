@@ -19,6 +19,7 @@ from .report_bundle import build_report_bundle
 
 SCHEMA_VERSION = "noesis.report-export-action.v1"
 RECEIPT_SCHEMA = "noesis.report-export-receipt.v1"
+LIFECYCLE_SCHEMA = "noesis.report-export-lifecycle-event.v1"
 REQUIRED_SCOPE = "report:export"
 
 
@@ -63,13 +64,15 @@ class ReportExportAction:
 
 
 class ReportExportActionExecutor:
-    def __init__(self, output_dir: str | os.PathLike[str], audit_path: str | os.PathLike[str], *, signing_key: bytes, snapshot_provider: Callable[[], Mapping[str, Any]], required_scope: str = REQUIRED_SCOPE):
+    def __init__(self, output_dir: str | os.PathLike[str], audit_path: str | os.PathLike[str], *, signing_key: bytes, snapshot_provider: Callable[[], Mapping[str, Any]], required_scope: str = REQUIRED_SCOPE, lifecycle_audit_path: str | os.PathLike[str] | None = None):
         if not isinstance(signing_key, bytes) or len(signing_key) < 16:
             raise ValueError("signing_key_too_short")
         self.output_dir = Path(output_dir).resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.audit_path = Path(audit_path)
         self.audit_path.parent.mkdir(parents=True, exist_ok=True)
+        self.lifecycle_audit_path = Path(lifecycle_audit_path) if lifecycle_audit_path is not None else self.audit_path.with_name(self.audit_path.stem + ".lifecycle.jsonl")
+        self.lifecycle_audit_path.parent.mkdir(parents=True, exist_ok=True)
         self.signing_key = signing_key
         self.snapshot_provider = snapshot_provider
         self.required_scope = required_scope
@@ -88,6 +91,10 @@ class ReportExportActionExecutor:
         self._event_sink = event_sink
 
     def _emit(self, action: ReportExportAction, status: str, reason: str = "") -> None:
+        unsigned = {"schema_version": LIFECYCLE_SCHEMA, "event_id": action.action_id + ":" + status, "session_id": action.session_id, "action_id": action.action_id, "status": status, "reason": reason[:160], "automatic_export": False, "control": "read_only", "created_at": int(time.time())}
+        signed = {**unsigned, "signature": hmac.new(self.signing_key, _canonical(unsigned), hashlib.sha256).hexdigest()}
+        with self.lifecycle_audit_path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(signed, sort_keys=True, ensure_ascii=False) + "\n")
         if self._event_sink is not None:
             self._event_sink({"session_id": action.session_id, "action_id": action.action_id, "status": status, "reason": reason, "automatic_export": False, "control": "read_only"})
 
@@ -146,7 +153,7 @@ class ReportExportActionExecutor:
             raise
         except Exception as exc:
             self._emit(action, "blocked", type(exc).__name__)
-            raise
+            raise ReportExportActionError("export_failed:" + type(exc).__name__) from exc
 
 
-__all__ = ["SCHEMA_VERSION", "RECEIPT_SCHEMA", "REQUIRED_SCOPE", "ReportExportAction", "ReportExportActionError", "ReportExportActionExecutor"]
+__all__ = ["SCHEMA_VERSION", "RECEIPT_SCHEMA", "LIFECYCLE_SCHEMA", "REQUIRED_SCOPE", "ReportExportAction", "ReportExportActionError", "ReportExportActionExecutor"]

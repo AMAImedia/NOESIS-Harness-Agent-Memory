@@ -17,4 +17,4 @@ Operator-triggered report export отправляет bounded lifecycle events �
 | `completed` | После durable записи bundle и signed audit receipt. |
 | `blocked` | Когда report export action fail-closed отклонена. |
 
-Events используют существующий bounded `noesis.session-stream.v1` buffer и Last-Event-ID reconnect contract. Signing keys, operator tokens, snapshots, full receipts и filesystem paths не отправляются.
+Events используют существующий bounded `noesis.session-stream.v1` buffer и Last-Event-ID reconnect contract. Каждый lifecycle event также append-ится в отдельный signed `noesis.report-export-lifecycle-event.v1` JSONL evidence log; completed receipt log остаётся отдельным. Signing keys, operator tokens, snapshots, full receipts и filesystem paths не отправляются. Replayed action может создать signed `blocked` lifecycle event, но никогда не создаёт второй completed receipt.

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added signed append-only `noesis.report-export-lifecycle-event.v1` JSONL evidence records for every report export lifecycle event; replayed or failed actions can record `blocked`, but cannot create a second completed receipt.
 - Added ordered report export SSE lifecycle events `approved`, `exporting`, `completed` and fail-closed `blocked` events through the existing session stream buffer; payloads force `automatic_export=false` and `control=read_only`.
 - Added English and Russian report export SSE contracts covering event ordering, redaction and Last-Event-ID behavior.
 - Added bounded `report_export_lifecycle` projection to HealthServer operator snapshot, telemetry and SSE surfaces with `available`/`completed`/`blocked` semantics, forced `automatic_export=false` and `control=read_only`.

@@ -31,6 +31,10 @@ class ReportExportActionTests(unittest.TestCase):
             with self.assertRaisesRegex(ReportExportActionError, "action_replayed"):
                 executor.handle(action, context)
             self.assertEqual(len(root.joinpath("audit.jsonl").read_text(encoding="utf-8").splitlines()), 1)
+            lifecycle_lines = root.joinpath("audit.lifecycle.jsonl").read_text(encoding="utf-8").splitlines()
+            self.assertEqual([json.loads(line)["status"] for line in lifecycle_lines], ["approved", "exporting", "completed", "blocked"])
+            self.assertTrue(all(json.loads(line)["signature"] for line in lifecycle_lines))
+            self.assertNotIn("signing_key", root.joinpath("audit.lifecycle.jsonl").read_text(encoding="utf-8"))
 
     def test_tamper_scope_digest_and_path_fail_before_export(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -49,6 +53,47 @@ class ReportExportActionTests(unittest.TestCase):
                 executor.handle(action, context)
             with self.assertRaisesRegex(ReportExportActionError, "scope_required"):
                 executor.handle(ReportExportAction.sign(action_id="a4", operator_id="operator-1", session_id="s1", output_name="ok.zip", snapshot_digest=_digest(snapshot), signing_key=self.key), SimpleNamespace(authenticated=True, operator_id="operator-1", scopes=()))
+
+    def test_provider_failure_emits_blocked_sse_event(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            snapshot = self.snapshot()
+            executor = ReportExportActionExecutor(root / "reports", root / "audit.jsonl", signing_key=self.key, snapshot_provider=lambda: (_ for _ in ()).throw(RuntimeError("provider-broken")))
+            server = HealthServer(port=0, session_store=object(), report_export_action_handler=executor.handle, operator_id="operator-1", operator_session_id="session-1", operator_scopes=("report:export",))
+            action = ReportExportAction.sign(action_id="blocked-1", operator_id="operator-1", session_id="session-1", output_name="blocked.zip", snapshot_digest=_digest(snapshot), signing_key=self.key)
+            with server:
+                request = urllib.request.Request("http://127.0.0.1:%d/api/report-export" % server.bound_port, data=json.dumps(action.to_mapping()).encode(), headers={"Content-Type": "application/json"}, method="POST")
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(request, timeout=2)
+                caught.exception.close()
+                with urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:%d/api/sessions/session-1/events" % server.bound_port, method="GET"), timeout=2) as response:
+                    body = response.read().decode()
+                self.assertIn('"status":"approved"', body)
+                self.assertNotIn('"status":"exporting"', body)
+                self.assertIn('"status":"blocked"', body)
+                self.assertNotIn('"status":"completed"', body)
+
+    def test_replayed_action_emits_blocked_sse_event_without_second_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            snapshot = self.snapshot()
+            executor = ReportExportActionExecutor(root / "reports", root / "audit.jsonl", signing_key=self.key, snapshot_provider=lambda: snapshot)
+            server = HealthServer(port=0, session_store=object(), report_export_action_handler=executor.handle, operator_id="operator-1", operator_session_id="session-1", operator_scopes=("report:export",))
+            action = ReportExportAction.sign(action_id="replay-1", operator_id="operator-1", session_id="session-1", output_name="replay.zip", snapshot_digest=_digest(snapshot), signing_key=self.key)
+            with server:
+                for expected in (202, 400):
+                    request = urllib.request.Request("http://127.0.0.1:%d/api/report-export" % server.bound_port, data=json.dumps(action.to_mapping()).encode(), headers={"Content-Type": "application/json"}, method="POST")
+                    try:
+                        with urllib.request.urlopen(request, timeout=2) as response:
+                            self.assertEqual(response.status, expected)
+                    except urllib.error.HTTPError as error:
+                        self.assertEqual(error.code, expected)
+                        error.close()
+                with urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:%d/api/sessions/session-1/events" % server.bound_port, method="GET"), timeout=2) as response:
+                    body = response.read().decode()
+                self.assertIn('"status":"completed"', body)
+                self.assertIn('"reason":"action_replayed"', body)
+                self.assertEqual(len(root.joinpath("audit.jsonl").read_text(encoding="utf-8").splitlines()), 1)
 
     def test_authenticated_http_endpoint_emits_ordered_sse_lifecycle_events(self):
         with tempfile.TemporaryDirectory() as directory:

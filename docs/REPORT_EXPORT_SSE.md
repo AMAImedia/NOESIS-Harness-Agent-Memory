@@ -17,4 +17,4 @@ If authorization, snapshot binding, output policy, or export fails after the act
 | `completed` | After bundle and signed audit receipt are durably written. |
 | `blocked` | When a report export action fails closed. |
 
-Events use the existing `noesis.session-stream.v1` bounded buffer and Last-Event-ID reconnect contract. Signing keys, operator tokens, snapshots, full receipts and filesystem paths are not emitted.
+Events use the existing `noesis.session-stream.v1` bounded buffer and Last-Event-ID reconnect contract. Each lifecycle event is also appended to a separate signed `noesis.report-export-lifecycle-event.v1` JSONL evidence log; the completed receipt log remains separate. Signing keys, operator tokens, snapshots, full receipts and filesystem paths are not emitted. Replayed actions may produce a signed `blocked` lifecycle event, but never a second completed receipt.
