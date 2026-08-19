@@ -87,7 +87,7 @@ def build_matrix(manifest: Mapping[str, Any], evidence: Sequence[Mapping[str, An
         else:
             lane_status = "passed"
         lanes[lane] = {"status": lane_status, "reason": ";".join(checks) if checks else "accepted_signed_evidence", "checks": checks, "revision": record.get("revision"), "receipt_id": record.get("receipt_id")}
-    comparable = len(accepted_fingerprints) == 1 and sum(item["status"] == "passed" for item in lanes.values()) >= 2
+    comparable = len(accepted_fingerprints) == 1 and all(lanes[lane]["status"] == "passed" for lane in LANES)
     global_checks: list[str] = []
     if expected_fingerprint and accepted_fingerprints and accepted_fingerprints != {expected_fingerprint}:
         global_checks.append("protocol_fingerprint_mismatch")
@@ -115,6 +115,7 @@ def build_matrix(manifest: Mapping[str, Any], evidence: Sequence[Mapping[str, An
         "evidence_count": len(evidence),
         "matrix_digest": _digest({"lanes": lanes, "global_checks": global_checks}),
         "execution_claim": "not_run" if not evidence else "evidence_ingestion_only",
+        "comparative_rule": "all_required_lanes_passed_with_one_protocol_fingerprint",
         "native_or_external_execution_claim": False,
     }
 

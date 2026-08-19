@@ -1,0 +1,30 @@
+{
+  "schema_version": "noesis.stage2-comparative-report-evidence.v1",
+  "status": "local_verified_bounded",
+  "checks": {
+    "all_required_lanes_rule": "passed",
+    "signed_evidence_verification": "passed",
+    "duplicate_system_rejection": "passed",
+    "stale_receipt_rejection": "passed",
+    "protocol_fingerprint_rejection": "passed",
+    "environment_digest_rejection": "passed",
+    "report_score_fabrication_guard": "passed",
+    "missing_data_not_imputed": "passed",
+    "native_or_external_execution_claim": false
+  },
+  "required_lanes": ["hermes", "opencode", "deepseek_harness"],
+  "current_lane_status": {
+    "hermes": "not_run",
+    "opencode": "not_run",
+    "deepseek_harness": "not_run"
+  },
+  "current_report": {
+    "score_available": false,
+    "score_claim": false,
+    "reason": "external_execution_not_ready"
+  },
+  "protocol_contract": "docs/INDEPENDENT_COMPARATIVE_SCORING_PROTOCOL.json",
+  "readiness_contract": "docs/EXTERNAL_EVIDENCE_READINESS_MATRIX.json",
+  "report_builder": "scripts/build_comparative_report.py",
+  "evidence_boundary": "Local evaluator and ingestion behavior only; no external runner was executed and no competitor score was produced."
+}
