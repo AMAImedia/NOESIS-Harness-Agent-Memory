@@ -54,6 +54,24 @@ class PortableArtifactVerifierTests(unittest.TestCase):
             self.assertEqual(report["status"], "failed")
             self.assertIn("archive_manifest_coverage", report["errors"])
 
+    def test_manifest_path_traversal_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "project"
+            artifact = Path(directory) / "artifact.zip"
+            self.make_artifact(root, artifact)
+            tampered = Path(directory) / "traversal.zip"
+            with zipfile.ZipFile(artifact) as source, zipfile.ZipFile(tampered, "w") as target:
+                for item in source.infolist():
+                    data = source.read(item.filename)
+                    if item.filename == "PORTABLE_MANIFEST.json":
+                        manifest = __import__("json").loads(data)
+                        manifest["files"][0]["path"] = "../escape.txt"
+                        data = (__import__("json").dumps(manifest)).encode("utf-8")
+                    target.writestr(item, data)
+            report = verify(str(tampered))
+            self.assertEqual(report["status"], "failed")
+            self.assertIn("unsafe_path:../escape.txt", report["errors"])
+
     def test_missing_metadata_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory) / "missing.zip"

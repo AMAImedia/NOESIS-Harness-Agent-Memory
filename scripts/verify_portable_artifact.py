@@ -5,7 +5,7 @@ import argparse
 import hashlib
 import json
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 METADATA_FILES = {"PORTABLE_MANIFEST.json", "PORTABLE_SBOM.spdx.json"}
@@ -47,6 +47,8 @@ def verify(artifact: str) -> dict[str, Any]:
                 errors.append("manifest_files_invalid")
                 entries = []
             by_name = {str(entry.get("path")): entry for entry in entries}
+            unsafe_paths = [name for name in by_name if PurePosixPath(name).is_absolute() or ".." in PurePosixPath(name).parts or "\\\\" in name or name in {"", "."}]
+            errors.extend("unsafe_path:" + name for name in unsafe_paths)
             if len(by_name) != len(entries):
                 errors.append("manifest_duplicate_paths")
             payload_names = set(names) - METADATA_FILES

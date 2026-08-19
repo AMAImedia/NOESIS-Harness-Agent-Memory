@@ -10,7 +10,7 @@ import time
 import zipfile
 from pathlib import Path
 
-EXCLUDED_PARTS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv", "models", "secrets"}
+EXCLUDED_PARTS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv", "runtime", "build", "dist", "artifacts", "models", "secrets", "_archive"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".pem", ".key"}
 
 

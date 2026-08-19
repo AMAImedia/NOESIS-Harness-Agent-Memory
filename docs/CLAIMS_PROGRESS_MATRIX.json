@@ -16,7 +16,7 @@
     "B_governed_self_learning": {"status": "bounded_local", "blocking": ["durable evaluator deployment", "review UI", "activation boundary evidence"]},
     "C_memory_long_context": {"status": "bounded_local_plus_multisession", "blocking": ["broader independent non_fixture distributions", "repeated evaluation across pinned corpora"]},
     "D_isolation_adversarial_reliability": {"status": "linux_local", "blocking": ["matching Windows/macOS conformance"]},
-    "E_portable_native_packaging": {"status": "preparation_only", "blocking": ["matching Windows/macOS execution"]},
+    "E_portable_native_packaging": {"status": "portable_artifact_verified_native_host_gated", "blocking": ["matching Windows/macOS execution", "native artifact replay"]},
     "F_external_comparative_lanes": {"status": "not_run", "blocking": ["exact revisions", "executables", "disposable environments", "operator approval"]}
   },
   "claim_requirements": {

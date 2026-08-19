@@ -1,0 +1,14 @@
+{
+  "artifact_kind": "source_portable_python314_zip",
+  "artifact_sha256": "d1bfd394b825c90213015ee692dced26431a26f340f21e8973249654481fbf0a",
+  "artifact_size": 738729,
+  "claim_boundary": "static portable artifact evidence; native Windows/macOS build and execution require matching hosts",
+  "file_count": 415,
+  "native_claim": false,
+  "schema_version": "noesis.portable-artifact-evidence.v2",
+  "verification": {
+    "errors": [],
+    "file_count": 415,
+    "status": "passed"
+  }
+}

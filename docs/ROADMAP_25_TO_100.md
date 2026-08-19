@@ -35,7 +35,7 @@ Unify Bubblewrap, Windows and macOS sandbox interfaces under one conformance con
 
 ### Track E — Portable and native packaging
 
-Produce reproducible Python 3.14 portable layouts, static manifests, SBOMs, checksums and operator bundles. Execute the same parity contract on matching Windows and macOS hosts. Native evidence requires actual host execution, environment digest, artifact validation and clean replay; static manifests alone remain preparation evidence.
+Produce reproducible Python 3.14 portable layouts, static manifests, SBOMs, checksums and operator bundles. The source-portable audit now builds and verifies a 415-file ZIP with SPDX-2.3 inventory and SHA-256 coverage while excluding local runtime/build outputs, models, secrets, keys and archive directories. A traversal-resistant verifier rejects unsafe manifest paths and digest/coverage mismatches. Execute the same parity contract on matching Windows and macOS hosts. Native evidence requires actual host execution, environment digest, artifact validation and clean replay; static manifests alone remain preparation evidence.
 
 ### Track F — External comparative lanes
 

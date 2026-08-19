@@ -50,7 +50,7 @@ Acceptance requires path escape, network egress, credential-like output, environ
 
 ### Gate 6 — Native Windows/macOS evidence
 
-Run the same operator bundle and parity contract on matching Windows and macOS hosts with Python 3.14. The operator bundle now has a single stdlib CLI validator that rejects host mismatch, missing or malformed artifacts, failed network/credential guards, non-passed parity results, incomplete SBOM entries, empty manifests and SHA-256 mismatches. Produce environment digests, backend conformance receipts, packaging manifests, SHA-256/SBOM records and negative-path results. Local tests cover ten native negative/contract cases; until matching-host execution occurs, statuses remain `not_run`.
+Run the same operator bundle and parity contract on matching Windows and macOS hosts with Python 3.14. The operator bundle now has a single stdlib CLI validator that rejects host mismatch, missing or malformed artifacts, failed network/credential guards, non-passed parity results, incomplete SBOM entries, empty manifests and SHA-256 mismatches. The source-portable audit builds and verifies a 415-file Python 3.14 ZIP with SPDX-2.3 inventory and SHA-256 coverage, excluding local runtime/build outputs, models, secrets, keys and archive directories; traversal paths are rejected. Produce environment digests, backend conformance receipts, packaging manifests, SHA-256/SBOM records and negative-path results. Local tests cover native contract and artifact negative cases; until matching-host execution occurs, statuses remain `not_run`.
 
 ### Gate 7 — Pinned external A/B evidence
 
