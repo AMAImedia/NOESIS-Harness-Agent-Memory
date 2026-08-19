@@ -73,6 +73,7 @@ class ReportExportActionExecutor:
         self.signing_key = signing_key
         self.snapshot_provider = snapshot_provider
         self.required_scope = required_scope
+        self._event_sink: Callable[[Mapping[str, Any]], None] | None = None
         self._used: set[str] = set()
         if self.audit_path.exists():
             for line in self.audit_path.read_text(encoding="utf-8").splitlines():
@@ -82,6 +83,13 @@ class ReportExportActionExecutor:
                         self._used.add(str(value["action_id"]))
                 except json.JSONDecodeError:
                     continue
+
+    def set_event_sink(self, event_sink: Callable[[Mapping[str, Any]], None] | None) -> None:
+        self._event_sink = event_sink
+
+    def _emit(self, action: ReportExportAction, status: str, reason: str = "") -> None:
+        if self._event_sink is not None:
+            self._event_sink({"session_id": action.session_id, "action_id": action.action_id, "status": status, "reason": reason, "automatic_export": False, "control": "read_only"})
 
     def lifecycle_snapshot(self) -> Mapping[str, Any]:
         latest: Mapping[str, Any] | None = None
@@ -112,23 +120,33 @@ class ReportExportActionExecutor:
             raise ReportExportActionError("output_name_invalid")
 
     def handle(self, action: ReportExportAction, context: Any) -> Mapping[str, Any]:
-        self._authorize(action, context)
-        snapshot = self.snapshot_provider()
-        if not isinstance(snapshot, Mapping):
-            raise ReportExportActionError("snapshot_provider_must_return_object")
-        if _digest(snapshot) != action.snapshot_digest:
-            raise ReportExportActionError("snapshot_digest_drift")
-        output = (self.output_dir / action.output_name).resolve()
-        if self.output_dir not in output.parents:
-            raise ReportExportActionError("output_path_escape")
-        from scripts.export_operator_report import export_snapshot
-        result = export_snapshot(snapshot, str(output), self.signing_key)
-        receipt_unsigned = {"schema_version": RECEIPT_SCHEMA, "action_id": action.action_id, "operator_id": action.operator_id, "session_id": action.session_id, "output_name": action.output_name, "snapshot_digest": action.snapshot_digest, "bundle_digest": str(result["bundle_digest"]), "status": "completed", "created_at": int(time.time())}
-        receipt = {**receipt_unsigned, "signature": hmac.new(self.signing_key, _canonical(receipt_unsigned), hashlib.sha256).hexdigest()}
-        with self.audit_path.open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(receipt, sort_keys=True, ensure_ascii=False) + "\n")
-        self._used.add(action.action_id)
-        return {"status": "completed", "output_name": action.output_name, "bundle_digest": result["bundle_digest"], "audit_receipt": {"schema_version": RECEIPT_SCHEMA, "action_id": action.action_id, "status": "completed", "signature": receipt["signature"]}}
+        try:
+            self._authorize(action, context)
+            self._emit(action, "approved")
+            snapshot = self.snapshot_provider()
+            if not isinstance(snapshot, Mapping):
+                raise ReportExportActionError("snapshot_provider_must_return_object")
+            self._emit(action, "exporting")
+            if _digest(snapshot) != action.snapshot_digest:
+                raise ReportExportActionError("snapshot_digest_drift")
+            output = (self.output_dir / action.output_name).resolve()
+            if self.output_dir not in output.parents:
+                raise ReportExportActionError("output_path_escape")
+            from scripts.export_operator_report import export_snapshot
+            result = export_snapshot(snapshot, str(output), self.signing_key)
+            receipt_unsigned = {"schema_version": RECEIPT_SCHEMA, "action_id": action.action_id, "operator_id": action.operator_id, "session_id": action.session_id, "output_name": action.output_name, "snapshot_digest": action.snapshot_digest, "bundle_digest": str(result["bundle_digest"]), "status": "completed", "created_at": int(time.time())}
+            receipt = {**receipt_unsigned, "signature": hmac.new(self.signing_key, _canonical(receipt_unsigned), hashlib.sha256).hexdigest()}
+            with self.audit_path.open("a", encoding="utf-8") as stream:
+                stream.write(json.dumps(receipt, sort_keys=True, ensure_ascii=False) + "\n")
+            self._used.add(action.action_id)
+            self._emit(action, "completed")
+            return {"status": "completed", "output_name": action.output_name, "bundle_digest": result["bundle_digest"], "audit_receipt": {"schema_version": RECEIPT_SCHEMA, "action_id": action.action_id, "status": "completed", "signature": receipt["signature"]}}
+        except ReportExportActionError as exc:
+            self._emit(action, "blocked", str(exc))
+            raise
+        except Exception as exc:
+            self._emit(action, "blocked", type(exc).__name__)
+            raise
 
 
 __all__ = ["SCHEMA_VERSION", "RECEIPT_SCHEMA", "REQUIRED_SCOPE", "ReportExportAction", "ReportExportActionError", "ReportExportActionExecutor"]

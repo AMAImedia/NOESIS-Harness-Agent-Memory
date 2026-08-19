@@ -61,6 +61,9 @@ class HealthServer:
         self.evidence_aggregate_provider = evidence_aggregate_provider
         self.report_export_action_handler = report_export_action_handler
         self.report_export_lifecycle_provider = report_export_lifecycle_provider
+        export_owner = getattr(report_export_action_handler, "__self__", None)
+        if export_owner is not None and callable(getattr(export_owner, "set_event_sink", None)):
+            export_owner.set_event_sink(lambda event: self.publish_session_event(str(event.get("session_id", "")), "report_export_lifecycle", event))
         self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
         self._stream_buffers: dict[str, SessionEventBuffer] = {}
         self._telemetry_lock = threading.RLock()
@@ -299,6 +302,15 @@ class HealthServer:
             },
             "execution_claim": "read_only_snapshot",
         }
+
+    def publish_session_event(self, session_id: str, kind: str, data: Mapping[str, Any], task_id: Optional[str] = None) -> StreamEvent:
+        if not session_id:
+            raise StreamContractError("session_id_required")
+        buffer = self._stream_buffers.setdefault(session_id, SessionEventBuffer(session_id))
+        bounded = self._redact_telemetry(dict(data))
+        bounded["automatic_export"] = False
+        bounded["control"] = "read_only"
+        return buffer.publish(kind, bounded, task_id=task_id)
 
     @property
     def bound_port(self) -> int:

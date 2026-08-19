@@ -50,6 +50,25 @@ class ReportExportActionTests(unittest.TestCase):
             with self.assertRaisesRegex(ReportExportActionError, "scope_required"):
                 executor.handle(ReportExportAction.sign(action_id="a4", operator_id="operator-1", session_id="s1", output_name="ok.zip", snapshot_digest=_digest(snapshot), signing_key=self.key), SimpleNamespace(authenticated=True, operator_id="operator-1", scopes=()))
 
+    def test_authenticated_http_endpoint_emits_ordered_sse_lifecycle_events(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            snapshot = self.snapshot()
+            executor = ReportExportActionExecutor(root / "reports", root / "audit.jsonl", signing_key=self.key, snapshot_provider=lambda: snapshot)
+            server = HealthServer(port=0, session_store=object(), report_export_action_handler=executor.handle, operator_id="operator-1", operator_session_id="session-1", operator_scopes=("report:export",))
+            action = ReportExportAction.sign(action_id="sse-1", operator_id="operator-1", session_id="session-1", output_name="sse.zip", snapshot_digest=_digest(snapshot), signing_key=self.key)
+            with server:
+                request = urllib.request.Request("http://127.0.0.1:%d/api/report-export" % server.bound_port, data=json.dumps(action.to_mapping()).encode(), headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(request, timeout=2):
+                    pass
+                with urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:%d/api/sessions/session-1/events" % server.bound_port, method="GET"), timeout=2) as response:
+                    body = response.read().decode()
+                self.assertLess(body.index('"status":"approved"'), body.index('"status":"exporting"'))
+                self.assertLess(body.index('"status":"exporting"'), body.index('"status":"completed"'))
+                self.assertIn('"automatic_export":false', body)
+                self.assertIn('"control":"read_only"', body)
+                self.assertNotIn("signing_key", body)
+
     def test_authenticated_http_endpoint_dispatches_and_redacts(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

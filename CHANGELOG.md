@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added ordered report export SSE lifecycle events `approved`, `exporting`, `completed` and fail-closed `blocked` events through the existing session stream buffer; payloads force `automatic_export=false` and `control=read_only`.
+- Added English and Russian report export SSE contracts covering event ordering, redaction and Last-Event-ID behavior.
 - Added bounded `report_export_lifecycle` projection to HealthServer operator snapshot, telemetry and SSE surfaces with `available`/`completed`/`blocked` semantics, forced `automatic_export=false` and `control=read_only`.
 - Added English and Russian report export lifecycle contracts; reserved `approved` and `exporting` states are not presented as active asynchronous claims.
 - Added authenticated `POST /api/report-export` with `noesis.report-export-action.v1`, explicit `report:export` scope, snapshot digest binding, safe ZIP output policy, single-use action IDs and signed `noesis.report-export-receipt.v1` audit records.

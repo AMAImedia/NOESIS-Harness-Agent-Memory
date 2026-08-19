@@ -1,0 +1,20 @@
+# Контракт SSE lifecycle report export
+
+## Назначение
+
+Operator-triggered report export отправляет bounded lifecycle events в session SSE stream. Events являются только наблюдением; SSE consumers не могут запустить или утвердить export.
+
+Для корректной operator action порядок событий такой:
+
+`approved → exporting → completed`
+
+Если authorization, snapshot binding, output policy или export завершается ошибкой после получения action, terminal event — `blocked`, а успешный receipt не создаётся. Каждое событие содержит только session/action identity, status, ограниченный reason, `automatic_export=false` и `control=read_only`.
+
+| Event | Момент отправки |
+|---|---|
+| `approved` | После schema, operator, scope, signature, replay и output-name checks. |
+| `exporting` | После того как snapshot provider вернул mapping и до записи bundle. |
+| `completed` | После durable записи bundle и signed audit receipt. |
+| `blocked` | Когда report export action fail-closed отклонена. |
+
+Events используют существующий bounded `noesis.session-stream.v1` buffer и Last-Event-ID reconnect contract. Signing keys, operator tokens, snapshots, full receipts и filesystem paths не отправляются.
