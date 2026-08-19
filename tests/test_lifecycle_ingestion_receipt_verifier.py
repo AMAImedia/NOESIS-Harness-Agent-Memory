@@ -1,21 +1,31 @@
 import copy
+import hashlib
+import hmac
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from noesis_harness import LifecycleAuditIngestionAdapter, verify_ingestion_receipt, verify_ingestion_receipt_audit
-from test_lifecycle_audit_ingestion import LifecycleAuditIngestionTests
+from noesis_harness.report_bundle import build_report_bundle
+from noesis_harness.report_export_action import LIFECYCLE_SCHEMA
 
 
 class LifecycleIngestionReceiptVerifierTests(unittest.TestCase):
     key = b"receipt-verifier-key-123456"
 
     def build_receipts(self):
-        fixture = LifecycleAuditIngestionTests()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            fixture.key = self.key
-            bundle, audit = fixture.make_inputs(root)
+            bundle = root / "bundle.zip"
+            build_report_bundle(bundle, local_execution={"status": "passed"}, native_parity={"status": "not_run"}, external_comparative={"status": "not_run"}, signing_key=self.key)
+            audit = root / "audit.jsonl"
+            events = []
+            for status in ("approved", "completed"):
+                event = {"schema_version": LIFECYCLE_SCHEMA, "event_id": "a:" + status, "session_id": "s1", "action_id": "a", "status": status, "reason": "", "automatic_export": False, "control": "read_only", "created_at": 1}
+                event["signature"] = hmac.new(self.key, json.dumps(event, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(), hashlib.sha256).hexdigest()
+                events.append(event)
+            audit.write_text("".join(json.dumps(event, sort_keys=True) + "\n" for event in events), encoding="utf-8")
             adapter = LifecycleAuditIngestionAdapter(root / "ledger.sqlite", signing_key=self.key)
             preflight = adapter.preflight(bundle, audit)
             approval = adapter.approve(preflight["record_id"], operator_id="operator")
