@@ -25,4 +25,12 @@ python scripts/verify_operator_artifact_set.py \
   --report reports/evidence-pipeline/operator-report.zip
 ```
 
-A successful result has `status=passed`, `checks.inventory.status=passed`, `checks.aggregate.status=passed`, and `checks.cross_artifact_binding.status=passed`. `not_run`, `blocked`, and `unsupported` remain explicit if the signed aggregate contains those states. The verifier is portable across Linux, macOS, and Windows because it uses only Python standard-library file and archive operations.
+A successful result has `status=passed`, `checks.inventory.status=passed`, `checks.aggregate.status=passed`, and `checks.cross_artifact_binding.status=passed`. `not_run`, `blocked`, and `unsupported` remain explicit if the signed aggregate contains those states. The verifier is portable across Linux, macOS, and Windows because it uses only Python standard-library file and archive operations. The platform wrappers select Python only and preserve the same JSON stdout and exit-code contract:
+
+| Platform | Wrapper | Success | Blocked/non-passed |
+|---|---|---:|---:|
+| Linux/macOS | `scripts/verify_operator_artifacts.sh` | `0` | `2` |
+| Windows PowerShell | `scripts/verify_operator_artifacts.ps1` | `0` | `2` |
+| Direct Python | `scripts/verify_operator_artifact_set.py` | `0` | `2` |
+
+The wrappers do not alter paths, invoke shells on artifact content, or add platform-specific claims. A subprocess caller can parse stdout as one JSON object; stderr remains available for runtime diagnostics. This is wrapper parity evidence, not native packaging evidence.

@@ -59,6 +59,26 @@ The command maps only existing snapshot projections. Missing local, native, or e
 
 A successful verification exits `0`. Missing keys, malformed input, signature failure, archive drift, missing domains, or digest mismatch exit `2` and return a JSON object with `status=blocked`. A verified bundle remains an export integrity result with `claim=false`; it is not a comparative score or native execution receipt.
 
+## Offline artifact-set verification
+
+After transferring the pipeline directory between Linux, macOS, and Windows, verify the complete artifact set without executing its contents. The wrappers select Python only and preserve the same machine-readable contract:
+
+```sh
+./scripts/verify_operator_artifacts.sh \
+  --root reports/evidence-pipeline \
+  --key "$NOESIS_EXTERNAL_EVIDENCE_KEY" \
+  --report reports/evidence-pipeline/operator-report.zip
+```
+
+```powershell
+.\scripts\verify_operator_artifacts.ps1 `
+  --root reports\evidence-pipeline `
+  --key $env:NOESIS_EXTERNAL_EVIDENCE_KEY `
+  --report reports\evidence-pipeline\operator-report.zip
+```
+
+Direct Python invocation is also supported. Exit `0` means the artifact set passed; exit `2` means blocked or non-passed. This confirms artifact integrity and wrapper parity only, not native Windows/macOS packaging or external execution.
+
 ## Authenticated operator action
 
 `POST /api/report-export` accepts a signed `noesis.report-export-action.v1` JSON object. Create the action with the same operator signing key used by the server. The optional `receipt_audit_path` must be an existing absolute `.json` path and is included in the signed action. The executor verifies the complete receipt audit before writing the bundle. Omit the field for v1; provide it for v2. The action is single-use, and snapshot drift, path escape, malformed or stale receipts, signature mismatch, and replay are rejected fail-closed. The endpoint never launches providers, child runtimes, or external lanes.

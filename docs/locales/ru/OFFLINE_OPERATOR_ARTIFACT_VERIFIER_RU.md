@@ -26,3 +26,15 @@ python scripts/verify_operator_artifact_set.py \
 ```
 
 Successful result содержит `status=passed`, `checks.inventory.status=passed`, `checks.aggregate.status=passed` и `checks.cross_artifact_binding.status=passed`. `not_run`, `blocked` и `unsupported` остаются явными, если signed aggregate содержит эти states. Verifier portable для Linux, macOS и Windows, поскольку использует только Python standard-library file и archive operations.
+
+## Platform wrappers
+
+Wrappers выбирают только Python и сохраняют одинаковый JSON stdout и exit-code contract:
+
+| Platform | Wrapper | Success | Blocked/non-passed |
+|---|---|---:|---:|
+| Linux/macOS | `scripts/verify_operator_artifacts.sh` | `0` | `2` |
+| Windows PowerShell | `scripts/verify_operator_artifacts.ps1` | `0` | `2` |
+| Direct Python | `scripts/verify_operator_artifact_set.py` | `0` | `2` |
+
+Wrappers не изменяют paths, не запускают содержимое artifacts и не добавляют platform-specific claims. Это wrapper parity evidence, а не native packaging evidence.
