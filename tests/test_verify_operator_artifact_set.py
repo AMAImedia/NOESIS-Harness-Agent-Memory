@@ -77,7 +77,7 @@ class VerifyOperatorArtifactSetTests(unittest.TestCase):
             artifact_root, _ = self.build_set(root, with_report=False)
             (artifact_root / "verification-result.json").unlink()
             result = verify_artifact_set(artifact_root, KEY, require_signed_result=True)
-            self.assertEqual(result["checks"]["signed_verification_result"]["reason"], "signed_verification_result_missing")
+            self.assertEqual(result["checks"]["transfer_composition"]["reason"], "transfer_required_artifact_missing")
             legacy = verify_artifact_set(artifact_root, KEY)
             self.assertEqual(legacy["status"], "passed")
 

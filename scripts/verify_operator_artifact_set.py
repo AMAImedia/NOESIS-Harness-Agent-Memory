@@ -17,6 +17,7 @@ from scripts.artifact_inventory import verify_inventory
 from scripts.aggregate_external_evidence import verify_aggregate
 from scripts.signed_verification_result import sign_verification_result, verify_signed_verification_result
 from scripts.chain_summary import verify_chain_summary
+from scripts.transfer_audit import audit_transfer_set
 
 SCHEMA = "noesis.operator-artifact-set-verification.v1"
 
@@ -36,9 +37,12 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
     if not manifest_path.is_file():
         return {"schema_version": SCHEMA, "status": "blocked", "reason": "artifact_manifest_missing", "automatic_execution": False}
     try:
+        composition = audit_transfer_set(base, report_path)
+        if require_signed_result and composition.get("status") != "passed":
+            return {"schema_version": SCHEMA, "status": "blocked", "checks": {"transfer_composition": composition}, "automatic_execution": False}
         inventory = _read(manifest_path)
         inventory_result = verify_inventory(inventory, base, key)
-        checks: dict[str, Any] = {"inventory": inventory_result}
+        checks: dict[str, Any] = {"transfer_composition": composition, "inventory": inventory_result}
         if inventory_result.get("status") != "passed":
             return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         matrix_path = base / "external-evidence-readiness.json"
