@@ -28,7 +28,7 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_action_handler: Optional[Callable[[DelegatedResumeAction, OperatorAuthContext], Mapping[str, Any]]] = None, evidence_aggregate_provider: Optional[Callable[[], Mapping[str, Any]]] = None, report_export_action_handler: Optional[Callable[[ReportExportAction, OperatorAuthContext], Mapping[str, Any]]] = None, report_export_lifecycle_provider: Optional[Callable[[], Mapping[str, Any]]] = None, lifecycle_audit_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, operator_id: Optional[str] = None,
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_action_handler: Optional[Callable[[DelegatedResumeAction, OperatorAuthContext], Mapping[str, Any]]] = None, evidence_aggregate_provider: Optional[Callable[[], Mapping[str, Any]]] = None, report_export_action_handler: Optional[Callable[[ReportExportAction, OperatorAuthContext], Mapping[str, Any]]] = None, report_export_lifecycle_provider: Optional[Callable[[], Mapping[str, Any]]] = None, lifecycle_audit_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, lifecycle_ingestion_status_provider: Optional[Callable[[], Mapping[str, Any]]] = None, lifecycle_ingestion_action_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, operator_id: Optional[str] = None,
  operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
@@ -62,6 +62,8 @@ class HealthServer:
         self.report_export_action_handler = report_export_action_handler
         self.report_export_lifecycle_provider = report_export_lifecycle_provider
         self.lifecycle_audit_readiness_provider = lifecycle_audit_readiness_provider
+        self.lifecycle_ingestion_status_provider = lifecycle_ingestion_status_provider
+        self.lifecycle_ingestion_action_handler = lifecycle_ingestion_action_handler
         export_owner = getattr(report_export_action_handler, "__self__", None)
         if export_owner is not None and callable(getattr(export_owner, "set_event_sink", None)):
             export_owner.set_event_sink(lambda event: self.publish_session_event(str(event.get("session_id", "")), "report_export_lifecycle", event))
@@ -165,6 +167,23 @@ class HealthServer:
         except Exception as exc:
             return {"available": False, "status": "unavailable", "reason": "import_validation_provider_error:" + type(exc).__name__, "execution_claim": "read_only_import_status"}
 
+    def _lifecycle_ingestion_status_snapshot(self) -> Mapping[str, Any]:
+        if self.lifecycle_ingestion_status_provider is None:
+            return {"schema_version": "noesis.lifecycle-audit-ingestion.v1", "state": "not_run", "available": False, "reason": "lifecycle_ingestion_status_provider_unavailable", "execution_allowed": False, "automatic_execution": False, "claim": False, "control": "operator_approval_required"}
+        try:
+            value = self.lifecycle_ingestion_status_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("lifecycle_ingestion_status_must_be_object")
+            bounded = dict(value)
+            bounded["execution_allowed"] = False
+            bounded["automatic_execution"] = False
+            bounded["automatic_import"] = False
+            bounded["claim"] = False
+            bounded["control"] = "operator_approval_required"
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"schema_version": "noesis.lifecycle-audit-ingestion.v1", "state": "blocked", "available": False, "reason": "lifecycle_ingestion_status_provider_error:" + type(exc).__name__, "execution_allowed": False, "automatic_execution": False, "claim": False, "control": "operator_approval_required"}
+
     def _lifecycle_audit_readiness_snapshot(self) -> Mapping[str, Any]:
         if self.lifecycle_audit_readiness_provider is None:
             return {"domain": "report_export_lifecycle_audit", "status": "not_run", "reason": "lifecycle_audit_readiness_provider_unavailable", "claim": False, "execution_claim": False, "comparative_claim": False, "execution_lane_satisfied": False, "native_lane_satisfied": False, "external_lane_satisfied": False, "claim_boundary": "audit_only_lifecycle_evidence"}
@@ -243,6 +262,7 @@ class HealthServer:
         snapshot["evidence_aggregate"] = self._evidence_aggregate_snapshot()
         snapshot["report_export_lifecycle"] = self._report_export_lifecycle_snapshot()
         snapshot["lifecycle_audit_readiness"] = self._lifecycle_audit_readiness_snapshot()
+        snapshot["lifecycle_ingestion"] = self._lifecycle_ingestion_status_snapshot()
         if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
@@ -317,6 +337,7 @@ class HealthServer:
             "evidence_aggregate": self._evidence_aggregate_snapshot(),
             "report_export_lifecycle": self._report_export_lifecycle_snapshot(),
             "lifecycle_audit_readiness": self._lifecycle_audit_readiness_snapshot(),
+            "lifecycle_ingestion": self._lifecycle_ingestion_status_snapshot(),
             "operator_context": {
                 "configured": context is not None,
                 "operator_id": context.operator_id if context is not None else "",
@@ -431,7 +452,7 @@ class HealthServer:
                 elif path == "/models":
                     self._send(parent.models_envelope(), 200)
                 elif path == "/api/readiness":
-                    self._send(success({"migration_readiness": parent._migration_readiness_snapshot(), "evidence_aggregate": parent._evidence_aggregate_snapshot(), "lifecycle_audit_readiness": parent._lifecycle_audit_readiness_snapshot()}), 200)
+                    self._send(success({"migration_readiness": parent._migration_readiness_snapshot(), "evidence_aggregate": parent._evidence_aggregate_snapshot(), "lifecycle_audit_readiness": parent._lifecycle_audit_readiness_snapshot(), "lifecycle_ingestion": parent._lifecycle_ingestion_status_snapshot()}), 200)
                 elif path == "/api/operator/snapshot":
                     self._send(success(parent.operator_snapshot(task_id=task_filter, receipt_id=receipt_filter)), 200)
                 elif path == "/api/learning/review":
@@ -499,6 +520,26 @@ class HealthServer:
                     return
                 try:
                     payload = self._body()
+                    if self.path == "/api/lifecycle-audit-ingestion":
+                        if parent.lifecycle_ingestion_action_handler is None:
+                            self._send(failure("denied", "lifecycle_ingestion_actions_unavailable", "lifecycle ingestion action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        if "lifecycle:audit:write" not in parent.operator_auth_context.scopes:
+                            self._send(failure("denied", "scope_required", "lifecycle:audit:write scope is required"), 403)
+                            return
+                        if payload.get("schema_version") != "noesis.lifecycle-audit-ingestion-action.v1" or payload.get("action") not in {"preflight", "approve", "import"}:
+                            raise ValueError("unsupported_lifecycle_ingestion_action")
+                        result = parent.lifecycle_ingestion_action_handler(dict(payload), parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("lifecycle_ingestion_action_handler_must_return_object")
+                        bounded = parent._redact_telemetry(dict(result))
+                        bounded["automatic_import"] = False
+                        bounded["control"] = "operator_approval_required"
+                        self._send(success({"action": {"schema_version": payload.get("schema_version"), "action": payload.get("action"), "record_id": payload.get("record_id", "")}, "result": bounded}), 202)
+                        return
                     if self.path == "/api/report-export":
                         if parent.report_export_action_handler is None:
                             self._send(failure("denied", "report_export_actions_unavailable", "report export action handler is not enabled"), 405)

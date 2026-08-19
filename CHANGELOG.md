@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added HealthServer `lifecycle_ingestion` status projection and authenticated `POST /api/lifecycle-audit-ingestion` control path with explicit `lifecycle:audit:write` scope; HTTP output forces `automatic_import=false` and `operator_approval_required`.
+- Added English and Russian operator control contracts and tests for scope denial, authenticated dispatch, redaction and automatic-import prevention.
 - Added `LifecycleAuditIngestionAdapter` with durable SQLite preflight/approval/import lifecycle for verified report bundles and signed lifecycle audit logs; stale, duplicate, mismatched and tampered imports fail closed.
 - Added English and Russian lifecycle audit ingestion contracts and adversarial import-state tests; imported results remain `accepted_audit_only` with claims disabled.
 - Added `lifecycle_audit_readiness()` and HealthServer `lifecycle_audit_readiness` projections for `/api/readiness`, operator snapshot and telemetry; the domain is always audit-only and cannot satisfy execution/native/external lanes.
