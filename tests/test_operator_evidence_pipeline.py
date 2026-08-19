@@ -81,6 +81,44 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
             self.assertEqual(result["status"], "passed")
             self.assertEqual(result["release_gate_status"], "passed")
 
+    def test_clean_room_replay_rejects_runtime_fingerprint_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = [evidence_for("hermes", "h1"), evidence_for("opencode", "o1"), evidence_for("deepseek_harness", "d1")]
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, manifest(protocol_fingerprint=evidence[0]["protocol_fingerprint"]))
+            evidence_paths = []
+            for index, record in enumerate(evidence):
+                path = root / ("evidence-%d.json" % index)
+                self.write_json(path, record)
+                evidence_paths.append(str(path))
+            expected = root / "expected"
+            run_pipeline(str(manifest_path), evidence_paths, KEY, str(expected), readiness_test_count=640, readiness_python_version="3.14.7")
+            receipt_path = expected / "reproducibility-receipt.json"
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            receipt["runtime_fingerprint"]["python_version"] = "9.9.9"
+            receipt_path.write_text(json.dumps(receipt, sort_keys=True), encoding="utf-8")
+            result = replay_clean_room(expected, str(manifest_path), evidence_paths, KEY, root / "replay", readiness_test_count=640, readiness_python_version="3.14.7")
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["reason"], "runtime_fingerprint_drift")
+
+    def test_clean_room_rejects_host_dependent_passed_lane(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = [evidence_for("hermes", "h1"), evidence_for("opencode", "o1"), evidence_for("deepseek_harness", "d1")]
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, manifest(protocol_fingerprint=evidence[0]["protocol_fingerprint"]))
+            evidence_paths = []
+            for index, record in enumerate(evidence):
+                path = root / ("evidence-%d.json" % index)
+                self.write_json(path, record)
+                evidence_paths.append(str(path))
+            expected = root / "expected"
+            run_pipeline(str(manifest_path), evidence_paths, KEY, str(expected), readiness_test_count=640, readiness_python_version="3.14.7", native_status="passed")
+            result = replay_clean_room(expected, str(manifest_path), evidence_paths, KEY, root / "replay", readiness_test_count=640, readiness_python_version="3.14.7", native_status="passed")
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["reason"], "host_dependent_lane_replay_requires_receipts")
+
     def test_clean_room_replay_rejects_dirty_root(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

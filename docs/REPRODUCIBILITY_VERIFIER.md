@@ -33,6 +33,6 @@ python scripts/replay_operator_evidence_pipeline.py \
   --readiness-python-version 3.14.7
 ```
 
-The replay root must be empty before execution. The command regenerates the bounded bundle from the declared manifest and evidence inputs, compares SHA-256 bytes for every generated component, then runs strict post-transfer and final release-gate verification. A dirty replay root, changed input, missing generated artifact, digest mismatch, or environment/status inconsistency fails closed.
+The replay root must be empty before execution. The command regenerates the bounded bundle from the declared manifest and evidence inputs, compares SHA-256 bytes for every generated component, checks the receipt runtime fingerprint against the active interpreter and host, then runs strict post-transfer and final release-gate verification. A dirty replay root, changed input, runtime drift, missing generated artifact, digest mismatch, or environment/status inconsistency fails closed. A clean-room replay cannot promote `native_host_status=passed` or `external_lanes_status=passed`; those statuses require their own host-bound receipts and are not synthesized by local replay.
 
 The receipt's runtime fingerprint and contract versions are descriptive provenance. The signed payload excludes `observed_at` according to the declared timestamp policy, so adding an observation time does not change the receipt digest or signature. This verifier proves reproducibility metadata and component binding only; it is not native-host, performance, external-execution, or superiority evidence.
