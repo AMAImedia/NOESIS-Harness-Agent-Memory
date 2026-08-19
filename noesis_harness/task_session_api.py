@@ -225,10 +225,37 @@ class TaskSessionStore:
             raise TaskSessionError("unknown session")
         return tuple(event["payload"] for event in self._records() if event.get("type") == "session_message" and event.get("payload", {}).get("session_id") == session_id)
 
+    def record_execution_evidence(self, session_id: str, task_id: str, evidence: Mapping[str, Any], command_id: Optional[str] = None) -> Mapping[str, Any]:
+        if not isinstance(evidence, Mapping):
+            raise TaskSessionError("execution_evidence_mapping_required")
+        task = self.task(task_id)
+        if task.session_id != session_id:
+            raise TaskSessionError("task_session_mismatch")
+        allowed = {"request_id", "receipt_id", "outcome", "sandboxed"}
+        safe = {key: evidence[key] for key in allowed if key in evidence}
+        if not safe.get("request_id") or not safe.get("receipt_id") or safe.get("outcome") != "committed":
+            raise TaskSessionError("execution_evidence_identity_required")
+        existing = [event.get("payload", {}) for event in self._records() if event.get("type") == "task_execution_evidence" and event.get("payload", {}).get("task_id") == task_id]
+        for prior in existing:
+            if prior.get("request_id") == safe["request_id"] and {key: prior.get(key) for key in safe} != safe:
+                raise TaskSessionError("execution_evidence_conflict")
+        payload = {"session_id": session_id, "task_id": task_id, **safe}
+        return self._append("task_execution_evidence", payload, command_id or "execution-evidence-%s-%s" % (task_id, safe["receipt_id"])) and payload
+
+    def execution_evidence(self, session_id: str) -> Mapping[str, Mapping[str, Any]]:
+        if session_id not in self._project()["sessions"]:
+            raise TaskSessionError("unknown session")
+        latest: Dict[str, Mapping[str, Any]] = {}
+        for event in self._records():
+            payload = event.get("payload") or {}
+            if event.get("type") == "task_execution_evidence" and payload.get("session_id") == session_id:
+                latest[str(payload["task_id"])] = {key: payload[key] for key in ("task_id", "request_id", "receipt_id", "outcome", "sandboxed") if key in payload}
+        return latest
+
     def resume(self, session_id: str) -> Mapping[str, Any]:
         session = self.session(session_id)
         tasks = tuple(self.task(tid) for tid, record in self._project()["tasks"].items() if record["session_id"] == session_id)
-        return {"schema_version": SCHEMA_VERSION, "session": session, "tasks": tasks, "messages": self.messages(session_id), "event_count": self.events.count()}
+        return {"schema_version": SCHEMA_VERSION, "session": session, "tasks": tasks, "messages": self.messages(session_id), "execution_evidence": self.execution_evidence(session_id), "event_count": self.events.count()}
 
 
 __all__ = ["SCHEMA_VERSION", "COMMANDS", "SessionRecord", "TaskRecord", "TaskSessionError", "TaskSessionStore"]

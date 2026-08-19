@@ -34,6 +34,8 @@ For delegated multi-agent work products, `execute_and_submit()` adds a second bo
 
 `TaskExecutionBridge.execute_runtime()` applies the same envelope to approved parallel lanes. It validates task session and `waiting_approval` state before lane start, preserves the existing action-store lease/claim lifecycle, propagates cancellation/deadline/retry controls to `SafeParallelExecutor`, and exposes only bounded execution metadata in `AgentLaneResult.output`. Lane events never contain workspace paths, stdout, receipt-store objects or child output. A runtime mismatch becomes a failed lane and cannot advance the task to review.
 
+The task session store appends a redacted `task_execution_evidence` event keyed by task and receipt identity. `resume(session_id)` projects the latest bounded request/receipt/outcome metadata after reopening the event log. Replaying the same evidence is idempotent; a conflicting receipt for the same request ID is rejected. A task already in `review` cannot be rerun through the bridge because execution still requires a fresh `waiting_approval` transition.
+
 ## References
 
 [1]: https://github.com/cloudflare/cloudflare-os "Cloudflare OS"

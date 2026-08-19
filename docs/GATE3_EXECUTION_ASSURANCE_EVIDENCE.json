@@ -21,6 +21,10 @@
     "task_execution_bridge_runtime_binding": "passed",
     "parallel_lane_workspace_binding": "passed",
     "parallel_lane_metadata_redaction": "passed",
+    "durable_task_execution_projection": "passed",
+    "execution_evidence_replay_idempotency": "passed",
+    "execution_evidence_conflict_rejection": "passed",
+    "restart_no_rerun_without_approval": "passed",
     "resource_warning_policy": "passed"
   },
   "negative_reasons": [
@@ -40,7 +44,7 @@
     "deepseek_harness": "not_run",
     "reason": "pinned_external_environment_required"
   },
-  "targeted_tests": 28,
+  "targeted_tests": 31,
   "evidence_boundary": "This artifact proves local deterministic execution-assurance behavior only; it is not native sandbox or external A/B evidence."
 }
 

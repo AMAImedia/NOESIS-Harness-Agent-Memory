@@ -101,6 +101,12 @@ class ExecutionBridgeTests(unittest.TestCase):
         for event in events:
             self.assertNotIn("runtime output", repr(event))
             self.assertNotIn("receipt_store", repr(event))
+        resumed = self.store.resume(self.session.session_id)
+        self.assertEqual(resumed["execution_evidence"]["task-runtime"]["receipt_id"], "receipt-exec-task-runtime")
+        reopened = TaskSessionStore(str(Path(self.tmp.name) / "session_events.jsonl"))
+        reopened_bridge = TaskExecutionBridge(reopened, self.actions, self.executor)
+        with self.assertRaisesRegex(TaskExecutionBridgeError, "task_not_waiting_approval:review"):
+            reopened_bridge.execute_runtime(self.session.session_id, [TaskExecutionRequest("task-runtime", "agent-runtime", "runtime-lane")], factory, approval=True)
 
     def test_runtime_backed_lane_rejects_workspace_mismatch_before_child_run(self):
         self.create_waiting_task("task-runtime-mismatch", "Runtime mismatch")

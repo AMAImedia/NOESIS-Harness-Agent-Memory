@@ -109,6 +109,9 @@ class TaskExecutionBridge:
         for result in results:
             try:
                 task = self.tasks.task(result.task_id)
+                if result.status == "passed" and isinstance(result.output, Mapping) and isinstance(result.output.get("execution"), Mapping):
+                    execution = result.output["execution"]
+                    self.tasks.record_execution_evidence(session_id, result.task_id, execution, command_id="lane-execution-evidence-%s-%s" % (result.task_id, execution.get("receipt_id", "")))
                 if result.status == "passed" and task.state == "executing":
                     updated = self.tasks.transition_task(result.task_id, "review", reason="parallel_lane_completed:%s" % result.agent_id)
                     kind = "task_review_ready"

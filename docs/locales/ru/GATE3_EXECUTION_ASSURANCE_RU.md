@@ -34,4 +34,6 @@ Implementation отделена от memory и control plane. Parent process н�
 
 `TaskExecutionBridge.execute_runtime()` применяет ту же границу к approved parallel lanes. До старта lane он проверяет session и `waiting_approval`, сохраняет action-store lease/claim lifecycle, передаёт cancellation/deadline/retry в `SafeParallelExecutor` и отдаёт в `AgentLaneResult.output` только bounded execution metadata. Lane events не содержат workspace paths, stdout, receipt-store objects или child output. Runtime mismatch становится failed lane и не переводит task в review.
 
+Task session store добавляет redacted `task_execution_evidence` event, связанный с task и receipt identity. `resume(session_id)` после повторного открытия event log строит последнюю bounded metadata projection: request, receipt и outcome. Повтор той же evidence idempotent; конфликтующий receipt для того же request ID отклоняется. Task в состоянии `review` нельзя запустить через bridge снова, потому что требуется новая `waiting_approval` transition.
+
 English primary contract: [`GATE3_EXECUTION_ASSURANCE.md`](../../GATE3_EXECUTION_ASSURANCE.md).
