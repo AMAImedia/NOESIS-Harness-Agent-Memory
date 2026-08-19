@@ -12,7 +12,7 @@
 | `signed-external-evidence-aggregate.json` | HMAC-signed deterministic aggregate по `noesis.signed-external-evidence-aggregate.v1`. |
 | Optional report ZIP | Signed report bundle с aggregate внутри `external_comparative.signed_evidence_aggregate`. |
 
-Pipeline сохраняет aggregate status без преобразований. `passed` требует, чтобы все три lanes прошли существующий readiness contract. `not_run`, `blocked` и `unsupported` остаются явными и никогда не превращаются в success или score. Non-passed pipeline возвращает exit code `2`; malformed input или отсутствие required snapshot для `--report-output` также возвращают `2` и bounded JSON summary со `status=blocked`.
+Pipeline сохраняет aggregate status без преобразований. `passed` требует, чтобы все три lanes прошли существующий readiness contract. `not_run`, `blocked` и `unsupported` остаются явными и никогда не превращаются в success или score. Machine-readable summary содержит fixed `status_vocabulary` (`passed`, `not_run`, `blocked`, `unsupported`), per-lane `status_counts` и `exit_code`. Non-passed pipeline возвращает exit code `2`; malformed input или отсутствие required snapshot для `--report-output` также возвращают `2` и bounded JSON summary со `status=blocked`.
 
 ## Команда
 

@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from scripts.run_operator_evidence_pipeline import run_pipeline
+from scripts.ingest_runner_result import signature
 from tests.test_external_evidence_readiness import evidence_for, manifest
 
 KEY = "readiness-test-key-2026"
@@ -33,6 +34,9 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
             self.assertTrue((root / "artifacts/signed-external-evidence-aggregate.json").is_file())
             self.assertTrue(report_path.is_file())
             self.assertFalse(result["external_execution_claim"])
+            self.assertEqual(result["status_vocabulary"], ["passed", "not_run", "blocked", "unsupported"])
+            self.assertEqual(result["exit_code"], 0)
+            self.assertEqual(result["status_counts"]["passed"], 3)
 
     def test_missing_lane_is_explicit_and_report_is_optional(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -47,6 +51,27 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
             self.assertIsNone(result["artifacts"]["report_bundle"])
             matrix = json.loads((root / "artifacts/external-evidence-readiness.json").read_text(encoding="utf-8"))
             self.assertEqual(matrix["lanes"]["opencode"]["status"], "blocked")
+
+    def test_all_unsupported_lanes_remain_unsupported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records = []
+            for system, revision in (("hermes", "h1"), ("opencode", "o1"), ("deepseek_harness", "d1")):
+                record = dict(evidence_for(system, revision))
+                record["status"] = "unsupported"
+                record["signature"] = signature({key: value for key, value in record.items() if key != "signature"}, KEY)
+                records.append(record)
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, manifest(protocol_fingerprint=records[0]["protocol_fingerprint"]))
+            paths = []
+            for index, record in enumerate(records):
+                path = root / ("unsupported-%d.json" % index)
+                self.write_json(path, record)
+                paths.append(str(path))
+            result = run_pipeline(str(manifest_path), paths, KEY, str(root / "artifacts"))
+            self.assertEqual(result["status"], "unsupported")
+            self.assertEqual(result["exit_code"], 2)
+            self.assertEqual(result["status_counts"]["unsupported"], 3)
 
     def test_report_output_requires_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:

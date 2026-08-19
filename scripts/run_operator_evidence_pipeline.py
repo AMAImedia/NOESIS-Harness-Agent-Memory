@@ -47,9 +47,14 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         export_snapshot(snapshot, report_output, key.encode("utf-8"), external_aggregate=aggregate)
         report_path = str(Path(report_output))
     status = aggregate["overall_status"]
+    lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
+    status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}
     return {
         "schema_version": SCHEMA,
         "status": status,
+        "status_vocabulary": ["passed", "not_run", "blocked", "unsupported"],
+        "status_counts": status_counts,
+        "exit_code": 0 if status == "passed" else 2,
         "comparative_ready": bool(aggregate["comparative_ready"]),
         "matrix_status": matrix["overall_status"],
         "aggregate_status": aggregate["overall_status"],
