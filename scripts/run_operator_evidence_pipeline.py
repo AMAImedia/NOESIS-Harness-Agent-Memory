@@ -20,6 +20,9 @@ from scripts.signed_verification_result import sign_verification_result
 from scripts.verify_operator_artifact_set import verify_artifact_set
 from scripts.export_operator_report import export_snapshot
 from scripts.external_evidence_readiness import build_matrix
+from scripts.release_readiness_snapshot import build_snapshot, verify_snapshot
+from scripts.release_gate_artifact import build_gate_artifact
+from scripts.signed_readiness_receipt import sign_readiness_receipt
 
 SCHEMA = "noesis.operator-evidence-pipeline.v1"
 
@@ -31,7 +34,7 @@ def _read(path: str) -> dict[str, Any]:
     return value
 
 
-def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output_dir: str, snapshot_path: str | None = None, report_output: str | None = None) -> dict[str, Any]:
+def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output_dir: str, snapshot_path: str | None = None, report_output: str | None = None, readiness_snapshot_path: str | None = None, readiness_test_count: int | None = None, readiness_python_version: str | None = None, native_status: str = "not_run", external_status: str = "not_run") -> dict[str, Any]:
     if not isinstance(key, str) or len(key.encode("utf-8")) < 16:
         raise ValueError("pipeline_signing_key_too_short")
     root = Path(output_dir)
@@ -67,6 +70,28 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
     reproducibility = build_reproducibility_receipt(inventory["inventory_digest"], aggregate["aggregate_digest"], chain_summary["chain_digest"], key)
     reproducibility_path = root / "reproducibility-receipt.json"
     reproducibility_path.write_text(json.dumps(reproducibility, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    readiness_snapshot_file = None
+    gate_artifact_file = None
+    readiness_receipt_file = None
+    if readiness_test_count is not None or readiness_python_version is not None or readiness_snapshot_path:
+        if readiness_test_count is None or readiness_python_version is None:
+            raise ValueError("readiness_metadata_incomplete")
+        if readiness_snapshot_path:
+            readiness_snapshot = _read(readiness_snapshot_path)
+        else:
+            readiness_snapshot = build_snapshot({"status": aggregate["overall_status"]}, readiness_test_count, readiness_python_version, native_status, external_status)
+        snapshot_check = verify_snapshot(readiness_snapshot)
+        if snapshot_check.get("status") != "passed":
+            raise ValueError("readiness_snapshot_invalid:" + str(snapshot_check.get("reason", "unknown")))
+        readiness_snapshot_file = root / "release-readiness.json"
+        readiness_snapshot_file.write_text(json.dumps(readiness_snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        gate_result = {"status": aggregate["overall_status"], "stages": {"post_transfer_audit": {"status": aggregate["overall_status"]}, "release_readiness_snapshot": {"status": readiness_snapshot["overall_status"]}}}
+        gate_artifact = build_gate_artifact(gate_result)
+        gate_artifact_file = root / "release-gate.json"
+        gate_artifact_file.write_text(json.dumps(gate_artifact, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        readiness_receipt = sign_readiness_receipt(readiness_snapshot, gate_artifact, readiness_test_count, readiness_python_version, key)
+        readiness_receipt_file = root / "signed-readiness-receipt.json"
+        readiness_receipt_file.write_text(json.dumps(readiness_receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     status = aggregate["overall_status"]
     lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
     status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}
@@ -79,7 +104,7 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         "comparative_ready": bool(aggregate["comparative_ready"]),
         "matrix_status": matrix["overall_status"],
         "aggregate_status": aggregate["overall_status"],
-        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path), "chain_summary": str(chain_summary_path), "reproducibility_receipt": str(reproducibility_path)},
+        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path), "chain_summary": str(chain_summary_path), "reproducibility_receipt": str(reproducibility_path), "release_readiness": str(readiness_snapshot_file) if readiness_snapshot_file else None, "release_gate": str(gate_artifact_file) if gate_artifact_file else None, "signed_readiness_receipt": str(readiness_receipt_file) if readiness_receipt_file else None},
         "verification_result_digest": signed_verification["result_digest"],
         "chain_summary_digest": chain_summary["chain_digest"],
         "reproducibility_receipt_digest": reproducibility["receipt_digest"],
@@ -98,9 +123,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--snapshot")
     parser.add_argument("--report-output")
+    parser.add_argument("--readiness-snapshot")
+    parser.add_argument("--readiness-test-count", type=int)
+    parser.add_argument("--readiness-python-version")
+    parser.add_argument("--native-status", default="not_run")
+    parser.add_argument("--external-status", default="not_run")
     args = parser.parse_args(argv)
     try:
-        result = run_pipeline(args.manifest, args.evidence, args.key, args.output_dir, args.snapshot, args.report_output)
+        result = run_pipeline(args.manifest, args.evidence, args.key, args.output_dir, args.snapshot, args.report_output, args.readiness_snapshot, args.readiness_test_count, args.readiness_python_version, args.native_status, args.external_status)
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0 if result["status"] == "passed" else 2
     except (OSError, ValueError, json.JSONDecodeError) as exc:

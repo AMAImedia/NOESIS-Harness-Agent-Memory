@@ -5,6 +5,7 @@ from pathlib import Path
 
 from scripts.run_operator_evidence_pipeline import run_pipeline
 from scripts.ingest_runner_result import signature
+from scripts.post_transfer_audit import audit as post_transfer_audit
 from tests.test_external_evidence_readiness import evidence_for, manifest
 
 KEY = "readiness-test-key-2026"
@@ -42,6 +43,25 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
             self.assertEqual(result["status_vocabulary"], ["passed", "not_run", "blocked", "unsupported"])
             self.assertEqual(result["exit_code"], 0)
             self.assertEqual(result["status_counts"]["passed"], 3)
+
+    def test_pipeline_generates_and_strictly_verifies_readiness_bundle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = [evidence_for("hermes", "h1"), evidence_for("opencode", "o1"), evidence_for("deepseek_harness", "d1")]
+            manifest_path = root / "manifest.json"
+            self.write_json(manifest_path, manifest(protocol_fingerprint=evidence[0]["protocol_fingerprint"]))
+            evidence_paths = []
+            for index, record in enumerate(evidence):
+                path = root / ("evidence-%d.json" % index)
+                self.write_json(path, record)
+                evidence_paths.append(str(path))
+            artifact_root = root / "artifacts"
+            result = run_pipeline(str(manifest_path), evidence_paths, KEY, str(artifact_root), readiness_test_count=636, readiness_python_version="3.14.7")
+            self.assertEqual(result["status"], "passed")
+            for name in ("release-readiness.json", "release-gate.json", "signed-readiness-receipt.json"):
+                self.assertTrue((artifact_root / name).is_file())
+            self.assertEqual(post_transfer_audit(artifact_root, KEY)["status"], "passed")
+            self.assertFalse(result["external_execution_claim"])
 
     def test_missing_lane_is_explicit_and_report_is_optional(self):
         with tempfile.TemporaryDirectory() as directory:
