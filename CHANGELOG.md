@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `scripts/export_operator_report.py` offline snapshot-to-bundle export with explicit local/native/external mapping, `not_run` fallbacks, redaction and no external execution.
+- Added Linux/macOS `scripts/export_operator_report.sh` and Windows PowerShell `scripts/export_operator_report.ps1` wrappers.
 - Added provider-neutral `scripts/report_bundle.py` create/verify CLI with env-based signing key handling, exit code `0` for verified bundles and `2` for fail-closed blocked results.
 - Added Linux/macOS `scripts/report_bundle.sh`, Windows PowerShell `scripts/report_bundle.ps1`, and English/Russian cross-platform operator runbooks.
 - Added deterministic `noesis.signed-report-bundle.v1` ZIP export and verifier for separate local execution, native parity and external comparative domains, with fixed metadata, per-domain digests, manifest signature and export-only claim boundary.

@@ -40,4 +40,17 @@ $env:NOESIS_REPORT_SIGNING_KEY = "use-an-operator-secret-at-least-16-bytes"
 .\scripts\report_bundle.ps1 verify --bundle reports\noesis-report.zip
 ```
 
+## Offline export from an operator snapshot
+
+When a bounded operator snapshot has already been saved, export all three domains without manually preparing separate files:
+
+```sh
+export NOESIS_REPORT_SIGNING_KEY='use-an-operator-secret-at-least-16-bytes'
+./scripts/export_operator_report.sh \
+  --snapshot reports/operator-snapshot.json \
+  --output reports/noesis-report.zip
+```
+
+The command maps only existing snapshot projections. Missing local, native, or external domains become `not_run`; it never calls a provider or external lane. The PowerShell equivalent is `./scripts/export_operator_report.ps1 --snapshot reports/operator-snapshot.json --output reports/noesis-report.zip`.
+
 A successful verification exits `0`. Missing keys, malformed input, signature failure, archive drift, missing domains, or digest mismatch exit `2` and return a JSON object with `status=blocked`. A verified bundle remains an export integrity result with `claim=false`; it is not a comparative score or native execution receipt.
