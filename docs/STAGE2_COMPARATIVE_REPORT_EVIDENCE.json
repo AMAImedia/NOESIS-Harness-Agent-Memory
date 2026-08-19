@@ -50,5 +50,9 @@
   "operator_ingestion_append_only_ledger": "passed",
   "operator_ingestion_explicit_approval": "passed",
   "operator_ingestion_no_external_execution": true,
+  "pinned_lane_preflight_schema": "noesis.external-lane-preflight.v1",
+  "pinned_lane_preflight_static_only": true,
+  "pinned_lane_preflight_execution_allowed": false,
+  "pinned_lane_preflight_status": "not_run_until_operator_approval_and_matching_environment",
   "evidence_boundary": "Local evaluator and ingestion behavior only; no external runner was executed and no competitor score was produced."
 }

@@ -120,6 +120,45 @@ def build_matrix(manifest: Mapping[str, Any], evidence: Sequence[Mapping[str, An
     }
 
 
+def build_operator_preflight(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate operator prerequisites only; this function never executes a lane."""
+    revisions = manifest.get("revisions") if isinstance(manifest.get("revisions"), Mapping) else {}
+    executables = manifest.get("executables") if isinstance(manifest.get("executables"), Mapping) else {}
+    workspace = manifest.get("workspace")
+    checks: list[str] = []
+    lanes: dict[str, dict[str, Any]] = {}
+    for lane in LANES:
+        lane_checks: list[str] = []
+        if not isinstance(revisions.get(lane), str) or not revisions.get(lane):
+            lane_checks.append("missing_exact_revision")
+        executable = executables.get(lane)
+        if not isinstance(executable, str) or not executable:
+            lane_checks.append("executable_not_pinned")
+        elif not Path(executable).is_file():
+            lane_checks.append("executable_not_present")
+        lanes[lane] = {"status": "ready" if not lane_checks else "not_run", "checks": lane_checks}
+        checks.extend(f"{lane}:{item}" for item in lane_checks)
+    if manifest.get("network_allowed", False) is not False:
+        checks.append("network_not_deny_by_default")
+    if manifest.get("credentials_present", False):
+        checks.append("credentials_present")
+    if manifest.get("disposable_workspace", True) is not True:
+        checks.append("disposable_workspace_required")
+    if not isinstance(workspace, str) or not workspace:
+        checks.append("workspace_missing")
+    status = "ready_for_operator_approval" if not checks else "not_run"
+    return {
+        "schema_version": "noesis.external-lane-preflight.v1",
+        "status": status,
+        "lanes": lanes,
+        "checks": checks[:64],
+        "execution_allowed": False,
+        "automatic_execution": False,
+        "external_execution_claim": False,
+        "operator_approval_required": True,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build fail-closed external evidence readiness matrix")
     parser.add_argument("--manifest", required=True)
