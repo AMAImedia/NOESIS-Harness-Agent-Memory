@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `DelegatedResumeStore` with `noesis.delegated-resume.v1` append-only identity, checkpoint, interruption, fresh approval and single-use resume evidence for delegated child tasks.
+- Added English and Russian delegated resume/replay contracts covering immutable request identity, stale checkpoint rejection and terminal replay denial.
+- Added adversarial tests for crash resume, duplicate approval consumption, request mutation, checkpoint drift and terminal delegation protection.
 - Added `noesis.native-artifact-replay.v1` reports and `scripts/build_native_replay_report.py` for deterministic, host-gated validation of operator-produced Windows/macOS artifacts without executing native binaries.
 - Added English and Russian native artifact replay contracts covering `passed`, `not_run`, `blocked`, checksum/SBOM requirements, and explicit no-claim invariants.
 - Added adversarial replay tests for host mismatch, missing artifacts, and prevention of false native execution claims.
