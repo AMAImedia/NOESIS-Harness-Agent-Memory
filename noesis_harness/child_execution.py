@@ -21,7 +21,7 @@ from .gatekeeper import Gatekeeper
 from .security import safe_path
 from .sandbox_backend import SandboxBackend
 from .skill_manifest import SkillManifest, digest_files
-from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt
+from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, request_fingerprint
 from .process_control import terminate_process_tree
 
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -207,8 +207,25 @@ class ChildExecutionRuntime:
 
     def run(self, request: ExecutionRequest) -> ExecutionResult:
         before = self._workspace_digest(request.workspace)
+        request_identity = request_fingerprint({
+            "request_id": request.request_id,
+            "argv": list(request.argv),
+            "workspace": str(Path(request.workspace).expanduser().resolve()),
+            "allowed_executables": list(request.allowed_executables),
+            "environment": dict(request.environment),
+            "timeout_seconds": request.timeout_seconds,
+            "output_limit": request.output_limit,
+            "network": request.network,
+            "skill_id": request.skill_id,
+            "manifest": request.manifest.to_dict() if request.manifest else None,
+            "granted_capabilities": list(request.granted_capabilities),
+        })
         if self.recovery_store is not None:
-            self.recovery_store.begin(request.request_id, before)
+            prior = self.recovery_store.begin(request.request_id, before, request_identity)
+            if prior.get("request_digest") not in {"", request_identity}:
+                return ExecutionResult("denied", request.request_id, None, "", "", 0.0, "execution_request_identity_conflict")
+            if prior.get("status") != "running":
+                return ExecutionResult("denied", request.request_id, None, "", "", 0.0, "execution_replay_denied")
         result = self._run(request)
         if self.receipt_store is None:
             if self.recovery_store is not None:
@@ -219,7 +236,7 @@ class ChildExecutionRuntime:
         receipt = create_receipt(request={"request_id": request.request_id, "argv": list(request.argv), "workspace": str(Path(request.workspace).resolve()), "skill_id": request.skill_id}, policy={"decision": decision, "manifest": request.manifest.to_dict() if request.manifest else None, "granted_capabilities": list(request.granted_capabilities)}, workspace_before=before, workspace_after=self._workspace_digest(request.workspace), outcome=outcome, rollback_available=True, side_effects=("workspace_patch",), signing_key=self.receipt_store.signing_key)
         stored = self.receipt_store.put(receipt)
         if self.recovery_store is not None:
-            recovery_status = "denied" if result.status == "denied" else outcome
+            recovery_status = "completed" if result.status == "completed" else "timed_out" if result.status == "timeout" else "denied" if result.status == "denied" else "failed"
             self.recovery_store.complete(request.request_id, workspace_after=self._workspace_digest(request.workspace), receipt_id=stored.receipt_id, status=recovery_status)
         return replace(result, receipt=stored)
 

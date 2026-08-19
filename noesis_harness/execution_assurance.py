@@ -17,6 +17,11 @@ def _digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
 
 
+def request_fingerprint(request: Mapping[str, Any]) -> str:
+    """Return the canonical identity digest used by execution recovery replay guards."""
+    return _digest(request)
+
+
 @dataclass(frozen=True)
 class ExecutionReceipt:
     receipt_id: str
@@ -69,7 +74,10 @@ class ExecutionRecoveryStore:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self._connection() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("CREATE TABLE IF NOT EXISTS execution_runs (run_id TEXT PRIMARY KEY, status TEXT NOT NULL, workspace_before TEXT NOT NULL, workspace_after TEXT, receipt_id TEXT, updated_at REAL NOT NULL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS execution_runs (run_id TEXT PRIMARY KEY, status TEXT NOT NULL, workspace_before TEXT NOT NULL, workspace_after TEXT, receipt_id TEXT, updated_at REAL NOT NULL, request_digest TEXT NOT NULL DEFAULT '')")
+            columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(execution_runs)").fetchall()}
+            if "request_digest" not in columns:
+                conn.execute("ALTER TABLE execution_runs ADD COLUMN request_digest TEXT NOT NULL DEFAULT ''")
             conn.commit()
 
     @contextmanager
@@ -80,15 +88,15 @@ class ExecutionRecoveryStore:
         finally:
             conn.close()
 
-    def begin(self, run_id: str, workspace_before: str) -> Mapping[str, Any]:
+    def begin(self, run_id: str, workspace_before: str, request_digest: str = "") -> Mapping[str, Any]:
         with self._connection() as conn:
-            row = conn.execute("SELECT run_id, status, workspace_before, workspace_after, receipt_id, updated_at FROM execution_runs WHERE run_id = ?", (str(run_id),)).fetchone()
+            row = conn.execute("SELECT run_id, status, workspace_before, workspace_after, receipt_id, updated_at, request_digest FROM execution_runs WHERE run_id = ?", (str(run_id),)).fetchone()
             if row is None:
                 now = __import__("time").time()
-                conn.execute("INSERT INTO execution_runs VALUES (?, ?, ?, ?, ?, ?)", (str(run_id), "running", str(workspace_before), None, None, now))
+                conn.execute("INSERT INTO execution_runs(run_id, status, workspace_before, workspace_after, receipt_id, updated_at, request_digest) VALUES (?, ?, ?, ?, ?, ?, ?)", (str(run_id), "running", str(workspace_before), None, None, now, str(request_digest)))
                 conn.commit()
-                return {"run_id": str(run_id), "status": "running", "workspace_before": str(workspace_before), "workspace_after": None, "receipt_id": None, "updated_at": now}
-            return {"run_id": row[0], "status": row[1], "workspace_before": row[2], "workspace_after": row[3], "receipt_id": row[4], "updated_at": row[5]}
+                return {"run_id": str(run_id), "status": "running", "workspace_before": str(workspace_before), "workspace_after": None, "receipt_id": None, "updated_at": now, "request_digest": str(request_digest)}
+            return {"run_id": row[0], "status": row[1], "workspace_before": row[2], "workspace_after": row[3], "receipt_id": row[4], "updated_at": row[5], "request_digest": row[6]}
 
     def complete(self, run_id: str, *, workspace_after: str, receipt_id: str, status: str) -> Mapping[str, Any]:
         if status not in {"completed", "failed", "timed_out", "denied"}:
@@ -103,10 +111,10 @@ class ExecutionRecoveryStore:
 
     def get(self, run_id: str) -> Mapping[str, Any]:
         with self._connection() as conn:
-            row = conn.execute("SELECT run_id, status, workspace_before, workspace_after, receipt_id, updated_at FROM execution_runs WHERE run_id = ?", (str(run_id),)).fetchone()
+            row = conn.execute("SELECT run_id, status, workspace_before, workspace_after, receipt_id, updated_at, request_digest FROM execution_runs WHERE run_id = ?", (str(run_id),)).fetchone()
         if row is None:
             raise AssuranceError("execution_run_not_found")
-        return {"run_id": row[0], "status": row[1], "workspace_before": row[2], "workspace_after": row[3], "receipt_id": row[4], "updated_at": row[5]}
+        return {"run_id": row[0], "status": row[1], "workspace_before": row[2], "workspace_after": row[3], "receipt_id": row[4], "updated_at": row[5], "request_digest": row[6]}
 
     def recover(self, run_id: str) -> Mapping[str, Any]:
         record = self.get(run_id)
@@ -187,4 +195,4 @@ class ExecutionReceiptStore:
         return receipt
 
 
-__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "create_receipt", "verify_receipt"]
+__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "create_receipt", "request_fingerprint", "verify_receipt"]

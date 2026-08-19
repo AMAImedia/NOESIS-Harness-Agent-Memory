@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from noesis_harness.child_execution import ChildExecutionRuntime, ExecutionRequest
+from noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore
 from noesis_harness.gatekeeper import CapabilityRequest, Gatekeeper
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
 from noesis_harness.skill_manifest import SkillManifest
@@ -160,6 +161,27 @@ class ChildExecutionTests(unittest.TestCase):
         self.assertTrue(result.sandboxed)
         self.assertIn("host_read=blocked", result.stdout)
         self.assertIn("network=blocked", result.stdout)
+
+    def test_recovery_bound_runtime_denies_replay_and_request_identity_conflict(self):
+        root = Path(self.tmp.name)
+        receipts = ExecutionReceiptStore(str(root / "receipts.db"), signing_key=b"gate3-receipt-signing-key")
+        recovery = ExecutionRecoveryStore(str(root / "recovery.db"))
+        runtime = ChildExecutionRuntime(self.gate, receipt_store=receipts, recovery_store=recovery)
+        request_id = self._approved_request()
+        request = self._request(request_id)
+        first = runtime.run(request)
+        self.assertEqual(first.status, "completed")
+        self.assertIsNotNone(first.receipt)
+        replay = runtime.run(request)
+        self.assertEqual(replay.status, "denied")
+        self.assertEqual(replay.reason, "execution_replay_denied")
+        changed = self._request(request_id, script="slow.py")
+        conflict = runtime.run(changed)
+        self.assertEqual(conflict.status, "denied")
+        self.assertEqual(conflict.reason, "execution_request_identity_conflict")
+        stored = receipts.get(first.receipt.receipt_id)
+        self.assertIsNotNone(stored)
+        self.assertEqual(recovery.get(request_id)["status"], "completed")
 
     def test_unavailable_backend_fails_closed(self):
         class Unavailable:

@@ -1,0 +1,37 @@
+{
+  "schema_version": "noesis.gate3-execution-assurance.v1",
+  "scope": "local_only",
+  "platform": "linux",
+  "python": "3.14.7",
+  "status": "passed",
+  "execution_claim": "local_child_runtime_only",
+  "automatic_activation": false,
+  "checks": {
+    "request_identity_digest": "passed",
+    "same_request_replay": "denied",
+    "mutated_request_same_run_id": "denied",
+    "signed_receipt_persistence": "passed",
+    "recovery_terminal_status_binding": "passed",
+    "resource_warning_policy": "passed"
+  },
+  "negative_reasons": [
+    "execution_replay_denied",
+    "execution_request_identity_conflict",
+    "manifest_requires_hardened_sandbox",
+    "network_isolation_unavailable_fail_closed"
+  ],
+  "native": {
+    "windows": "not_run",
+    "macos": "not_run",
+    "reason": "matching_host_required"
+  },
+  "external": {
+    "hermes": "not_run",
+    "opencode": "not_run",
+    "deepseek_harness": "not_run",
+    "reason": "pinned_external_environment_required"
+  },
+  "targeted_tests": 23,
+  "evidence_boundary": "This artifact proves local deterministic execution-assurance behavior only; it is not native sandbox or external A/B evidence."
+}
+
