@@ -15,7 +15,7 @@ from typing import Any
 from noesis_harness.report_bundle import verify_report_bundle
 from scripts.artifact_inventory import verify_inventory
 from scripts.aggregate_external_evidence import verify_aggregate
-from scripts.signed_verification_result import sign_verification_result
+from scripts.signed_verification_result import sign_verification_result, verify_signed_verification_result
 
 SCHEMA = "noesis.operator-artifact-set-verification.v1"
 
@@ -54,6 +54,20 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             checks["cross_artifact_binding"] = {"status": "blocked", "reason": "matrix_digest_mismatch"}
             return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         checks["cross_artifact_binding"] = {"status": "passed"}
+        signed_result_path = base / "verification-result.json"
+        if signed_result_path.is_file():
+            signed_result = _read(signed_result_path)
+            signed_result_check = verify_signed_verification_result(signed_result, key)
+            checks["signed_verification_result"] = signed_result_check
+            if signed_result_check.get("status") != "passed":
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+            if signed_result.get("inventory_digest") != inventory_result.get("inventory_digest"):
+                checks["signed_result_binding"] = {"status": "blocked", "reason": "verification_inventory_digest_mismatch"}
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+            if signed_result.get("verification_status") != str(aggregate.get("overall_status", "blocked")):
+                checks["signed_result_binding"] = {"status": "blocked", "reason": "verification_status_mismatch"}
+                return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+            checks["signed_result_binding"] = {"status": "passed", "inventory_digest": inventory_result.get("inventory_digest")}
         if report_path:
             report = Path(report_path).resolve()
             if base not in report.parents or not report.is_file():

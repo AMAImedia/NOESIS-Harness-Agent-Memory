@@ -37,6 +37,8 @@ class VerifyOperatorArtifactSetTests(unittest.TestCase):
             self.assertEqual(result["checks"]["inventory"]["status"], "passed")
             self.assertEqual(result["checks"]["report_bundle"]["status"], "passed")
             self.assertFalse(result["automatic_execution"])
+            self.assertEqual(result["checks"]["signed_verification_result"]["status"], "passed")
+            self.assertEqual(result["checks"]["signed_result_binding"]["status"], "passed")
 
     def test_tampering_inventory_listed_file_blocks(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -46,6 +48,28 @@ class VerifyOperatorArtifactSetTests(unittest.TestCase):
             result = verify_artifact_set(artifact_root, KEY)
             self.assertEqual(result["status"], "blocked")
             self.assertEqual(result["checks"]["inventory"]["reason"], "inventory_file_mismatch")
+
+    def test_signed_result_tampering_and_binding_drift_are_blocked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact_root, _ = self.build_set(root, with_report=False)
+            result_path = artifact_root / "verification-result.json"
+            signed = json.loads(result_path.read_text(encoding="utf-8"))
+            signed["verification_status"] = "blocked"
+            result_path.write_text(json.dumps(signed), encoding="utf-8")
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["checks"]["signed_verification_result"]["reason"], "verification_result_digest_mismatch")
+            signed = json.loads(result_path.read_text(encoding="utf-8"))
+            signed["verification_status"] = "passed"
+            signed["inventory_digest"] = "0" * 64
+            import hashlib
+            import hmac
+            canonical = json.dumps({key: value for key, value in signed.items() if key not in {"result_digest", "signature"}}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            signed["result_digest"] = hashlib.sha256(canonical).hexdigest()
+            signed["signature"] = hmac.new(KEY.encode("utf-8"), canonical, hashlib.sha256).hexdigest()
+            result_path.write_text(json.dumps(signed), encoding="utf-8")
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["checks"]["signed_result_binding"]["reason"], "verification_inventory_digest_mismatch")
 
     def test_missing_manifest_and_outside_report_are_blocked(self):
         with tempfile.TemporaryDirectory() as directory:
