@@ -14,6 +14,8 @@ from typing import Any
 
 from scripts.aggregate_external_evidence import aggregate_external_evidence
 from scripts.artifact_inventory import build_inventory
+from scripts.signed_verification_result import sign_verification_result
+from scripts.verify_operator_artifact_set import verify_artifact_set
 from scripts.export_operator_report import export_snapshot
 from scripts.external_evidence_readiness import build_matrix
 
@@ -53,6 +55,10 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
     inventory = build_inventory(root, artifact_paths, key, {"pipeline_schema": SCHEMA, "status": aggregate["overall_status"], "comparative_ready": bool(aggregate["comparative_ready"]), "required_lanes": list(aggregate["required_lanes"])})
     inventory_path = root / "artifact-manifest.json"
     inventory_path.write_text(json.dumps(inventory, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    verification = verify_artifact_set(root, key, report_path)
+    signed_verification = sign_verification_result(verification, inventory["inventory_digest"], inventory["inventory_digest"], key)
+    verification_path = root / "verification-result.json"
+    verification_path.write_text(json.dumps(signed_verification, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     status = aggregate["overall_status"]
     lane_statuses = [str(value.get("status", "blocked")) for value in aggregate["lanes"].values()]
     status_counts = {name: lane_statuses.count(name) for name in ("passed", "not_run", "blocked", "unsupported")}
@@ -65,7 +71,8 @@ def run_pipeline(manifest_path: str, evidence_paths: list[str], key: str, output
         "comparative_ready": bool(aggregate["comparative_ready"]),
         "matrix_status": matrix["overall_status"],
         "aggregate_status": aggregate["overall_status"],
-        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path)},
+        "artifacts": {"readiness_matrix": str(matrix_path), "signed_aggregate": str(aggregate_path), "report_bundle": report_path, "artifact_manifest": str(inventory_path), "verification_result": str(verification_path)},
+        "verification_result_digest": signed_verification["result_digest"],
         "artifact_manifest_digest": inventory["inventory_digest"],
         "required_lanes": list(aggregate["required_lanes"]),
         "external_execution_claim": False,

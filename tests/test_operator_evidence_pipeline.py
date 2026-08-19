@@ -33,6 +33,11 @@ class OperatorEvidencePipelineTests(unittest.TestCase):
             self.assertTrue((root / "artifacts/external-evidence-readiness.json").is_file())
             self.assertTrue((root / "artifacts/signed-external-evidence-aggregate.json").is_file())
             self.assertTrue(report_path.is_file())
+            verification_path = root / "artifacts/verification-result.json"
+            self.assertTrue(verification_path.is_file())
+            verification = json.loads(verification_path.read_text(encoding="utf-8"))
+            self.assertEqual(verification["verification_status"], "passed")
+            self.assertEqual(result["verification_result_digest"], verification["result_digest"])
             self.assertFalse(result["external_execution_claim"])
             self.assertEqual(result["status_vocabulary"], ["passed", "not_run", "blocked", "unsupported"])
             self.assertEqual(result["exit_code"], 0)

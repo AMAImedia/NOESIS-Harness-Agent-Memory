@@ -27,3 +27,5 @@ python scripts/run_operator_evidence_pipeline.py \
 ```
 
 The command is safe to run when external lanes are unavailable. Missing or unpinned lanes remain machine-readable `not_run` or `blocked`, and the optional report bundle is not created unless a snapshot is explicitly supplied. `automatic_execution=false` and `external_execution_claim=false` are invariant output fields.
+
+After writing the artifact inventory, the pipeline performs an offline verification pass and emits `verification-result.json` with schema `noesis.signed-operator-artifact-verification.v1`. The result binds the inventory digest and check projections, then signs them with HMAC-SHA256. `verification-result.json` is deliberately excluded from `artifact-manifest.json` to avoid a circular digest; it is bound to the inventory by `inventory_digest` and must be verified after transfer. This creates a complete non-executing evidence chain without claiming that any external lane ran.
