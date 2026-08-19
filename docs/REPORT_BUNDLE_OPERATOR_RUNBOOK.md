@@ -42,15 +42,19 @@ $env:NOESIS_REPORT_SIGNING_KEY = "use-an-operator-secret-at-least-16-bytes"
 
 ## Offline export from an operator snapshot
 
-When a bounded operator snapshot has already been saved, export all three domains without manually preparing separate files:
+When a bounded operator snapshot has already been saved, export all three domains without manually preparing separate files. Without `--receipt-audit`, the command emits the backward-compatible v1 bundle. With a verified lifecycle receipt audit JSON, it emits v2 with the separate audit-only `lifecycle_receipt_audit` domain:
 
 ```sh
 export NOESIS_REPORT_SIGNING_KEY='use-an-operator-secret-at-least-16-bytes'
 ./scripts/export_operator_report.sh \
   --snapshot reports/operator-snapshot.json \
   --output reports/noesis-report.zip
+./scripts/export_operator_report.sh \
+  --snapshot reports/operator-snapshot.json \
+  --receipt-audit reports/lifecycle-receipt-audit.json \
+  --output reports/noesis-report-v2.zip
 ```
 
-The command maps only existing snapshot projections. Missing local, native, or external domains become `not_run`; it never calls a provider or external lane. The PowerShell equivalent is `./scripts/export_operator_report.ps1 --snapshot reports/operator-snapshot.json --output reports/noesis-report.zip`.
+The command maps only existing snapshot projections. Missing local, native, or external domains become `not_run`; it never calls a provider or external lane. The PowerShell equivalent is `./scripts/export_operator_report.ps1 --snapshot reports/operator-snapshot.json --output reports/noesis-report.zip`; add `--receipt-audit reports/lifecycle-receipt-audit.json` for v2. The receipt audit file must contain `record_id`, `bundle_digest`, `audit_digest`, and a verified `receipts` array. Invalid or tampered receipt input exits `2` and no bundle is created.
 
 A successful verification exits `0`. Missing keys, malformed input, signature failure, archive drift, missing domains, or digest mismatch exit `2` and return a JSON object with `status=blocked`. A verified bundle remains an export integrity result with `claim=false`; it is not a comparative score or native execution receipt.
