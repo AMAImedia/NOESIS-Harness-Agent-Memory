@@ -16,7 +16,7 @@ This is the normative English roadmap. The weighted 25%→100% execution plan is
 | Human-governed learning promotion | `passed / bounded local` | Receipt, evaluator, review proposal, approval, immutable version, rollback and signed evidence contracts; executable activation remains separately gated |
 | Administrative SQLite/WAL migration and signed mode audit | `passed / local` | Transactional state/audit persistence, dual-read guard, rollback, HealthServer readiness and UI/SSE timeline |
 | Child execution and Linux/Bubblewrap isolation | `passed / Linux local` | Conformance and fail-closed tests; native target parity is not inferred |
-| Operator control plane and Cloudflare-style read-only telemetry UI | `passed / local` | Health, readiness, audit, child-runtime and bounded SSE contracts |
+| Operator control plane and Cloudflare-style read-only telemetry UI | `passed / local` | Health, readiness, audit, child-runtime, bounded SSE and session-context snapshot contracts |
 | Windows/macOS native sandbox and packaging | `not_run / host required` | Static manifests and refusal policy exist; no native evidence is claimed |
 | Hermes/OpenCode/DeepSeek Harness external A/B | `not_run / pinned environment required` | Readiness and signed-ingestion contracts exist; no external process result is claimed |
 

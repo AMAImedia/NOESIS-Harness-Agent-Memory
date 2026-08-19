@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 
 from noesis_harness.health_server import HealthServer
+from noesis_harness.task_session_api import TaskSessionStore
 from noesis_harness.admin_migration import OperatorMigrationModeSource, verify_signed_mode_change_receipt
 from noesis_harness.ui_contract import CONTRACT_VERSION, UIContractError, failure, health_payload, model_payload, success
 
@@ -153,6 +154,22 @@ class HealthServerTests(unittest.TestCase):
         self.assertEqual(snapshot["telemetry"]["streams"][0]["authorization"], "[REDACTED]")
         self.assertEqual(snapshot["health"]["contract_version"], CONTRACT_VERSION)
         self.assertIn("migration_readiness", snapshot["telemetry"])
+
+    def test_operator_snapshot_binds_bounded_session_context(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskSessionStore(str(__import__("pathlib").Path(directory) / "events.jsonl"))
+            store.create_session("owner", session_id="operator-session")
+            store.create_task("operator-session", "secret task content", "owner", task_id="task-1")
+            store.append_message("operator-session", "user", "private message content")
+            server = HealthServer(port=0, session_store=store, operator_id="operator-1", operator_session_id="operator-session", operator_scopes=("telemetry:read",))
+            snapshot = server.operator_snapshot()
+            context = snapshot["session_context"]
+            self.assertTrue(context["available"])
+            self.assertEqual(context["session_id"], "operator-session")
+            self.assertEqual(context["task_count"], 1)
+            self.assertEqual(context["message_count"], 1)
+            self.assertNotIn("secret task content", str(snapshot))
+            self.assertNotIn("private message content", str(snapshot))
 
     def test_telemetry_snapshot_child_runtime_and_sse_are_read_only(self):
         server = HealthServer(port=0)

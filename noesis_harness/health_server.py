@@ -141,6 +141,28 @@ class HealthServer:
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
 
+    def _operator_session_snapshot(self) -> Mapping[str, Any]:
+        context = self.operator_auth_context
+        if self.session_store is None:
+            return {"available": False, "reason": "session_store_unavailable"}
+        if context is None or not context.session_id:
+            return {"available": False, "reason": "operator_context_unavailable"}
+        try:
+            resumed = self.session_store.resume(context.session_id)
+            session = resumed.get("session")
+            tasks = resumed.get("tasks", ())
+            messages = resumed.get("messages", ())
+            return {
+                "available": True,
+                "session_id": context.session_id,
+                "state": getattr(session, "state", ""),
+                "task_count": len(tasks) if isinstance(tasks, Sequence) else 0,
+                "message_count": len(messages) if isinstance(messages, Sequence) else 0,
+                "event_count": int(resumed.get("event_count", 0)),
+            }
+        except Exception as exc:
+            return {"available": False, "session_id": context.session_id, "reason": "session_snapshot_error:" + type(exc).__name__}
+
     def operator_snapshot(self) -> Mapping[str, Any]:
         """Return a bounded, read-only operator view with no execution side effects."""
         context = self.operator_auth_context
@@ -149,6 +171,7 @@ class HealthServer:
             "health": self.envelope().to_dict(),
             "models": self.models_envelope().to_dict(),
             "telemetry": self.telemetry_snapshot(),
+            "session_context": self._operator_session_snapshot(),
             "operator_context": {
                 "configured": context is not None,
                 "operator_id": context.operator_id if context is not None else "",
