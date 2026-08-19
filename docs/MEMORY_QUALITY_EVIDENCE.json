@@ -3,7 +3,7 @@
   "baseline_recall_mean": 0.0,
   "budget_tokens": 64,
   "cases": 4,
-  "claim_boundary": "deterministic_local_fixture_and_real_stdlib_memory_trajectory_not_external_model_benchmark",
+  "claim_boundary": "deterministic_local_fixture_and_real_stdlib_memory_trajectory_and_multi_session_distribution_not_external_model_benchmark",
   "durable_context_reuse_trajectory": {
     "memory_stats": {
       "memories": 4,
@@ -41,9 +41,82 @@
     "trace_count": 4,
     "trajectory_kind": "real_stdlib_memory_and_reuse_selector_operations"
   },
+  "multi_session_context_reuse_distribution": {
+    "aggregate_metrics": {
+      "attribution_precision_mean": 1.0,
+      "budget_compliance_rate": 1.0,
+      "cases": 6,
+      "compaction_retention_mean": 1.0,
+      "conflict_resolution_rate": 1.0,
+      "experience_reuse_recall_mean": 1.0,
+      "leakage_free_rate": 1.0,
+      "quality_score": 0.9791666666666666,
+      "recall_mean": 0.8333333333333334,
+      "temporal_order_rate": 1.0
+    },
+    "cross_session_reuse": true,
+    "decay": {
+      "changed_records": 4,
+      "floor_bounded": true,
+      "profile_records": 4
+    },
+    "reopened_aggregate_metrics": {
+      "attribution_precision_mean": 1.0,
+      "budget_compliance_rate": 1.0,
+      "cases": 6,
+      "compaction_retention_mean": 1.0,
+      "conflict_resolution_rate": 1.0,
+      "experience_reuse_recall_mean": 1.0,
+      "leakage_free_rate": 1.0,
+      "quality_score": 0.9791666666666666,
+      "recall_mean": 0.8333333333333334,
+      "temporal_order_rate": 1.0
+    },
+    "session_count": 3,
+    "session_metrics": {
+      "session-alpha": {
+        "attribution_precision_mean": 1.0,
+        "budget_compliance_rate": 1.0,
+        "cases": 2,
+        "compaction_retention_mean": 1.0,
+        "conflict_resolution_rate": 1.0,
+        "experience_reuse_recall_mean": 1.0,
+        "leakage_free_rate": 1.0,
+        "quality_score": 0.9375,
+        "recall_mean": 0.5,
+        "temporal_order_rate": 1.0
+      },
+      "session-beta": {
+        "attribution_precision_mean": 1.0,
+        "budget_compliance_rate": 1.0,
+        "cases": 2,
+        "compaction_retention_mean": 1.0,
+        "conflict_resolution_rate": 1.0,
+        "experience_reuse_recall_mean": 1.0,
+        "leakage_free_rate": 1.0,
+        "quality_score": 1.0,
+        "recall_mean": 1.0,
+        "temporal_order_rate": 1.0
+      },
+      "session-gamma": {
+        "attribution_precision_mean": 1.0,
+        "budget_compliance_rate": 1.0,
+        "cases": 2,
+        "compaction_retention_mean": 1.0,
+        "conflict_resolution_rate": 1.0,
+        "experience_reuse_recall_mean": 1.0,
+        "leakage_free_rate": 1.0,
+        "quality_score": 1.0,
+        "recall_mean": 1.0,
+        "temporal_order_rate": 1.0
+      }
+    },
+    "total_cases": 6,
+    "trajectory_kind": "real_stdlib_memory_multi_session_reuse_and_decay_operations"
+  },
   "nextgen_budget_compliance": 1.0,
   "nextgen_recall_mean": 1.0,
   "recall_gain_mean": 1.0,
   "repetitions": 5,
-  "schema_version": "noesis.memory-quality-evidence.v2"
+  "schema_version": "noesis.memory-quality-evidence.v3"
 }

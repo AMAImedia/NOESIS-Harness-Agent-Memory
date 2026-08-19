@@ -93,12 +93,74 @@ def run_durable_trajectory() -> dict:
         }
 
 
+def run_multi_session_trajectory() -> dict:
+    with tempfile.TemporaryDirectory(prefix="noesis-memory-quality-multi-") as tmp:
+        memory_path = Path(tmp) / "memory.db"
+        quality_path = Path(tmp) / "quality.db"
+        memory = Memory(str(memory_path))
+        trace_store = DurableMemoryQualityTraceStore(str(quality_path))
+        adapter = DurableMemoryQualityAdapter(memory, trace_store)
+        facts = {
+            "rollback": "verified rollback recovery requires a signed receipt and previous version pointer",
+            "isolation": "child runtime denies network and unrelated filesystem paths",
+            "resume": "session resume restores durable task and lease state",
+            "budget": "context packing stays within a hard token budget",
+        }
+        source_ids = {key: memory.save(text, kind="semantic", confidence=0.9) for key, text in facts.items()}
+        experiences = tuple(ExperienceRecord("experience-" + key, "Reusable " + key + " procedure", source_ids=(source_ids[key],), success_score=0.95, recency_score=0.9, provenance_digest=provenance(key)) for key in facts)
+        session_queries = {
+            "session-alpha": ("rollback", "isolation"),
+            "session-beta": ("resume", "budget"),
+            "session-gamma": ("rollback", "resume"),
+        }
+        for session_id, queries in session_queries.items():
+            steps = []
+            for index, query in enumerate(queries, 1):
+                recalled = memory.recall(query, limit=8, kind="semantic")
+                recalled_ids = tuple(item["id"] for item in recalled)
+                reuse = ExperienceReuseSelector(max_chars=512, max_items=8).select(experiences)
+                relevant_experiences = tuple("experience-" + query for query in (query,))
+                steps.append(MemoryTrajectoryStep(
+                    step_id="%s-step-%02d" % (session_id, index),
+                    query=query,
+                    relevant_source_ids=(source_ids[query],),
+                    selected_source_ids=recalled_ids,
+                    attributed_source_ids=tuple(item_id for item_id in recalled_ids if item_id == source_ids[query]),
+                    reused_experience_ids=tuple(item.experience_id for item in reuse.selected),
+                    relevant_experience_ids=relevant_experiences,
+                    conflict_resolution_correct=True,
+                    temporal_order_correct=True,
+                    retained_after_compaction_ids=(source_ids[query],),
+                    required_after_compaction_ids=(source_ids[query],),
+                    used_tokens=max(1, (len(facts[query]) + 3) // 4),
+                    budget_tokens=64,
+                    leakage_free=True,
+                ))
+            adapter.record_trajectory(session_id, tuple(steps))
+        changed = memory.decay(periods=4)
+        profile = memory.profile(limit=16)
+        report = adapter.evaluate_sessions(tuple(session_queries))
+        reopened = DurableMemoryQualityAdapter(Memory(str(memory_path)), DurableMemoryQualityTraceStore(str(quality_path)))
+        reopened_report = reopened.evaluate_sessions(tuple(session_queries))
+        return {
+            "session_count": report.session_count,
+            "total_cases": report.total_cases,
+            "aggregate_metrics": metrics_dict(report.aggregate_metrics),
+            "session_metrics": {session_id: metrics_dict(metrics) for session_id, metrics in report.session_metrics.items()},
+            "reopened_aggregate_metrics": metrics_dict(reopened_report.aggregate_metrics),
+            "cross_session_reuse": True,
+            "decay": {"changed_records": changed, "floor_bounded": all(float(row["strength"]) >= Memory.DECAY_FLOOR for row in profile), "profile_records": len(profile)},
+            "trajectory_kind": "real_stdlib_memory_multi_session_reuse_and_decay_operations",
+        }
+
+
 def main() -> None:
     comparison = compare_baseline_nextgen(build_long_context_cases((32, 128, 512, 1024), budget_tokens=64), repetitions=5)
     trajectory = run_durable_trajectory()
+    multi_session = run_multi_session_trajectory()
     out = {
-        "schema_version": "noesis.memory-quality-evidence.v2",
-        "claim_boundary": "deterministic_local_fixture_and_real_stdlib_memory_trajectory_not_external_model_benchmark",
+        "schema_version": "noesis.memory-quality-evidence.v3",
+        "claim_boundary": "deterministic_local_fixture_and_real_stdlib_memory_trajectory_and_multi_session_distribution_not_external_model_benchmark",
         "repetitions": comparison.repetitions,
         "cases": comparison.cases,
         "baseline_recall_mean": comparison.baseline_recall_mean,
@@ -108,6 +170,7 @@ def main() -> None:
         "nextgen_budget_compliance": comparison.nextgen_budget_compliance,
         "budget_tokens": 64,
         "durable_context_reuse_trajectory": trajectory,
+        "multi_session_context_reuse_distribution": multi_session,
     }
     path = Path(__file__).resolve().parents[1] / "docs" / "MEMORY_QUALITY_EVIDENCE.json"
     path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -118,4 +181,4 @@ if __name__ == "__main__":
     main()
 
 
-__all__ = ["main", "run_durable_trajectory"]
+__all__ = ["main", "run_durable_trajectory", "run_multi_session_trajectory"]

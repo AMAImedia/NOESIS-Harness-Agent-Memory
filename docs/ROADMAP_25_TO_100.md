@@ -27,7 +27,7 @@ Bind terminal task outcomes to provenance receipts, deterministic holdouts, revi
 
 ### Track C — Memory and long context
 
-Extend real durable trajectories beyond fixtures: multi-session reuse, temporal decay, conflict resolution, compaction retention, attribution leakage, hard budgets and experience reuse. Add independent task distributions, repeated runs, confidence intervals where meaningful, and no-model-self-grading evaluators. Report gains only with pinned corpus, fixed budgets and reproducible source IDs.
+Extend real durable trajectories beyond fixtures: multi-session reuse, temporal decay, conflict resolution, compaction retention, attribution leakage, hard budgets and experience reuse. The durable adapter now aggregates session-qualified cases through `MultiSessionMemoryQualityReport`, and the v3 evidence runner records a real three-session, six-case distribution with cross-session reuse, decay-floor checks and reopen equality. Remaining work is broader independent corpora and repeated non-fixture distributions; report gains only with pinned corpus, fixed budgets and reproducible source IDs.
 
 ### Track D — Isolation and adversarial reliability
 

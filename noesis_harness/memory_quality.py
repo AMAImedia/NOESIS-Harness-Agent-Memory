@@ -6,7 +6,7 @@ import json
 import math
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from .context_engine import ContextItem
 from .memory_ab import ControlledMemoryEvaluator, MemoryABCase
@@ -112,6 +112,14 @@ class MemoryComparisonReport:
 
 
 @dataclass(frozen=True)
+class MultiSessionMemoryQualityReport:
+    session_count: int
+    total_cases: int
+    session_metrics: Mapping[str, MemoryQualityMetrics]
+    aggregate_metrics: MemoryQualityMetrics
+
+
+@dataclass(frozen=True)
 class MemoryTrajectoryStep:
     step_id: str
     query: str
@@ -161,6 +169,12 @@ class DurableMemoryQualityTraceStore:
             rows = db.execute("SELECT record FROM memory_quality_traces WHERE session_id=? ORDER BY case_id", (session_id,)).fetchall()
         return tuple(json.loads(row["record"]) for row in rows)
 
+    def list_sessions(self, session_ids: Sequence[str]) -> Mapping[str, tuple[Mapping[str, Any], ...]]:
+        normalized = tuple(dict.fromkeys(str(session_id) for session_id in session_ids if str(session_id)))
+        if not normalized:
+            raise MemoryQualityError("session_ids_required")
+        return {session_id: self.list_session(session_id) for session_id in normalized}
+
 
 class DurableMemoryQualityAdapter:
     """Record verified quality traces alongside the real Memory store."""
@@ -179,10 +193,27 @@ class DurableMemoryQualityAdapter:
             self.record(session_id, case, query=step.query)
         return self.evaluate_session(session_id)
 
+    @staticmethod
+    def _case_from_record(row: Mapping[str, Any], *, case_id: Optional[str] = None) -> MemoryQualityCase:
+        return MemoryQualityCase(case_id or str(row["case_id"]), tuple(row["relevant_source_ids"]), tuple(row["selected_source_ids"]), tuple(row["attributed_source_ids"]), bool(row["conflict_resolution_correct"]), bool(row["temporal_order_correct"]), tuple(row["retained_after_compaction_ids"]), tuple(row["required_after_compaction_ids"]), int(row["used_tokens"]), int(row["budget_tokens"]), bool(row["leakage_free"]), tuple(row.get("reused_experience_ids", ())), tuple(row.get("relevant_experience_ids", ())))
+
     def evaluate_session(self, session_id: str) -> MemoryQualityMetrics:
         records = self.trace_store.list_session(session_id)
-        cases = tuple(MemoryQualityCase(row["case_id"], tuple(row["relevant_source_ids"]), tuple(row["selected_source_ids"]), tuple(row["attributed_source_ids"]), bool(row["conflict_resolution_correct"]), bool(row["temporal_order_correct"]), tuple(row["retained_after_compaction_ids"]), tuple(row["required_after_compaction_ids"]), int(row["used_tokens"]), int(row["budget_tokens"]), bool(row["leakage_free"]), tuple(row.get("reused_experience_ids", ())), tuple(row.get("relevant_experience_ids", ()))) for row in records)
+        cases = tuple(self._case_from_record(row) for row in records)
         return MemoryQualityEvaluator().metrics(cases)
+
+    def evaluate_sessions(self, session_ids: Sequence[str]) -> MultiSessionMemoryQualityReport:
+        grouped = self.trace_store.list_sessions(session_ids)
+        session_metrics: dict[str, MemoryQualityMetrics] = {}
+        aggregate_cases: list[MemoryQualityCase] = []
+        for session_id, records in grouped.items():
+            session_cases = tuple(self._case_from_record(row) for row in records)
+            if not session_cases:
+                raise MemoryQualityError("session_traces_required")
+            session_metrics[session_id] = MemoryQualityEvaluator().metrics(session_cases)
+            aggregate_cases.extend(self._case_from_record(row, case_id=f"{session_id}:{row['case_id']}") for row in records)
+        aggregate = MemoryQualityEvaluator().metrics(tuple(aggregate_cases))
+        return MultiSessionMemoryQualityReport(len(grouped), len(aggregate_cases), session_metrics, aggregate)
 
 
 def build_long_context_cases(scales: Sequence[int] = (32, 128, 512), budget_tokens: int = 64) -> tuple[MemoryABCase, ...]:
@@ -208,4 +239,4 @@ def compare_baseline_nextgen(cases: Sequence[MemoryABCase], repetitions: int = 3
     return MemoryComparisonReport(int(repetitions), len(cases), baseline, nextgen, nextgen - baseline, sum(outcome.legacy_used_tokens <= outcome.budget_tokens for run in outcomes for outcome in run) / total, sum(outcome.hard_cap_respected for run in outcomes for outcome in run) / total)
 
 
-__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator", "MemoryComparisonReport", "MemoryTrajectoryStep", "DurableMemoryQualityTraceStore", "DurableMemoryQualityAdapter", "build_long_context_cases", "compare_baseline_nextgen"]
+__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator", "MemoryComparisonReport", "MultiSessionMemoryQualityReport", "MemoryTrajectoryStep", "DurableMemoryQualityTraceStore", "DurableMemoryQualityAdapter", "build_long_context_cases", "compare_baseline_nextgen"]

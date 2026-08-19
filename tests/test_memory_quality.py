@@ -66,6 +66,31 @@ class MemoryQualityTests(unittest.TestCase):
             self.assertEqual(records[0]["query"], "rollback")
             self.assertEqual(records[0]["reused_experience_ids"], ["exp-1"])
 
+    def test_multi_session_quality_aggregation_is_durable_and_session_safe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            memory_path = str(Path(tmp) / "memory.db")
+            quality_path = str(Path(tmp) / "quality.db")
+            adapter = DurableMemoryQualityAdapter(Memory(memory_path), DurableMemoryQualityTraceStore(quality_path))
+            adapter.record_trajectory("session-a", (MemoryTrajectoryStep("step", "rollback", ("source-a",), ("source-a",), ("source-a",), used_tokens=8, budget_tokens=16),))
+            adapter.record_trajectory("session-b", (MemoryTrajectoryStep("step", "resume", ("source-b",), ("source-b",), ("source-b",), used_tokens=12, budget_tokens=16),))
+            report = adapter.evaluate_sessions(("session-a", "session-b"))
+            self.assertEqual(report.session_count, 2)
+            self.assertEqual(report.total_cases, 2)
+            self.assertEqual(report.aggregate_metrics.cases, 2)
+            self.assertEqual(report.session_metrics["session-a"].cases, 1)
+            reopened = DurableMemoryQualityAdapter(Memory(memory_path), DurableMemoryQualityTraceStore(quality_path))
+            reopened_report = reopened.evaluate_sessions(("session-a", "session-b"))
+            self.assertEqual(reopened_report.aggregate_metrics.quality_score, report.aggregate_metrics.quality_score)
+            self.assertEqual(reopened_report.aggregate_metrics.experience_reuse_recall_mean, 1.0)
+
+    def test_multi_session_missing_trace_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            adapter = DurableMemoryQualityAdapter(Memory(str(Path(tmp) / "memory.db")), DurableMemoryQualityTraceStore(str(Path(tmp) / "quality.db")))
+            with self.assertRaisesRegex(MemoryQualityError, "session_traces_required"):
+                adapter.evaluate_sessions(("missing-session",))
+            with self.assertRaisesRegex(MemoryQualityError, "session_ids_required"):
+                adapter.evaluate_sessions(())
+
     def test_trajectory_conflict_and_budget_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             memory = Memory(str(Path(tmp) / "memory.db"))

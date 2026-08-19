@@ -14,7 +14,7 @@
   "tracks": {
     "A_control_plane_operator_surface": {"status": "local_in_progress", "blocking": ["complete integrated operator workflow"]},
     "B_governed_self_learning": {"status": "bounded_local", "blocking": ["durable evaluator deployment", "review UI", "activation boundary evidence"]},
-    "C_memory_long_context": {"status": "bounded_local", "blocking": ["broader non_fixture distributions", "independent repeated evaluation"]},
+    "C_memory_long_context": {"status": "bounded_local_plus_multisession", "blocking": ["broader independent non_fixture distributions", "repeated evaluation across pinned corpora"]},
     "D_isolation_adversarial_reliability": {"status": "linux_local", "blocking": ["matching Windows/macOS conformance"]},
     "E_portable_native_packaging": {"status": "preparation_only", "blocking": ["matching Windows/macOS execution"]},
     "F_external_comparative_lanes": {"status": "not_run", "blocking": ["exact revisions", "executables", "disposable environments", "operator approval"]}
