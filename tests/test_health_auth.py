@@ -24,17 +24,18 @@ class HealthAuthTests(unittest.TestCase):
         with HealthServer(host="0.0.0.0", port=0, allow_non_loopback=True, auth_token=TOKEN, acknowledge_lan_warning=True) as server:
             url = "http://127.0.0.1:%d/health" % server.address[1]
             for header in ({}, {"Authorization": "Bearer wrong-token"}):
-                request = urllib.request.Request(url, headers=header, method="GET")
-                try:
-                    urllib.request.urlopen(request, timeout=2)
-                except urllib.error.HTTPError as error:
-                    self.assertEqual(error.code, 401)
-                    payload = error.read().decode("utf-8")
-                    error.close()
-                    self.assertNotIn(TOKEN, payload)
-                    self.assertEqual(json.loads(payload)["error"]["code"], "authentication_required")
-                else:
-                    self.fail("unauthenticated LAN request must be rejected")
+                for suffix in ("", "/api/operator/snapshot?task_id=task-1&receipt_id=receipt-1", "/api/telemetry/events?task_id=task-1"):
+                    request = urllib.request.Request(url + suffix, headers=header, method="GET")
+                    try:
+                        urllib.request.urlopen(request, timeout=2)
+                    except urllib.error.HTTPError as error:
+                        self.assertEqual(error.code, 401)
+                        payload = error.read().decode("utf-8")
+                        error.close()
+                        self.assertNotIn(TOKEN, payload)
+                        self.assertEqual(json.loads(payload)["error"]["code"], "authentication_required")
+                    else:
+                        self.fail("unauthenticated LAN request must be rejected")
             request = urllib.request.Request(url, headers={"Authorization": "Bearer " + TOKEN}, method="GET")
             with urllib.request.urlopen(request, timeout=2) as response:
                 self.assertEqual(response.status, 200)

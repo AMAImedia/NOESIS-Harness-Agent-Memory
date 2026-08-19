@@ -29,6 +29,10 @@
     "operator_lane_state_redaction": "passed",
     "operator_telemetry_sse_execution_projection": "passed",
     "operator_unavailable_state_is_fail_closed": "passed",
+    "operator_task_receipt_correlation_filter": "passed",
+    "operator_lane_lifecycle_counters": "passed",
+    "operator_filter_authentication_boundary": "passed",
+    "independent_comparative_protocol_defined": "passed",
     "resource_warning_policy": "passed"
   },
   "negative_reasons": [
@@ -48,7 +52,7 @@
     "deepseek_harness": "not_run",
     "reason": "pinned_external_environment_required"
   },
-  "targeted_tests": 34,
+  "targeted_tests": 37,
   "evidence_boundary": "This artifact proves local deterministic execution-assurance behavior only; it is not native sandbox or external A/B evidence."
 }
 

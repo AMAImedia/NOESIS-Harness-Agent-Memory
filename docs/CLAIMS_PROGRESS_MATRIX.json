@@ -35,5 +35,13 @@
     "stage_1_requires": ["control_plane", "governed_learning", "durable_memory", "multi_agent_isolation", "portable_artifacts", "native_parity"],
     "stage_2_requires": ["pinned_external_ab", "independent_scoring", "repeated_runs", "reproducibility", "security_and_provenance_review"]
   },
-  "next_gate": "governed_executable_skill_tool_runtime"
+  "stage_2_protocol": {
+    "status": "defined_local_not_executed",
+    "primary_contract": "docs/INDEPENDENT_COMPARATIVE_SCORING_PROTOCOL.md",
+    "machine_contract": "docs/INDEPENDENT_COMPARATIVE_SCORING_PROTOCOL.json",
+    "required_lanes": ["hermes", "opencode", "deepseek_harness"],
+    "external_execution": "not_run",
+    "comparative_ready": false
+  },
+  "next_gate": "pinned_external_lane_readiness_and_independent_scoring"
 }

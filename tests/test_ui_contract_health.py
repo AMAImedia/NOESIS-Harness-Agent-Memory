@@ -174,6 +174,19 @@ class HealthServerTests(unittest.TestCase):
             self.assertNotIn("must-not-leak", str(snapshot))
             self.assertNotIn("secret task content", str(snapshot))
             self.assertNotIn("private message content", str(snapshot))
+            with server:
+                base = f"http://{server.address[0]}:{server.address[1]}"
+                code, filtered_payload = self._request("GET", base + "/api/operator/snapshot?task_id=task-1&receipt_id=receipt-1")
+                self.assertEqual(code, 200)
+                filtered = filtered_payload["data"]["session_context"]
+                self.assertEqual(filtered["filter"], {"task_id": "task-1", "receipt_id": "receipt-1"})
+                self.assertEqual(len(filtered["lane_states"]), 1)
+                self.assertEqual(len(filtered["execution_evidence"]), 1)
+                request = urllib.request.Request(base + "/api/telemetry/events?task_id=task-1&receipt_id=receipt-1", method="GET")
+                with urllib.request.urlopen(request, timeout=2) as response:
+                    body = response.read().decode("utf-8")
+                    self.assertIn('"receipt_id":"receipt-1"', body)
+                    self.assertNotIn("private message content", body)
 
     def test_telemetry_snapshot_child_runtime_and_sse_are_read_only(self):
         server = HealthServer(port=0)

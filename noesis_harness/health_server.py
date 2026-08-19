@@ -7,6 +7,7 @@ from dataclasses import asdict, is_dataclass
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlsplit
 from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 from .provider_registry import ProviderRegistry
@@ -132,18 +133,25 @@ class HealthServer:
             return [HealthServer._redact_telemetry(item) for item in value]
         return value
 
-    def telemetry_snapshot(self) -> Mapping[str, Any]:
+    def telemetry_snapshot(self, *, task_id: str = "", receipt_id: str = "") -> Mapping[str, Any]:
         with self._telemetry_lock:
             snapshot = self._redact_telemetry(self._telemetry)
         snapshot = dict(snapshot)
         snapshot["migration_readiness"] = self._migration_readiness_snapshot()
         snapshot["migration_audit"] = self._migration_audit_snapshot()
-        snapshot["session_context"] = self._operator_session_snapshot()
+        snapshot["session_context"] = self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id)
         if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
             snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
         return snapshot
 
-    def _operator_session_snapshot(self) -> Mapping[str, Any]:
+    @staticmethod
+    def _filter_value(value: str, field: str) -> str:
+        value = str(value or "")
+        if len(value) > 128 or any(ord(char) < 32 for char in value):
+            raise ValueError(field + "_filter_invalid")
+        return value
+
+    def _operator_session_snapshot(self, *, task_filter: str = "", receipt_filter: str = "") -> Mapping[str, Any]:
         context = self.operator_auth_context
         if self.session_store is None:
             return {"available": False, "reason": "session_store_unavailable"}
@@ -155,15 +163,28 @@ class HealthServer:
             tasks = resumed.get("tasks", ())
             messages = resumed.get("messages", ())
             evidence = resumed.get("execution_evidence", {})
+            task_filter = self._filter_value(task_filter, "task")
+            receipt_filter = self._filter_value(receipt_filter, "receipt")
             task_states = []
             if isinstance(tasks, Sequence):
                 for task in tasks[:50]:
-                    task_states.append({"task_id": str(getattr(task, "task_id", "")), "state": str(getattr(task, "state", "")), "owner": str(getattr(task, "owner", ""))})
+                    task_id = str(getattr(task, "task_id", ""))
+                    if task_filter and task_id != task_filter:
+                        continue
+                    task_states.append({"task_id": task_id, "state": str(getattr(task, "state", "")), "owner": str(getattr(task, "owner", ""))})
             execution_evidence = []
             if isinstance(evidence, Mapping):
                 for task_id, item in list(evidence.items())[:50]:
                     if isinstance(item, Mapping):
+                        if task_filter and str(task_id) != task_filter:
+                            continue
+                        if receipt_filter and str(item.get("receipt_id", "")) != receipt_filter:
+                            continue
                         execution_evidence.append({"task_id": str(task_id), "request_id": str(item.get("request_id", "")), "receipt_id": str(item.get("receipt_id", "")), "outcome": str(item.get("outcome", "")), "sandboxed": bool(item.get("sandboxed", False))})
+            lane_counts = {}
+            for item in task_states:
+                state = item["state"]
+                lane_counts[state] = lane_counts.get(state, 0) + 1
             return {
                 "available": True,
                 "session_id": context.session_id,
@@ -173,19 +194,21 @@ class HealthServer:
                 "event_count": int(resumed.get("event_count", 0)),
                 "lane_states": task_states,
                 "execution_evidence": execution_evidence,
+                "lane_counts": lane_counts,
+                "filter": {"task_id": task_filter, "receipt_id": receipt_filter},
             }
         except Exception as exc:
             return {"available": False, "session_id": context.session_id, "reason": "session_snapshot_error:" + type(exc).__name__}
 
-    def operator_snapshot(self) -> Mapping[str, Any]:
+    def operator_snapshot(self, *, task_id: str = "", receipt_id: str = "") -> Mapping[str, Any]:
         """Return a bounded, read-only operator view with no execution side effects."""
         context = self.operator_auth_context
         return {
             "schema_version": "noesis.operator-snapshot.v1",
             "health": self.envelope().to_dict(),
             "models": self.models_envelope().to_dict(),
-            "telemetry": self.telemetry_snapshot(),
-            "session_context": self._operator_session_snapshot(),
+            "telemetry": self.telemetry_snapshot(task_id=task_id, receipt_id=receipt_id),
+            "session_context": self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id),
             "operator_context": {
                 "configured": context is not None,
                 "operator_id": context.operator_id if context is not None else "",
@@ -281,15 +304,20 @@ class HealthServer:
                 if not self._authorized():
                     self._send_unauthorized()
                     return
-                if self.path == "/health":
+                parsed = urlsplit(self.path)
+                path = parsed.path
+                query = parse_qs(parsed.query, keep_blank_values=True)
+                task_filter = query.get("task_id", [""])[0]
+                receipt_filter = query.get("receipt_id", [""])[0]
+                if path == "/health":
                     self._send(parent.envelope(), 200)
-                elif self.path == "/models":
+                elif path == "/models":
                     self._send(parent.models_envelope(), 200)
-                elif self.path == "/api/readiness":
+                elif path == "/api/readiness":
                     self._send(success({"migration_readiness": parent._migration_readiness_snapshot()}), 200)
-                elif self.path == "/api/operator/snapshot":
-                    self._send(success(parent.operator_snapshot()), 200)
-                elif self.path == "/api/learning/review":
+                elif path == "/api/operator/snapshot":
+                    self._send(success(parent.operator_snapshot(task_id=task_filter, receipt_id=receipt_filter)), 200)
+                elif path == "/api/learning/review":
                     if parent.learning_review_provider is None:
                         self._send(failure("unavailable", "learning_review_unavailable", "review provider is not configured"), 503)
                         return
@@ -303,15 +331,15 @@ class HealthServer:
                         self._send(success({"learning_review": parent._redact_telemetry(bounded)}), 200)
                     except Exception as exc:
                         self._send(failure("unavailable", "learning_review_failed", "review snapshot unavailable: " + type(exc).__name__), 503)
-                elif self.path in {"/api/telemetry", "/api/child-runtimes"}:
-                    snapshot = parent.telemetry_snapshot()
-                    if self.path == "/api/child-runtimes":
+                elif path in {"/api/telemetry", "/api/child-runtimes"}:
+                    snapshot = parent.telemetry_snapshot(task_id=task_filter, receipt_id=receipt_filter)
+                    if path == "/api/child-runtimes":
                         snapshot = {"child_runtimes": snapshot["child_runtimes"], "counters": snapshot["counters"], "updated_at_epoch": snapshot["updated_at_epoch"]}
                     self._send(success({"telemetry": snapshot}), 200)
-                elif self.path == "/api/audit/migration":
+                elif path == "/api/audit/migration":
                     self._send(success({"migration_audit": parent._migration_audit_snapshot()}), 200)
-                elif self.path == "/api/telemetry/events":
-                    payload = success({"telemetry": parent.telemetry_snapshot()}).to_json()
+                elif path == "/api/telemetry/events":
+                    payload = success({"telemetry": parent.telemetry_snapshot(task_id=task_filter, receipt_id=receipt_filter)}).to_json()
                     body = ("event: telemetry\ndata: " + payload + "\n\n").encode("utf-8")
                     self.send_response(200)
                     self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -320,16 +348,16 @@ class HealthServer:
                     self.send_header("Content-Length", str(len(body)))
                     self.end_headers()
                     self.wfile.write(body)
-                elif self.path in {"/", "/ui"}:
+                elif path in {"/", "/ui"}:
                     self._send_html(CONTROL_PLANE_HTML, 200)
-                elif self.path.startswith("/api/tasks/") and parent.session_store is not None:
-                    task_id = self.path[len("/api/tasks/"):].rstrip("/")
+                elif path.startswith("/api/tasks/") and parent.session_store is not None:
+                    task_id = path[len("/api/tasks/"):].rstrip("/")
                     try:
                         self._send(success({"task": self._jsonable(parent.session_store.task(task_id))}), 200)
                     except TaskSessionError as exc:
                         self._send(failure("invalid_request", "task_unavailable", str(exc)), 404)
-                elif self.path.startswith("/api/sessions/") and parent.session_store is not None:
-                    suffix = self.path[len("/api/sessions/"):]
+                elif path.startswith("/api/sessions/") and parent.session_store is not None:
+                    suffix = path[len("/api/sessions/"):]
                     if suffix.endswith("/events"):
                         session_id = suffix[:-len("/events")].rstrip("/")
                         last_id = int(self.headers.get("Last-Event-ID", "0") or "0")
