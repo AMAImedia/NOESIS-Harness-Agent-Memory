@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.post_transfer_audit import audit as audit_transfer
+from scripts.release_gate_artifact import build_gate_artifact
 from scripts.verify_release_readiness import verify_file
 
 SCHEMA = "noesis.release-gate.v1"
@@ -31,11 +32,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", required=True)
     parser.add_argument("--key", required=True)
     parser.add_argument("--snapshot", required=True)
+    parser.add_argument("--output", help="Optional path for a deterministic release-gate artifact")
     args = parser.parse_args(argv)
     try:
         result = run_gate(args.root, args.key, args.snapshot)
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         result = {"schema_version": SCHEMA, "status": "blocked", "failed_stage": "input", "reason": type(exc).__name__ + ":" + str(exc)[:160], "automatic_execution": False, "external_execution_claim": False}
+    if args.output:
+        output = Path(args.output).resolve()
+        output.write_text(json.dumps(build_gate_artifact(result), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result.get("status") == "passed" else 2
 
