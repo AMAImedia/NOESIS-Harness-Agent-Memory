@@ -110,6 +110,16 @@ class ExecutionRecoveryTests(unittest.TestCase):
         Path(event_path + ".snapshot.json").unlink()
         with self.assertRaisesRegex(ExecutionRecoveryError, "status_snapshot_drift"):
             executor.verify_recovery_evidence_status_snapshot()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "status_snapshot_drift"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_requires_status_snapshot(self):
+        event_path = str(Path(self.tmp.name) / "replay-status-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(event_path + ".status.json").unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_status_snapshot_missing"):
+            executor.handle(self.action, self.context)
 
     def test_startup_evidence_gate_rejects_missing_snapshot(self):
         event_path = str(Path(self.tmp.name) / "missing-snapshot-events.jsonl")

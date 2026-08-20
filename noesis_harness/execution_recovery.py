@@ -241,6 +241,9 @@ class ExecutionRecoveryExecutor:
                 completion_receipt = self.receipt_store.get(completion_receipt_id)
                 if completion_receipt is None or completion_receipt.outcome != "committed":
                     raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
+            if not os.path.exists(self._status_snapshot_path()):
+                raise ExecutionRecoveryError("recovery_status_snapshot_missing")
+            self.verify_recovery_evidence_status_snapshot()
             return {"status": "replayed", "result": existing}
         run = self.recovery_store.get(action.run_id)
         receipt = None

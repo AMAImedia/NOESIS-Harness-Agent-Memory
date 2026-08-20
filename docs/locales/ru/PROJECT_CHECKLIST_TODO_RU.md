@@ -1460,3 +1460,15 @@ Focused status result: `41/41` assurance, recovery, child-runtime и export test
 | CHILD-66 | Native/external status snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness status snapshots не проверялись. |
 
 Focused status snapshot result: `42/42` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 status-snapshot replay checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-67 | Replay status binding | `DONE / BOUNDED LOCAL` | Exact replay проверяет action fingerprint, committed completion receipt и signed status snapshot. |
+| CHILD-68 | Missing replay snapshot | `DONE / BOUNDED LOCAL` | Missing status sidecar fail-closed с `recovery_status_snapshot_missing`; automatic recreation запрещена. |
+| CHILD-69 | Stale replay projection | `DONE / BOUNDED LOCAL` | Stale/corrupted status snapshot не возвращает `replayed`. |
+| CHILD-70 | Native/external replay status | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness replay status не проверялись. |
+
+Focused replay result: `43/43` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
