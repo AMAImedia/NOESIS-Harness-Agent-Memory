@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import hmac
 import json
+import os
 from pathlib import Path
 import re
 import sqlite3
@@ -387,28 +388,50 @@ class LearningPromotionPipeline:
         self._require_current_provenance(proposal)
         if _digest(content) != proposal.content_digest:
             raise LearningPromotionError("content_digest_mismatch")
-        version = f"v-{int(time.time())}-{proposal.proposal_id[:8]}"
-        skill_dir = self.root / proposal.skill_name / version
+        version = "v1-" + proposal.content_digest[:24]
+        skill_root = self.root / proposal.skill_name
+        skill_dir = skill_root / version
+        if skill_dir.exists():
+            raise LearningPromotionError("immutable_version_collision")
         skill_dir.mkdir(parents=True, exist_ok=False)
         skill_file = skill_dir / "SKILL.md"
+        manifest_file = skill_dir / "VERSION.json"
+        manifest = {
+            "schema_version": "noesis.immutable-skill-version.v1",
+            "skill_name": proposal.skill_name,
+            "version": version,
+            "proposal_id": proposal_id,
+            "content_digest": proposal.content_digest,
+            "provenance_digest": proposal.provenance_digest,
+            "approved_by": proposal.approved_by,
+            "immutable": True,
+        }
         skill_file.write_text(content, encoding="utf-8")
+        manifest_file.write_text(_canonical(manifest) + "\n", encoding="utf-8")
         try:
             verified = bool(verify(skill_file))
         except Exception:
             verified = False
         if not verified:
-            import shutil
-            shutil.rmtree(skill_dir, ignore_errors=True)
+            (skill_dir / ".rejected").write_text("promotion_verification_failed\n", encoding="utf-8")
             raise LearningPromotionError("promotion_verification_failed")
         previous = self.active_version(proposal.skill_name)
         if activate:
             self._previous_active[proposal.skill_name] = previous or ""
             self._state.put_previous_active(proposal.skill_name, previous or "")
-            (self.root / proposal.skill_name).mkdir(parents=True, exist_ok=True)
-            (self.root / proposal.skill_name / "ACTIVE").write_text(version + "\n", encoding="utf-8")
+            skill_root.mkdir(parents=True, exist_ok=True)
+            active_path = skill_root / "ACTIVE"
+            active_next = skill_root / "ACTIVE.next"
+            active_next.write_text(version + "\n", encoding="utf-8")
+            os.replace(str(active_next), str(active_path))
         updated = PromotionProposal(**{**asdict(proposal), "state": "promoted", "version": version})
         self._proposals[proposal_id] = updated
-        signed = self._sign({"proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "active": bool(activate)})
+        self._state.put("promotion_proposals", proposal_id, updated)
+        signed_payload = {"schema_version": "noesis.immutable-skill-promotion-receipt.v1", "proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "content_digest": proposal.content_digest, "provenance_digest": proposal.provenance_digest, "immutable": True, "active": bool(activate)}
+        legacy_payload = {"proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "active": bool(activate)}
+        signed = "v2:" + self._sign(signed_payload) + ":" + self._sign(legacy_payload)
+        receipt_path = skill_dir / "PROMOTION_RECEIPT.json"
+        receipt_path.write_text(_canonical({"payload": signed_payload, "signature": signed}) + "\n", encoding="utf-8")
         return updated, signed
 
     def rollback(self, proposal_id: str) -> PromotionProposal:
@@ -434,8 +457,18 @@ class LearningPromotionPipeline:
         return path.read_text(encoding="utf-8").strip() if path.is_file() else ""
 
     def verify_signature(self, payload: Mapping[str, Any], signature: str) -> bool:
+        if not isinstance(signature, str):
+            return False
         expected = hmac.new(self._key, _canonical(payload).encode("utf-8"), hashlib.sha256).hexdigest()
-        return isinstance(signature, str) and hmac.compare_digest(expected, signature)
+        if hmac.compare_digest(expected, signature):
+            return True
+        if signature.startswith("v2:"):
+            parts = signature.split(":")
+            if len(parts) == 3 and len(parts[1]) == 64 and len(parts[2]) == 64:
+                if "content_digest" in payload or payload.get("immutable") is True:
+                    return hmac.compare_digest(expected, parts[1])
+                return hmac.compare_digest(expected, parts[2])
+        return False
 
     def _sign(self, payload: Mapping[str, Any]) -> str:
         return hmac.new(self._key, _canonical(payload).encode("utf-8"), hashlib.sha256).hexdigest()

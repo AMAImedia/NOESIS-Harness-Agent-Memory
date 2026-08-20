@@ -122,6 +122,10 @@ class LearningPromotionTests(unittest.TestCase):
         pipe.approve(proposal.proposal_id, approved_by="owner", tests=lambda: True)
         promoted, signature = pipe.promote(proposal.proposal_id, content="# safe\n", verify=lambda path: path.read_text() == "# safe\n")
         self.assertEqual(promoted.state, "promoted")
+        self.assertTrue(promoted.version.startswith("v1-"))
+        manifest = (Path(pipe.root) / "safe-skill" / promoted.version / "VERSION.json").read_text(encoding="utf-8")
+        self.assertIn('"immutable":true', manifest)
+        self.assertTrue(pipe.verify_signature({"schema_version": "noesis.immutable-skill-promotion-receipt.v1", "proposal_id": proposal.proposal_id, "skill_name": "safe-skill", "version": promoted.version, "content_digest": proposal.content_digest, "provenance_digest": proposal.provenance_digest, "immutable": True, "active": True}, signature))
         self.assertTrue(pipe.verify_signature({"proposal_id": proposal.proposal_id, "skill_name": "safe-skill", "version": promoted.version, "active": True}, signature))
         self.assertFalse(pipe.verify_signature({"proposal_id": proposal.proposal_id, "skill_name": "safe-skill", "version": "tampered", "active": True}, signature))
         self.assertTrue(pipe.active_version("safe-skill"))
@@ -129,6 +133,10 @@ class LearningPromotionTests(unittest.TestCase):
         self.assertEqual(rolled.state, "rolled_back")
         self.assertEqual(pipe.active_version("safe-skill"), "")
         self.assertTrue((Path(pipe.root) / "safe-skill" / promoted.version / "SKILL.md").is_file())
+        self.assertTrue((Path(pipe.root) / "safe-skill" / promoted.version / "VERSION.json").is_file())
+        promotion_receipt = (Path(pipe.root) / "safe-skill" / promoted.version / "PROMOTION_RECEIPT.json").read_text(encoding="utf-8")
+        self.assertIn("noesis.immutable-skill-promotion-receipt.v1", promotion_receipt)
+        self.assertIn(signature, promotion_receipt)
 
 
 if __name__ == "__main__":

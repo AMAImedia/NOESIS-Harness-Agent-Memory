@@ -1259,3 +1259,15 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | MEM-09 | Durable memory traces with real long-context reuse | `NEXT LOCAL GATE` | Connect traces to broader context/reuse trajectories and non-fixture repeated stress distributions |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-20 — Human-governed promotion, durable checkpoints и multi-agent delegation checkpoint
+
+| Gate | Статус | Evidence / boundary |
+|---|---|---|
+| Human-Governed Learning Promotion | `DONE / BOUNDED LOCAL` | Immutable content-addressed skill versions, review-only proposal, explicit approval, dual-signature verification, durable `PROMOTION_RECEIPT.json` и `VERSION.json`; focused promotion suites passed. |
+| Durable Turn Checkpoints | `DONE / BOUNDED LOCAL` | SQLite/WAL per-turn persistence, sequential turn enforcement, canonical SHA-256 record/state digests, previous-digest chain, interrupted recovery, corruption rejection и zero ResourceWarning in focused suite. |
+| Multi-Agent Delegation | `DONE / BOUNDED LOCAL` | Capability-scoped request, approval gate, isolated lane workspace, artifact manifest, HMAC-SHA256 review-only receipt и tamper rejection. |
+| Cross-agent leakage under native OS isolation | `NOT_RUN / HOST-GATED` | Local workspace containment is tested; native Windows/macOS and external runtime isolation require matching hosts and disposable environments. |
+| External Hermes/OpenCode/DeepSeek Harness A/B | `NOT_RUN / EXTERNAL-GATED` | Exact pinned revisions, executable availability, protocol fingerprints, environment digests and operator-approved evidence bundle are still required. |
+
+Focused Python 3.14.7 evidence for this checkpoint: `38/38` tests passed with `-W error::ResourceWarning`; full regression remains mandatory before GitHub checkpoint.
