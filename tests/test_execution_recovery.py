@@ -185,6 +185,47 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertTrue(path.exists())
         self.assertFalse((Path(self.tmp.name) / "_archive").exists())
 
+    def test_repair_receipt_rejects_signed_finalization_digest_substitution(self):
+        event_path = str(Path(self.tmp.name) / "repair-receipt-tamper-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-receipt-tamper-source")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        receipt_path = Path(executor._replay_repair_receipt_path())
+        snapshot = json.loads(receipt_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["finalization_sha256"] = "0" * 64
+        snapshot["payload"]["repair_digest"] = request_fingerprint({key: value for key, value in snapshot["payload"].items() if key != "repair_digest"})
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        os.chmod(receipt_path, os.stat(receipt_path).st_mode | 0o200)
+        receipt_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        os.chmod(receipt_path, os.stat(receipt_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_repair_receipt_finalization_drift"):
+            executor.verify_replay_evidence_finalization()
+
+    def test_repair_receipt_rejects_cross_bundle_archive_substitution(self):
+        event_path = str(Path(self.tmp.name) / "repair-receipt-cross-bundle-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-cross-bundle-source")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        receipt_path = Path(executor._replay_repair_receipt_path())
+        snapshot = json.loads(receipt_path.read_text(encoding="utf-8"))
+        substitute = Path(self.tmp.name) / "foreign-archive.json"
+        substitute.write_bytes(Path(snapshot["payload"]["archived_finalization_path"]).read_bytes())
+        snapshot["payload"]["archived_finalization_path"] = str(substitute)
+        snapshot["payload"]["archived_finalization_sha256"] = executor._sha256_file(str(substitute))
+        snapshot["payload"]["repair_digest"] = request_fingerprint({key: value for key, value in snapshot["payload"].items() if key != "repair_digest"})
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        os.chmod(receipt_path, os.stat(receipt_path).st_mode | 0o200)
+        receipt_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        os.chmod(receipt_path, os.stat(receipt_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_repair_receipt_archive_drift"):
+            executor.verify_replay_evidence_finalization()
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

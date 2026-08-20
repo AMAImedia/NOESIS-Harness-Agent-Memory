@@ -1942,3 +1942,16 @@ Focused strict-readiness result: `70/70` execution-recovery tests passed with Py
 | CHILD-260 | Native/external repair | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external operator repair не запускались. |
 
 Focused repair result: `73/73` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 signed repair provenance checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-261 | Signed repair receipt | `DONE / BOUNDED LOCAL` | `noesis.recovery-replay-finalization-repair.v1` связывает generation, archived marker SHA-256, active finalization SHA-256 и repair digest. |
+| CHILD-262 | Archive path binding | `DONE / BOUNDED LOCAL` | Receipt принимает только independent regular file под bundle `_archive/` с expected finalization basename. |
+| CHILD-263 | Cross-bundle substitution denial | `DONE / BOUNDED LOCAL` | Validly signed receipt со foreign archive path fail-closed как `recovery_replay_repair_receipt_archive_drift`. |
+| CHILD-264 | Repair receipt tamper denial | `DONE / BOUNDED LOCAL` | Подмена finalization SHA-256 при valid signature fail-closed как finalization provenance drift. |
+| CHILD-265 | Native/external repair provenance | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external operator receipt lanes не запускались. |
+
+Focused repair-provenance result: `75/75` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

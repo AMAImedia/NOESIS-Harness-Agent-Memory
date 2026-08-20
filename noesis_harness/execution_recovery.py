@@ -26,6 +26,7 @@ REPLAY_GENERATION_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event
 REPLAY_GENERATION_FILE_FIELDS = frozenset({"path", "sha256"})
 REPLAY_EVENT_CHAIN_FIELDS = frozenset({"schema_version", "event_path", "event_ids", "completion_receipt_ids", "chain_digest", "count"})
 REPLAY_FINALIZATION_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_receipt_path", "generation_id", "event_chain_digest", "completeness_digest", "generation_digest", "files", "finalization_path"})
+REPLAY_REPAIR_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_id", "generation_digest", "archived_finalization_path", "archived_finalization_sha256", "finalization_path", "finalization_sha256", "repair_digest", "receipt_path"})
 
 
 class _DuplicateJSONKeyError(ValueError):
@@ -464,6 +465,9 @@ class ExecutionRecoveryExecutor:
     def _replay_finalization_path(self) -> str:
         return str(self.events.path) + ".replay-finalized.json"
 
+    def _replay_repair_receipt_path(self) -> str:
+        return str(self.events.path) + ".replay-repair.json"
+
     def _assert_generation_mutable(self) -> None:
         if os.path.exists(self._replay_finalization_path()):
             raise ExecutionRecoveryError("recovery_replay_finalization_immutable")
@@ -637,6 +641,10 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_finalization_partial") from exc
         return self.verify_replay_evidence_finalization()
 
+    @staticmethod
+    def _sha256_file(path: str) -> str:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
     def repair_replay_evidence_finalization(self) -> Mapping[str, Any]:
         """Archive a partial marker and deterministically re-finalize trusted evidence."""
         if not os.path.exists(self._replay_finalization_path()):
@@ -656,8 +664,57 @@ class ExecutionRecoveryExecutor:
             self._make_writable(protected)
         except OSError as exc:
             raise ExecutionRecoveryError("recovery_replay_finalization_repair_failed") from exc
+        archived_sha256 = self._sha256_file(archive_path)
         finalized = self.promote_replay_evidence_finalization()
-        return {"status": "passed", "repaired": True, "archived_partial_finalization": archive_path, "finalization": finalized}
+        finalization_sha256 = self._sha256_file(self._replay_finalization_path())
+        generation_payload = finalized["payload"]
+        repair_payload = {"schema_version": "noesis.recovery-replay-finalization-repair.v1", "status": "passed", "event_path": str(self.events.path), "generation_id": generation_payload["generation_id"], "generation_digest": generation_payload["generation_digest"], "archived_finalization_path": archive_path, "archived_finalization_sha256": archived_sha256, "finalization_path": self._replay_finalization_path(), "finalization_sha256": finalization_sha256, "receipt_path": self._replay_repair_receipt_path()}
+        repair_payload["repair_digest"] = request_fingerprint({key: value for key, value in repair_payload.items() if key != "repair_digest"})
+        repair_snapshot = {"payload": repair_payload, "signature": _snapshot_signature(repair_payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_repair_receipt_path(), repair_snapshot)
+        self._make_readonly((self._replay_repair_receipt_path(),))
+        return {"status": "passed", "repaired": True, "archived_partial_finalization": archive_path, "finalization": self.verify_replay_evidence_finalization(), "repair_receipt": repair_snapshot}
+
+    def verify_replay_evidence_repair_receipt(self) -> Mapping[str, Any]:
+        """Verify signed provenance for a repaired replay finalization."""
+        try:
+            with open(self._replay_repair_receipt_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_duplicate_record") from exc
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_missing") from exc
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_signature_invalid")
+        if set(payload) != REPLAY_REPAIR_RECEIPT_FIELDS:
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_schema_invalid")
+        if payload.get("schema_version") != "noesis.recovery-replay-finalization-repair.v1" or payload.get("status") != "passed":
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_status_invalid")
+        if payload.get("event_path") != str(self.events.path) or payload.get("receipt_path") != self._replay_repair_receipt_path() or payload.get("finalization_path") != self._replay_finalization_path():
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_path_mismatch")
+        generation = self.verify_replay_generation_receipt()["payload"]
+        if payload.get("generation_id") != generation["generation_id"] or payload.get("generation_digest") != generation["generation_digest"]:
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_generation_drift")
+        archived = str(payload.get("archived_finalization_path", ""))
+        archive_root = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(str(self.events.path))), "_archive"))
+        archived_real = os.path.realpath(archived) if archived else ""
+        try:
+            archive_contained = os.path.commonpath((archive_root, archived_real)) == archive_root
+        except ValueError:
+            archive_contained = False
+        if not archived or not archive_contained or not os.path.basename(archived).startswith(os.path.basename(self._replay_finalization_path()) + ".partial") or not os.path.isfile(archived) or os.path.islink(archived) or os.stat(archived).st_nlink != 1 or payload.get("archived_finalization_sha256") != self._sha256_file(archived):
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_archive_drift")
+        finalization = self._replay_finalization_path()
+        if payload.get("finalization_sha256") != self._sha256_file(finalization):
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_finalization_drift")
+        expected_digest = request_fingerprint({key: value for key, value in payload.items() if key != "repair_digest"})
+        if payload.get("repair_digest") != expected_digest or not self._is_readonly(self._replay_repair_receipt_path()):
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_integrity_invalid")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
 
     def verify_replay_evidence_finalization(self) -> Mapping[str, Any]:
         """Verify the finalized marker, generation bytes, and OS-level immutability."""
@@ -690,6 +747,8 @@ class ExecutionRecoveryExecutor:
         for path in protected:
             if not os.path.isfile(path) or os.path.islink(path) or os.stat(path).st_nlink != 1 or not self._is_readonly(path):
                 raise ExecutionRecoveryError("recovery_replay_finalization_not_immutable")
+        if os.path.exists(self._replay_repair_receipt_path()):
+            self.verify_replay_evidence_repair_receipt()
         return {"status": "passed", "finalized": True, "payload": dict(payload), "signature": signature}
 
     def persist_replay_evidence_catalog(self) -> Mapping[str, Any]:
@@ -829,7 +888,7 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
