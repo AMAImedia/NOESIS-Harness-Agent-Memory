@@ -1631,3 +1631,11 @@ Focused sidecar-integrity result: `67/67` assurance, recovery, child-runtime и 
 | CHILD-144 | Cross-action/stale denial | `DONE / BOUNDED LOCAL` | Valid signature с другой action identity или stale content блокирует completeness claim. |
 | CHILD-145 | Native/external sidecar binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness sidecar binding не проверялись. |
 Focused sidecar-binding result: `68/68` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 startup catalog binding checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-146 | Durable catalog snapshot verification | `DONE / BOUNDED LOCAL` | Startup completeness повторно проверяет signed global catalog snapshot против current inventory projection. |
+| CHILD-147 | Per-action catalog record binding | `DONE / BOUNDED LOCAL` | Каждый manifest `catalog_record_digest` сравнивается с immutable record соответствующей action. |
+| CHILD-148 | Catalog drift denial | `DONE / BOUNDED LOCAL` | Signed catalog snapshot drift блокирует startup completeness до count parity acceptance. |
+| CHILD-149 | Native/external catalog binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness catalog binding не проверялись. |
+Focused catalog-binding result: `69/69` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

@@ -606,12 +606,18 @@ class ExecutionRecoveryExecutor:
             receipt = self.receipt_store.get(str(payload.get("completion_receipt_id", "")))
             if receipt is None or receipt.outcome != "committed":
                 raise ExecutionRecoveryError("recovery_replay_completeness_receipt_invalid")
-            records.append({"action_id": action_id, "manifest_path": manifest_path, "action_digest": str(payload.get("action_digest", "")), "completion_receipt_id": str(payload.get("completion_receipt_id", ""))})
+            records.append({"action_id": action_id, "manifest_path": manifest_path, "action_digest": str(payload.get("action_digest", "")), "completion_receipt_id": str(payload.get("completion_receipt_id", "")), "catalog_record_digest": str(payload.get("catalog_record_digest", ""))})
         if set(expected) != seen:
             raise ExecutionRecoveryError("recovery_replay_completeness_manifest_missing")
         catalog = self.audit_replay_evidence_catalog()
+        catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
         if int(catalog.get("count", 0)) != len(expected):
             raise ExecutionRecoveryError("recovery_replay_completeness_catalog_mismatch")
+        catalog_records = {str(record.get("action_id", "")): record for record in catalog_snapshot["payload"].get("records", ())}
+        for record in records:
+            catalog_record = catalog_records.get(record["action_id"])
+            if catalog_record is None or record["catalog_record_digest"] != request_fingerprint(catalog_record):
+                raise ExecutionRecoveryError("recovery_replay_completeness_catalog_record_mismatch")
         return {"schema_version": "noesis.recovery-replay-evidence-completeness.v1", "status": "passed", "event_count": len(expected), "manifest_count": len(records), "catalog_count": int(catalog["count"]), "records": records, "completeness_digest": request_fingerprint({"records": records, "catalog_digest": catalog["catalog_digest"]})}
 
     def _replay_completeness_snapshot_path(self) -> str:

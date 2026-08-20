@@ -296,6 +296,18 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_drift"):
             executor.verify_replay_evidence_completeness_snapshot()
 
+    def test_replay_completeness_rejects_catalog_snapshot_drift(self):
+        event_path = str(Path(self.tmp.name) / "catalog-drift-completeness-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_catalog_snapshot_path())
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["records"][0]["action_digest"] = "sha256:tampered"
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_catalog_snapshot_drift"):
+            executor.audit_replay_evidence_completeness()
+
     def test_replay_completeness_rejects_sidecar_digest_mismatch(self):
         event_path = str(Path(self.tmp.name) / "sidecar-digest-completeness-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
