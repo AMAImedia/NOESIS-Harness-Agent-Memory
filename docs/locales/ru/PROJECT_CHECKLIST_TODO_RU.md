@@ -1412,3 +1412,15 @@ Focused completion receipt result: `38/38` assurance, recovery, child-runtime и
 | CHILD-50 | Native/external event chains | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness event chains не проверялись. |
 
 Focused event-chain result: `39/39` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 durable event-chain snapshot checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-51 | Signed event-chain snapshot | `DONE / BOUNDED LOCAL` | После completion event создаётся HMAC-signed sidecar snapshot через atomic replace. |
+| CHILD-52 | Snapshot reopen verification | `DONE / BOUNDED LOCAL` | Reopen проверяет signature, event IDs, receipt IDs, count и chain digest. |
+| CHILD-53 | Snapshot drift/tamper rejection | `DONE / BOUNDED LOCAL` | Sidecar tampering и stale snapshot против нового/reordered event log fail-closed. |
+| CHILD-54 | Native/external event snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness event snapshots не проверялись. |
+
+Focused durable snapshot result: `39/39` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

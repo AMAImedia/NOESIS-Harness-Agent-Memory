@@ -46,6 +46,8 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".snapshot.json")
+        original_snapshot = snapshot_path.read_text(encoding="utf-8")
         self.recovery.begin("run-chain-2", "sha256:before")
         self.recovery.complete("run-chain-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
         action_two = ExecutionRecoveryAction("action-chain-2", "rollback", "run-chain-2", self.receipt.receipt_id, "patch-1", "ws-1", "snap-base", "operator-1", "session-1")
@@ -53,11 +55,24 @@ class ExecutionRecoveryTests(unittest.TestCase):
         audited = executor.audit_completion_events()
         self.assertEqual(audited["status"], "passed")
         self.assertEqual(audited["count"], 2)
-        records = [json.loads(line) for line in Path(event_path).read_text(encoding="utf-8").splitlines() if line.strip()]
+        snapshot = executor.verify_completion_event_snapshot()
+        self.assertEqual(snapshot["status"], "passed")
+        original_events = Path(event_path).read_text(encoding="utf-8")
+        records = [json.loads(line) for line in original_events.splitlines() if line.strip()]
         records.reverse()
         Path(event_path).write_text("\n".join(json.dumps(record, sort_keys=True) for record in records) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "chain_mismatch"):
             ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).audit_completion_events()
+
+        Path(event_path).write_text(original_events, encoding="utf-8")
+        snapshot_path.write_text(original_snapshot, encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "event_snapshot_drift"):
+            ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).verify_completion_event_snapshot()
+        tampered = json.loads(original_snapshot)
+        tampered["payload"]["chain_digest"] = "sha256:tampered"
+        snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "event_snapshot_signature_invalid"):
+            ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).verify_completion_event_snapshot()
 
     def test_replay_rejects_tampered_completion_receipt_reference(self):
         event_path = str(Path(self.tmp.name) / "tampered-completion-events.jsonl")

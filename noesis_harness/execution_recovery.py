@@ -6,6 +6,11 @@ actually happened.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
+import os
+import tempfile
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
@@ -17,6 +22,29 @@ RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
 
 def _completion_event_digest(payload: Mapping[str, Any]) -> str:
     return request_fingerprint({str(key): value for key, value in payload.items() if key != "previous_event_digest"})
+
+
+def _canonical(value: Mapping[str, Any]) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str).encode("utf-8")
+
+
+def _snapshot_signature(payload: Mapping[str, Any], key: bytes) -> str:
+    return hmac.new(key, _canonical(payload), hashlib.sha256).hexdigest()
+
+
+def _atomic_write_json(path: str, value: Mapping[str, Any]) -> None:
+    parent = os.path.dirname(os.path.abspath(path)) or "."
+    fd, temporary = tempfile.mkstemp(prefix=".recovery-chain-", suffix=".tmp", dir=parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 class ExecutionRecoveryError(ValueError):
@@ -120,6 +148,36 @@ class ExecutionRecoveryExecutor:
             last_digest = _completion_event_digest(payload)
         return {"status": "passed", "count": len(event_ids), "event_ids": tuple(event_ids), "completion_receipt_ids": tuple(receipt_ids), "chain_digest": last_digest}
 
+    def _completion_snapshot_path(self) -> str:
+        return str(self.events.path) + ".snapshot.json"
+
+    def persist_completion_event_snapshot(self) -> Mapping[str, Any]:
+        """Atomically persist a signed projection snapshot of completion events."""
+        audit = self.audit_completion_events()
+        payload = {"schema_version": "noesis.recovery-event-chain-snapshot.v1", "event_path": str(self.events.path), "event_ids": list(audit["event_ids"]), "completion_receipt_ids": list(audit["completion_receipt_ids"]), "chain_digest": audit["chain_digest"], "count": audit["count"]}
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._completion_snapshot_path(), snapshot)
+        return snapshot
+
+    def verify_completion_event_snapshot(self) -> Mapping[str, Any]:
+        """Verify a signed snapshot against the current append-only event log."""
+        path = self._completion_snapshot_path()
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_event_snapshot_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_event_snapshot_signature_invalid")
+        current = self.audit_completion_events()
+        expected = {"event_path": str(self.events.path), "event_ids": list(current["event_ids"]), "completion_receipt_ids": list(current["completion_receipt_ids"]), "chain_digest": current["chain_digest"], "count": current["count"]}
+        for key, value in expected.items():
+            if payload.get(key) != value:
+                raise ExecutionRecoveryError("recovery_event_snapshot_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -180,6 +238,7 @@ class ExecutionRecoveryExecutor:
                 prior_digest = _completion_event_digest(event.get("payload") or {})
         payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "chain_snapshot_id": action.chain_snapshot_id, "chain_snapshot_digest": chain_snapshot.get("snapshot_digest", "") if chain_snapshot is not None else "", "completion_receipt_id": completion.receipt_id, "recovery_state": state, "previous_event_digest": prior_digest}
         self.events.append("execution_recovery_completed", payload, event_id="execution-recovery:" + action.action_id)
+        self.persist_completion_event_snapshot()
         return payload
 
 
