@@ -461,6 +461,12 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_signature_invalid")
         if payload.get("catalog_path") != self._replay_catalog_snapshot_path():
             raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_path_mismatch")
+        catalog_records = payload.get("records")
+        if not isinstance(catalog_records, list) or any(not isinstance(record, Mapping) for record in catalog_records):
+            raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_records_invalid")
+        catalog_ids = [str(record.get("action_id", "")) for record in catalog_records]
+        if any(not action_id for action_id in catalog_ids) or len(set(catalog_ids)) != len(catalog_ids):
+            raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_duplicate_action")
         current = self.audit_replay_evidence_catalog()
         for key, value in current.items():
             if key == "schema_version":
@@ -676,10 +682,13 @@ class ExecutionRecoveryExecutor:
         for record in records:
             if set(record) != REPLAY_COMPLETENESS_RECORD_FIELDS:
                 raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_record_schema_invalid")
+        record_ids = [str(record.get("action_id", "")) for record in records]
+        if any(not action_id for action_id in record_ids) or len(set(record_ids)) != len(record_ids):
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_duplicate_action")
         count_fields = ("event_count", "manifest_count", "catalog_count")
         if any(not isinstance(payload.get(field), int) or isinstance(payload.get(field), bool) or payload.get(field) < 0 for field in count_fields):
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_counts_invalid")
-        if payload.get("manifest_count") != len(records) or len({str(record.get("action_id", "")) for record in records}) != len(records):
+        if payload.get("manifest_count") != len(records):
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_counts_mismatch")
         if not isinstance(payload.get("completeness_digest"), str) or not payload.get("completeness_digest"):
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_digest_invalid")

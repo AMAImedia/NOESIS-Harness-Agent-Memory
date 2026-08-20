@@ -1751,3 +1751,16 @@ Focused catalog-corruption result: `52/52` execution-recovery tests passed with 
 | CHILD-189 | Native/external record binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness per-action catalog binding не проверялись. |
 
 Focused catalog-record binding result: `53/53` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 duplicate-identity checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-190 | Duplicate catalog action ID | `DONE / BOUNDED LOCAL` | Signed catalog с duplicate action record отклоняется с `recovery_replay_catalog_snapshot_duplicate_action` до count parity. |
+| CHILD-191 | Duplicate completeness action ID | `DONE / BOUNDED LOCAL` | Signed completeness snapshot с duplicate action record отклоняется с `recovery_replay_completeness_snapshot_duplicate_action`. |
+| CHILD-192 | Trusted clean restoration | `DONE / BOUNDED LOCAL` | После explicit removal duplicate identity catalog и completeness verification снова проходят с `manifest_count=2`. |
+| CHILD-193 | Deterministic clean rebuild | `DONE / BOUNDED LOCAL` | Повторная clean catalog и completeness persistence byte-identical. |
+| CHILD-194 | Native/external duplicate identity | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness duplicate identity recovery не проверялись. |
+
+Focused duplicate-identity result: `54/54` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

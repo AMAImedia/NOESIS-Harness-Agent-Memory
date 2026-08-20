@@ -319,7 +319,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         duplicate_records["payload"]["manifest_count"] = 2
         duplicate_records["signature"] = _snapshot_signature(duplicate_records["payload"], self.key)
         snapshot_path.write_text(json.dumps(duplicate_records, sort_keys=True) + "\n", encoding="utf-8")
-        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_counts_mismatch"):
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_duplicate_action"):
             executor.verify_replay_evidence_completeness_snapshot()
 
     def test_completeness_snapshot_rejects_duplicate_json_keys(self):
@@ -532,6 +532,47 @@ class ExecutionRecoveryTests(unittest.TestCase):
         executor.persist_replay_evidence_commit_manifest(action_two)
         self.assertEqual(manifest_path.read_bytes(), repaired_bytes)
         self.assertEqual(executor.verify_replay_evidence_commit_manifest(action_two)["status"], "passed")
+
+    def test_duplicate_catalog_and_completeness_action_ids_fail_before_count_parity(self):
+        event_path = str(Path(self.tmp.name) / "completeness-duplicate-identities-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        self.recovery.begin("run-duplicate-2", "sha256:before")
+        self.recovery.complete("run-duplicate-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        proposal = PatchProposal("patch-duplicate-2", "ws-1", "snap-base", "snap-head", ({"path": "out-duplicate-2.txt", "kind": "modified"},), "approved")
+        self.patches.put(proposal)
+        action_two = ExecutionRecoveryAction("action-duplicate-2", "rollback", "run-duplicate-2", self.receipt.receipt_id, "patch-duplicate-2", "ws-1", "snap-base", "operator-1", "session-1")
+        executor.handle(action_two, self.context)
+        catalog_path = Path(executor._replay_catalog_snapshot_path())
+        original_catalog = catalog_path.read_bytes()
+        catalog_snapshot = json.loads(original_catalog)
+        catalog_snapshot["payload"]["records"].append(dict(catalog_snapshot["payload"]["records"][0]))
+        catalog_snapshot["payload"]["count"] = 3
+        catalog_snapshot["payload"]["catalog_digest"] = request_fingerprint({"records": catalog_snapshot["payload"]["records"]})
+        catalog_snapshot["signature"] = _snapshot_signature(catalog_snapshot["payload"], self.key)
+        catalog_path.write_text(json.dumps(catalog_snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_catalog_snapshot_duplicate_action"):
+            executor.verify_replay_evidence_catalog_snapshot()
+        catalog_path.write_bytes(original_catalog)
+        self.assertEqual(executor.verify_replay_evidence_catalog_snapshot()["status"], "passed")
+        completeness_path = Path(executor._replay_completeness_snapshot_path())
+        original_completeness = completeness_path.read_bytes()
+        completeness_snapshot = json.loads(original_completeness)
+        completeness_snapshot["payload"]["records"].append(dict(completeness_snapshot["payload"]["records"][0]))
+        completeness_snapshot["payload"]["manifest_count"] = 3
+        completeness_snapshot["payload"]["completeness_digest"] = request_fingerprint({"records": completeness_snapshot["payload"]["records"], "catalog_digest": executor.audit_replay_evidence_catalog()["catalog_digest"]})
+        completeness_snapshot["signature"] = _snapshot_signature(completeness_snapshot["payload"], self.key)
+        completeness_path.write_text(json.dumps(completeness_snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_duplicate_action"):
+            executor.verify_replay_evidence_completeness_snapshot()
+        completeness_path.write_bytes(original_completeness)
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 2)
+        stable_catalog = catalog_path.read_bytes()
+        executor.persist_replay_evidence_catalog()
+        self.assertEqual(catalog_path.read_bytes(), stable_catalog)
+        stable_completeness = completeness_path.read_bytes()
+        executor.persist_replay_evidence_completeness()
+        self.assertEqual(completeness_path.read_bytes(), stable_completeness)
 
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
