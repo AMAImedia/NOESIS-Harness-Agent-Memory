@@ -34,6 +34,8 @@ Before any replay evidence is promoted to `replayed`, the executor verifies the 
 
 The action replay projection also audits the target action’s completion-event prefix and requires its final committed receipt ID to equal the replay record’s completion receipt ID. The resulting `event_chain_digest` is included in the signed replay evidence snapshot, preventing an action from being replayed against a different committed completion event.
 
+The final commit manifest additionally carries a deterministic `bundle_digest` over its canonical action-scoped fields. Verification recomputes this digest before accepting the manifest, binding the status, replay, inventory, catalog, completeness, receipt, and path projections as one evidence bundle.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

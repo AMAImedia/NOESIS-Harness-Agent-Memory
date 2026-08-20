@@ -34,4 +34,6 @@ Completeness projection также сохраняется как signed `noesis.
 
 Action replay projection также проверяет completion-event prefix target action и требует, чтобы его final committed receipt ID совпадал с completion receipt ID replay record. Полученный `event_chain_digest` входит в signed replay evidence snapshot и не позволяет replay against different committed completion event.
 
+Final commit manifest дополнительно содержит deterministic `bundle_digest` по canonical action-scoped fields. Verification пересчитывает digest до принятия manifest и связывает status, replay, inventory, catalog, completeness, receipt и path projections как единый evidence bundle.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).

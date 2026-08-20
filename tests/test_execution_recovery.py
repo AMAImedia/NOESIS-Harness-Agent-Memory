@@ -65,6 +65,8 @@ class ExecutionRecoveryTests(unittest.TestCase):
         commit_manifest = executor.verify_replay_evidence_commit_manifest(self.action)
         self.assertEqual(commit_manifest["payload"]["schema_version"], "noesis.recovery-replay-evidence-commit-manifest.v1")
         self.assertEqual(replay["replay_commit_manifest"]["status"], "passed")
+        manifest_payload = replay["replay_commit_manifest"]["payload"]
+        self.assertEqual(manifest_payload["bundle_digest"], executor._replay_bundle_digest(manifest_payload))
         self.assertEqual(replay["replay_completeness"]["schema_version"], "noesis.recovery-replay-evidence-completeness.v1")
         self.assertEqual(replay["replay_completeness"]["manifest_count"], 1)
         completeness_snapshot = executor.verify_replay_evidence_completeness_snapshot()

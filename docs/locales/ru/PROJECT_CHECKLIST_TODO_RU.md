@@ -1591,3 +1591,11 @@ Focused chain replay result: `64/64` assurance, recovery, child-runtime и expor
 | CHILD-124 | Event chain digest projection | `DONE / BOUNDED LOCAL` | Signed replay evidence includes target `event_chain_digest`; replay snapshot verification rechecks it deterministically. |
 | CHILD-125 | Native/external receipt binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt-to-event replay binding не проверялись. |
 Focused receipt-binding result: `64/64` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 deterministic evidence bundle digest checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-126 | Canonical bundle digest | `DONE / BOUNDED LOCAL` | Final commit manifest содержит deterministic `bundle_digest` по canonical action-scoped fields. |
+| CHILD-127 | Whole-bundle verification | `DONE / BOUNDED LOCAL` | Verification пересчитывает digest и связывает status/replay/inventory/catalog/completeness/receipt/path projections. |
+| CHILD-128 | Bundle tamper denial | `DONE / BOUNDED LOCAL` | Изменение bundle digest или любого покрытого поля блокирует final manifest verification. |
+| CHILD-129 | Native/external bundle digest | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness whole-bundle digest не проверялись. |
+Focused bundle-digest result: `64/64` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

@@ -475,6 +475,10 @@ class ExecutionRecoveryExecutor:
     def _replay_completeness_record_digest(action: ExecutionRecoveryAction, replay_evidence: Mapping[str, Any], catalog_record: Mapping[str, Any], manifest_path: str) -> str:
         return request_fingerprint({"action_id": action.action_id, "action_digest": str(replay_evidence.get("action_digest", "")), "completion_receipt_id": str(replay_evidence.get("completion_receipt_id", "")), "catalog_record_digest": request_fingerprint(catalog_record), "manifest_path": str(manifest_path)})
 
+    @staticmethod
+    def _replay_bundle_digest(payload: Mapping[str, Any]) -> str:
+        return request_fingerprint({str(key): value for key, value in payload.items() if str(key) != "bundle_digest"})
+
     def persist_replay_evidence_commit_manifest(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Persist the final signed marker for a complete replay evidence bundle."""
         replay_evidence = self.audit_replay_outcome(action)
@@ -494,6 +498,7 @@ class ExecutionRecoveryExecutor:
                     raise
         manifest_path = self._replay_commit_manifest_path(action.action_id)
         payload = {"schema_version": "noesis.recovery-replay-evidence-commit-manifest.v1", "action_id": action.action_id, "action_digest": replay_evidence["action_digest"], "completion_receipt_id": replay_evidence["completion_receipt_id"], "event_path": str(self.events.path), "status_snapshot_path": self._status_snapshot_path(action.action_id), "replay_snapshot_path": self._replay_snapshot_path(action.action_id), "inventory_snapshot_path": self._replay_inventory_snapshot_path(action.action_id), "catalog_snapshot_path": self._replay_catalog_snapshot_path(), "completeness_snapshot_path": self._replay_completeness_snapshot_path(), "status_snapshot_digest": request_fingerprint(status_snapshot["payload"]), "replay_snapshot_digest": request_fingerprint(replay_snapshot["payload"]), "inventory_snapshot_digest": request_fingerprint(inventory_snapshot["payload"]), "catalog_record_digest": request_fingerprint(catalog_record), "completeness_record_digest": self._replay_completeness_record_digest(action, replay_evidence, catalog_record, manifest_path)}
+        payload["bundle_digest"] = self._replay_bundle_digest(payload)
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
         _atomic_write_json(self._replay_commit_manifest_path(action.action_id), snapshot)
         return snapshot
@@ -526,7 +531,8 @@ class ExecutionRecoveryExecutor:
         if catalog_record is None:
             raise ExecutionRecoveryError("recovery_replay_commit_manifest_catalog_record_missing")
         completeness_snapshot = self.verify_replay_evidence_completeness_snapshot()
-        expected = {"action_id": action.action_id, "action_digest": replay_evidence["action_digest"], "completion_receipt_id": replay_evidence["completion_receipt_id"], "status_snapshot_digest": request_fingerprint(status_snapshot["payload"]), "replay_snapshot_digest": request_fingerprint(replay_snapshot["payload"]), "inventory_snapshot_digest": request_fingerprint(inventory_snapshot["payload"]), "catalog_record_digest": request_fingerprint(catalog_record), "completeness_record_digest": self._replay_completeness_record_digest(action, replay_evidence, catalog_record, self._replay_commit_manifest_path(action.action_id))}
+        expected = {"schema_version": "noesis.recovery-replay-evidence-commit-manifest.v1", "action_id": action.action_id, "action_digest": replay_evidence["action_digest"], "completion_receipt_id": replay_evidence["completion_receipt_id"], "event_path": str(self.events.path), "status_snapshot_path": self._status_snapshot_path(action.action_id), "replay_snapshot_path": self._replay_snapshot_path(action.action_id), "inventory_snapshot_path": self._replay_inventory_snapshot_path(action.action_id), "catalog_snapshot_path": self._replay_catalog_snapshot_path(), "completeness_snapshot_path": self._replay_completeness_snapshot_path(), "status_snapshot_digest": request_fingerprint(status_snapshot["payload"]), "replay_snapshot_digest": request_fingerprint(replay_snapshot["payload"]), "inventory_snapshot_digest": request_fingerprint(inventory_snapshot["payload"]), "catalog_record_digest": request_fingerprint(catalog_record), "completeness_record_digest": self._replay_completeness_record_digest(action, replay_evidence, catalog_record, self._replay_commit_manifest_path(action.action_id))}
+        expected["bundle_digest"] = self._replay_bundle_digest(expected)
         for key, value in expected.items():
             if payload.get(key) != value:
                 raise ExecutionRecoveryError("recovery_replay_commit_manifest_drift")
