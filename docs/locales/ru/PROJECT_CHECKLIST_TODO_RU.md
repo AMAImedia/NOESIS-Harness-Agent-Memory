@@ -1519,3 +1519,11 @@ Focused adversarial result: `48/48` assurance, recovery, child-runtime и export
 | CHILD-88 | Inventory snapshot recovery denial | `DONE / BOUNDED LOCAL` | Missing, corrupt, signed path mismatch и evidence drift fail-closed; automatic recreation во время replay запрещена. |
 | CHILD-89 | Native/external inventory snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness inventory snapshots не проверялись. |
 Focused durable inventory result: `51/51` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 action-scoped replay evidence checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-90 | Action-scoped replay sidecars | `DONE / BOUNDED LOCAL` | Replay и inventory sidecars используют deterministic `action_id` digest in filename; same event log no longer shares one mutable replay sidecar across actions. |
+| CHILD-91 | Action-scoped recovery status | `DONE / BOUNDED LOCAL` | Replay verifies action-scoped signed status projection while global operator status remains separate. |
+| CHILD-92 | Multi-action replay isolation | `DONE / BOUNDED LOCAL` | Two completed actions preserve independent replay/inventory/status sidecars and both exact replays return `replayed`. |
+| CHILD-93 | Native/external action-scoped evidence | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness multi-action replay evidence не проверялись. |
+Focused action-scoped result: `51/51` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

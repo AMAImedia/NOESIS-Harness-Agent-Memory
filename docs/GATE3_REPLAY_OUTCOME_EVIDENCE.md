@@ -18,6 +18,8 @@ After a confirmed recovery completion, the executor atomically persists a signed
 
 After a confirmed replay snapshot is written, the executor atomically persists a signed `noesis.recovery-replay-snapshot-inventory-snapshot.v1` sidecar. Exact replay verifies this durable inventory snapshot against the current replay snapshot before returning `replayed`. Missing, corrupt, path-mismatched, tampered, or drifted inventory snapshots fail closed; no inventory snapshot is silently recreated during replay.
 
+Replay and inventory sidecars are action-scoped and use a deterministic digest of `action_id` in their filenames. The recovery-status projection used by replay is also action-scoped, so two completed actions on one append-only event log cannot overwrite each other’s replay evidence or status evidence. Global operator status remains available as a separate aggregate snapshot.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

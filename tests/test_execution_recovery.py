@@ -66,12 +66,20 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
+        first_replay_path = executor._replay_snapshot_path(self.action.action_id)
+        first_inventory_path = executor._replay_inventory_snapshot_path(self.action.action_id)
         snapshot_path = Path(event_path + ".snapshot.json")
         original_snapshot = snapshot_path.read_text(encoding="utf-8")
         self.recovery.begin("run-chain-2", "sha256:before")
         self.recovery.complete("run-chain-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
         action_two = ExecutionRecoveryAction("action-chain-2", "rollback", "run-chain-2", self.receipt.receipt_id, "patch-1", "ws-1", "snap-base", "operator-1", "session-1")
         executor.handle(action_two, self.context)
+        self.assertNotEqual(first_replay_path, executor._replay_snapshot_path(action_two.action_id))
+        self.assertNotEqual(first_inventory_path, executor._replay_inventory_snapshot_path(action_two.action_id))
+        self.assertTrue(Path(first_replay_path).exists())
+        self.assertTrue(Path(first_inventory_path).exists())
+        self.assertEqual(executor.handle(self.action, self.context)["status"], "replayed")
+        self.assertEqual(executor.handle(action_two, self.context)["status"], "replayed")
         audited = executor.audit_completion_events()
         self.assertEqual(audited["status"], "passed")
         self.assertEqual(audited["count"], 2)
@@ -130,7 +138,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "replay-status-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        Path(event_path + ".status.json").unlink()
+        Path(executor._status_snapshot_path(self.action.action_id)).unlink()
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_status_snapshot_missing"):
             executor.handle(self.action, self.context)
 
@@ -138,7 +146,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "replay-outcome-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        Path(event_path + ".replay.json").unlink()
+        Path(executor._replay_snapshot_path(self.action.action_id)).unlink()
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_missing"):
             executor.handle(self.action, self.context)
 
@@ -146,7 +154,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "tampered-replay-outcome-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        snapshot_path = Path(event_path + ".replay.json")
+        snapshot_path = Path(executor._replay_snapshot_path(self.action.action_id))
         tampered = json.loads(snapshot_path.read_text(encoding="utf-8"))
         tampered["payload"]["claim"] = False
         snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
@@ -157,7 +165,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "missing-inventory-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        Path(event_path + ".replay.json.inventory.json").unlink()
+        Path(executor._replay_inventory_snapshot_path(self.action.action_id)).unlink()
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_inventory_snapshot_missing"):
             executor.handle(self.action, self.context)
 
@@ -165,7 +173,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "inventory-path-mismatch-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        snapshot_path = Path(event_path + ".replay.json.inventory.json")
+        snapshot_path = Path(executor._replay_inventory_snapshot_path(self.action.action_id))
         snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
         snapshot["payload"]["inventory_path"] = str(Path(self.tmp.name) / "other-inventory.json")
         snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
@@ -177,7 +185,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "inventory-drift-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        snapshot_path = Path(event_path + ".replay.json.inventory.json")
+        snapshot_path = Path(executor._replay_inventory_snapshot_path(self.action.action_id))
         snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
         snapshot["payload"]["snapshot_digest"] = "sha256:drift"
         snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
@@ -189,7 +197,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "path-mismatch-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        snapshot_path = Path(event_path + ".replay.json")
+        snapshot_path = Path(executor._replay_snapshot_path(self.action.action_id))
         snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
         snapshot["payload"]["snapshot_path"] = str(Path(self.tmp.name) / "other-replay.json")
         snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
@@ -201,7 +209,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "identity-confusion-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        snapshot_path = Path(event_path + ".replay.json")
+        snapshot_path = Path(executor._replay_snapshot_path(self.action.action_id))
         snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
         snapshot["payload"]["action_id"] = "action-confused"
         snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
@@ -213,7 +221,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         event_path = str(Path(self.tmp.name) / "duplicate-record-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         executor.handle(self.action, self.context)
-        snapshot_path = Path(event_path + ".replay.json")
+        snapshot_path = Path(executor._replay_snapshot_path(self.action.action_id))
         original = snapshot_path.read_text(encoding="utf-8").strip()
         duplicate = original[:-1] + ',"payload":{"action_id":"conflicting"}}'
         snapshot_path.write_text(duplicate + "\n", encoding="utf-8")

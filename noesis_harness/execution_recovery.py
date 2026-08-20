@@ -132,8 +132,8 @@ class ExecutionRecoveryExecutor:
         if action.scope not in scopes:
             raise PermissionError("recovery_scope_denied")
 
-    def audit_completion_events(self) -> Mapping[str, Any]:
-        """Verify the hash-linked completion event chain and referenced receipts."""
+    def audit_completion_events(self, target_action_id: str = "") -> Mapping[str, Any]:
+        """Verify the hash-linked completion event chain and optionally return an action prefix."""
         last_digest = "genesis"
         seen_actions = set()
         event_ids = []
@@ -144,8 +144,8 @@ class ExecutionRecoveryExecutor:
             payload = event.get("payload")
             if not isinstance(payload, Mapping):
                 raise ExecutionRecoveryError("recovery_completion_event_corrupt")
-            action_id = str(payload.get("action_id", ""))
-            if not action_id or action_id in seen_actions:
+            event_action_id = str(payload.get("action_id", ""))
+            if not event_action_id or event_action_id in seen_actions:
                 raise ExecutionRecoveryError("recovery_completion_event_fork")
             if str(payload.get("previous_event_digest", "")) != last_digest:
                 raise ExecutionRecoveryError("recovery_completion_event_chain_mismatch")
@@ -155,10 +155,14 @@ class ExecutionRecoveryExecutor:
                 if receipt is None or receipt.outcome != "committed":
                     raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
                 receipt_ids.append(completion_receipt_id)
-            seen_actions.add(action_id)
+            seen_actions.add(event_action_id)
             event_id = str(event.get("event_id", ""))
             event_ids.append(event_id)
             last_digest = _completion_event_digest(payload)
+            if target_action_id and target_action_id == event_action_id:
+                return {"status": "passed", "count": len(event_ids), "event_ids": tuple(event_ids), "completion_receipt_ids": tuple(receipt_ids), "chain_digest": last_digest}
+        if target_action_id:
+            raise ExecutionRecoveryError("recovery_completion_action_missing")
         return {"status": "passed", "count": len(event_ids), "event_ids": tuple(event_ids), "completion_receipt_ids": tuple(receipt_ids), "chain_digest": last_digest}
 
     def _completion_snapshot_path(self) -> str:
@@ -191,9 +195,9 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_event_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
-    def verify_recovery_evidence(self) -> Mapping[str, Any]:
+    def verify_recovery_evidence(self, action_id: str = "") -> Mapping[str, Any]:
         """Verify recovery chain and its durable snapshot as a startup/replay gate."""
-        chain = self.audit_completion_events()
+        chain = self.audit_completion_events(action_id)
         snapshot_path = self._completion_snapshot_path()
         if chain["count"] == 0 and not os.path.exists(snapshot_path):
             return {"status": "passed", "chain": chain, "snapshot": {"status": "not_run", "reason": "no_completion_events"}}
@@ -202,10 +206,10 @@ class ExecutionRecoveryExecutor:
         snapshot = self.verify_completion_event_snapshot()
         return {"status": "passed", "chain": chain, "snapshot": snapshot}
 
-    def recovery_evidence_status(self) -> Mapping[str, Any]:
+    def recovery_evidence_status(self, action_id: str = "") -> Mapping[str, Any]:
         """Return an honest machine-readable status without hiding verification failures."""
         try:
-            evidence = self.verify_recovery_evidence()
+            evidence = self.verify_recovery_evidence(action_id)
         except ExecutionRecoveryError as exc:
             return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "blocked", "claim": False, "reason": str(exc)}
         snapshot = evidence.get("snapshot") or {}
@@ -213,21 +217,24 @@ class ExecutionRecoveryExecutor:
             return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "not_run", "claim": False, "reason": str(snapshot.get("reason", "no_completion_events")), "chain": evidence.get("chain")}
         return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "passed", "claim": True, "chain": evidence.get("chain"), "snapshot": snapshot}
 
-    def _status_snapshot_path(self) -> str:
-        return str(self.events.path) + ".status.json"
+    def _status_snapshot_path(self, action_id: str = "") -> str:
+        if not action_id:
+            return str(self.events.path) + ".status.json"
+        action_key = request_fingerprint({"action_id": str(action_id)}).replace(":", "_")
+        return str(self.events.path) + ".status." + action_key + ".json"
 
-    def persist_recovery_evidence_status(self) -> Mapping[str, Any]:
+    def persist_recovery_evidence_status(self, action_id: str = "") -> Mapping[str, Any]:
         """Atomically persist a signed machine-readable recovery status projection."""
-        status = self.recovery_evidence_status()
-        payload = {"schema_version": "noesis.recovery-evidence-status-snapshot.v1", "event_path": str(self.events.path), "status": status["status"], "claim": bool(status["claim"]), "reason": str(status.get("reason", "")), "chain_digest": str((status.get("chain") or {}).get("chain_digest", ""))}
+        status = self.recovery_evidence_status(action_id)
+        payload = {"schema_version": "noesis.recovery-evidence-status-snapshot.v1", "event_path": str(self.events.path), "action_id": str(action_id), "status": status["status"], "claim": bool(status["claim"]), "reason": str(status.get("reason", "")), "chain_digest": str((status.get("chain") or {}).get("chain_digest", ""))}
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
-        _atomic_write_json(self._status_snapshot_path(), snapshot)
+        _atomic_write_json(self._status_snapshot_path(action_id), snapshot)
         return snapshot
 
-    def verify_recovery_evidence_status_snapshot(self) -> Mapping[str, Any]:
+    def verify_recovery_evidence_status_snapshot(self, action_id: str = "") -> Mapping[str, Any]:
         """Verify the persisted status projection against current recovery evidence."""
         try:
-            with open(self._status_snapshot_path(), "r", encoding="utf-8") as handle:
+            with open(self._status_snapshot_path(action_id), "r", encoding="utf-8") as handle:
                 snapshot = json.load(handle)
             payload = snapshot["payload"]
             signature = str(snapshot["signature"])
@@ -235,8 +242,8 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_status_snapshot_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_status_snapshot_signature_invalid")
-        current = self.recovery_evidence_status()
-        expected = {"event_path": str(self.events.path), "status": current["status"], "claim": bool(current["claim"]), "reason": str(current.get("reason", "")), "chain_digest": str((current.get("chain") or {}).get("chain_digest", ""))}
+        current = self.recovery_evidence_status(action_id)
+        expected = {"event_path": str(self.events.path), "action_id": str(action_id), "status": current["status"], "claim": bool(current["claim"]), "reason": str(current.get("reason", "")), "chain_digest": str((current.get("chain") or {}).get("chain_digest", ""))}
         for key, value in expected.items():
             if payload.get(key) != value:
                 raise ExecutionRecoveryError("recovery_status_snapshot_drift")
@@ -256,28 +263,29 @@ class ExecutionRecoveryExecutor:
         completion_receipt = self.receipt_store.get(completion_receipt_id)
         if completion_receipt is None or completion_receipt.outcome != "committed":
             raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
-        if not os.path.exists(self._status_snapshot_path()):
+        if not os.path.exists(self._status_snapshot_path(action.action_id)):
             raise ExecutionRecoveryError("recovery_status_snapshot_missing")
-        status_snapshot = self.verify_recovery_evidence_status_snapshot()
+        status_snapshot = self.verify_recovery_evidence_status_snapshot(action.action_id)
         return {"schema_version": "noesis.recovery-replay-evidence.v1", "status": "passed", "claim": True, "action_id": action.action_id, "action_digest": action_digest, "completion_receipt_id": completion_receipt_id, "status_snapshot_digest": request_fingerprint(status_snapshot["payload"])}
 
-    def _replay_snapshot_path(self) -> str:
-        return str(self.events.path) + ".replay.json"
+    def _replay_snapshot_path(self, action_id: str) -> str:
+        action_key = request_fingerprint({"action_id": str(action_id)}).replace(":", "_")
+        return str(self.events.path) + ".replay." + action_key + ".json"
 
     def persist_replay_outcome_snapshot(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Atomically persist signed evidence for a future exact replay."""
         evidence = self.audit_replay_outcome(action)
         payload = dict(evidence)
         payload["schema_version"] = "noesis.recovery-replay-evidence-snapshot.v1"
-        payload["snapshot_path"] = self._replay_snapshot_path()
+        payload["snapshot_path"] = self._replay_snapshot_path(action.action_id)
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
-        _atomic_write_json(self._replay_snapshot_path(), snapshot)
+        _atomic_write_json(self._replay_snapshot_path(action.action_id), snapshot)
         return snapshot
 
     def verify_replay_outcome_snapshot(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Verify the durable replay evidence snapshot against current immutable evidence."""
         try:
-            with open(self._replay_snapshot_path(), "r", encoding="utf-8") as handle:
+            with open(self._replay_snapshot_path(action.action_id), "r", encoding="utf-8") as handle:
                 snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
             payload = snapshot["payload"]
             signature = str(snapshot["signature"])
@@ -287,7 +295,7 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_snapshot_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_replay_snapshot_signature_invalid")
-        expected_path = self._replay_snapshot_path()
+        expected_path = self._replay_snapshot_path(action.action_id)
         if payload.get("snapshot_path") != expected_path:
             raise ExecutionRecoveryError("recovery_replay_snapshot_path_mismatch")
         current = self.audit_replay_outcome(action)
@@ -305,25 +313,25 @@ class ExecutionRecoveryExecutor:
         """Return a deterministic inventory for the verified replay snapshot."""
         verified = self.verify_replay_outcome_snapshot(action)
         payload = verified["payload"]
-        return {"schema_version": "noesis.recovery-replay-snapshot-inventory.v1", "status": "passed", "snapshot_path": self._replay_snapshot_path(), "snapshot_digest": request_fingerprint(payload), "action_id": str(payload.get("action_id", "")), "action_digest": str(payload.get("action_digest", "")), "completion_receipt_id": str(payload.get("completion_receipt_id", ""))}
+        return {"schema_version": "noesis.recovery-replay-snapshot-inventory.v1", "status": "passed", "snapshot_path": self._replay_snapshot_path(action.action_id), "snapshot_digest": request_fingerprint(payload), "action_id": str(payload.get("action_id", "")), "action_digest": str(payload.get("action_digest", "")), "completion_receipt_id": str(payload.get("completion_receipt_id", ""))}
 
-    def _replay_inventory_snapshot_path(self) -> str:
-        return self._replay_snapshot_path() + ".inventory.json"
+    def _replay_inventory_snapshot_path(self, action_id: str) -> str:
+        return self._replay_snapshot_path(action_id) + ".inventory.json"
 
     def persist_replay_snapshot_inventory(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Atomically persist signed evidence for the verified replay inventory."""
         inventory = self.audit_replay_snapshot_inventory(action)
         payload = dict(inventory)
         payload["schema_version"] = "noesis.recovery-replay-snapshot-inventory-snapshot.v1"
-        payload["inventory_path"] = self._replay_inventory_snapshot_path()
+        payload["inventory_path"] = self._replay_inventory_snapshot_path(action.action_id)
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
-        _atomic_write_json(self._replay_inventory_snapshot_path(), snapshot)
+        _atomic_write_json(self._replay_inventory_snapshot_path(action.action_id), snapshot)
         return snapshot
 
     def verify_replay_snapshot_inventory_snapshot(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Verify durable replay inventory evidence against current immutable evidence."""
         try:
-            with open(self._replay_inventory_snapshot_path(), "r", encoding="utf-8") as handle:
+            with open(self._replay_inventory_snapshot_path(action.action_id), "r", encoding="utf-8") as handle:
                 snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
             payload = snapshot["payload"]
             signature = str(snapshot["signature"])
@@ -335,7 +343,7 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_signature_invalid")
-        if payload.get("inventory_path") != self._replay_inventory_snapshot_path():
+        if payload.get("inventory_path") != self._replay_inventory_snapshot_path(action.action_id):
             raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_path_mismatch")
         current = self.audit_replay_snapshot_inventory(action)
         for key, value in current.items():
@@ -351,7 +359,7 @@ class ExecutionRecoveryExecutor:
         action_digest = request_fingerprint(action.to_mapping())
         if existing is not None:
             replay_evidence = self.audit_replay_outcome(action)
-            if not os.path.exists(self._replay_snapshot_path()):
+            if not os.path.exists(self._replay_snapshot_path(action.action_id)):
                 raise ExecutionRecoveryError("recovery_replay_snapshot_missing")
             replay_snapshot = self.verify_replay_outcome_snapshot(action)
             replay_inventory_snapshot = self.verify_replay_snapshot_inventory_snapshot(action)
@@ -405,6 +413,7 @@ class ExecutionRecoveryExecutor:
         self.events.append("execution_recovery_completed", payload, event_id="execution-recovery:" + action.action_id)
         self.persist_completion_event_snapshot()
         self.persist_recovery_evidence_status()
+        self.persist_recovery_evidence_status(action.action_id)
         self.persist_replay_outcome_snapshot(action)
         self.persist_replay_snapshot_inventory(action)
         return payload

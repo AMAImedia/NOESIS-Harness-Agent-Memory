@@ -18,4 +18,6 @@
 
 После подтверждённой записи replay snapshot executor атомарно сохраняет signed sidecar `noesis.recovery-replay-snapshot-inventory-snapshot.v1`. Exact replay проверяет durable inventory snapshot против current replay snapshot до возврата `replayed`. Missing, corrupt, path-mismatched, tampered или drifted inventory snapshot fail-closed; во время replay inventory snapshot не создаётся молча заново.
 
+Replay и inventory sidecars являются action-scoped и используют deterministic digest `action_id` в filenames. Recovery-status projection, используемый replay, также action-scoped: две completed actions в одном append-only event log не могут перезаписать replay evidence или status evidence друг друга. Global operator status остаётся отдельным aggregate snapshot.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).
