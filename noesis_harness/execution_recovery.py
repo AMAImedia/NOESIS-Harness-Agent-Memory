@@ -538,8 +538,8 @@ class ExecutionRecoveryExecutor:
         self.verify_replay_evidence_completeness_snapshot()
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
-    def audit_replay_evidence_completeness(self) -> Mapping[str, Any]:
-        """Audit that every completed recovery action has one signed evidence manifest."""
+    def audit_replay_evidence_completeness(self, *, require_durable_snapshot: bool = False) -> Mapping[str, Any]:
+        """Audit replay evidence, optionally requiring the durable signed completeness snapshot."""
         parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
         base = os.path.basename(str(self.events.path)) + ".replay-commit."
         expected = {}
@@ -618,7 +618,15 @@ class ExecutionRecoveryExecutor:
             catalog_record = catalog_records.get(record["action_id"])
             if catalog_record is None or record["catalog_record_digest"] != request_fingerprint(catalog_record):
                 raise ExecutionRecoveryError("recovery_replay_completeness_catalog_record_mismatch")
-        return {"schema_version": "noesis.recovery-replay-evidence-completeness.v1", "status": "passed", "event_count": len(expected), "manifest_count": len(records), "catalog_count": int(catalog["count"]), "records": records, "completeness_digest": request_fingerprint({"records": records, "catalog_digest": catalog["catalog_digest"]})}
+        result = {"schema_version": "noesis.recovery-replay-evidence-completeness.v1", "status": "passed", "event_count": len(expected), "manifest_count": len(records), "catalog_count": int(catalog["count"]), "records": records, "completeness_digest": request_fingerprint({"records": records, "catalog_digest": catalog["catalog_digest"]})}
+        if require_durable_snapshot:
+            try:
+                self.verify_replay_evidence_completeness_snapshot()
+            except ExecutionRecoveryError as exc:
+                if str(exc) == "recovery_replay_completeness_snapshot_missing":
+                    raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_required") from exc
+                raise
+        return result
 
     def _replay_completeness_snapshot_path(self) -> str:
         return str(self.events.path) + ".replay-completeness.json"
@@ -672,7 +680,7 @@ class ExecutionRecoveryExecutor:
             replay_catalog = self.audit_replay_evidence_catalog()
             replay_catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
             replay_commit_manifest = self.verify_replay_evidence_commit_manifest(action)
-            replay_completeness = self.audit_replay_evidence_completeness()
+            replay_completeness = self.audit_replay_evidence_completeness(require_durable_snapshot=True)
             replay_completeness_snapshot = self.verify_replay_evidence_completeness_snapshot()
             return {"status": "replayed", "result": existing, "recovery_evidence": recovery_evidence, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness, "replay_completeness_snapshot": replay_completeness_snapshot}
         run = self.recovery_store.get(action.run_id)

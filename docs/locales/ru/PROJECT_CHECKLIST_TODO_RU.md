@@ -1639,3 +1639,16 @@ Focused sidecar-binding result: `68/68` assurance, recovery, child-runtime и ex
 | CHILD-148 | Catalog drift denial | `DONE / BOUNDED LOCAL` | Signed catalog snapshot drift блокирует startup completeness до count parity acceptance. |
 | CHILD-149 | Native/external catalog binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness catalog binding не проверялись. |
 Focused catalog-binding result: `69/69` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+
+
+## 2026-08-21 — Gate 3 startup durable completeness snapshot checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-150 | Durable completeness snapshot requirement | `DONE / BOUNDED LOCAL` | `audit_replay_evidence_completeness(require_durable_snapshot=True)` требует существующий signed `noesis.recovery-replay-evidence-completeness-snapshot.v1` в startup/exact-replay path. |
+| CHILD-151 | Completeness digest binding | `DONE / BOUNDED LOCAL` | Durable snapshot содержит deterministic `completeness_digest`, а verification сравнивает его с текущими ordered records и verified catalog digest. |
+| CHILD-152 | Stale snapshot denial | `DONE / BOUNDED LOCAL` | Signed stale `completeness_digest` блокирует startup audit с `recovery_replay_completeness_snapshot_drift`. |
+| CHILD-153 | Missing durable snapshot denial | `DONE / BOUNDED LOCAL` | Startup audit не принимает заново вычисленную in-memory completeness projection без durable snapshot; причина `recovery_replay_completeness_snapshot_required`. |
+| CHILD-154 | Native/external completeness snapshot | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness durable completeness snapshot binding не проверялись. |
+
+Focused completeness-binding result: `40/40` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression result: `734/734` passed in `53.118 s`; documentation, security и release audits должны быть подтверждены перед commit.
