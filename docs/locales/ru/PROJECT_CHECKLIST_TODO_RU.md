@@ -1880,3 +1880,15 @@ Focused old-prefix cross-binding result: `63/63` execution-recovery tests passed
 | CHILD-238 | Native/external chain repair | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness event-chain repair не проверялись. |
 
 Focused event-chain result: `63/63` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 event-chain snapshot rotation checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-239 | Chain snapshot schema | `DONE / BOUNDED LOCAL` | Exact field set, schema version, count/list parity, unique event IDs и non-empty digest проверяются до drift comparison. |
+| CHILD-240 | Chain snapshot denial | `DONE / BOUNDED LOCAL` | Unknown/missing fields, invalid shape, stale schema, duplicate keys и missing snapshot fail-closed. |
+| CHILD-241 | Chain snapshot reopen | `DONE / BOUNDED LOCAL` | Отдельный Python process reopen/verify-ит signed chain snapshot без regeneration. |
+| CHILD-242 | Native/external chain snapshot | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness chain snapshot rotation не проверялись. |
+
+Focused event-snapshot result: `64/64` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

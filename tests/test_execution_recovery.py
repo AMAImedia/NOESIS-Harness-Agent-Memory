@@ -143,6 +143,44 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "event_snapshot_signature_invalid"):
             ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).verify_completion_event_snapshot()
 
+    def test_completion_snapshot_schema_rotation_and_process_boundary(self):
+        event_path = str(Path(self.tmp.name) / "event-snapshot-schema-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._completion_snapshot_path())
+        original = snapshot_path.read_bytes()
+        cases = (("unknown", lambda payload: payload.update({"unknown": "fixture"}), "recovery_event_snapshot_unknown_field"), ("missing", lambda payload: payload.pop("event_ids"), "recovery_event_snapshot_missing_field"), ("schema", lambda payload: payload.update({"schema_version": "noesis.recovery-event-chain-snapshot.v0"}), "recovery_event_snapshot_schema_invalid"), ("shape", lambda payload: payload.update({"count": 99}), "recovery_event_snapshot_shape_invalid"))
+        for _, mutate, reason in cases:
+            tampered = json.loads(original)
+            mutate(tampered["payload"])
+            tampered["signature"] = _snapshot_signature(tampered["payload"], self.key)
+            snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ExecutionRecoveryError, reason):
+                executor.verify_completion_event_snapshot()
+            snapshot_path.write_bytes(original)
+        snapshot_path.write_text('{"payload":{"schema_version":"x","schema_version":"y"},"signature":"x"}\n', encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_event_snapshot_duplicate_record"):
+            executor.verify_completion_event_snapshot()
+        snapshot_path.write_bytes(original)
+        root = Path(__file__).resolve().parents[1]
+        child = """import sys
+from noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore
+from noesis_harness.execution_recovery import ExecutionRecoveryExecutor
+from noesis_harness.workspaces import PatchReviewStore
+root, event_path = sys.argv[1], sys.argv[2]
+key = b'execution-recovery-signing-key'
+executor = ExecutionRecoveryExecutor(receipt_store=ExecutionReceiptStore(root + '/receipts.db', signing_key=key), recovery_store=ExecutionRecoveryStore(root + '/recovery.db'), patch_store=PatchReviewStore(root + '/patches.db'), event_path=event_path, rollback_handler=lambda _: True)
+print(executor.verify_completion_event_snapshot()['status'])
+"""
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(root)
+        process = subprocess.run([sys.executable, "-c", child, str(self.tmp.name), event_path], capture_output=True, text=True, check=True, env=env)
+        self.assertEqual(process.stdout.strip(), "passed")
+        self.assertEqual(process.stderr, "")
+        snapshot_path.unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_event_snapshot_missing"):
+            executor.verify_completion_event_snapshot()
+
     def test_recovery_evidence_status_preserves_not_run_and_blocked(self):
         empty_path = str(Path(self.tmp.name) / "empty-status-events.jsonl")
         empty = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=empty_path, rollback_handler=lambda _: True)

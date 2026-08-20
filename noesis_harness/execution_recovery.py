@@ -23,6 +23,7 @@ REPLAY_COMPLETENESS_SNAPSHOT_FIELDS = frozenset({"schema_version", "status", "ev
 REPLAY_COMPLETENESS_RECORD_FIELDS = frozenset({"action_id", "manifest_path", "action_digest", "completion_receipt_id", "catalog_record_digest"})
 REPLAY_GENERATION_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_id", "event_chain_digest", "completeness_digest", "files", "generation_digest", "receipt_path"})
 REPLAY_GENERATION_FILE_FIELDS = frozenset({"path", "sha256"})
+REPLAY_EVENT_CHAIN_FIELDS = frozenset({"schema_version", "event_path", "event_ids", "completion_receipt_ids", "chain_digest", "count"})
 
 
 class _DuplicateJSONKeyError(ValueError):
@@ -189,10 +190,24 @@ class ExecutionRecoveryExecutor:
                 snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
             payload = snapshot["payload"]
             signature = str(snapshot["signature"])
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_event_snapshot_missing") from exc
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_event_snapshot_duplicate_record") from exc
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise ExecutionRecoveryError("recovery_event_snapshot_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_event_snapshot_signature_invalid")
+        if set(payload) != REPLAY_EVENT_CHAIN_FIELDS:
+            unknown = set(payload) - REPLAY_EVENT_CHAIN_FIELDS
+            raise ExecutionRecoveryError("recovery_event_snapshot_unknown_field" if unknown else "recovery_event_snapshot_missing_field")
+        if payload.get("schema_version") != "noesis.recovery-event-chain-snapshot.v1":
+            raise ExecutionRecoveryError("recovery_event_snapshot_schema_invalid")
+        event_ids = payload.get("event_ids")
+        receipt_ids = payload.get("completion_receipt_ids")
+        count = payload.get("count")
+        if not isinstance(event_ids, list) or not isinstance(receipt_ids, list) or not isinstance(count, int) or count < 0 or len(event_ids) != count or len(receipt_ids) != count or len(set(event_ids)) != len(event_ids) or not isinstance(payload.get("chain_digest"), str) or not payload.get("chain_digest"):
+            raise ExecutionRecoveryError("recovery_event_snapshot_shape_invalid")
         current = self.audit_completion_events()
         expected = {"event_path": str(self.events.path), "event_ids": list(current["event_ids"]), "completion_receipt_ids": list(current["completion_receipt_ids"]), "chain_digest": current["chain_digest"], "count": current["count"]}
         for key, value in expected.items():
