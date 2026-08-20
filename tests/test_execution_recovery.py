@@ -226,6 +226,28 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_repair_receipt_archive_drift"):
             executor.verify_replay_evidence_finalization()
 
+    def test_repair_chain_rotates_monotonically_and_rejects_reorder(self):
+        event_path = str(Path(self.tmp.name) / "repair-chain-rotation-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-chain-first")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        first = executor.repair_replay_evidence_finalization()
+        generation = executor.verify_replay_generation_receipt()["payload"]
+        os.chmod(generation["files"][0]["path"], os.stat(generation["files"][0]["path"]).st_mode | 0o200)
+        second = executor.repair_replay_evidence_finalization()
+        self.assertEqual(first["repair_receipt"]["payload"]["repair_id"], 1)
+        self.assertEqual(second["repair_receipt"]["payload"]["repair_id"], 2)
+        chain_path = Path(executor._replay_repair_chain_path())
+        records = [json.loads(line) for line in chain_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        self.assertEqual([record["payload"]["repair_id"] for record in records], [1, 2])
+        os.chmod(chain_path, os.stat(chain_path).st_mode | 0o200)
+        chain_path.write_text("\n".join(json.dumps(record, sort_keys=True) for record in reversed(records)) + "\n", encoding="utf-8")
+        os.chmod(chain_path, os.stat(chain_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_repair_chain_order_invalid"):
+            executor.verify_replay_evidence_finalization()
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

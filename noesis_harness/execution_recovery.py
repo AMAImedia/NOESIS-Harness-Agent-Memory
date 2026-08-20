@@ -26,7 +26,7 @@ REPLAY_GENERATION_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event
 REPLAY_GENERATION_FILE_FIELDS = frozenset({"path", "sha256"})
 REPLAY_EVENT_CHAIN_FIELDS = frozenset({"schema_version", "event_path", "event_ids", "completion_receipt_ids", "chain_digest", "count"})
 REPLAY_FINALIZATION_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_receipt_path", "generation_id", "event_chain_digest", "completeness_digest", "generation_digest", "files", "finalization_path"})
-REPLAY_REPAIR_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_id", "generation_digest", "archived_finalization_path", "archived_finalization_sha256", "finalization_path", "finalization_sha256", "repair_digest", "receipt_path"})
+REPLAY_REPAIR_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_id", "generation_digest", "archived_finalization_path", "archived_finalization_sha256", "finalization_path", "finalization_sha256", "repair_id", "previous_repair_digest", "repair_event_digest", "repair_chain_path", "repair_digest", "receipt_path"})
 
 
 class _DuplicateJSONKeyError(ValueError):
@@ -468,6 +468,9 @@ class ExecutionRecoveryExecutor:
     def _replay_repair_receipt_path(self) -> str:
         return str(self.events.path) + ".replay-repair.json"
 
+    def _replay_repair_chain_path(self) -> str:
+        return str(self.events.path) + ".replay-repair-chain.jsonl"
+
     def _assert_generation_mutable(self) -> None:
         if os.path.exists(self._replay_finalization_path()):
             raise ExecutionRecoveryError("recovery_replay_finalization_immutable")
@@ -645,6 +648,52 @@ class ExecutionRecoveryExecutor:
     def _sha256_file(path: str) -> str:
         return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
+    def _read_replay_repair_chain(self) -> list[Mapping[str, Any]]:
+        path = self._replay_repair_chain_path()
+        if not os.path.exists(path):
+            return []
+        entries = []
+        previous = "genesis"
+        expected_id = 1
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    if not line.strip():
+                        continue
+                    record = json.loads(line, object_pairs_hook=_reject_duplicate_json_keys)
+                    payload = record["payload"]
+                    signature = str(record["signature"])
+                    if not isinstance(payload, Mapping) or set(payload) != REPLAY_REPAIR_RECEIPT_FIELDS or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+                        raise ExecutionRecoveryError("recovery_repair_chain_record_invalid")
+                    if payload.get("repair_id") != expected_id or payload.get("previous_repair_digest") != previous:
+                        raise ExecutionRecoveryError("recovery_repair_chain_order_invalid")
+                    event_digest = request_fingerprint({key: value for key, value in payload.items() if key not in {"repair_event_digest", "repair_digest"}})
+                    if payload.get("repair_event_digest") != event_digest or payload.get("repair_digest") != request_fingerprint({key: value for key, value in payload.items() if key != "repair_digest"}):
+                        raise ExecutionRecoveryError("recovery_repair_chain_digest_invalid")
+                    entries.append(dict(payload))
+                    previous = str(payload["repair_digest"])
+                    expected_id += 1
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_repair_chain_duplicate_record") from exc
+        except ExecutionRecoveryError:
+            raise
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_repair_chain_corrupt") from exc
+        return entries
+
+    def _append_replay_repair_chain(self, payload: Mapping[str, Any], signature: str) -> None:
+        entries = self._read_replay_repair_chain()
+        expected_id = len(entries) + 1
+        previous = str(entries[-1]["repair_digest"]) if entries else "genesis"
+        if payload.get("repair_id") != expected_id or payload.get("previous_repair_digest") != previous:
+            raise ExecutionRecoveryError("recovery_repair_chain_order_invalid")
+        parent = os.path.dirname(os.path.abspath(self._replay_repair_chain_path())) or "."
+        os.makedirs(parent, exist_ok=True)
+        with open(self._replay_repair_chain_path(), "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"payload": dict(payload), "signature": signature}, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+
     def repair_replay_evidence_finalization(self) -> Mapping[str, Any]:
         """Archive a partial marker and deterministically re-finalize trusted evidence."""
         if not os.path.exists(self._replay_finalization_path()):
@@ -659,20 +708,35 @@ class ExecutionRecoveryExecutor:
         self.audit_replay_evidence_completeness(require_durable_snapshot=True)
         generation = self.verify_replay_generation_receipt()["payload"]
         protected = tuple(str(record["path"]) for record in generation["files"]) + (self._replay_generation_receipt_path(),)
+        writable = protected + ((self._replay_repair_chain_path(),) if os.path.exists(self._replay_repair_chain_path()) else ())
         archive_path = self._archive_partial_finalization()
         try:
-            self._make_writable(protected)
+            self._make_writable(writable)
         except OSError as exc:
             raise ExecutionRecoveryError("recovery_replay_finalization_repair_failed") from exc
+        if os.path.exists(self._replay_repair_receipt_path()):
+            archive_root = os.path.join(os.path.dirname(os.path.abspath(str(self.events.path))), "_archive")
+            os.makedirs(archive_root, exist_ok=True)
+            prior_receipt = os.path.join(archive_root, os.path.basename(self._replay_repair_receipt_path()) + ".stale")
+            index = 1
+            while os.path.exists(prior_receipt):
+                prior_receipt = os.path.join(archive_root, os.path.basename(self._replay_repair_receipt_path()) + ".stale." + str(index))
+                index += 1
+            os.replace(self._replay_repair_receipt_path(), prior_receipt)
         archived_sha256 = self._sha256_file(archive_path)
+        chain_entries = self._read_replay_repair_chain()
+        repair_id = len(chain_entries) + 1
+        previous_repair_digest = str(chain_entries[-1]["repair_digest"]) if chain_entries else "genesis"
         finalized = self.promote_replay_evidence_finalization()
         finalization_sha256 = self._sha256_file(self._replay_finalization_path())
         generation_payload = finalized["payload"]
-        repair_payload = {"schema_version": "noesis.recovery-replay-finalization-repair.v1", "status": "passed", "event_path": str(self.events.path), "generation_id": generation_payload["generation_id"], "generation_digest": generation_payload["generation_digest"], "archived_finalization_path": archive_path, "archived_finalization_sha256": archived_sha256, "finalization_path": self._replay_finalization_path(), "finalization_sha256": finalization_sha256, "receipt_path": self._replay_repair_receipt_path()}
+        repair_payload = {"schema_version": "noesis.recovery-replay-finalization-repair.v1", "status": "passed", "event_path": str(self.events.path), "generation_id": generation_payload["generation_id"], "generation_digest": generation_payload["generation_digest"], "archived_finalization_path": archive_path, "archived_finalization_sha256": archived_sha256, "finalization_path": self._replay_finalization_path(), "finalization_sha256": finalization_sha256, "repair_id": repair_id, "previous_repair_digest": previous_repair_digest, "repair_chain_path": self._replay_repair_chain_path(), "receipt_path": self._replay_repair_receipt_path()}
+        repair_payload["repair_event_digest"] = request_fingerprint({key: value for key, value in repair_payload.items() if key not in {"repair_event_digest", "repair_digest"}})
         repair_payload["repair_digest"] = request_fingerprint({key: value for key, value in repair_payload.items() if key != "repair_digest"})
         repair_snapshot = {"payload": repair_payload, "signature": _snapshot_signature(repair_payload, self.receipt_store.signing_key)}
+        self._append_replay_repair_chain(repair_payload, repair_snapshot["signature"])
         _atomic_write_json(self._replay_repair_receipt_path(), repair_snapshot)
-        self._make_readonly((self._replay_repair_receipt_path(),))
+        self._make_readonly((self._replay_repair_receipt_path(), self._replay_repair_chain_path()))
         return {"status": "passed", "repaired": True, "archived_partial_finalization": archive_path, "finalization": self.verify_replay_evidence_finalization(), "repair_receipt": repair_snapshot}
 
     def verify_replay_evidence_repair_receipt(self) -> Mapping[str, Any]:
@@ -694,7 +758,7 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_repair_receipt_schema_invalid")
         if payload.get("schema_version") != "noesis.recovery-replay-finalization-repair.v1" or payload.get("status") != "passed":
             raise ExecutionRecoveryError("recovery_replay_repair_receipt_status_invalid")
-        if payload.get("event_path") != str(self.events.path) or payload.get("receipt_path") != self._replay_repair_receipt_path() or payload.get("finalization_path") != self._replay_finalization_path():
+        if payload.get("event_path") != str(self.events.path) or payload.get("receipt_path") != self._replay_repair_receipt_path() or payload.get("repair_chain_path") != self._replay_repair_chain_path() or payload.get("finalization_path") != self._replay_finalization_path():
             raise ExecutionRecoveryError("recovery_replay_repair_receipt_path_mismatch")
         generation = self.verify_replay_generation_receipt()["payload"]
         if payload.get("generation_id") != generation["generation_id"] or payload.get("generation_digest") != generation["generation_digest"]:
@@ -711,8 +775,11 @@ class ExecutionRecoveryExecutor:
         finalization = self._replay_finalization_path()
         if payload.get("finalization_sha256") != self._sha256_file(finalization):
             raise ExecutionRecoveryError("recovery_replay_repair_receipt_finalization_drift")
+        entries = self._read_replay_repair_chain()
+        if not entries or entries[-1] != dict(payload) or not self._is_readonly(self._replay_repair_receipt_path()) or not self._is_readonly(self._replay_repair_chain_path()):
+            raise ExecutionRecoveryError("recovery_replay_repair_receipt_chain_mismatch")
         expected_digest = request_fingerprint({key: value for key, value in payload.items() if key != "repair_digest"})
-        if payload.get("repair_digest") != expected_digest or not self._is_readonly(self._replay_repair_receipt_path()):
+        if payload.get("repair_digest") != expected_digest:
             raise ExecutionRecoveryError("recovery_replay_repair_receipt_integrity_invalid")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
@@ -888,11 +955,11 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
-        sidecar_candidates = {name for name in os.listdir(parent) if name.startswith(sidecar_prefix) and name.endswith(".json")}
+        sidecar_candidates = {name for name in os.listdir(parent) if name.startswith(sidecar_prefix) and (name.endswith(".json") or name.endswith(".jsonl"))}
         expected_sidecar_names = {os.path.basename(path) for path in expected_sidecar_paths}
         if sidecar_candidates - expected_sidecar_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_sidecar")

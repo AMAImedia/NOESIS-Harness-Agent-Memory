@@ -1955,3 +1955,16 @@ Focused repair result: `73/73` execution-recovery tests passed with Python 3.14.
 | CHILD-265 | Native/external repair provenance | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external operator receipt lanes не запускались. |
 
 Focused repair-provenance result: `75/75` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 monotonic repair-chain checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-266 | Append-only repair chain | `DONE / BOUNDED LOCAL` | Signed JSONL chain с canonical path и strict sidecar discovery. |
+| CHILD-267 | Monotonic repair IDs | `DONE / BOUNDED LOCAL` | `repair_id` начинается с 1, увеличивается без пропусков и связывается с previous repair digest. |
+| CHILD-268 | Repair chain rotation | `DONE / BOUNDED LOCAL` | Prior active repair receipt архивируется перед следующим repair; history сохраняется. |
+| CHILD-269 | Reorder/fork denial | `DONE / BOUNDED LOCAL` | Reordered records и digest fork fail-closed до finalization acceptance. |
+| CHILD-270 | Native/external repair chain | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external operator repair-chain lanes не запускались. |
+
+Focused repair-chain result: `76/76` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
