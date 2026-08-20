@@ -656,8 +656,22 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_signature_invalid")
+        if payload.get("schema_version") != "noesis.recovery-replay-evidence-completeness-snapshot.v1":
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_schema_invalid")
+        if payload.get("status") != "passed":
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_status_invalid")
         if payload.get("completeness_path") != self._replay_completeness_snapshot_path():
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_path_mismatch")
+        records = payload.get("records")
+        if not isinstance(records, list) or any(not isinstance(record, Mapping) for record in records):
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_records_invalid")
+        count_fields = ("event_count", "manifest_count", "catalog_count")
+        if any(not isinstance(payload.get(field), int) or isinstance(payload.get(field), bool) or payload.get(field) < 0 for field in count_fields):
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_counts_invalid")
+        if payload.get("manifest_count") != len(records) or len({str(record.get("action_id", "")) for record in records}) != len(records):
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_counts_mismatch")
+        if not isinstance(payload.get("completeness_digest"), str) or not payload.get("completeness_digest"):
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_digest_invalid")
         current = self.audit_replay_evidence_completeness()
         for key, value in current.items():
             if key == "schema_version":

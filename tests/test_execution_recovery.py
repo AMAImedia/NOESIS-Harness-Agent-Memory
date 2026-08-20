@@ -284,6 +284,49 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_drift"):
             executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
 
+    def test_completeness_snapshot_rejects_schema_status_and_count_shape(self):
+        event_path = str(Path(self.tmp.name) / "completeness-schema-shape-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        original = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        for field, value, reason in (("schema_version", "noesis.invalid.v1", "recovery_replay_completeness_snapshot_schema_invalid"), ("status", "not_run", "recovery_replay_completeness_snapshot_status_invalid"), ("manifest_count", True, "recovery_replay_completeness_snapshot_counts_invalid")):
+            snapshot = json.loads(json.dumps(original))
+            snapshot["payload"][field] = value
+            snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+            snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ExecutionRecoveryError, reason):
+                executor.verify_replay_evidence_completeness_snapshot()
+
+    def test_completeness_snapshot_rejects_invalid_records_and_duplicate_action_ids(self):
+        event_path = str(Path(self.tmp.name) / "completeness-record-shape-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        original = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        invalid_records = json.loads(json.dumps(original))
+        invalid_records["payload"]["records"] = {"action_id": "action-1"}
+        invalid_records["signature"] = _snapshot_signature(invalid_records["payload"], self.key)
+        snapshot_path.write_text(json.dumps(invalid_records, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_records_invalid"):
+            executor.verify_replay_evidence_completeness_snapshot()
+        duplicate_records = json.loads(json.dumps(original))
+        duplicate_records["payload"]["records"] = duplicate_records["payload"]["records"] * 2
+        duplicate_records["payload"]["manifest_count"] = 2
+        duplicate_records["signature"] = _snapshot_signature(duplicate_records["payload"], self.key)
+        snapshot_path.write_text(json.dumps(duplicate_records, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_counts_mismatch"):
+            executor.verify_replay_evidence_completeness_snapshot()
+
+    def test_completeness_snapshot_rejects_duplicate_json_keys(self):
+        event_path = str(Path(self.tmp.name) / "completeness-duplicate-keys-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        snapshot_path.write_text('{"payload": {"schema_version": "x", "schema_version": "y"}, "signature": "x"}\n', encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_duplicate_record"):
+            executor.verify_replay_evidence_completeness_snapshot()
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

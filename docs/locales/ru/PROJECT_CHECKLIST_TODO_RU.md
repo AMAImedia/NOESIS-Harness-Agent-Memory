@@ -1652,3 +1652,15 @@ Focused catalog-binding result: `69/69` assurance, recovery, child-runtime и ex
 | CHILD-154 | Native/external completeness snapshot | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness durable completeness snapshot binding не проверялись. |
 
 Focused completeness-binding result: `40/40` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression result: `734/734` passed in `53.118 s`; documentation, security и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 completeness snapshot schema-validation checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-155 | Snapshot schema/status validation | `DONE / BOUNDED LOCAL` | Verifier требует exact snapshot schema `noesis.recovery-replay-evidence-completeness-snapshot.v1` и `status=passed` до digest comparison. |
+| CHILD-156 | Count and record-shape validation | `DONE / BOUNDED LOCAL` | Event/manifest/catalog counts должны быть non-negative integers; records — list of mappings с unique action IDs и согласованным manifest count. |
+| CHILD-157 | Malformed and duplicate-key denial | `DONE / BOUNDED LOCAL` | Malformed records, duplicate action IDs и duplicate JSON keys fail-closed с explicit deterministic reasons. |
+| CHILD-158 | Native/external schema validation | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completeness snapshot schema validation не проверялись. |
+
+Focused schema-validation result: `43/43` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
