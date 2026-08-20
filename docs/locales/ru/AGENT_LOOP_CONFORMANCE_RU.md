@@ -25,5 +25,5 @@ Constructor отклоняет неположительный или нецел�
  Loop может сохранять memory только после получения action result; promotion остаётся под human approval и отдельными evidence contracts.
  Это local control-plane loop, а не доказательство autonomous external Hermes execution или self-learning без approval.
 
-Каждый early stop после acquire освобождает lease, включая context-pack failure, pack exception, loop-guard rejection, guard exception, action exception, judge exception, memory write exception, budget exception и lease renewal exception.
+LoopGuard отклоняет invalid non-positive bounds до execution и canonicalizes mapping actions перед fingerprinting, поэтому key order не меняет repeat detection. Каждый early stop после acquire освобождает lease, включая context-pack failure, pack exception, loop-guard rejection, guard exception, action exception, judge exception, memory write exception, budget exception и lease renewal exception.
  Turn timestamps используют injectable clock, поэтому evidence tests остаются deterministic. Текущие conformance tests покрывают bounded turns, lease-miss action suppression, loop-guard stop, cleanup при failures, exception containment, deterministic timestamps и judge-gated completion. External provider lanes остаются disabled, пока operator не предоставит pinned environments и signed receipts.
