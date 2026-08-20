@@ -1738,3 +1738,16 @@ Focused manifest-corruption result: `51/51` execution-recovery tests passed with
 | CHILD-184 | Native/external catalog recovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness global catalog corruption/repair не проверялись. |
 
 Focused catalog-corruption result: `52/52` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 catalog-record cross-binding checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-185 | Per-action record digest binding | `DONE / BOUNDED LOCAL` | Commit manifest каждого action связывает exact `catalog_record_digest` immutable catalog record. |
+| CHILD-186 | Signed substitution denial | `DONE / BOUNDED LOCAL` | Validly signed manifest с digest record другого action отклоняется как `recovery_replay_completeness_catalog_record_mismatch`. |
+| CHILD-187 | Cross-binding restoration | `DONE / BOUNDED LOCAL` | После trusted restoration original manifest digest binding снова принимает обе action. |
+| CHILD-188 | Deterministic repaired manifest | `DONE / BOUNDED LOCAL` | Repeated repaired manifest persistence byte-identical; final commit-manifest verification проходит. |
+| CHILD-189 | Native/external record binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness per-action catalog binding не проверялись. |
+
+Focused catalog-record binding result: `53/53` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
