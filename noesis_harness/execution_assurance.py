@@ -272,6 +272,18 @@ class ExecutionReceiptStore:
             raise AssuranceError("stored_receipt_tampered")
         return receipt
 
+    def audit_chain(self, receipt_ids: tuple[str, ...]) -> Mapping[str, Any]:
+        """Load an ordered receipt chain from durable storage and verify it."""
+        if not isinstance(receipt_ids, tuple) or not receipt_ids:
+            raise AssuranceError("receipt_chain_required")
+        receipts = []
+        for receipt_id in receipt_ids:
+            receipt = self.get(str(receipt_id))
+            if receipt is None:
+                raise AssuranceError("receipt_chain_missing")
+            receipts.append(receipt)
+        return validate_receipt_chain(tuple(receipts), self.signing_key)
+
     def audit(self) -> Mapping[str, Any]:
         """Verify every stored receipt and return a deterministic integrity snapshot."""
         with self._connection() as conn:

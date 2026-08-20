@@ -1352,3 +1352,15 @@ Focused receipt lifecycle result: `33/33` assurance, recovery, child-runtime и 
 | CHILD-30 | Native/external receipt chains | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt histories не проверялись. |
 
 Focused receipt-chain result: `34/34` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 durable receipt-chain checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-31 | Durable ordered chain reopen | `DONE / BOUNDED LOCAL` | `audit_chain` загружает explicit receipt IDs из SQLite/WAL after reopen и возвращает deterministic chain result. |
+| CHILD-32 | Reopen drift rejection | `DONE / BOUNDED LOCAL` | Reordering IDs и missing stored entries fail-closed; partial passed evidence не выпускается. |
+| CHILD-33 | Append-only persistence | `DONE / BOUNDED LOCAL` | Audit только читает и проверяет receipts; chain gaps не repair-ятся автоматически. |
+| CHILD-34 | Native/external durable chains | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness durable stores не проверялись. |
+
+Focused durable chain result: `35/35` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

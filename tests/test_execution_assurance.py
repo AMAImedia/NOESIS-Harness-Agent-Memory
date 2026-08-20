@@ -56,6 +56,25 @@ class ExecutionAssuranceTests(unittest.TestCase):
             with self.assertRaisesRegex(AssuranceError, "invalid_signed_receipt"):
                 reopened.put(create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True))
 
+    def test_durable_receipt_chain_reopens_and_rejects_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"durable-chain-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            prepared = create_receipt(request={"tool": "durable-chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+            committed = create_receipt(request={"tool": "durable-chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            rolled_back = create_receipt(request={"tool": "durable-chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:b", outcome="rolled_back", rollback_available=False, signing_key=key)
+            for receipt in (prepared, committed, rolled_back):
+                store.put(receipt)
+            reopened = ExecutionReceiptStore(path, signing_key=key)
+            chain = reopened.audit_chain((prepared.receipt_id, committed.receipt_id, rolled_back.receipt_id))
+            self.assertEqual(chain["status"], "passed")
+            self.assertEqual(chain["count"], 3)
+            with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+                reopened.audit_chain((rolled_back.receipt_id, committed.receipt_id, prepared.receipt_id))
+            with self.assertRaisesRegex(AssuranceError, "receipt_chain_missing"):
+                reopened.audit_chain((prepared.receipt_id, "receipt:missing"))
+
     def test_receipt_chain_detects_gaps_reorder_forks_and_tampering(self):
         key = b"receipt-chain-signing-key"
         prepared = create_receipt(request={"tool": "chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
