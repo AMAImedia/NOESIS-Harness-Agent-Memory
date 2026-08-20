@@ -17,10 +17,12 @@
 | Guard exception | `guard_error` | Dependency failure is bounded to a result and the lease is released. |
 | Malformed guard response | `guard_shape_error` | Invalid guard response is rejected and the lease is released. |
 | Malformed action result | `result_shape_error` | Non-mapping output is rejected before judge or writeback. |
+| Non-boolean action decision | `result_boolean_error` | Truthy strings cannot bypass the done boundary. |
 | Judge failure | `judge_fail` | Failed output is not promoted as successful work. |
 | Action exception | `act_error` | The exception is bounded to a result and the lease is released. |
 | Judge exception | `judge_error` | The exception is bounded to a result and the lease is released. |
 | Malformed judge result | `judge_shape_error` | Non-mapping verdict is rejected and the lease is released. |
+| Non-boolean judge decision | `judge_boolean_error` | Truthy strings cannot bypass the approval boundary. |
 | Memory write exception | `memory_error` | Failed writeback is bounded to a result and the lease is released. |
 | Budget exception | `budget_error` | Budget failures are bounded to a result and the lease is released. |
 | Malformed budget response | `budget_shape_error` | Invalid budget response is rejected and the lease is released. |

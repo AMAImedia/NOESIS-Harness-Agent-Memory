@@ -104,6 +104,11 @@ class _JudgeFail:
         return {"pass": False}
 
 
+class _JudgeStringPass:
+    def judge(self, outputs):
+        return {"pass": "true"}
+
+
 class _MemoryError(_Memory):
     def save(self, value, kind, confidence):
         raise OSError("memory failure")
@@ -225,6 +230,18 @@ class AgentLoopTests(unittest.TestCase):
         result = self.make_loop(guard=_Guard(ok=False)).run("task", "query", lambda context: calls.append(context) or {"done": True})
         self.assertEqual(result["status"], "loop")
         self.assertEqual(calls, [])
+
+    def test_string_done_is_rejected(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases).run("task", "query", lambda context: {"done": "true"})
+        self.assertEqual(result["status"], "result_boolean_error")
+        self.assertEqual(leases.released, 1)
+
+    def test_string_judge_pass_is_rejected(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, judge=_JudgeStringPass()).run("task", "query", lambda context: {"output": "candidate"})
+        self.assertEqual(result["status"], "judge_boolean_error")
+        self.assertEqual(leases.released, 1)
 
     def test_failed_judge_does_not_write_memory(self):
         leases = _Leases()

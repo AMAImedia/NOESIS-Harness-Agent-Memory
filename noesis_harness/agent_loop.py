@@ -115,6 +115,10 @@ class AgentLoop:
                 self.leases.release(task_key, self.agent_id)
                 self._log("result_shape_error", {"task": task_key, "turn": n})
                 return {"status": "result_shape_error", "turns": turns, "outputs": outputs}
+            if "done" in result and not isinstance(result.get("done"), bool):
+                self.leases.release(task_key, self.agent_id)
+                self._log("result_boolean_error", {"task": task_key, "turn": n, "field": "done"})
+                return {"status": "result_boolean_error", "turns": turns, "outputs": outputs}
             out = str(result.get("output") or "")
             outputs.append(out)
             try:
@@ -127,6 +131,10 @@ class AgentLoop:
                 self.leases.release(task_key, self.agent_id)
                 self._log("judge_shape_error", {"task": task_key, "turn": n})
                 return {"status": "judge_shape_error", "turns": turns, "outputs": outputs}
+            if "pass" in verdict and not isinstance(verdict.get("pass"), bool):
+                self.leases.release(task_key, self.agent_id)
+                self._log("judge_boolean_error", {"task": task_key, "turn": n, "field": "pass"})
+                return {"status": "judge_boolean_error", "turns": turns, "outputs": outputs}
             try:
                 timestamp = self.clock()
             except Exception as exc:

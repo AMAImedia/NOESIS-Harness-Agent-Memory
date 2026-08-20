@@ -17,10 +17,12 @@
 | Guard exception | `guard_error` | Dependency failure ограничивается result, lease освобождается. |
 | Malformed guard response | `guard_shape_error` | Invalid guard response отклоняется, lease освобождается. |
 | Malformed action result | `result_shape_error` | Non-mapping output отклоняется до judge или writeback. |
+| Non-boolean action decision | `result_boolean_error` | Truthy strings не могут обойти done boundary. |
 | Judge failure | `judge_fail` | Failed output не считается успешной работой. |
 | Action exception | `act_error` | Exception ограничивается result, lease освобождается. |
 | Judge exception | `judge_error` | Exception ограничивается result, lease освобождается. |
 | Malformed judge result | `judge_shape_error` | Non-mapping verdict отклоняется, lease освобождается. |
+| Non-boolean judge decision | `judge_boolean_error` | Truthy strings не могут обойти approval boundary. |
 | Memory write exception | `memory_error` | Failed writeback ограничивается result, lease освобождается. |
 | Budget exception | `budget_error` | Budget failure ограничивается result, lease освобождается. |
 | Malformed budget response | `budget_shape_error` | Invalid budget response отклоняется, lease освобождается. |
