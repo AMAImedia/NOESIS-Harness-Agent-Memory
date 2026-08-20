@@ -138,6 +138,13 @@ class AgentLoopTests(unittest.TestCase):
     def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None, memory=None, budget=None):
         return AgentLoop("agent", memory or _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock, budget=budget)
 
+    def test_invalid_action_is_rejected_before_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases).run("task", "query", None)
+        self.assertEqual(result["status"], "act_invalid")
+        self.assertEqual(leases.acquired, 0)
+        self.assertEqual(leases.released, 0)
+
     def test_lease_exception_is_bounded(self):
         result = self.make_loop(leases=_AcquireErrorLeases()).run("task", "query", lambda context: {"done": True})
         self.assertEqual(result["status"], "lease_error")

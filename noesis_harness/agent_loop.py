@@ -43,6 +43,8 @@ class AgentLoop:
 
     def run(self, task_key, query, act):
         """act(ctx) -> {done, output, memory?}  Never called without a lease."""
+        if not callable(act):
+            return {"status": "act_invalid", "turns": [], "outputs": []}
         outputs = []
         turns = []
         for n in range(1, self.max_turns + 1):

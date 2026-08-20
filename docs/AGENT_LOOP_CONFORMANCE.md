@@ -6,6 +6,7 @@
 |---|---|---|
 | Passing action reports `done` | `done` | Lease is released after validated completion. |
 | Maximum turn count reached | `max_turns` | The loop is bounded and cannot run indefinitely. |
+| Invalid action callback | `act_invalid` | Preflight rejects non-callable action before lease acquisition. |
 | Lease unavailable | `blocked` | No action callback is invoked without ownership. |
 | Lease acquire exception | `lease_error` | Ownership dependency failure is bounded before action. |
 | Malformed lease response | `lease_shape_error` | Invalid ownership response stops before action. |

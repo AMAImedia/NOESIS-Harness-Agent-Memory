@@ -6,6 +6,7 @@
 |---|---|---|
 | Passing action сообщает `done` | `done` | Lease освобождается после validated completion. |
 | Достигнут maximum turn count | `max_turns` | Loop bounded и не может выполняться бесконечно. |
+| Invalid action callback | `act_invalid` | Preflight отклоняет non-callable action до lease acquisition. |
 | Lease недоступен | `blocked` | Action callback не вызывается без ownership. |
 | Lease acquire exception | `lease_error` | Ownership dependency failure ограничивается до action. |
 | Malformed lease response | `lease_shape_error` | Invalid ownership response останавливает цикл до action. |
