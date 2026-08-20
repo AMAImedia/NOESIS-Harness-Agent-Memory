@@ -582,6 +582,18 @@ class ExecutionRecoveryExecutor:
                     raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
                 if not os.path.isfile(expected_path) and field != "completeness_snapshot_path":
                     raise ExecutionRecoveryError("recovery_replay_completeness_bundle_path_missing")
+                if field != "event_path" and os.path.isfile(expected_path):
+                    try:
+                        with open(expected_path, "r", encoding="utf-8") as handle:
+                            sidecar = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+                        sidecar_payload = sidecar["payload"]
+                        sidecar_signature = str(sidecar["signature"])
+                    except _DuplicateJSONKeyError as exc:
+                        raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_duplicate_record") from exc
+                    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                        raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_corrupt") from exc
+                    if not isinstance(sidecar_payload, Mapping) or not hmac.compare_digest(sidecar_signature, _snapshot_signature(sidecar_payload, self.receipt_store.signing_key)):
+                        raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_signature_invalid")
             event_payload = expected.get(action_id)
             if event_payload is None or payload.get("action_digest") != event_payload.get("action_digest") or payload.get("completion_receipt_id") != event_payload.get("completion_receipt_id"):
                 raise ExecutionRecoveryError("recovery_replay_completeness_identity_conflict")

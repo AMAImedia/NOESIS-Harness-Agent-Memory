@@ -1615,3 +1615,11 @@ Focused startup completeness result: `65/65` assurance, recovery, child-runtime 
 | CHILD-136 | Bootstrap exception | `DONE / BOUNDED LOCAL` | Только собственный completeness snapshot может отсутствовать до его first atomic bootstrap write. |
 | CHILD-137 | Native/external path completeness | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness partial-bundle path audits не проверялись. |
 Focused partial-bundle result: `66/66` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 startup sidecar signature checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-138 | Sidecar signature verification | `DONE / BOUNDED LOCAL` | Startup completeness audit проверяет signatures для referenced status/replay/inventory/catalog/completeness sidecars. |
+| CHILD-139 | Sidecar duplicate-key denial | `DONE / BOUNDED LOCAL` | Duplicate JSON keys в referenced sidecar fail-closed с `recovery_replay_completeness_sidecar_duplicate_record`. |
+| CHILD-140 | Sidecar corruption denial | `DONE / BOUNDED LOCAL` | Corrupt или invalid signature блокируют completeness claim до count parity. |
+| CHILD-141 | Native/external sidecar integrity | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness sidecar integrity не проверялись. |
+Focused sidecar-integrity result: `67/67` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
