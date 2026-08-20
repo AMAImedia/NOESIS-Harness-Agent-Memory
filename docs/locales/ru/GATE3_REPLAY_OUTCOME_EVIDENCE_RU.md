@@ -24,4 +24,6 @@ Replay и inventory sidecars являются action-scoped и использу�
 
 После проверки catalog executor атомарно сохраняет signed global sidecar `noesis.recovery-replay-evidence-catalog-snapshot.v1`. Exact replay проверяет durable aggregate snapshot против current catalog. Missing, corrupt, path-mismatched, tampered или drifted catalog snapshot блокирует replay и никогда не создаётся молча заново во время replay.
 
+Последней записью является signed `noesis.recovery-replay-evidence-commit-manifest.v1` для каждой action. Он связывает action, committed completion receipt, action-scoped status/replay/inventory snapshots, global catalog snapshot и их digests. Exact replay проверяет этот manifest последним: partial evidence bundle не может стать `replayed`; missing, corrupt, path-mismatched, tampered или drifted manifest fail-closed без repair.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).

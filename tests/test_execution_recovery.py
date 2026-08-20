@@ -61,6 +61,9 @@ class ExecutionRecoveryTests(unittest.TestCase):
         catalog_snapshot = executor.verify_replay_evidence_catalog_snapshot()
         self.assertEqual(catalog_snapshot["payload"]["schema_version"], "noesis.recovery-replay-evidence-catalog-snapshot.v1")
         self.assertEqual(replay["replay_catalog_snapshot"]["status"], "passed")
+        commit_manifest = executor.verify_replay_evidence_commit_manifest(self.action)
+        self.assertEqual(commit_manifest["payload"]["schema_version"], "noesis.recovery-replay-evidence-commit-manifest.v1")
+        self.assertEqual(replay["replay_commit_manifest"]["status"], "passed")
         self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 1)
         inventory_one = executor.audit_replay_snapshot_inventory(self.action)
         inventory_two = executor.audit_replay_snapshot_inventory(self.action)
@@ -89,6 +92,8 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(replay_two["status"], "replayed")
         self.assertEqual(replay_two["replay_catalog"]["count"], 2)
         self.assertEqual(replay_two["replay_catalog_snapshot"]["payload"]["count"], 2)
+        self.assertEqual(replay_two["replay_commit_manifest"]["status"], "passed")
+        self.assertEqual(executor.verify_replay_evidence_commit_manifest(action_two)["status"], "passed")
         self.assertEqual(executor.verify_replay_evidence_catalog_snapshot()["status"], "passed")
         self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 2)
         audited = executor.audit_completion_events()
@@ -227,6 +232,38 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_identity_conflict"):
             executor.audit_replay_snapshot_inventory(self.action)
+
+    def test_replay_commit_manifest_missing_blocks_exact_replay(self):
+        event_path = str(Path(self.tmp.name) / "missing-commit-manifest-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(executor._replay_commit_manifest_path(self.action.action_id)).unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_missing"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_commit_manifest_rejects_signed_path_mismatch(self):
+        event_path = str(Path(self.tmp.name) / "commit-manifest-path-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_commit_manifest_path(self.action.action_id))
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["catalog_snapshot_path"] = str(Path(self.tmp.name) / "other-catalog.json")
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_path_mismatch"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_commit_manifest_rejects_signed_drift(self):
+        event_path = str(Path(self.tmp.name) / "commit-manifest-drift-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_commit_manifest_path(self.action.action_id))
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["catalog_record_digest"] = "sha256:drift"
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_drift"):
+            executor.verify_replay_evidence_commit_manifest(self.action)
 
     def test_replay_catalog_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-catalog-snapshot-events.jsonl")

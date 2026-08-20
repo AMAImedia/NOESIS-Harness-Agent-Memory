@@ -24,6 +24,8 @@ Replay and inventory sidecars are action-scoped and use a deterministic digest o
 
 After catalog verification, the executor atomically persists a signed global `noesis.recovery-replay-evidence-catalog-snapshot.v1` sidecar. Exact replay verifies this durable aggregate snapshot against the current catalog. Missing, corrupt, path-mismatched, tampered, or drifted catalog snapshots block replay and are never silently recreated during replay.
 
+The final write is a signed `noesis.recovery-replay-evidence-commit-manifest.v1` for each action. It binds the action, committed completion receipt, action-scoped status/replay/inventory snapshots, the global catalog snapshot, and their digests. Exact replay verifies this manifest last, so a partial evidence bundle cannot be promoted to `replayed`; missing, corrupt, path-mismatched, tampered, or drifted manifests fail closed without repair.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

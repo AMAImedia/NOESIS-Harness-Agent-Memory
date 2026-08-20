@@ -464,6 +464,58 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def _replay_commit_manifest_path(self, action_id: str) -> str:
+        action_key = request_fingerprint({"action_id": str(action_id)}).replace(":", "_")
+        return str(self.events.path) + ".replay-commit." + action_key + ".json"
+
+    def persist_replay_evidence_commit_manifest(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
+        """Persist the final signed marker for a complete replay evidence bundle."""
+        replay_evidence = self.audit_replay_outcome(action)
+        status_snapshot = self.verify_recovery_evidence_status_snapshot(action.action_id)
+        replay_snapshot = self.verify_replay_outcome_snapshot(action)
+        inventory_snapshot = self.verify_replay_snapshot_inventory_snapshot(action)
+        catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
+        catalog_record = next((record for record in catalog_snapshot["payload"].get("records", ()) if str(record.get("action_id", "")) == action.action_id), None)
+        if catalog_record is None:
+            raise ExecutionRecoveryError("recovery_replay_commit_manifest_catalog_record_missing")
+        payload = {"schema_version": "noesis.recovery-replay-evidence-commit-manifest.v1", "action_id": action.action_id, "action_digest": replay_evidence["action_digest"], "completion_receipt_id": replay_evidence["completion_receipt_id"], "event_path": str(self.events.path), "status_snapshot_path": self._status_snapshot_path(action.action_id), "replay_snapshot_path": self._replay_snapshot_path(action.action_id), "inventory_snapshot_path": self._replay_inventory_snapshot_path(action.action_id), "catalog_snapshot_path": self._replay_catalog_snapshot_path(), "status_snapshot_digest": request_fingerprint(status_snapshot["payload"]), "replay_snapshot_digest": request_fingerprint(replay_snapshot["payload"]), "inventory_snapshot_digest": request_fingerprint(inventory_snapshot["payload"]), "catalog_record_digest": request_fingerprint(catalog_record)}
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_commit_manifest_path(action.action_id), snapshot)
+        return snapshot
+
+    def verify_replay_evidence_commit_manifest(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
+        """Verify the signed last-write marker and every evidence bundle member."""
+        try:
+            with open(self._replay_commit_manifest_path(action.action_id), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_commit_manifest_duplicate_record") from exc
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_replay_commit_manifest_missing") from exc
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_replay_commit_manifest_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_replay_commit_manifest_signature_invalid")
+        expected_paths = {"event_path": str(self.events.path), "status_snapshot_path": self._status_snapshot_path(action.action_id), "replay_snapshot_path": self._replay_snapshot_path(action.action_id), "inventory_snapshot_path": self._replay_inventory_snapshot_path(action.action_id), "catalog_snapshot_path": self._replay_catalog_snapshot_path()}
+        for key, value in expected_paths.items():
+            if payload.get(key) != value:
+                raise ExecutionRecoveryError("recovery_replay_commit_manifest_path_mismatch")
+        replay_evidence = self.audit_replay_outcome(action)
+        status_snapshot = self.verify_recovery_evidence_status_snapshot(action.action_id)
+        replay_snapshot = self.verify_replay_outcome_snapshot(action)
+        inventory_snapshot = self.verify_replay_snapshot_inventory_snapshot(action)
+        catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
+        catalog_record = next((record for record in catalog_snapshot["payload"].get("records", ()) if str(record.get("action_id", "")) == action.action_id), None)
+        if catalog_record is None:
+            raise ExecutionRecoveryError("recovery_replay_commit_manifest_catalog_record_missing")
+        expected = {"action_id": action.action_id, "action_digest": replay_evidence["action_digest"], "completion_receipt_id": replay_evidence["completion_receipt_id"], "status_snapshot_digest": request_fingerprint(status_snapshot["payload"]), "replay_snapshot_digest": request_fingerprint(replay_snapshot["payload"]), "inventory_snapshot_digest": request_fingerprint(inventory_snapshot["payload"]), "catalog_record_digest": request_fingerprint(catalog_record)}
+        for key, value in expected.items():
+            if payload.get(key) != value:
+                raise ExecutionRecoveryError("recovery_replay_commit_manifest_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -476,7 +528,8 @@ class ExecutionRecoveryExecutor:
             replay_inventory_snapshot = self.verify_replay_snapshot_inventory_snapshot(action)
             replay_catalog = self.audit_replay_evidence_catalog()
             replay_catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
-            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot}
+            replay_commit_manifest = self.verify_replay_evidence_commit_manifest(action)
+            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None
@@ -530,6 +583,7 @@ class ExecutionRecoveryExecutor:
         self.persist_replay_outcome_snapshot(action)
         self.persist_replay_snapshot_inventory(action)
         self.persist_replay_evidence_catalog()
+        self.persist_replay_evidence_commit_manifest(action)
         return payload
 
 
