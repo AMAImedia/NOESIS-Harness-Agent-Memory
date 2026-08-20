@@ -1575,3 +1575,11 @@ Focused durable completeness result: `62/62` assurance, recovery, child-runtime 
 | CHILD-116 | Final write ordering | `DONE / BOUNDED LOCAL` | Exact replay требует final manifest после current completeness snapshot verification. |
 | CHILD-117 | Native/external finality | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness finality transitions не проверялись. |
 Focused finality result: `62/62` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 mandatory completion-chain replay checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-118 | Exact chain snapshot gate | `DONE / BOUNDED LOCAL` | Exact replay сначала проверяет signed `noesis.recovery-event-chain-snapshot.v1` против append-only completion events. |
+| CHILD-119 | Direct denial ordering | `DONE / BOUNDED LOCAL` | Missing/drifted chain snapshot выдаёт direct `recovery_event_snapshot_*` denial до status projection checks. |
+| CHILD-120 | Duplicate chain snapshot records | `DONE / BOUNDED LOCAL` | Duplicate JSON keys в completion-chain snapshot fail-closed. |
+| CHILD-121 | Native/external chain replay | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completion-chain replay не проверялись. |
+Focused chain replay result: `64/64` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

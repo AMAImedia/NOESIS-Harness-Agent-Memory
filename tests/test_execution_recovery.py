@@ -48,6 +48,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(status_snapshot["status"], "passed")
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
+        self.assertEqual(replay["recovery_evidence"]["snapshot"]["status"], "passed")
         self.assertEqual(replay["replay_evidence"]["schema_version"], "noesis.recovery-replay-evidence.v1")
         self.assertTrue(replay["replay_evidence"]["claim"])
         audited = executor.audit_replay_outcome(self.action)
@@ -155,7 +156,27 @@ class ExecutionRecoveryTests(unittest.TestCase):
         Path(event_path + ".snapshot.json").unlink()
         with self.assertRaisesRegex(ExecutionRecoveryError, "status_snapshot_drift"):
             executor.verify_recovery_evidence_status_snapshot()
-        with self.assertRaisesRegex(ExecutionRecoveryError, "status_snapshot_drift"):
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_event_snapshot_missing"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_requires_completion_event_snapshot(self):
+        event_path = str(Path(self.tmp.name) / "replay-event-snapshot-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(executor._completion_snapshot_path()).unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_event_snapshot_missing"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_rejects_completion_event_snapshot_drift(self):
+        event_path = str(Path(self.tmp.name) / "replay-event-snapshot-drift-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._completion_snapshot_path())
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["chain_digest"] = "sha256:drift"
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_event_snapshot_drift"):
             executor.handle(self.action, self.context)
 
     def test_replay_requires_status_snapshot(self):

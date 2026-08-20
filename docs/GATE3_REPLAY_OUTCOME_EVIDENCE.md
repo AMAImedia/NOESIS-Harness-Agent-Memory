@@ -30,6 +30,8 @@ The final write is a signed `noesis.recovery-replay-evidence-commit-manifest.v1`
 
 The completeness projection is also persisted as signed `noesis.recovery-replay-evidence-completeness-snapshot.v1`. Exact replay verifies this durable claim against the current bundle after the commit manifest gate. Missing, corrupt, path-mismatched, tampered, or drifted completeness snapshots fail closed and are never silently recreated during replay.
 
+Before any replay evidence is promoted to `replayed`, the executor verifies the signed `noesis.recovery-event-chain-snapshot.v1` against the append-only completion event log. This check precedes action-scoped status verification so missing or drifted chain evidence reports the chain denial directly. Duplicate JSON keys in the chain snapshot are rejected.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

@@ -181,7 +181,7 @@ class ExecutionRecoveryExecutor:
         path = self._completion_snapshot_path()
         try:
             with open(path, "r", encoding="utf-8") as handle:
-                snapshot = json.load(handle)
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
             payload = snapshot["payload"]
             signature = str(snapshot["signature"])
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
@@ -622,6 +622,7 @@ class ExecutionRecoveryExecutor:
         existing = self._existing(action.action_id)
         action_digest = request_fingerprint(action.to_mapping())
         if existing is not None:
+            recovery_evidence = self.verify_recovery_evidence(action.action_id)
             replay_evidence = self.audit_replay_outcome(action)
             if not os.path.exists(self._replay_snapshot_path(action.action_id)):
                 raise ExecutionRecoveryError("recovery_replay_snapshot_missing")
@@ -632,7 +633,7 @@ class ExecutionRecoveryExecutor:
             replay_commit_manifest = self.verify_replay_evidence_commit_manifest(action)
             replay_completeness = self.audit_replay_evidence_completeness()
             replay_completeness_snapshot = self.verify_replay_evidence_completeness_snapshot()
-            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness, "replay_completeness_snapshot": replay_completeness_snapshot}
+            return {"status": "replayed", "result": existing, "recovery_evidence": recovery_evidence, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness, "replay_completeness_snapshot": replay_completeness_snapshot}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None

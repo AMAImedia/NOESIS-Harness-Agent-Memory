@@ -30,4 +30,6 @@ Replay и inventory sidecars являются action-scoped и использу�
 
 Completeness projection также сохраняется как signed `noesis.recovery-replay-evidence-completeness-snapshot.v1`. Exact replay проверяет durable claim против current bundle после commit manifest gate. Missing, corrupt, path-mismatched, tampered или drifted completeness snapshot fail-closed и никогда не создаётся молча заново во время replay.
 
+До promotion любого replay evidence в `replayed` executor проверяет signed `noesis.recovery-event-chain-snapshot.v1` против append-only completion event log. Эта проверка выполняется до action-scoped status verification, поэтому missing или drifted chain evidence сообщает direct chain denial. Duplicate JSON keys в chain snapshot отклоняются.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).
