@@ -12,6 +12,8 @@ This is the normative contract for the machine-readable evidence returned by an 
 
 `audit_replay_outcome()` is read-only. It never creates a receipt, repairs a snapshot, applies a rollback, or converts unavailable evidence into `not_run`. Missing, stale, corrupt, or mismatched evidence fails closed. Exact replay is idempotent only when this complete evidence set remains unchanged.
 
+After a confirmed recovery completion, the executor atomically persists a signed `noesis.recovery-replay-evidence-snapshot.v1` sidecar. Exact replay must verify this sidecar against the current action, committed receipt, and status snapshot. Missing, tampered, or drifted replay snapshots are rejected before a `replayed` result is returned.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

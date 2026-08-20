@@ -1484,3 +1484,15 @@ Focused replay result: `43/43` assurance, recovery, child-runtime и export test
 | CHILD-74 | Native/external replay evidence | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness replay outcome evidence не проверялись. |
 
 Focused replay outcome result: `43/43` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 durable replay outcome snapshot checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-75 | Durable replay snapshot | `DONE / BOUNDED LOCAL` | После confirmed recovery completion сохраняется signed `noesis.recovery-replay-evidence-snapshot.v1` sidecar через atomic replace. |
+| CHILD-76 | Replay snapshot verification | `DONE / BOUNDED LOCAL` | Exact replay проверяет sidecar против action, committed receipt и status snapshot до возврата `replayed`. |
+| CHILD-77 | Replay snapshot tamper | `DONE / BOUNDED LOCAL` | Missing, signature tamper и evidence drift fail-closed без side effects. |
+| CHILD-78 | Native/external replay snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness replay snapshots не проверялись. |
+
+Focused replay snapshot result: `45/45` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

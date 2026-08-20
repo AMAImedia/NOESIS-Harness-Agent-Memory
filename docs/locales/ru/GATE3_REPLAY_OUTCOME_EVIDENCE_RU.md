@@ -12,4 +12,6 @@
 
 `audit_replay_outcome()` является read-only. Он не создаёт receipt, не repair-ит snapshot, не применяет rollback и не превращает unavailable evidence в `not_run`. Missing, stale, corrupt или mismatched evidence fail-closed. Exact replay idempotent только пока весь evidence set не изменён.
 
+После подтверждённого recovery completion executor атомарно сохраняет signed sidecar `noesis.recovery-replay-evidence-snapshot.v1`. Exact replay обязан проверить этот sidecar против current action, committed receipt и status snapshot. Missing, tampered или drifted replay snapshot отклоняется до возврата результата `replayed`.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).

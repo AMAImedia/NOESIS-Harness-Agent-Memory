@@ -126,6 +126,25 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_status_snapshot_missing"):
             executor.handle(self.action, self.context)
 
+    def test_replay_requires_replay_outcome_snapshot(self):
+        event_path = str(Path(self.tmp.name) / "replay-outcome-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(event_path + ".replay.json").unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_missing"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_outcome_snapshot_rejects_tampering(self):
+        event_path = str(Path(self.tmp.name) / "tampered-replay-outcome-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".replay.json")
+        tampered = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        tampered["payload"]["claim"] = False
+        snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_signature_invalid"):
+            executor.handle(self.action, self.context)
+
     def test_startup_evidence_gate_rejects_missing_snapshot(self):
         event_path = str(Path(self.tmp.name) / "missing-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
