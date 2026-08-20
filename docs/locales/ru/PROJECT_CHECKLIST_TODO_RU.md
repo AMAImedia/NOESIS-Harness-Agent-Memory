@@ -1376,3 +1376,15 @@ Focused durable chain result: `35/35` assurance, recovery, child-runtime и expo
 | CHILD-38 | Native/external snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness snapshot stores не проверялись. |
 
 Focused snapshot result: `36/36` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 snapshot-to-recovery link checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-39 | Snapshot-bound recovery action | `DONE / BOUNDED LOCAL` | Recovery action fingerprint включает `chain_snapshot_id`; target receipt membership проверяется до handler. |
+| CHILD-40 | Stale snapshot rejection | `DONE / BOUNDED LOCAL` | Missing, corrupted и unrelated snapshots fail-closed; silent rebinding запрещён. |
+| CHILD-41 | Completion linkage | `DONE / BOUNDED LOCAL` | Successful recovery event сохраняет snapshot ID и snapshot digest. |
+| CHILD-42 | Native/external recovery linkage | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness recovery snapshots не проверялись. |
+
+Focused snapshot-recovery result: `37/37` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

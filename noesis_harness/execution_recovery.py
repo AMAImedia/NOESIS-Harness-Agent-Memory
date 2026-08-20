@@ -33,6 +33,7 @@ class ExecutionRecoveryAction:
     scope: str = "runtime:recovery"
     schema_version: str = RECOVERY_ACTION_SCHEMA
     artifact_diff_digest: str = ""
+    chain_snapshot_id: str = ""
 
     def __post_init__(self) -> None:
         if self.schema_version != RECOVERY_ACTION_SCHEMA:
@@ -51,10 +52,10 @@ class ExecutionRecoveryAction:
     def from_mapping(cls, value: Mapping[str, Any]) -> "ExecutionRecoveryAction":
         if not isinstance(value, Mapping):
             raise ExecutionRecoveryError("recovery_action_mapping_required")
-        return cls(action_id=str(value.get("action_id", "")), operation=str(value.get("operation", "")), run_id=str(value.get("run_id", "")), receipt_id=str(value.get("receipt_id", "")), proposal_id=str(value.get("proposal_id", "")), workspace_id=str(value.get("workspace_id", "")), current_base_snapshot_id=str(value.get("current_base_snapshot_id", "")), operator_id=str(value.get("operator_id", "")), session_id=str(value.get("session_id", "")), scope=str(value.get("scope", "runtime:recovery")), schema_version=str(value.get("schema_version", RECOVERY_ACTION_SCHEMA)), artifact_diff_digest=str(value.get("artifact_diff_digest", "")))
+        return cls(action_id=str(value.get("action_id", "")), operation=str(value.get("operation", "")), run_id=str(value.get("run_id", "")), receipt_id=str(value.get("receipt_id", "")), proposal_id=str(value.get("proposal_id", "")), workspace_id=str(value.get("workspace_id", "")), current_base_snapshot_id=str(value.get("current_base_snapshot_id", "")), operator_id=str(value.get("operator_id", "")), session_id=str(value.get("session_id", "")), scope=str(value.get("scope", "runtime:recovery")), schema_version=str(value.get("schema_version", RECOVERY_ACTION_SCHEMA)), artifact_diff_digest=str(value.get("artifact_diff_digest", "")), chain_snapshot_id=str(value.get("chain_snapshot_id", "")))
 
     def to_mapping(self) -> dict[str, str]:
-        return {"schema_version": self.schema_version, "action_id": self.action_id, "operation": self.operation, "run_id": self.run_id, "receipt_id": self.receipt_id, "proposal_id": self.proposal_id, "workspace_id": self.workspace_id, "current_base_snapshot_id": self.current_base_snapshot_id, "operator_id": self.operator_id, "session_id": self.session_id, "scope": self.scope, "artifact_diff_digest": self.artifact_diff_digest}
+        return {"schema_version": self.schema_version, "action_id": self.action_id, "operation": self.operation, "run_id": self.run_id, "receipt_id": self.receipt_id, "proposal_id": self.proposal_id, "workspace_id": self.workspace_id, "current_base_snapshot_id": self.current_base_snapshot_id, "operator_id": self.operator_id, "session_id": self.session_id, "scope": self.scope, "artifact_diff_digest": self.artifact_diff_digest, "chain_snapshot_id": self.chain_snapshot_id}
 
 
 class ExecutionRecoveryExecutor:
@@ -97,12 +98,17 @@ class ExecutionRecoveryExecutor:
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None
+        chain_snapshot = None
         if action.operation == "recover":
             if run.get("status") != "running":
                 raise ExecutionRecoveryError("interrupted_run_required")
             if action.receipt_id and run.get("receipt_id") not in {None, "", action.receipt_id}:
                 raise ExecutionRecoveryError("recovery_receipt_mismatch")
         else:
+            if action.chain_snapshot_id:
+                chain_snapshot = self.receipt_store.get_chain_snapshot(action.chain_snapshot_id)
+                if action.receipt_id not in tuple(chain_snapshot.get("receipt_ids", ())):
+                    raise ExecutionRecoveryError("recovery_chain_snapshot_mismatch")
             receipt = self.receipt_store.get(action.receipt_id)
             if receipt is None or receipt.outcome not in {"committed", "failed", "timed_out"}:
                 raise ExecutionRecoveryError("execution_receipt_not_recoverable")
@@ -128,7 +134,7 @@ class ExecutionRecoveryExecutor:
         else:
             state = self.recovery_store.mark_recovered(action.run_id)
             operation_status = "recovered"
-        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "recovery_state": state}
+        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "chain_snapshot_id": action.chain_snapshot_id, "chain_snapshot_digest": chain_snapshot.get("snapshot_digest", "") if chain_snapshot is not None else "", "recovery_state": state}
         self.events.append("execution_recovery_completed", payload, event_id="execution-recovery:" + action.action_id)
         return payload
 
