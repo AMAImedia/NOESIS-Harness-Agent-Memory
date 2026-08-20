@@ -48,6 +48,11 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(status_snapshot["status"], "passed")
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
+        self.assertEqual(replay["replay_evidence"]["schema_version"], "noesis.recovery-replay-evidence.v1")
+        self.assertTrue(replay["replay_evidence"]["claim"])
+        audited = executor.audit_replay_outcome(self.action)
+        self.assertEqual(audited["action_id"], self.action.action_id)
+        self.assertEqual(audited["completion_receipt_id"], replay["replay_evidence"]["completion_receipt_id"])
 
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")

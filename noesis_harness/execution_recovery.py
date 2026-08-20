@@ -229,22 +229,32 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_status_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def audit_replay_outcome(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
+        """Verify and describe the immutable evidence set supporting an exact replay."""
+        existing = self._existing(action.action_id)
+        if existing is None:
+            raise ExecutionRecoveryError("recovery_replay_evidence_missing")
+        action_digest = request_fingerprint(action.to_mapping())
+        if existing.get("action_digest") != action_digest:
+            raise ExecutionRecoveryError("recovery_action_replay_conflict")
+        completion_receipt_id = str(existing.get("completion_receipt_id", ""))
+        if not completion_receipt_id:
+            raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
+        completion_receipt = self.receipt_store.get(completion_receipt_id)
+        if completion_receipt is None or completion_receipt.outcome != "committed":
+            raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
+        if not os.path.exists(self._status_snapshot_path()):
+            raise ExecutionRecoveryError("recovery_status_snapshot_missing")
+        status_snapshot = self.verify_recovery_evidence_status_snapshot()
+        return {"schema_version": "noesis.recovery-replay-evidence.v1", "status": "passed", "claim": True, "action_id": action.action_id, "action_digest": action_digest, "completion_receipt_id": completion_receipt_id, "status_snapshot_digest": request_fingerprint(status_snapshot["payload"])}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
         action_digest = request_fingerprint(action.to_mapping())
         if existing is not None:
-            if existing.get("action_digest") != action_digest:
-                raise ExecutionRecoveryError("recovery_action_replay_conflict")
-            completion_receipt_id = str(existing.get("completion_receipt_id", ""))
-            if completion_receipt_id:
-                completion_receipt = self.receipt_store.get(completion_receipt_id)
-                if completion_receipt is None or completion_receipt.outcome != "committed":
-                    raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
-            if not os.path.exists(self._status_snapshot_path()):
-                raise ExecutionRecoveryError("recovery_status_snapshot_missing")
-            self.verify_recovery_evidence_status_snapshot()
-            return {"status": "replayed", "result": existing}
+            replay_evidence = self.audit_replay_outcome(action)
+            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None
