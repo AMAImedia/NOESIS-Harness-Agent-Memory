@@ -1803,3 +1803,16 @@ Focused sidecar-binding result: `58/58` execution-recovery tests passed with Pyt
 | CHILD-209 | Native/external path identity | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness hardlink/path identity не проверялись. |
 
 Focused path-containment result: `59/59` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 crash-consistency checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-210 | Mixed generation denial | `DONE / BOUNDED LOCAL` | Новый signed status sidecar рядом со старым manifest отклоняется по `recovery_replay_completeness_sidecar_digest_mismatch`. |
+| CHILD-211 | Old complete generation | `DONE / BOUNDED LOCAL` | После восстановления исходного sidecar старая complete generation снова проходит без regeneration. |
+| CHILD-212 | Explicit full rebuild boundary | `DONE / BOUNDED LOCAL` | Повреждённая старая generation не silently repaired; acceptance требует explicit rebuild всех bundle members. |
+| CHILD-213 | Generation-bound finalization contract | `DONE / BOUNDED LOCAL` | Atomic per-file replacement не превращает mixed old/new evidence в `passed`. |
+| CHILD-214 | Native/external crash consistency | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness simultaneous finalization не проверялись. |
+
+Focused crash-consistency result: `60/60` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

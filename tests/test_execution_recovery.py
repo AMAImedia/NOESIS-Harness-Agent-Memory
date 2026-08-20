@@ -647,6 +647,21 @@ class ExecutionRecoveryTests(unittest.TestCase):
                 external_target.unlink()
         self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
 
+    def test_startup_completeness_rejects_mixed_sidecar_manifest_generation(self):
+        event_path = str(Path(self.tmp.name) / "completeness-mixed-generation-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        status_path = Path(executor._status_snapshot_path(self.action.action_id))
+        original_status = status_path.read_bytes()
+        mixed_status = json.loads(original_status)
+        mixed_status["payload"]["reason"] = "mixed-generation-fixture"
+        mixed_status["signature"] = _snapshot_signature(mixed_status["payload"], self.key)
+        status_path.write_text(json.dumps(mixed_status, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_sidecar_digest_mismatch"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        status_path.write_bytes(original_status)
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
