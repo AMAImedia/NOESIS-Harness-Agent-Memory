@@ -8,7 +8,7 @@ import sqlite3
 from dataclasses import dataclass
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 ASSURANCE_SCHEMA = "noesis.execution-assurance.v1"
 
@@ -20,6 +20,40 @@ def _digest(value: Any) -> str:
 def request_fingerprint(request: Mapping[str, Any]) -> str:
     """Return the canonical identity digest used by execution recovery replay guards."""
     return _digest(request)
+
+
+def _artifact_manifest(path: Optional[str]) -> tuple[Mapping[str, Any], ...]:
+    if not path:
+        return ()
+    root = Path(path).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        raise AssuranceError("artifact_workspace_required")
+    entries = []
+    for item in sorted(root.rglob("*")):
+        if item.is_file():
+            relative = item.relative_to(root).as_posix()
+            data = item.read_bytes()
+            entries.append({"path": relative, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+    return tuple(entries)
+
+
+def artifact_manifest(path: Optional[str]) -> tuple[Mapping[str, Any], ...]:
+    return _artifact_manifest(path)
+
+
+def build_artifact_diff_from_manifests(before_manifest: tuple[Mapping[str, Any], ...], after_manifest: tuple[Mapping[str, Any], ...]) -> Mapping[str, Any]:
+    before = {str(item["path"]): dict(item) for item in before_manifest}
+    after = {str(item["path"]): dict(item) for item in after_manifest}
+    added = tuple(sorted(set(after) - set(before)))
+    removed = tuple(sorted(set(before) - set(after)))
+    changed = tuple(sorted(path for path in set(before) & set(after) if before[path] != after[path]))
+    payload = {"before": tuple(before[path] for path in sorted(before)), "after": tuple(after[path] for path in sorted(after)), "added": added, "removed": removed, "changed": changed}
+    return dict(payload, digest=_digest(payload))
+
+
+def build_artifact_diff(before_path: Optional[str], after_path: Optional[str]) -> Mapping[str, Any]:
+    """Return a deterministic, path-relative artifact diff for a child run."""
+    return build_artifact_diff_from_manifests(_artifact_manifest(before_path), _artifact_manifest(after_path))
 
 
 @dataclass(frozen=True)
@@ -35,28 +69,32 @@ class ExecutionReceipt:
     side_effects: tuple[str, ...]
     receipt_digest: str
     signature: Optional[str] = None
+    artifact_diff_digest: str = ""
 
 
 class AssuranceError(ValueError):
     pass
 
 
-def create_receipt(*, request: Mapping[str, Any], policy: Mapping[str, Any], workspace_before: str, workspace_after: Optional[str], outcome: str, rollback_available: bool, side_effects: tuple[str, ...] = (), signing_key: Optional[bytes] = None) -> ExecutionReceipt:
+def create_receipt(*, request: Mapping[str, Any], policy: Mapping[str, Any], workspace_before: str, workspace_after: Optional[str], outcome: str, rollback_available: bool, side_effects: tuple[str, ...] = (), signing_key: Optional[bytes] = None, artifact_diff: Optional[Mapping[str, Any]] = None) -> ExecutionReceipt:
     if outcome not in {"prepared", "committed", "rejected", "failed", "timed_out", "rolled_back"}:
         raise AssuranceError("invalid_outcome")
     if not workspace_before:
         raise AssuranceError("workspace_before_required")
     request_digest = _digest(request)
     policy_digest = _digest(policy)
-    stable = {"request_digest": request_digest, "policy_digest": policy_digest, "workspace_before": workspace_before, "workspace_after": workspace_after, "outcome": outcome, "rollback_available": rollback_available, "side_effects": list(side_effects)}
+    artifact_diff_digest = "" if artifact_diff is None else str(artifact_diff.get("digest", ""))
+    if artifact_diff is not None and not artifact_diff_digest:
+        raise AssuranceError("artifact_diff_digest_required")
+    stable = {"request_digest": request_digest, "policy_digest": policy_digest, "workspace_before": workspace_before, "workspace_after": workspace_after, "outcome": outcome, "rollback_available": rollback_available, "side_effects": list(side_effects), "artifact_diff_digest": artifact_diff_digest}
     receipt_digest = _digest(stable)
     receipt_id = "receipt:" + receipt_digest[7:]
     signature = None if signing_key is None else "hmac-sha256:" + hmac.new(signing_key, receipt_digest.encode("ascii"), hashlib.sha256).hexdigest()
-    return ExecutionReceipt(receipt_id, ASSURANCE_SCHEMA, request_digest, policy_digest, workspace_before, workspace_after, outcome, rollback_available, tuple(side_effects), receipt_digest, signature)
+    return ExecutionReceipt(receipt_id, ASSURANCE_SCHEMA, request_digest, policy_digest, workspace_before, workspace_after, outcome, rollback_available, tuple(side_effects), receipt_digest, signature, artifact_diff_digest)
 
 
 def verify_receipt(receipt: ExecutionReceipt, signing_key: Optional[bytes] = None) -> bool:
-    stable = {"request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects)}
+    stable = {"request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects), "artifact_diff_digest": receipt.artifact_diff_digest}
     if not (receipt.schema_version == ASSURANCE_SCHEMA and receipt.receipt_id == "receipt:" + receipt.receipt_digest[7:] and receipt.receipt_digest == _digest(stable)):
         return False
     if receipt.signature is None:
@@ -162,12 +200,12 @@ class ExecutionReceiptStore:
 
     @staticmethod
     def _payload(receipt: ExecutionReceipt) -> str:
-        return json.dumps({"receipt_id": receipt.receipt_id, "schema_version": receipt.schema_version, "request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects), "receipt_digest": receipt.receipt_digest, "signature": receipt.signature}, sort_keys=True, separators=(",", ":"))
+        return json.dumps({"receipt_id": receipt.receipt_id, "schema_version": receipt.schema_version, "request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects), "receipt_digest": receipt.receipt_digest, "signature": receipt.signature, "artifact_diff_digest": receipt.artifact_diff_digest}, sort_keys=True, separators=(",", ":"))
 
     @staticmethod
     def _from_payload(payload: str) -> ExecutionReceipt:
         data = json.loads(payload)
-        return ExecutionReceipt(str(data["receipt_id"]), str(data["schema_version"]), str(data["request_digest"]), str(data["policy_digest"]), str(data["workspace_before"]), data.get("workspace_after"), str(data["outcome"]), bool(data["rollback_available"]), tuple(str(item) for item in data.get("side_effects", [])), str(data["receipt_digest"]), data.get("signature"))
+        return ExecutionReceipt(str(data["receipt_id"]), str(data["schema_version"]), str(data["request_digest"]), str(data["policy_digest"]), str(data["workspace_before"]), data.get("workspace_after"), str(data["outcome"]), bool(data["rollback_available"]), tuple(str(item) for item in data.get("side_effects", [])), str(data["receipt_digest"]), data.get("signature"), str(data.get("artifact_diff_digest", "")))
 
     def put(self, receipt: ExecutionReceipt) -> ExecutionReceipt:
         if not verify_receipt(receipt, self.signing_key):
@@ -195,4 +233,4 @@ class ExecutionReceiptStore:
         return receipt
 
 
-__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "create_receipt", "request_fingerprint", "verify_receipt"]
+__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "artifact_manifest", "build_artifact_diff_from_manifests", "build_artifact_diff", "create_receipt", "request_fingerprint", "verify_receipt"]

@@ -1281,3 +1281,15 @@ Focused Python 3.14.7 evidence for this checkpoint: `38/38` tests passed with `-
 | MEM-09-EXTERNAL | External long-context A/B | `NOT_RUN / PINNED ENV REQUIRED` | Exact Hermes/OpenCode/DeepSeek Harness revisions, executables, protocol fingerprints, disposable environments and operator-approved receipts remain required. |
 
 Current local MEM-09 fixture result: 4 repetitions × 24 distractors, 4/4 relevant facts recalled after reopen, persistence verified, deterministic distribution digest. This is local durability/retrieval evidence, not a general intelligence or superiority claim.
+
+
+## 2026-08-20 — Gate 3 artifact-diff receipt checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-08 | Canonical child artifact manifest and diff | `DONE / BOUNDED LOCAL` | Before/after path-relative manifests, file size/SHA-256 entries, added/removed/changed diff и deterministic diff digest. |
+| CHILD-09 | Signed receipt binding | `DONE / BOUNDED LOCAL` | `artifact_diff_digest` включён в stable receipt payload; HMAC verification, tamper rejection, stored payload verification и package export проверены. |
+| CHILD-10 | Runtime integration | `DONE / BOUNDED LOCAL` | `ChildExecutionRuntime` снимает manifest до/после child run и передаёт diff в `ExecutionReceiptStore`; replay и recovery boundaries остаются fail-closed. |
+| CHILD-11 | Native/external artifact evidence | `NOT_RUN / ENVIRONMENT-GATED` | Windows/macOS matching hosts и pinned external harness environments недоступны; нельзя обобщать Linux evidence. |
+
+Gate 3 focused result after integration: `37/37` tests passed with Python 3.14.7 and `-W error::ResourceWarning`.

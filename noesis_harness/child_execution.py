@@ -21,7 +21,7 @@ from .gatekeeper import Gatekeeper
 from .security import safe_path
 from .sandbox_backend import SandboxBackend
 from .skill_manifest import SkillManifest, digest_files
-from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, request_fingerprint
+from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, artifact_manifest, build_artifact_diff_from_manifests, create_receipt, request_fingerprint
 from .process_control import terminate_process_tree
 
 MAX_OUTPUT_BYTES = 256 * 1024
@@ -206,6 +206,7 @@ class ChildExecutionRuntime:
             return "sha256:workspace-unavailable"
 
     def run(self, request: ExecutionRequest) -> ExecutionResult:
+        before_manifest = artifact_manifest(request.workspace)
         before = self._workspace_digest(request.workspace)
         request_identity = request_fingerprint({
             "request_id": request.request_id,
@@ -233,7 +234,8 @@ class ChildExecutionRuntime:
             return result
         decision = self.gatekeeper.get(request.request_id) or {}
         outcome = "committed" if result.status == "completed" else "timed_out" if result.status == "timeout" else "rejected" if result.status == "denied" else "failed"
-        receipt = create_receipt(request={"request_id": request.request_id, "argv": list(request.argv), "workspace": str(Path(request.workspace).resolve()), "skill_id": request.skill_id}, policy={"decision": decision, "manifest": request.manifest.to_dict() if request.manifest else None, "granted_capabilities": list(request.granted_capabilities)}, workspace_before=before, workspace_after=self._workspace_digest(request.workspace), outcome=outcome, rollback_available=True, side_effects=("workspace_patch",), signing_key=self.receipt_store.signing_key)
+        artifact_diff = build_artifact_diff_from_manifests(before_manifest, artifact_manifest(request.workspace))
+        receipt = create_receipt(request={"request_id": request.request_id, "argv": list(request.argv), "workspace": str(Path(request.workspace).resolve()), "skill_id": request.skill_id}, policy={"decision": decision, "manifest": request.manifest.to_dict() if request.manifest else None, "granted_capabilities": list(request.granted_capabilities)}, workspace_before=before, workspace_after=self._workspace_digest(request.workspace), outcome=outcome, rollback_available=True, side_effects=("workspace_patch",), signing_key=self.receipt_store.signing_key, artifact_diff=artifact_diff)
         stored = self.receipt_store.put(receipt)
         if self.recovery_store is not None:
             recovery_status = "completed" if result.status == "completed" else "timed_out" if result.status == "timeout" else "denied" if result.status == "denied" else "failed"

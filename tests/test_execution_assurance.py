@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from noesis_harness.execution_assurance import AssuranceError, ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, verify_receipt
+from noesis_harness.execution_assurance import AssuranceError, ExecutionReceiptStore, ExecutionRecoveryStore, build_artifact_diff, create_receipt, verify_receipt
 
 
 class ExecutionAssuranceTests(unittest.TestCase):
@@ -12,6 +12,30 @@ class ExecutionAssuranceTests(unittest.TestCase):
         second = create_receipt(**kwargs)
         self.assertEqual(first, second)
         self.assertTrue(verify_receipt(first))
+
+    def test_artifact_diff_is_deterministic_and_receipt_bound(self):
+        with tempfile.TemporaryDirectory() as directory:
+            before = Path(directory) / "before"
+            after = Path(directory) / "after"
+            before.mkdir()
+            after.mkdir()
+            (before / "same.txt").write_text("same\n", encoding="utf-8")
+            (after / "same.txt").write_text("changed\n", encoding="utf-8")
+            (after / "added.txt").write_text("new\n", encoding="utf-8")
+            diff = build_artifact_diff(str(before), str(after))
+            self.assertEqual(diff["added"], ("added.txt",))
+            self.assertEqual(diff["removed"], ())
+            self.assertEqual(diff["changed"], ("same.txt",))
+            self.assertEqual(diff["digest"], build_artifact_diff(str(before), str(after))["digest"])
+            receipt = create_receipt(request={"tool": "child"}, policy={"capability": "workspace_write"}, workspace_before="sha256:before", workspace_after="sha256:after", outcome="committed", rollback_available=True, artifact_diff=diff, signing_key=b"artifact-diff-signing-key")
+            self.assertTrue(receipt.artifact_diff_digest)
+            self.assertTrue(verify_receipt(receipt, b"artifact-diff-signing-key"))
+            object.__setattr__(receipt, "artifact_diff_digest", "sha256:tampered")
+            self.assertFalse(verify_receipt(receipt, b"artifact-diff-signing-key"))
+
+    def test_artifact_diff_rejects_missing_workspace(self):
+        with self.assertRaisesRegex(AssuranceError, "artifact_workspace_required"):
+            build_artifact_diff("/path/that/does/not/exist", None)
 
     def test_tampering_is_detected(self):
         receipt = create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True)
