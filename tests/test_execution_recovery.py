@@ -42,6 +42,23 @@ class ExecutionRecoveryTests(unittest.TestCase):
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
 
+    def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
+        event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        self.recovery.begin("run-chain-2", "sha256:before")
+        self.recovery.complete("run-chain-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        action_two = ExecutionRecoveryAction("action-chain-2", "rollback", "run-chain-2", self.receipt.receipt_id, "patch-1", "ws-1", "snap-base", "operator-1", "session-1")
+        executor.handle(action_two, self.context)
+        audited = executor.audit_completion_events()
+        self.assertEqual(audited["status"], "passed")
+        self.assertEqual(audited["count"], 2)
+        records = [json.loads(line) for line in Path(event_path).read_text(encoding="utf-8").splitlines() if line.strip()]
+        records.reverse()
+        Path(event_path).write_text("\n".join(json.dumps(record, sort_keys=True) for record in records) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "chain_mismatch"):
+            ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).audit_completion_events()
+
     def test_replay_rejects_tampered_completion_receipt_reference(self):
         event_path = str(Path(self.tmp.name) / "tampered-completion-events.jsonl")
         self.recovery.begin("run-tamper", "sha256:before")

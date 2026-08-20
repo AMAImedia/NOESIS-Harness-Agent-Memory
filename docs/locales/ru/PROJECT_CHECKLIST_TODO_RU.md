@@ -1400,3 +1400,15 @@ Focused snapshot-recovery result: `37/37` assurance, recovery, child-runtime и 
 | CHILD-46 | Native/external completion receipts | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completion receipts не проверялись. |
 
 Focused completion receipt result: `38/38` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 recovery completion-event chain checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-47 | Hash-linked completion events | `DONE / BOUNDED LOCAL` | Новые completion events содержат previous-event digest от `genesis` до current head. |
+| CHILD-48 | Event-chain audit | `DONE / BOUNDED LOCAL` | Audit проверяет order, unique action IDs, linked digests и committed completion receipts. |
+| CHILD-49 | Event reorder/corruption rejection | `DONE / BOUNDED LOCAL` | Reorder, fork, malformed payload и missing receipt fail-closed. |
+| CHILD-50 | Native/external event chains | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness event chains не проверялись. |
+
+Focused event-chain result: `39/39` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

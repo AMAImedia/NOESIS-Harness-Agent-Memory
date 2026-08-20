@@ -15,6 +15,10 @@ from .workspaces import PatchReviewStore, WorkspaceError
 RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
 
 
+def _completion_event_digest(payload: Mapping[str, Any]) -> str:
+    return request_fingerprint({str(key): value for key, value in payload.items() if key != "previous_event_digest"})
+
+
 class ExecutionRecoveryError(ValueError):
     """Raised when recovery action evidence or authorization is invalid."""
 
@@ -87,6 +91,35 @@ class ExecutionRecoveryExecutor:
         if action.scope not in scopes:
             raise PermissionError("recovery_scope_denied")
 
+    def audit_completion_events(self) -> Mapping[str, Any]:
+        """Verify the hash-linked completion event chain and referenced receipts."""
+        last_digest = "genesis"
+        seen_actions = set()
+        event_ids = []
+        receipt_ids = []
+        for event in self.events.iter_events():
+            if event.get("type") != "execution_recovery_completed":
+                continue
+            payload = event.get("payload")
+            if not isinstance(payload, Mapping):
+                raise ExecutionRecoveryError("recovery_completion_event_corrupt")
+            action_id = str(payload.get("action_id", ""))
+            if not action_id or action_id in seen_actions:
+                raise ExecutionRecoveryError("recovery_completion_event_fork")
+            if str(payload.get("previous_event_digest", "")) != last_digest:
+                raise ExecutionRecoveryError("recovery_completion_event_chain_mismatch")
+            completion_receipt_id = str(payload.get("completion_receipt_id", ""))
+            if completion_receipt_id:
+                receipt = self.receipt_store.get(completion_receipt_id)
+                if receipt is None or receipt.outcome != "committed":
+                    raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
+                receipt_ids.append(completion_receipt_id)
+            seen_actions.add(action_id)
+            event_id = str(event.get("event_id", ""))
+            event_ids.append(event_id)
+            last_digest = _completion_event_digest(payload)
+        return {"status": "passed", "count": len(event_ids), "event_ids": tuple(event_ids), "completion_receipt_ids": tuple(receipt_ids), "chain_digest": last_digest}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -141,10 +174,14 @@ class ExecutionRecoveryExecutor:
             operation_status = "recovered"
         completion = create_receipt(request={"recovery_action": action.to_mapping(), "run_id": action.run_id, "operation_status": operation_status}, policy={"scope": action.scope, "operator_id": action.operator_id, "chain_snapshot_id": action.chain_snapshot_id}, workspace_before=str(state.get("workspace_before", "")), workspace_after=state.get("workspace_after"), outcome="committed", rollback_available=False, side_effects=("recovery:" + operation_status,), signing_key=self.receipt_store.signing_key, artifact_diff={"digest": action.artifact_diff_digest} if action.artifact_diff_digest else None)
         self.receipt_store.put(completion)
-        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "chain_snapshot_id": action.chain_snapshot_id, "chain_snapshot_digest": chain_snapshot.get("snapshot_digest", "") if chain_snapshot is not None else "", "completion_receipt_id": completion.receipt_id, "recovery_state": state}
+        prior_digest = "genesis"
+        for event in self.events.iter_events():
+            if event.get("type") == "execution_recovery_completed":
+                prior_digest = _completion_event_digest(event.get("payload") or {})
+        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "chain_snapshot_id": action.chain_snapshot_id, "chain_snapshot_digest": chain_snapshot.get("snapshot_digest", "") if chain_snapshot is not None else "", "completion_receipt_id": completion.receipt_id, "recovery_state": state, "previous_event_digest": prior_digest}
         self.events.append("execution_recovery_completed", payload, event_id="execution-recovery:" + action.action_id)
         return payload
 
 
-__all__ = ["RECOVERY_ACTION_SCHEMA", "ExecutionRecoveryAction", "ExecutionRecoveryError", "ExecutionRecoveryExecutor"]
+__all__ = ["RECOVERY_ACTION_SCHEMA", "ExecutionRecoveryAction", "ExecutionRecoveryError", "ExecutionRecoveryExecutor", "_completion_event_digest"]
       
