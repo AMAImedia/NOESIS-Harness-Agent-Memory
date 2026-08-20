@@ -21,7 +21,7 @@ from .workspaces import PatchReviewStore, WorkspaceError
 RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
 REPLAY_COMPLETENESS_SNAPSHOT_FIELDS = frozenset({"schema_version", "status", "event_count", "manifest_count", "catalog_count", "records", "completeness_digest", "completeness_path"})
 REPLAY_COMPLETENESS_RECORD_FIELDS = frozenset({"action_id", "manifest_path", "action_digest", "completion_receipt_id", "catalog_record_digest"})
-REPLAY_GENERATION_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_id", "files", "generation_digest", "receipt_path"})
+REPLAY_GENERATION_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_id", "event_chain_digest", "completeness_digest", "files", "generation_digest", "receipt_path"})
 REPLAY_GENERATION_FILE_FIELDS = frozenset({"path", "sha256"})
 
 
@@ -456,13 +456,28 @@ class ExecutionRecoveryExecutor:
         return tuple(sorted(path for path in paths if os.path.dirname(os.path.abspath(path)) == os.path.abspath(parent)))
 
     @staticmethod
-    def _replay_generation_digest(generation_id: int, files: list[Mapping[str, Any]]) -> str:
-        return request_fingerprint({"generation_id": generation_id, "files": files})
+    def _replay_generation_digest(generation_id: int, event_chain_digest: str, completeness_digest: str, files: list[Mapping[str, Any]]) -> str:
+        return request_fingerprint({"generation_id": generation_id, "event_chain_digest": event_chain_digest, "completeness_digest": completeness_digest, "files": files})
 
     def _replay_generation_projection(self) -> Mapping[str, Any]:
         files = []
         generation_id = sum(1 for event in self.events.iter_events() if event.get("type") == "execution_recovery_completed")
+        event_chain_digest = str(self.audit_completion_events().get("chain_digest", ""))
+        completeness_digest = ""
         complete = True
+        completeness_path = self._replay_completeness_snapshot_path()
+        try:
+            with open(completeness_path, "r", encoding="utf-8") as handle:
+                completeness_snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            completeness_payload = completeness_snapshot.get("payload")
+            if not isinstance(completeness_payload, Mapping):
+                complete = False
+            else:
+                completeness_digest = str(completeness_payload.get("completeness_digest", ""))
+                if not completeness_digest:
+                    complete = False
+        except (OSError, TypeError, ValueError, json.JSONDecodeError, _DuplicateJSONKeyError):
+            complete = False
         for path in self._replay_generation_paths():
             if not os.path.isfile(path) or os.path.islink(path):
                 complete = False
@@ -473,7 +488,7 @@ class ExecutionRecoveryExecutor:
                 complete = False
                 continue
             files.append({"path": path, "sha256": digest})
-        return {"schema_version": "noesis.recovery-replay-generation-projection.v1", "status": "passed" if complete else "provisional", "event_path": str(self.events.path), "generation_id": generation_id, "files": files, "generation_digest": self._replay_generation_digest(generation_id, files)}
+        return {"schema_version": "noesis.recovery-replay-generation-projection.v1", "status": "passed" if complete else "provisional", "event_path": str(self.events.path), "generation_id": generation_id, "event_chain_digest": event_chain_digest, "completeness_digest": completeness_digest, "files": files, "generation_digest": self._replay_generation_digest(generation_id, event_chain_digest, completeness_digest, files)}
 
     def persist_replay_generation_receipt(self) -> Mapping[str, Any]:
         """Atomically persist the signed generation receipt for the current evidence files."""
@@ -511,6 +526,8 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_incomplete")
         if not isinstance(payload.get("generation_id"), int) or payload.get("generation_id") < 1:
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_id_invalid")
+        if not isinstance(payload.get("event_chain_digest"), str) or not payload.get("event_chain_digest") or not isinstance(payload.get("completeness_digest"), str) or not payload.get("completeness_digest"):
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_digest_binding_invalid")
         files = payload.get("files")
         if not isinstance(files, list) or not files or any(not isinstance(record, Mapping) or set(record) != REPLAY_GENERATION_FILE_FIELDS for record in files):
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_file_schema_invalid")
@@ -531,7 +548,7 @@ class ExecutionRecoveryExecutor:
         current = self._replay_generation_projection()
         if payload.get("generation_id") != current.get("generation_id"):
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_stale")
-        for key in ("status", "event_path", "files", "generation_digest"):
+        for key in ("status", "event_path", "event_chain_digest", "completeness_digest", "files", "generation_digest"):
             if payload.get(key) != current.get(key):
                 raise ExecutionRecoveryError("recovery_replay_generation_receipt_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}

@@ -1856,3 +1856,15 @@ Focused generation-schema result: `62/62` execution-recovery tests passed with P
 | CHILD-230 | Native/external rotation | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt rotation не проверялись. |
 
 Focused rotation result: `63/63` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 old-prefix binding checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-231 | Event-chain binding | `DONE / BOUNDED LOCAL` | Generation receipt связывает current `event_chain_digest` с append-only completion event prefix. |
+| CHILD-232 | Completeness binding | `DONE / BOUNDED LOCAL` | Generation receipt связывает current `completeness_digest`; старое значение с valid signature fail-closed. |
+| CHILD-233 | Old-prefix denial | `DONE / BOUNDED LOCAL` | Receipt старого event prefix не может быть promoted как current generation через replay/rollback. |
+| CHILD-234 | Native/external prefix replay | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness old-prefix replay не проверялись. |
+
+Focused old-prefix cross-binding result: `63/63` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

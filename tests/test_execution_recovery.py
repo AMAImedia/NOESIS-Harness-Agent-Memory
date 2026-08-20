@@ -731,6 +731,8 @@ print(executor.verify_replay_generation_receipt()['status'])
         second = executor.verify_replay_generation_receipt()
         self.assertEqual(second["payload"]["generation_id"], 2)
         self.assertNotEqual(first["payload"]["generation_digest"], second["payload"]["generation_digest"])
+        self.assertNotEqual(first["payload"]["event_chain_digest"], second["payload"]["event_chain_digest"])
+        self.assertNotEqual(first["payload"]["completeness_digest"], second["payload"]["completeness_digest"])
         receipt_path = Path(executor._replay_generation_receipt_path())
         stale = json.loads(receipt_path.read_bytes())
         stale["payload"]["generation_id"] = 1
@@ -738,6 +740,14 @@ print(executor.verify_replay_generation_receipt()['status'])
         stale["signature"] = _snapshot_signature(stale["payload"], self.key)
         receipt_path.write_text(json.dumps(stale, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_generation_receipt_stale"):
+            executor.verify_replay_generation_receipt()
+        receipt_path.write_bytes(json.dumps(second, sort_keys=True).encode("utf-8") + b"\n")
+        cross_bound = json.loads(receipt_path.read_bytes())
+        cross_bound["payload"]["event_chain_digest"] = first["payload"]["event_chain_digest"]
+        cross_bound["payload"]["completeness_digest"] = first["payload"]["completeness_digest"]
+        cross_bound["signature"] = _snapshot_signature(cross_bound["payload"], self.key)
+        receipt_path.write_text(json.dumps(cross_bound, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_generation_receipt_drift"):
             executor.verify_replay_generation_receipt()
 
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
