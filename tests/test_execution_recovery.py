@@ -1,5 +1,8 @@
 import tempfile
 import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -357,6 +360,34 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_record_schema_invalid"):
             executor.verify_replay_evidence_completeness_snapshot()
+
+    def test_completeness_snapshot_rewrite_is_byte_identical_and_reopenable(self):
+        event_path = str(Path(self.tmp.name) / "completeness-byte-identity-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        first_bytes = snapshot_path.read_bytes()
+        first_snapshot = executor.persist_replay_evidence_completeness()
+        second_bytes = snapshot_path.read_bytes()
+        second_snapshot = executor.persist_replay_evidence_completeness()
+        third_bytes = snapshot_path.read_bytes()
+        self.assertEqual(first_bytes, second_bytes)
+        self.assertEqual(second_bytes, third_bytes)
+        self.assertEqual(first_snapshot, second_snapshot)
+        reopened = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        self.assertEqual(reopened.verify_replay_evidence_completeness_snapshot()["status"], "passed")
+
+    def test_completeness_snapshot_reopens_across_python_process_boundary(self):
+        event_path = str(Path(self.tmp.name) / "completeness-process-boundary-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        root = Path(__file__).resolve().parents[1]
+        child = """import sys\nfrom noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore\nfrom noesis_harness.execution_recovery import ExecutionRecoveryExecutor\nroot, event_path = sys.argv[1], sys.argv[2]\nkey = b\"execution-recovery-signing-key\"\nexecutor = ExecutionRecoveryExecutor(receipt_store=ExecutionReceiptStore(root + \"/receipts.db\", signing_key=key), recovery_store=ExecutionRecoveryStore(root + \"/recovery.db\"), patch_store=__import__(\"noesis_harness.workspaces\", fromlist=[\"PatchReviewStore\"]).PatchReviewStore(root + \"/patches.db\"), event_path=event_path, rollback_handler=lambda _: True)\nprint(executor.verify_replay_evidence_completeness_snapshot()[\"status\"])\n"""
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(root)
+        completed = subprocess.run([sys.executable, "-c", child, self.tmp.name, event_path], capture_output=True, text=True, env=env, check=True)
+        self.assertEqual(completed.stdout.strip(), "passed")
+        self.assertEqual(completed.stderr, "")
 
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")

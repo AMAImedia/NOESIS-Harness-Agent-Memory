@@ -1676,3 +1676,15 @@ Focused schema-validation result: `43/43` execution-recovery tests passed with P
 | CHILD-162 | Native/external canonical schema | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness canonical completeness field-set validation не проверялись. |
 
 Focused canonical-field result: `45/45` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 completeness snapshot deterministic-reopen checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-163 | Byte identity | `DONE / BOUNDED LOCAL` | Повторная persistence неизменённого completeness snapshot даёт byte-identical JSON bytes и identical signed payload. |
+| CHILD-164 | Same-process reopen | `DONE / BOUNDED LOCAL` | Fresh `ExecutionRecoveryExecutor` reopen-ит и verify-ит durable completeness snapshot без regeneration. |
+| CHILD-165 | Python process-boundary reopen | `DONE / BOUNDED LOCAL` | Отдельный Python 3.14 process успешно verify-ит существующий snapshot; stdout `passed`, stderr пустой. |
+| CHILD-166 | Native/external deterministic reopen | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness process-boundary reopen evidence не проверялись. |
+
+Focused deterministic-reopen result: `47/47` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
