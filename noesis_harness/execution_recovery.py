@@ -189,6 +189,17 @@ class ExecutionRecoveryExecutor:
         snapshot = self.verify_completion_event_snapshot()
         return {"status": "passed", "chain": chain, "snapshot": snapshot}
 
+    def recovery_evidence_status(self) -> Mapping[str, Any]:
+        """Return an honest machine-readable status without hiding verification failures."""
+        try:
+            evidence = self.verify_recovery_evidence()
+        except ExecutionRecoveryError as exc:
+            return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "blocked", "claim": False, "reason": str(exc)}
+        snapshot = evidence.get("snapshot") or {}
+        if snapshot.get("status") == "not_run":
+            return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "not_run", "claim": False, "reason": str(snapshot.get("reason", "no_completion_events")), "chain": evidence.get("chain")}
+        return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "passed", "claim": True, "chain": evidence.get("chain"), "snapshot": snapshot}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)

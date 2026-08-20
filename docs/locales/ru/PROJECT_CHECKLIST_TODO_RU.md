@@ -1436,3 +1436,15 @@ Focused durable snapshot result: `39/39` assurance, recovery, child-runtime и e
 | CHILD-58 | Native/external startup gates | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness startup verification не проверялись. |
 
 Focused startup/replay result: `40/40` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 recovery evidence status checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-59 | Evidence status projection | `DONE / BOUNDED LOCAL` | Добавлен machine-readable status с schema version, claim flag и deterministic reason. |
+| CHILD-60 | Status honesty | `DONE / BOUNDED LOCAL` | Valid evidence = `passed/true`; empty log = `not_run/false`; missing/stale/corrupt evidence = `blocked/false`. |
+| CHILD-61 | Boundary preservation | `DONE / BOUNDED LOCAL` | Projection read-only; blocked не превращается в not_run и ни один external lane не становится passed по implication. |
+| CHILD-62 | Native/external status projection | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness status evidence не проверялись. |
+
+Focused status result: `41/41` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

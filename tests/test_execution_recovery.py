@@ -42,6 +42,8 @@ class ExecutionRecoveryTests(unittest.TestCase):
         evidence = executor.verify_recovery_evidence()
         self.assertEqual(evidence["status"], "passed")
         self.assertEqual(evidence["chain"]["count"], 1)
+        self.assertEqual(executor.recovery_evidence_status()["status"], "passed")
+        self.assertTrue(executor.recovery_evidence_status()["claim"])
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
 
@@ -76,6 +78,20 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "event_snapshot_signature_invalid"):
             ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).verify_completion_event_snapshot()
+
+    def test_recovery_evidence_status_preserves_not_run_and_blocked(self):
+        empty_path = str(Path(self.tmp.name) / "empty-status-events.jsonl")
+        empty = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=empty_path, rollback_handler=lambda _: True)
+        self.assertEqual(empty.recovery_evidence_status()["status"], "not_run")
+        self.assertFalse(empty.recovery_evidence_status()["claim"])
+        event_path = str(Path(self.tmp.name) / "blocked-status-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(event_path + ".snapshot.json").unlink()
+        blocked = executor.recovery_evidence_status()
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertFalse(blocked["claim"])
+        self.assertEqual(blocked["reason"], "recovery_event_snapshot_missing")
 
     def test_startup_evidence_gate_rejects_missing_snapshot(self):
         event_path = str(Path(self.tmp.name) / "missing-snapshot-events.jsonl")
