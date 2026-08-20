@@ -18,6 +18,8 @@ from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, 
 from .workspaces import PatchReviewStore, WorkspaceError
 
 RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
+REPLAY_COMPLETENESS_SNAPSHOT_FIELDS = frozenset({"schema_version", "status", "event_count", "manifest_count", "catalog_count", "records", "completeness_digest", "completeness_path"})
+REPLAY_COMPLETENESS_RECORD_FIELDS = frozenset({"action_id", "manifest_path", "action_digest", "completion_receipt_id", "catalog_record_digest"})
 
 
 class _DuplicateJSONKeyError(ValueError):
@@ -656,6 +658,12 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_signature_invalid")
+        unknown_fields = set(payload) - REPLAY_COMPLETENESS_SNAPSHOT_FIELDS
+        missing_fields = REPLAY_COMPLETENESS_SNAPSHOT_FIELDS - set(payload)
+        if unknown_fields:
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_unknown_field")
+        if missing_fields:
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_missing_field")
         if payload.get("schema_version") != "noesis.recovery-replay-evidence-completeness-snapshot.v1":
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_schema_invalid")
         if payload.get("status") != "passed":
@@ -665,6 +673,9 @@ class ExecutionRecoveryExecutor:
         records = payload.get("records")
         if not isinstance(records, list) or any(not isinstance(record, Mapping) for record in records):
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_records_invalid")
+        for record in records:
+            if set(record) != REPLAY_COMPLETENESS_RECORD_FIELDS:
+                raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_record_schema_invalid")
         count_fields = ("event_count", "manifest_count", "catalog_count")
         if any(not isinstance(payload.get(field), int) or isinstance(payload.get(field), bool) or payload.get(field) < 0 for field in count_fields):
             raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_counts_invalid")

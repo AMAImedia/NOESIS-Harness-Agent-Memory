@@ -327,6 +327,37 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_duplicate_record"):
             executor.verify_replay_evidence_completeness_snapshot()
 
+    def test_completeness_snapshot_rejects_unknown_and_missing_canonical_fields(self):
+        event_path = str(Path(self.tmp.name) / "completeness-canonical-fields-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        original = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        unknown = json.loads(json.dumps(original))
+        unknown["payload"]["unexpected_field"] = "drift"
+        unknown["signature"] = _snapshot_signature(unknown["payload"], self.key)
+        snapshot_path.write_text(json.dumps(unknown, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_unknown_field"):
+            executor.verify_replay_evidence_completeness_snapshot()
+        missing = json.loads(json.dumps(original))
+        del missing["payload"]["records"]
+        missing["signature"] = _snapshot_signature(missing["payload"], self.key)
+        snapshot_path.write_text(json.dumps(missing, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_missing_field"):
+            executor.verify_replay_evidence_completeness_snapshot()
+
+    def test_completeness_snapshot_rejects_unknown_record_field(self):
+        event_path = str(Path(self.tmp.name) / "completeness-record-canonical-fields-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["records"][0]["unexpected_field"] = "drift"
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_record_schema_invalid"):
+            executor.verify_replay_evidence_completeness_snapshot()
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

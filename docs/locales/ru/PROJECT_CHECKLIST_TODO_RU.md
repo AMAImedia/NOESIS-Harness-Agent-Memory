@@ -1664,3 +1664,15 @@ Focused completeness-binding result: `40/40` execution-recovery tests passed wit
 | CHILD-158 | Native/external schema validation | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completeness snapshot schema validation не проверялись. |
 
 Focused schema-validation result: `43/43` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 canonical completeness field-set checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-159 | Canonical outer field set | `DONE / BOUNDED LOCAL` | Completeness snapshot verifier отклоняет unknown и missing outer payload fields до digest comparison. |
+| CHILD-160 | Canonical per-action record set | `DONE / BOUNDED LOCAL` | Каждый record обязан иметь ровно canonical fields `action_id`, `manifest_path`, `action_digest`, `completion_receipt_id`, `catalog_record_digest`. |
+| CHILD-161 | Unknown-field adversarial denial | `DONE / BOUNDED LOCAL` | Signed payload с extra field и signed per-action record с extra field fail-closed с explicit schema reasons. |
+| CHILD-162 | Native/external canonical schema | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness canonical completeness field-set validation не проверялись. |
+
+Focused canonical-field result: `45/45` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
