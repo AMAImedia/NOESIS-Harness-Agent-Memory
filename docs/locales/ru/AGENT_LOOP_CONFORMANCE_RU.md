@@ -7,10 +7,13 @@
 | Passing action сообщает `done` | `done` | Lease освобождается после validated completion. |
 | Достигнут maximum turn count | `max_turns` | Loop bounded и не может выполняться бесконечно. |
 | Lease недоступен | `blocked` | Action callback не вызывается без ownership. |
+| Malformed lease response | `lease_shape_error` | Invalid ownership response останавливает цикл до action. |
 | Loop guard блокирует повтор | `loop` | Повторяющийся action fingerprint останавливает цикл до action. |
 | Context pack failure | `context_over` | Цикл останавливается вместо превышения budget. |
 | Pack exception | `pack_error` | Dependency failure ограничивается result, lease освобождается. |
+| Malformed pack response | `pack_shape_error` | Invalid pack response отклоняется, lease освобождается. |
 | Guard exception | `guard_error` | Dependency failure ограничивается result, lease освобождается. |
+| Malformed guard response | `guard_shape_error` | Invalid guard response отклоняется, lease освобождается. |
 | Malformed action result | `result_shape_error` | Non-mapping output отклоняется до judge или writeback. |
 | Judge failure | `judge_fail` | Failed output не считается успешной работой. |
 | Action exception | `act_error` | Exception ограничивается result, lease освобождается. |
@@ -18,6 +21,7 @@
 | Malformed judge result | `judge_shape_error` | Non-mapping verdict отклоняется, lease освобождается. |
 | Memory write exception | `memory_error` | Failed writeback ограничивается result, lease освобождается. |
 | Budget exception | `budget_error` | Budget failure ограничивается result, lease освобождается. |
+| Malformed budget response | `budget_shape_error` | Invalid budget response отклоняется, lease освобождается. |
 | Lease renewal exception | `lease_renew_error` | Renewal failure ограничивается result, lease освобождается. |
 | Budget exhausted | `budget` | Следующие turns запрещены после исчерпания bounded budget. |
 

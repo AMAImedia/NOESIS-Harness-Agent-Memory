@@ -47,6 +47,9 @@ class AgentLoop:
         turns = []
         for n in range(1, self.max_turns + 1):
             claim = self.leases.acquire(task_key, self.agent_id)
+            if not isinstance(claim, Mapping):
+                self._log("lease_shape_error", {"task": task_key, "turn": n})
+                return {"status": "lease_shape_error", "turns": turns, "outputs": outputs}
             if not claim.get("ok"):
                 self._log("lease_miss", {"task": task_key, "holder": claim.get("holder")})
                 return {"status": "blocked", "holder": claim.get("holder"),
@@ -57,6 +60,10 @@ class AgentLoop:
                 self.leases.release(task_key, self.agent_id)
                 self._log("pack_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
                 return {"status": "pack_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
+            if not isinstance(packed, Mapping):
+                self.leases.release(task_key, self.agent_id)
+                self._log("pack_shape_error", {"task": task_key, "turn": n})
+                return {"status": "pack_shape_error", "turns": turns, "outputs": outputs}
             if not packed.get("ok"):
                 self.leases.release(task_key, self.agent_id)
                 return {"status": "context_over", "turns": turns, "outputs": outputs}
@@ -66,6 +73,10 @@ class AgentLoop:
                 self.leases.release(task_key, self.agent_id)
                 self._log("guard_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
                 return {"status": "guard_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
+            if not isinstance(chk, Mapping):
+                self.leases.release(task_key, self.agent_id)
+                self._log("guard_shape_error", {"task": task_key, "turn": n})
+                return {"status": "guard_shape_error", "turns": turns, "outputs": outputs}
             if not chk.get("ok"):
                 self._log("loop_block", {"task": task_key, "turn": n})
                 self.leases.release(task_key, self.agent_id)
@@ -106,6 +117,10 @@ class AgentLoop:
                     self.leases.release(task_key, self.agent_id)
                     self._log("budget_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
                     return {"status": "budget_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
+                if not isinstance(spent, Mapping):
+                    self.leases.release(task_key, self.agent_id)
+                    self._log("budget_shape_error", {"task": task_key, "turn": n})
+                    return {"status": "budget_shape_error", "turns": turns, "outputs": outputs}
                 if not spent.get("ok") and spent.get("reason") == "exhausted":
                     self.leases.release(task_key, self.agent_id)
                     return {"status": "budget", "turns": turns, "outputs": outputs}

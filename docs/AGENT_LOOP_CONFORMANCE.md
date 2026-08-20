@@ -7,10 +7,13 @@
 | Passing action reports `done` | `done` | Lease is released after validated completion. |
 | Maximum turn count reached | `max_turns` | The loop is bounded and cannot run indefinitely. |
 | Lease unavailable | `blocked` | No action callback is invoked without ownership. |
+| Malformed lease response | `lease_shape_error` | Invalid ownership response stops before action. |
 | Loop guard rejection | `loop` | Repeated action fingerprint stops the cycle before action. |
 | Context pack failure | `context_over` | The cycle stops instead of exceeding its budget. |
 | Pack exception | `pack_error` | Dependency failure is bounded to a result and the lease is released. |
+| Malformed pack response | `pack_shape_error` | Invalid pack response is rejected and the lease is released. |
 | Guard exception | `guard_error` | Dependency failure is bounded to a result and the lease is released. |
+| Malformed guard response | `guard_shape_error` | Invalid guard response is rejected and the lease is released. |
 | Malformed action result | `result_shape_error` | Non-mapping output is rejected before judge or writeback. |
 | Judge failure | `judge_fail` | Failed output is not promoted as successful work. |
 | Action exception | `act_error` | The exception is bounded to a result and the lease is released. |
@@ -18,6 +21,7 @@
 | Malformed judge result | `judge_shape_error` | Non-mapping verdict is rejected and the lease is released. |
 | Memory write exception | `memory_error` | Failed writeback is bounded to a result and the lease is released. |
 | Budget exception | `budget_error` | Budget failures are bounded to a result and the lease is released. |
+| Malformed budget response | `budget_shape_error` | Invalid budget response is rejected and the lease is released. |
 | Lease renewal exception | `lease_renew_error` | Renewal failure is bounded to a result and the lease is released. |
 | Budget exhaustion | `budget` | Further turns are denied after the bounded budget is consumed. |
 

@@ -29,6 +29,11 @@ class _Leases:
         self.renewed += 1
 
 
+class _MalformedPack:
+    def pack(self, query):
+        return ["invalid"]
+
+
 class _Pack:
     def __init__(self, ok=True, error=False):
         self.ok = ok
@@ -40,6 +45,11 @@ class _Pack:
         return {"ok": self.ok, "tokens": 4}
 
 
+class _MalformedGuard:
+    def check(self, action):
+        return ["invalid"]
+
+
 class _Guard:
     def __init__(self, ok=True, error=False):
         self.ok = ok
@@ -49,6 +59,11 @@ class _Guard:
         if self.error:
             raise LookupError("guard failure")
         return {"ok": self.ok}
+
+
+class _MalformedAcquireLeases(_Leases):
+    def acquire(self, task_key, agent_id):
+        return ["invalid"]
 
 
 class _RenewErrorLeases(_Leases):
@@ -86,6 +101,11 @@ class _BudgetExhausted:
         return {"ok": False, "reason": "exhausted"}
 
 
+class _MalformedBudget:
+    def spend(self, key, units, validated):
+        return ["invalid"]
+
+
 class _Judge:
     def __init__(self, ok=True):
         self.ok = ok
@@ -99,6 +119,28 @@ class _Judge:
 class AgentLoopTests(unittest.TestCase):
     def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None, memory=None, budget=None):
         return AgentLoop("agent", memory or _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock, budget=budget)
+
+    def test_malformed_lease_response_is_bounded(self):
+        result = self.make_loop(leases=_MalformedAcquireLeases()).run("task", "query", lambda context: {"done": True})
+        self.assertEqual(result["status"], "lease_shape_error")
+
+    def test_malformed_pack_response_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, pack=_MalformedPack()).run("task", "query", lambda context: {"done": True})
+        self.assertEqual(result["status"], "pack_shape_error")
+        self.assertEqual(leases.released, 1)
+
+    def test_malformed_guard_response_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, guard=_MalformedGuard()).run("task", "query", lambda context: {"done": True})
+        self.assertEqual(result["status"], "guard_shape_error")
+        self.assertEqual(leases.released, 1)
+
+    def test_malformed_budget_response_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, budget=_MalformedBudget()).run("task", "query", lambda context: {"output": "candidate"})
+        self.assertEqual(result["status"], "budget_shape_error")
+        self.assertEqual(leases.released, 1)
 
     def test_invalid_max_turns_is_rejected_before_execution(self):
         with self.assertRaisesRegex(ValueError, "max_turns_invalid"):
