@@ -109,6 +109,23 @@ def validate_receipt_transition(previous: ExecutionReceipt, current: ExecutionRe
     return True
 
 
+def validate_receipt_chain(receipts: tuple[ExecutionReceipt, ...], signing_key: Optional[bytes] = None) -> Mapping[str, Any]:
+    """Verify ordered immutable receipt history and return a chain snapshot."""
+    if not isinstance(receipts, tuple) or not receipts:
+        raise AssuranceError("receipt_chain_required")
+    seen = set()
+    for receipt in receipts:
+        if receipt.receipt_id in seen:
+            raise AssuranceError("receipt_chain_duplicate")
+        seen.add(receipt.receipt_id)
+        if not verify_receipt(receipt, signing_key):
+            raise AssuranceError("receipt_chain_tampered")
+    for previous, current in zip(receipts, receipts[1:]):
+        validate_receipt_transition(previous, current)
+    chain_payload = tuple({"receipt_id": item.receipt_id, "outcome": item.outcome, "receipt_digest": item.receipt_digest} for item in receipts)
+    return {"status": "passed", "count": len(receipts), "first_receipt_id": receipts[0].receipt_id, "last_receipt_id": receipts[-1].receipt_id, "chain_digest": _digest(chain_payload)}
+
+
 def verify_receipt(receipt: ExecutionReceipt, signing_key: Optional[bytes] = None) -> bool:
     stable = {"request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects), "artifact_diff_digest": receipt.artifact_diff_digest}
     if not (receipt.schema_version == ASSURANCE_SCHEMA and receipt.receipt_id == "receipt:" + receipt.receipt_digest[7:] and receipt.receipt_digest == _digest(stable)):
@@ -275,4 +292,4 @@ class ExecutionReceiptStore:
         return {"status": "passed", "count": len(receipt_ids), "receipt_ids": tuple(receipt_ids), "aggregate_digest": _digest(tuple(payloads))}
 
 
-__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "artifact_manifest", "build_artifact_diff_from_manifests", "build_artifact_diff", "create_receipt", "request_fingerprint", "validate_receipt_transition", "verify_receipt"]
+__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "artifact_manifest", "build_artifact_diff_from_manifests", "build_artifact_diff", "create_receipt", "request_fingerprint", "validate_receipt_transition", "validate_receipt_chain", "verify_receipt"]

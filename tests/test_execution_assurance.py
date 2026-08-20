@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from noesis_harness.execution_assurance import AssuranceError, ExecutionReceiptStore, ExecutionRecoveryStore, build_artifact_diff, create_receipt, validate_receipt_transition, verify_receipt
+from noesis_harness.execution_assurance import AssuranceError, ExecutionReceiptStore, ExecutionRecoveryStore, build_artifact_diff, create_receipt, validate_receipt_chain, validate_receipt_transition, verify_receipt
 
 
 class ExecutionAssuranceTests(unittest.TestCase):
@@ -55,6 +55,24 @@ class ExecutionAssuranceTests(unittest.TestCase):
             self.assertEqual(reopened.get(receipt.receipt_id), receipt)
             with self.assertRaisesRegex(AssuranceError, "invalid_signed_receipt"):
                 reopened.put(create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True))
+
+    def test_receipt_chain_detects_gaps_reorder_forks_and_tampering(self):
+        key = b"receipt-chain-signing-key"
+        prepared = create_receipt(request={"tool": "chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+        committed = create_receipt(request={"tool": "chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+        rolled_back = create_receipt(request={"tool": "chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:b", outcome="rolled_back", rollback_available=False, signing_key=key)
+        chain = validate_receipt_chain((prepared, committed, rolled_back), key)
+        self.assertEqual(chain["status"], "passed")
+        self.assertEqual(chain["count"], 3)
+        with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+            validate_receipt_chain((prepared, rolled_back), key)
+        with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+            validate_receipt_chain((committed, prepared, rolled_back), key)
+        with self.assertRaisesRegex(AssuranceError, "receipt_chain_duplicate"):
+            validate_receipt_chain((prepared, committed, committed), key)
+        object.__setattr__(committed, "outcome", "failed")
+        with self.assertRaisesRegex(AssuranceError, "receipt_chain_tampered"):
+            validate_receipt_chain((prepared, committed, rolled_back), key)
 
     def test_receipt_lifecycle_transitions_are_explicit_and_immutable(self):
         key = b"receipt-transition-signing-key"

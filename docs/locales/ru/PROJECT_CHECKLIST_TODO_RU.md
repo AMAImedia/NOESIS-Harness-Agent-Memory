@@ -1340,3 +1340,15 @@ Focused receipt audit result: `32/32` assurance, recovery, child-runtime и expo
 | CHILD-26 | Native/external lifecycle transitions | `NOT_RUN / ENVIRONMENT-GATED` | Matching Windows/macOS и pinned external harness receipt histories не проверялись. |
 
 Focused receipt lifecycle result: `33/33` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 receipt-chain checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-27 | Ordered receipt history | `DONE / BOUNDED LOCAL` | Chain validator проверяет каждый receipt и adjacent lifecycle transition, возвращает deterministic chain digest. |
+| CHILD-28 | Gap/reorder/fork rejection | `DONE / BOUNDED LOCAL` | Lifecycle gaps, reordered outcomes и duplicate receipt IDs fail-closed. |
+| CHILD-29 | Chain tamper rejection | `DONE / BOUNDED LOCAL` | Invalid signed fields/HMAC отклоняются до выпуска passed chain evidence. |
+| CHILD-30 | Native/external receipt chains | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt histories не проверялись. |
+
+Focused receipt-chain result: `34/34` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
