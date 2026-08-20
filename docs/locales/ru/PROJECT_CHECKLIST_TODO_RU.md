@@ -1843,3 +1843,16 @@ Focused generation-receipt result: `61/61` execution-recovery tests passed with 
 | CHILD-225 | Native/external receipt schema | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt rotation не проверялись. |
 
 Focused generation-schema result: `62/62` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 receipt-rotation checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-226 | Monotonic generation ID | `DONE / BOUNDED LOCAL` | Receipt содержит положительный `generation_id`, вычисленный по append-only completed-event count и включённый в generation digest. |
+| CHILD-227 | Stale receipt denial | `DONE / BOUNDED LOCAL` | Receipt generation 1 отклоняется после multi-action append, когда current generation равна 2. |
+| CHILD-228 | Multi-action rotation | `DONE / BOUNDED LOCAL` | Rotation 1→2 проходит только с полным file inventory и final manifest set; generation digest меняется deterministic. |
+| CHILD-229 | Receipt/final-manifest crash boundary | `DONE / BOUNDED LOCAL` | Interrupted mixed transition не даёт partial `passed`; требуется complete trusted generation rebuild. |
+| CHILD-230 | Native/external rotation | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt rotation не проверялись. |
+
+Focused rotation result: `63/63` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

@@ -716,6 +716,30 @@ print(executor.verify_replay_generation_receipt()['status'])
         self.assertEqual(process.stdout.strip(), "passed")
         self.assertEqual(process.stderr, "")
 
+    def test_generation_id_rotates_monotonically_and_rejects_stale_receipt(self):
+        event_path = str(Path(self.tmp.name) / "generation-rotation-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        first = executor.verify_replay_generation_receipt()
+        self.assertEqual(first["payload"]["generation_id"], 1)
+        self.recovery.begin("run-rotation-2", "sha256:before")
+        self.recovery.complete("run-rotation-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        proposal = PatchProposal("patch-rotation-2", "ws-1", "snap-base", "snap-head", (("path", "out-rotation-2.txt"),), "approved")
+        self.patches.put(proposal)
+        action_two = ExecutionRecoveryAction("action-rotation-2", "rollback", "run-rotation-2", self.receipt.receipt_id, "patch-rotation-2", "ws-1", "snap-base", "operator-1", "session-1")
+        executor.handle(action_two, self.context)
+        second = executor.verify_replay_generation_receipt()
+        self.assertEqual(second["payload"]["generation_id"], 2)
+        self.assertNotEqual(first["payload"]["generation_digest"], second["payload"]["generation_digest"])
+        receipt_path = Path(executor._replay_generation_receipt_path())
+        stale = json.loads(receipt_path.read_bytes())
+        stale["payload"]["generation_id"] = 1
+        stale["payload"]["generation_digest"] = first["payload"]["generation_digest"]
+        stale["signature"] = _snapshot_signature(stale["payload"], self.key)
+        receipt_path.write_text(json.dumps(stale, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_generation_receipt_stale"):
+            executor.verify_replay_generation_receipt()
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
