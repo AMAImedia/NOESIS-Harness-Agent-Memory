@@ -577,8 +577,16 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_sidecar")
         records = []
         seen = set()
+        parent_real = os.path.realpath(parent)
         for name in candidates:
             manifest_path = os.path.join(parent, name)
+            if os.path.islink(manifest_path) or os.path.realpath(manifest_path) != os.path.join(parent_real, name):
+                raise ExecutionRecoveryError("recovery_replay_completeness_manifest_alias")
+            try:
+                if os.stat(manifest_path).st_nlink != 1:
+                    raise ExecutionRecoveryError("recovery_replay_completeness_manifest_file_identity")
+            except FileNotFoundError as exc:
+                raise ExecutionRecoveryError("recovery_replay_completeness_manifest_missing") from exc
             try:
                 with open(manifest_path, "r", encoding="utf-8") as handle:
                     snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
@@ -602,8 +610,17 @@ class ExecutionRecoveryExecutor:
             for field, expected_path in expected_paths.items():
                 if payload.get(field) != expected_path:
                     raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
+                expected_abs = os.path.abspath(expected_path)
+                expected_real = os.path.realpath(expected_path)
+                try:
+                    if os.path.commonpath((parent_real, expected_abs)) != parent_real or os.path.commonpath((parent_real, expected_real)) != parent_real:
+                        raise ExecutionRecoveryError("recovery_replay_completeness_path_containment")
+                except ValueError as exc:
+                    raise ExecutionRecoveryError("recovery_replay_completeness_path_containment") from exc
                 if os.path.islink(expected_path):
                     raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_alias")
+                if os.path.isfile(expected_path) and os.stat(expected_path).st_nlink != 1:
+                    raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_file_identity")
                 if not os.path.isfile(expected_path) and field != "completeness_snapshot_path":
                     raise ExecutionRecoveryError("recovery_replay_completeness_bundle_path_missing")
                 if field != "event_path" and os.path.isfile(expected_path):

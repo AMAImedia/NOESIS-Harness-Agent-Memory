@@ -626,6 +626,27 @@ class ExecutionRecoveryTests(unittest.TestCase):
         alias_path.rename(status_path)
         self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
 
+    def test_startup_completeness_rejects_external_hardlink_sidecar(self):
+        event_path = str(Path(self.tmp.name) / "completeness-hardlink-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        status_path = Path(executor._status_snapshot_path(self.action.action_id))
+        original_status = status_path.read_bytes()
+        external_target = Path(self.tmp.name).parent / ("external-status-" + self.action.action_id + ".json")
+        try:
+            external_target.write_bytes(original_status)
+            status_path.unlink()
+            os.link(external_target, status_path)
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_sidecar_file_identity"):
+                executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        finally:
+            if status_path.is_symlink() or status_path.exists():
+                status_path.unlink()
+            status_path.write_bytes(original_status)
+            if external_target.exists():
+                external_target.unlink()
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

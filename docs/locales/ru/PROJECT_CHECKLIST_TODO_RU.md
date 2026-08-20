@@ -1790,3 +1790,16 @@ Focused manifest-discovery result: `56/56` execution-recovery tests passed with 
 | CHILD-204 | Native/external sidecar binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness sidecar alias/orphan discovery не проверялись. |
 
 Focused sidecar-binding result: `58/58` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 path-containment checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-205 | Path containment | `DONE / BOUNDED LOCAL` | Canonical evidence paths проверяются через realpath/commonpath внутри expected event directory. |
+| CHILD-206 | Manifest file identity | `DONE / BOUNDED LOCAL` | Manifest symlink и multi-link manifest отклоняются до payload acceptance. |
+| CHILD-207 | Sidecar file identity | `DONE / BOUNDED LOCAL` | External hardlink status sidecar отклоняется с `recovery_replay_completeness_sidecar_file_identity`. |
+| CHILD-208 | Trusted regular-file restoration | `DONE / BOUNDED LOCAL` | После восстановления независимого regular status file completeness count снова проходит. |
+| CHILD-209 | Native/external path identity | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness hardlink/path identity не проверялись. |
+
+Focused path-containment result: `59/59` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
