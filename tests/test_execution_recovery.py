@@ -5,6 +5,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt
 from noesis_harness.execution_recovery import ExecutionRecoveryAction, ExecutionRecoveryError, ExecutionRecoveryExecutor, _snapshot_signature
@@ -388,6 +389,32 @@ class ExecutionRecoveryTests(unittest.TestCase):
         completed = subprocess.run([sys.executable, "-c", child, self.tmp.name, event_path], capture_output=True, text=True, env=env, check=True)
         self.assertEqual(completed.stdout.strip(), "passed")
         self.assertEqual(completed.stderr, "")
+
+    def test_completeness_snapshot_replace_interruption_preserves_previous_valid_snapshot(self):
+        event_path = str(Path(self.tmp.name) / "completeness-replace-interruption-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        previous_bytes = snapshot_path.read_bytes()
+        with patch("noesis_harness.execution_recovery.os.replace", side_effect=OSError("simulated_process_interruption")):
+            with self.assertRaisesRegex(OSError, "simulated_process_interruption"):
+                executor.persist_replay_evidence_completeness()
+        self.assertEqual(snapshot_path.read_bytes(), previous_bytes)
+        self.assertEqual(executor.verify_replay_evidence_completeness_snapshot()["status"], "passed")
+        self.assertEqual(list(snapshot_path.parent.glob(".recovery-chain-*.tmp")), [])
+
+    def test_completeness_snapshot_ignores_orphan_partial_temporary_file(self):
+        event_path = str(Path(self.tmp.name) / "completeness-partial-temp-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        partial_path = snapshot_path.parent / ".recovery-chain-crashed.tmp"
+        partial_path.write_text('{"payload": {"status": "passed"}', encoding="utf-8")
+        self.assertEqual(executor.verify_replay_evidence_completeness_snapshot()["status"], "passed")
+        snapshot_path.unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_missing"):
+            executor.verify_replay_evidence_completeness_snapshot()
+        self.assertTrue(partial_path.exists())
 
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")

@@ -1688,3 +1688,15 @@ Focused canonical-field result: `45/45` execution-recovery tests passed with Pyt
 | CHILD-166 | Native/external deterministic reopen | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness process-boundary reopen evidence не проверялись. |
 
 Focused deterministic-reopen result: `47/47` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 completeness snapshot interrupted-write checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-167 | Interrupted replacement | `DONE / BOUNDED LOCAL` | Simulated `os.replace` interruption оставляет предыдущий canonical snapshot неизменённым и valid после reopen. |
+| CHILD-168 | Temporary cleanup | `DONE / BOUNDED LOCAL` | Atomic writer удаляет свой temporary file после interrupted replacement; orphan partial file не входит в accepted evidence path. |
+| CHILD-169 | No silent temp promotion | `DONE / BOUNDED LOCAL` | При missing canonical snapshot orphan partial temporary file не используется; verifier fail-closed с `recovery_replay_completeness_snapshot_missing`. |
+| CHILD-170 | Native/external interrupted write | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness interruption/reopen behavior не проверялись. |
+
+Focused interrupted-write result: `49/49` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
