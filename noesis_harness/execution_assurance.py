@@ -239,5 +239,24 @@ class ExecutionReceiptStore:
             raise AssuranceError("stored_receipt_tampered")
         return receipt
 
+    def audit(self) -> Mapping[str, Any]:
+        """Verify every stored receipt and return a deterministic integrity snapshot."""
+        with self._connection() as conn:
+            rows = conn.execute("SELECT receipt_id, payload FROM execution_receipts ORDER BY receipt_id").fetchall()
+        payloads = []
+        receipt_ids = []
+        for row in rows:
+            try:
+                receipt = self._from_payload(row[1])
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise AssuranceError("stored_receipt_tampered") from exc
+            if not verify_receipt(receipt, self.signing_key):
+                raise AssuranceError("stored_receipt_tampered")
+            if receipt.receipt_id != str(row[0]):
+                raise AssuranceError("stored_receipt_identity_mismatch")
+            receipt_ids.append(receipt.receipt_id)
+            payloads.append(row[1])
+        return {"status": "passed", "count": len(receipt_ids), "receipt_ids": tuple(receipt_ids), "aggregate_digest": _digest(tuple(payloads))}
+
 
 __all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "artifact_manifest", "build_artifact_diff_from_manifests", "build_artifact_diff", "create_receipt", "request_fingerprint", "verify_receipt"]

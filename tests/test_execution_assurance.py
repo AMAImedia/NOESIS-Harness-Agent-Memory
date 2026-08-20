@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,6 +55,35 @@ class ExecutionAssuranceTests(unittest.TestCase):
             self.assertEqual(reopened.get(receipt.receipt_id), receipt)
             with self.assertRaisesRegex(AssuranceError, "invalid_signed_receipt"):
                 reopened.put(create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True))
+
+    def test_receipt_store_audit_is_deterministic_and_restart_safe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"receipt-audit-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            receipt = create_receipt(request={"tool": "audit"}, policy={"capability": "read"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            store.put(receipt)
+            first = store.audit()
+            second = ExecutionReceiptStore(path, signing_key=key).audit()
+            self.assertEqual(first, second)
+            self.assertEqual(first["count"], 1)
+            self.assertEqual(first["receipt_ids"], (receipt.receipt_id,))
+
+    def test_receipt_store_audit_rejects_stored_corruption(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"receipt-audit-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            receipt = create_receipt(request={"tool": "audit"}, policy={"capability": "read"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            store.put(receipt)
+            conn = sqlite3.connect(path)
+            try:
+                conn.execute("UPDATE execution_receipts SET payload = ? WHERE receipt_id = ?", ("{}", receipt.receipt_id))
+                conn.commit()
+            finally:
+                conn.close()
+            with self.assertRaisesRegex(AssuranceError, "stored_receipt_tampered"):
+                ExecutionReceiptStore(path, signing_key=key).audit()
 
     def test_terminal_completion_is_idempotent_but_conflicts_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:

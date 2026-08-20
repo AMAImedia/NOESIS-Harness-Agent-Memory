@@ -1317,3 +1317,14 @@ Focused recovery result: `29/29` assurance, recovery, child-runtime and export t
 | CHILD-19 | Native/external lifecycle evidence | `NOT_RUN / ENVIRONMENT-GATED` | Matching Windows/macOS hosts и pinned external harness environments остаются недоступны. |
 
 Focused terminal lifecycle result: `30/30` assurance, recovery, child-runtime и export tests passed with Python 3.14.7 and `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 receipt-store audit checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-20 | Durable receipt audit snapshot | `DONE / BOUNDED LOCAL` | Все stored receipts проверяются в deterministic order; snapshot содержит count, IDs и aggregate digest. |
+| CHILD-21 | Corruption fail-closed | `DONE / BOUNDED LOCAL` | Malformed payload, invalid digest/HMAC и row identity mismatch отклоняются до формирования passed evidence. |
+| CHILD-22 | Native/external receipt audit | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external harness receipt stores не проверялись без matching environments. |
+
+Focused receipt audit result: `32/32` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
