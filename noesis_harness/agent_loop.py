@@ -16,6 +16,10 @@ import time
 class AgentLoop:
     def __init__(self, agent_id, memory, leases, pack, guard, judge,
                  budget=None, hitl=None, events=None, max_turns=8, clock=None):
+        if not isinstance(max_turns, int) or isinstance(max_turns, bool) or max_turns < 1:
+            raise ValueError("max_turns_invalid")
+        if clock is not None and not callable(clock):
+            raise ValueError("clock_invalid")
         self.agent_id = agent_id
         self.memory = memory
         self.leases = leases

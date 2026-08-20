@@ -80,6 +80,18 @@ class AgentLoopTests(unittest.TestCase):
     def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None, memory=None, budget=None):
         return AgentLoop("agent", memory or _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock, budget=budget)
 
+    def test_invalid_max_turns_is_rejected_before_execution(self):
+        with self.assertRaisesRegex(ValueError, "max_turns_invalid"):
+            self.make_loop(max_turns=0)
+        with self.assertRaisesRegex(ValueError, "max_turns_invalid"):
+            self.make_loop(max_turns=-1)
+        with self.assertRaisesRegex(ValueError, "max_turns_invalid"):
+            self.make_loop(max_turns=True)
+
+    def test_non_callable_clock_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "clock_invalid"):
+            self.make_loop(clock=123)
+
     def test_max_turns_is_bounded(self):
         calls = []
         loop = self.make_loop(max_turns=2)
