@@ -1567,3 +1567,11 @@ Focused completeness result: `59/59` assurance, recovery, child-runtime и expor
 | CHILD-112 | Completeness snapshot recovery denial | `DONE / BOUNDED LOCAL` | Missing, corrupt, signed path mismatch и completeness drift fail-closed; automatic recreation during replay запрещена. |
 | CHILD-113 | Native/external completeness snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completeness snapshots не проверялись. |
 Focused durable completeness result: `62/62` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 commit-manifest finality checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-114 | Provisional-to-final transition | `DONE / BOUNDED LOCAL` | New action сначала получает provisional manifest, затем completeness snapshot и final atomic manifest rewrite; multi-action update не ломает replay. |
+| CHILD-115 | Stable completeness binding | `DONE / BOUNDED LOCAL` | Manifest связывается с stable per-action completeness-record digest, а не с mutable aggregate completeness digest. |
+| CHILD-116 | Final write ordering | `DONE / BOUNDED LOCAL` | Exact replay требует final manifest после current completeness snapshot verification. |
+| CHILD-117 | Native/external finality | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness finality transitions не проверялись. |
+Focused finality result: `62/62` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
