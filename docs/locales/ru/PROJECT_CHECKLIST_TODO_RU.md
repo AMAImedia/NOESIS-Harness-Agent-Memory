@@ -1551,3 +1551,11 @@ Focused durable catalog result: `55/55` assurance, recovery, child-runtime и ex
 | CHILD-104 | Partial-bundle denial | `DONE / BOUNDED LOCAL` | Missing, corrupt, signed path mismatch и manifest digest drift fail-closed; automatic repair запрещён. |
 | CHILD-105 | Native/external commit manifests | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness commit manifests не проверялись. |
 Focused manifest result: `58/58` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 replay evidence completeness checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-106 | Completeness schema | `DONE / BOUNDED LOCAL` | `audit_replay_evidence_completeness()` выпускает read-only `noesis.recovery-replay-evidence-completeness.v1`. |
+| CHILD-107 | One manifest per completion | `DONE / BOUNDED LOCAL` | Каждый completed recovery event обязан иметь exactly one valid action-scoped signed commit manifest. |
+| CHILD-108 | Count parity and receipt binding | `DONE / BOUNDED LOCAL` | Event count, manifest count и catalog count обязаны совпадать; completion receipt identity проверяется against durable receipt store. |
+| CHILD-109 | Native/external completeness | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completeness audits не проверялись. |
+Focused completeness result: `59/59` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

@@ -26,6 +26,8 @@ After catalog verification, the executor atomically persists a signed global `no
 
 The final write is a signed `noesis.recovery-replay-evidence-commit-manifest.v1` for each action. It binds the action, committed completion receipt, action-scoped status/replay/inventory snapshots, the global catalog snapshot, and their digests. Exact replay verifies this manifest last, so a partial evidence bundle cannot be promoted to `replayed`; missing, corrupt, path-mismatched, tampered, or drifted manifests fail closed without repair.
 
+`audit_replay_evidence_completeness()` is a read-only startup-style audit with schema `noesis.recovery-replay-evidence-completeness.v1`. It requires one valid action-scoped commit manifest for every completed recovery event, validates receipt identity and manifest paths, and requires manifest count to equal both event count and catalog count. Any missing, duplicate, corrupt, conflicting, or uncommitted completion blocks the completeness claim.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

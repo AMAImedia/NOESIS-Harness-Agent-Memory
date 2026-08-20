@@ -516,6 +516,56 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_commit_manifest_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def audit_replay_evidence_completeness(self) -> Mapping[str, Any]:
+        """Audit that every completed recovery action has one signed evidence manifest."""
+        parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
+        base = os.path.basename(str(self.events.path)) + ".replay-commit."
+        expected = {}
+        for event in self.events.iter_events():
+            if event.get("type") == "execution_recovery_completed":
+                payload = event.get("payload")
+                if not isinstance(payload, Mapping):
+                    raise ExecutionRecoveryError("recovery_replay_completeness_event_corrupt")
+                action_id = str(payload.get("action_id", ""))
+                if not action_id or action_id in expected:
+                    raise ExecutionRecoveryError("recovery_replay_completeness_duplicate_action")
+                expected[action_id] = dict(payload)
+        candidates = sorted(name for name in os.listdir(parent) if name.startswith(base) and name.endswith(".json"))
+        records = []
+        seen = set()
+        for name in candidates:
+            manifest_path = os.path.join(parent, name)
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as handle:
+                    snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+                payload = snapshot["payload"]
+                signature = str(snapshot["signature"])
+            except _DuplicateJSONKeyError as exc:
+                raise ExecutionRecoveryError("recovery_replay_completeness_duplicate_record") from exc
+            except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ExecutionRecoveryError("recovery_replay_completeness_corrupt") from exc
+            if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+                raise ExecutionRecoveryError("recovery_replay_completeness_signature_invalid")
+            action_id = str(payload.get("action_id", ""))
+            if not action_id or action_id in seen:
+                raise ExecutionRecoveryError("recovery_replay_completeness_duplicate_action")
+            seen.add(action_id)
+            if os.path.abspath(manifest_path) != os.path.abspath(self._replay_commit_manifest_path(action_id)):
+                raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
+            event_payload = expected.get(action_id)
+            if event_payload is None or payload.get("action_digest") != event_payload.get("action_digest") or payload.get("completion_receipt_id") != event_payload.get("completion_receipt_id"):
+                raise ExecutionRecoveryError("recovery_replay_completeness_identity_conflict")
+            receipt = self.receipt_store.get(str(payload.get("completion_receipt_id", "")))
+            if receipt is None or receipt.outcome != "committed":
+                raise ExecutionRecoveryError("recovery_replay_completeness_receipt_invalid")
+            records.append({"action_id": action_id, "manifest_path": manifest_path, "action_digest": str(payload.get("action_digest", "")), "completion_receipt_id": str(payload.get("completion_receipt_id", ""))})
+        if set(expected) != seen:
+            raise ExecutionRecoveryError("recovery_replay_completeness_manifest_missing")
+        catalog = self.audit_replay_evidence_catalog()
+        if int(catalog.get("count", 0)) != len(expected):
+            raise ExecutionRecoveryError("recovery_replay_completeness_catalog_mismatch")
+        return {"schema_version": "noesis.recovery-replay-evidence-completeness.v1", "status": "passed", "event_count": len(expected), "manifest_count": len(records), "catalog_count": int(catalog["count"]), "records": records, "completeness_digest": request_fingerprint({"records": records, "catalog_digest": catalog["catalog_digest"]})}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -529,7 +579,8 @@ class ExecutionRecoveryExecutor:
             replay_catalog = self.audit_replay_evidence_catalog()
             replay_catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
             replay_commit_manifest = self.verify_replay_evidence_commit_manifest(action)
-            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest}
+            replay_completeness = self.audit_replay_evidence_completeness()
+            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None

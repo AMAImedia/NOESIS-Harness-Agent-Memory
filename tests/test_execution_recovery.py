@@ -64,6 +64,8 @@ class ExecutionRecoveryTests(unittest.TestCase):
         commit_manifest = executor.verify_replay_evidence_commit_manifest(self.action)
         self.assertEqual(commit_manifest["payload"]["schema_version"], "noesis.recovery-replay-evidence-commit-manifest.v1")
         self.assertEqual(replay["replay_commit_manifest"]["status"], "passed")
+        self.assertEqual(replay["replay_completeness"]["schema_version"], "noesis.recovery-replay-evidence-completeness.v1")
+        self.assertEqual(replay["replay_completeness"]["manifest_count"], 1)
         self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 1)
         inventory_one = executor.audit_replay_snapshot_inventory(self.action)
         inventory_two = executor.audit_replay_snapshot_inventory(self.action)
@@ -93,6 +95,7 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(replay_two["replay_catalog"]["count"], 2)
         self.assertEqual(replay_two["replay_catalog_snapshot"]["payload"]["count"], 2)
         self.assertEqual(replay_two["replay_commit_manifest"]["status"], "passed")
+        self.assertEqual(replay_two["replay_completeness"]["manifest_count"], 2)
         self.assertEqual(executor.verify_replay_evidence_commit_manifest(action_two)["status"], "passed")
         self.assertEqual(executor.verify_replay_evidence_catalog_snapshot()["status"], "passed")
         self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 2)
@@ -232,6 +235,14 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_identity_conflict"):
             executor.audit_replay_snapshot_inventory(self.action)
+
+    def test_replay_completeness_rejects_missing_manifest(self):
+        event_path = str(Path(self.tmp.name) / "missing-completeness-manifest-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(executor._replay_commit_manifest_path(self.action.action_id)).unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_manifest_missing"):
+            executor.audit_replay_evidence_completeness()
 
     def test_replay_commit_manifest_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-commit-manifest-events.jsonl")
