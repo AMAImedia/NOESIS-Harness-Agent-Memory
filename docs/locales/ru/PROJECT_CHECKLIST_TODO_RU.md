@@ -1725,3 +1725,16 @@ Focused multi-action result: `50/50` execution-recovery tests passed with Python
 | CHILD-179 | Native/external manifest repair | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness manifest corruption/repair не проверялись. |
 
 Focused manifest-corruption result: `51/51` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 global catalog-corruption checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-180 | Signed catalog corruption denial | `DONE / BOUNDED LOCAL` | Signed catalog snapshot с extra record и drifted count вызывает `recovery_replay_catalog_snapshot_drift`. |
+| CHILD-181 | No partial catalog parity | `DONE / BOUNDED LOCAL` | Multi-action completeness audit блокируется до count parity; corrupted global catalog не даёт partial `catalog_count`. |
+| CHILD-182 | Trusted catalog restoration | `DONE / BOUNDED LOCAL` | После explicit restoration trusted catalog snapshot `verify_replay_evidence_catalog_snapshot()` снова проходит. |
+| CHILD-183 | Deterministic catalog finalization | `DONE / BOUNDED LOCAL` | Repeated catalog persistence byte-identical; restored completeness `catalog_count=2` и durable snapshot verification проходят. |
+| CHILD-184 | Native/external catalog recovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness global catalog corruption/repair не проверялись. |
+
+Focused catalog-corruption result: `52/52` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

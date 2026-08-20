@@ -470,6 +470,38 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 2)
         self.assertEqual(executor.verify_replay_evidence_commit_manifest(action_two)["status"], "passed")
 
+    def test_multi_action_corrupted_catalog_blocks_bundle_then_restores_deterministically(self):
+        event_path = str(Path(self.tmp.name) / "completeness-catalog-corruption-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        self.recovery.begin("run-catalog-2", "sha256:before")
+        self.recovery.complete("run-catalog-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        proposal = PatchProposal("patch-catalog-2", "ws-1", "snap-base", "snap-head", ({"path": "out-catalog-2.txt", "kind": "modified"},), "approved")
+        self.patches.put(proposal)
+        action_two = ExecutionRecoveryAction("action-catalog-2", "rollback", "run-catalog-2", self.receipt.receipt_id, "patch-catalog-2", "ws-1", "snap-base", "operator-1", "session-1")
+        executor.handle(action_two, self.context)
+        catalog_path = Path(executor._replay_catalog_snapshot_path())
+        original_catalog = catalog_path.read_bytes()
+        corrupted = json.loads(original_catalog)
+        corrupted["payload"]["records"].append({"action_id": "catalog-untrusted-extra"})
+        corrupted["payload"]["count"] = len(corrupted["payload"]["records"])
+        corrupted["payload"]["catalog_digest"] = executor.audit_replay_evidence_catalog()["catalog_digest"]
+        corrupted["signature"] = _snapshot_signature(corrupted["payload"], self.key)
+        catalog_path.write_text(json.dumps(corrupted, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_catalog_snapshot_drift"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_catalog_snapshot_drift"):
+            executor.verify_replay_evidence_catalog_snapshot()
+        catalog_path.write_bytes(original_catalog)
+        self.assertEqual(executor.verify_replay_evidence_catalog_snapshot()["status"], "passed")
+        rebuilt = executor.persist_replay_evidence_catalog()
+        self.assertEqual(rebuilt["payload"]["count"], 2)
+        repaired_bytes = catalog_path.read_bytes()
+        executor.persist_replay_evidence_catalog()
+        self.assertEqual(catalog_path.read_bytes(), repaired_bytes)
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["catalog_count"], 2)
+        self.assertEqual(executor.verify_replay_evidence_completeness_snapshot()["status"], "passed")
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
