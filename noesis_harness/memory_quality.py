@@ -6,7 +6,8 @@ import json
 import math
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from pathlib import Path
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 from .context_engine import ContextItem
 from .memory_ab import ControlledMemoryEvaluator, MemoryABCase
@@ -109,6 +110,18 @@ class MemoryComparisonReport:
     recall_gain_mean: float
     baseline_budget_compliance: float
     nextgen_budget_compliance: float
+
+
+@dataclass(frozen=True)
+class RealMemoryReuseStressReport:
+    repetitions: int
+    scale: int
+    session_count: int
+    total_cases: int
+    recall_mean: float
+    recall_distribution: Tuple[float, ...]
+    persistence_verified: bool
+    distribution_digest: str
 
 
 @dataclass(frozen=True)
@@ -216,6 +229,43 @@ class DurableMemoryQualityAdapter:
         return MultiSessionMemoryQualityReport(len(grouped), len(aggregate_cases), session_metrics, aggregate)
 
 
+def run_real_memory_reuse_stress(memory_path: str, trace_path: str, *, repetitions: int = 3, scale: int = 32, budget_tokens: int = 64) -> RealMemoryReuseStressReport:
+    """Exercise durable Memory recall across repeated sessions and reopen boundaries.
+
+    The runner writes deterministic semantic facts and distractors into the real
+    SQLite Memory store, recalls by query, records each observed result in the
+    durable quality trace store, closes/reopens Memory between repetitions, and
+    aggregates the resulting distribution. It never asks a model to grade itself.
+    """
+    if repetitions < 1 or repetitions > 100 or scale < 1 or budget_tokens < 1:
+        raise MemoryQualityError("real_stress_parameters_invalid")
+    from .memory import Memory
+    memory_file = str(Path(memory_path).expanduser())
+    trace_store = DurableMemoryQualityTraceStore(str(Path(trace_path).expanduser()))
+    recall_distribution = []
+    persistence_verified = True
+    for repetition in range(int(repetitions)):
+        session_id = "real-reuse-%d" % repetition
+        memory = Memory(memory_file)
+        relevant_id = memory.save("verified rollback recovery checkpoint token %d" % repetition, confidence=1.0)
+        for index in range(int(scale)):
+            memory.save("historical unrelated distractor %d repetition %d" % (index, repetition), confidence=0.2)
+        hits = memory.recall("rollback recovery checkpoint token %d" % repetition, limit=4)
+        selected_ids = tuple(str(hit.get("id")) for hit in hits if hit.get("id"))
+        recalled = float(relevant_id in selected_ids)
+        case = MemoryQualityCase("real-case-%d" % repetition, (relevant_id,), selected_ids, (relevant_id,) if recalled else (), True, True, (relevant_id,) if recalled else (), (relevant_id,), min(budget_tokens, 8), budget_tokens, True, (relevant_id,) if recalled else (), (relevant_id,))
+        adapter = DurableMemoryQualityAdapter(memory, trace_store)
+        adapter.record(session_id, case, query="rollback recovery checkpoint token %d" % repetition)
+        del memory
+        reopened = Memory(memory_file)
+        persistence_verified = persistence_verified and any(row.get("id") == relevant_id for row in reopened.recall("rollback recovery checkpoint token %d" % repetition, limit=8))
+        del reopened
+        recall_distribution.append(recalled)
+    report = DurableMemoryQualityAdapter(Memory(memory_file), trace_store).evaluate_sessions(tuple("real-reuse-%d" % index for index in range(int(repetitions))))
+    encoded = json.dumps(tuple(recall_distribution), separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return RealMemoryReuseStressReport(int(repetitions), int(scale), report.session_count, report.total_cases, sum(recall_distribution) / len(recall_distribution), tuple(recall_distribution), bool(persistence_verified), hashlib.sha256(encoded).hexdigest())
+
+
 def build_long_context_cases(scales: Sequence[int] = (32, 128, 512), budget_tokens: int = 64) -> tuple[MemoryABCase, ...]:
     """Build deterministic long-context fixtures; every case has a hard budget."""
     if budget_tokens < 1 or not scales or any(int(scale) < 1 for scale in scales):
@@ -239,4 +289,4 @@ def compare_baseline_nextgen(cases: Sequence[MemoryABCase], repetitions: int = 3
     return MemoryComparisonReport(int(repetitions), len(cases), baseline, nextgen, nextgen - baseline, sum(outcome.legacy_used_tokens <= outcome.budget_tokens for run in outcomes for outcome in run) / total, sum(outcome.hard_cap_respected for run in outcomes for outcome in run) / total)
 
 
-__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator", "MemoryComparisonReport", "MultiSessionMemoryQualityReport", "MemoryTrajectoryStep", "DurableMemoryQualityTraceStore", "DurableMemoryQualityAdapter", "build_long_context_cases", "compare_baseline_nextgen"]
+__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator", "MemoryComparisonReport", "RealMemoryReuseStressReport", "MultiSessionMemoryQualityReport", "MemoryTrajectoryStep", "DurableMemoryQualityTraceStore", "DurableMemoryQualityAdapter", "run_real_memory_reuse_stress", "build_long_context_cases", "compare_baseline_nextgen"]

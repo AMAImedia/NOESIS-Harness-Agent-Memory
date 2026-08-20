@@ -1271,3 +1271,13 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | External Hermes/OpenCode/DeepSeek Harness A/B | `NOT_RUN / EXTERNAL-GATED` | Exact pinned revisions, executable availability, protocol fingerprints, environment digests and operator-approved evidence bundle are still required. |
 
 Focused Python 3.14.7 evidence for this checkpoint: `38/38` tests passed with `-W error::ResourceWarning`; full regression remains mandatory before GitHub checkpoint.
+
+## 2026-08-20 — MEM-09 real durable memory reuse checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| MEM-09 | Durable memory traces with real long-context reuse | `DONE / BOUNDED LOCAL` | `run_real_memory_reuse_stress` записывает факты через реальный `Memory.save`, получает selection через `Memory.recall`, сохраняет durable traces, reopen-ит SQLite после каждой repetition и агрегирует deterministic distribution digest; focused tests passed. |
+| MEM-09-NATIVE | Native Windows/macOS memory evidence | `NOT_RUN / HOST REQUIRED` | Matching native hosts and signed target-host evidence remain unavailable in the local Linux lane. |
+| MEM-09-EXTERNAL | External long-context A/B | `NOT_RUN / PINNED ENV REQUIRED` | Exact Hermes/OpenCode/DeepSeek Harness revisions, executables, protocol fingerprints, disposable environments and operator-approved receipts remain required. |
+
+Current local MEM-09 fixture result: 4 repetitions × 24 distractors, 4/4 relevant facts recalled after reopen, persistence verified, deterministic distribution digest. This is local durability/retrieval evidence, not a general intelligence or superiority claim.

@@ -128,6 +128,27 @@ class MemoryQualityTests(unittest.TestCase):
         self.assertGreater(report.nextgen_recall_mean, report.baseline_recall_mean)
         self.assertGreater(report.recall_gain_mean, 0.0)
 
+    def test_real_memory_reuse_stress_reopens_and_is_deterministic(self):
+        from noesis_harness.memory_quality import run_real_memory_reuse_stress
+        with tempfile.TemporaryDirectory() as tmp:
+            report = run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality.db"), repetitions=4, scale=24)
+            self.assertEqual(report.repetitions, 4)
+            self.assertEqual(report.session_count, 4)
+            self.assertEqual(report.total_cases, 4)
+            self.assertEqual(report.recall_mean, 1.0)
+            self.assertEqual(report.recall_distribution, (1.0, 1.0, 1.0, 1.0))
+            self.assertTrue(report.persistence_verified)
+            reopened = run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality-2.db"), repetitions=4, scale=24)
+            self.assertEqual(reopened.distribution_digest, report.distribution_digest)
+
+    def test_real_memory_reuse_stress_rejects_unbounded_parameters(self):
+        from noesis_harness.memory_quality import run_real_memory_reuse_stress
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(MemoryQualityError, "real_stress_parameters_invalid"):
+                run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality.db"), repetitions=0)
+            with self.assertRaisesRegex(MemoryQualityError, "real_stress_parameters_invalid"):
+                run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality.db"), scale=0)
+
     def test_duplicate_and_empty_memory_cases_fail_closed(self):
         evaluator = MemoryQualityEvaluator()
         case = MemoryQualityCase("same", (), (), (), True, True, (), (), 0, 10)
