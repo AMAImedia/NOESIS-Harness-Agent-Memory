@@ -353,6 +353,79 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def audit_replay_evidence_catalog(self) -> Mapping[str, Any]:
+        """Audit every action-scoped replay inventory sidecar without creating state."""
+        parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
+        base = os.path.basename(str(self.events.path)) + ".replay."
+        suffix = ".json.inventory.json"
+        candidates = sorted(name for name in os.listdir(parent) if name.startswith(base) and name.endswith(suffix))
+        records = []
+        seen_actions = set()
+        events_by_action = {}
+        for event in self.events.iter_events():
+            if event.get("type") == "execution_recovery_completed":
+                event_payload = event.get("payload")
+                if isinstance(event_payload, Mapping):
+                    events_by_action[str(event_payload.get("action_id", ""))] = dict(event_payload)
+        for name in candidates:
+            inventory_path = os.path.join(parent, name)
+            try:
+                with open(inventory_path, "r", encoding="utf-8") as handle:
+                    snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+                payload = snapshot["payload"]
+                signature = str(snapshot["signature"])
+            except _DuplicateJSONKeyError as exc:
+                raise ExecutionRecoveryError("recovery_replay_catalog_duplicate_record") from exc
+            except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ExecutionRecoveryError("recovery_replay_catalog_corrupt") from exc
+            if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+                raise ExecutionRecoveryError("recovery_replay_catalog_signature_invalid")
+            action_id = str(payload.get("action_id", ""))
+            if not action_id or action_id in seen_actions:
+                raise ExecutionRecoveryError("recovery_replay_catalog_duplicate_action")
+            seen_actions.add(action_id)
+            if os.path.abspath(str(payload.get("inventory_path", ""))) != os.path.abspath(inventory_path):
+                raise ExecutionRecoveryError("recovery_replay_catalog_inventory_path_mismatch")
+            replay_path = inventory_path[: -len(".inventory.json")]
+            if os.path.abspath(str(payload.get("snapshot_path", ""))) != os.path.abspath(replay_path):
+                raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_path_mismatch")
+            try:
+                with open(replay_path, "r", encoding="utf-8") as handle:
+                    replay_snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+                replay_payload = replay_snapshot["payload"]
+                replay_signature = str(replay_snapshot["signature"])
+            except _DuplicateJSONKeyError as exc:
+                raise ExecutionRecoveryError("recovery_replay_catalog_duplicate_record") from exc
+            except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ExecutionRecoveryError("recovery_replay_catalog_replay_missing") from exc
+            if not isinstance(replay_payload, Mapping) or not hmac.compare_digest(replay_signature, _snapshot_signature(replay_payload, self.receipt_store.signing_key)):
+                raise ExecutionRecoveryError("recovery_replay_catalog_replay_signature_invalid")
+            event_payload = events_by_action.get(action_id)
+            if event_payload is None or replay_payload.get("action_id") != action_id or payload.get("action_digest") != replay_payload.get("action_digest") or event_payload.get("action_digest") != replay_payload.get("action_digest"):
+                raise ExecutionRecoveryError("recovery_replay_catalog_identity_conflict")
+            receipt_id = str(payload.get("completion_receipt_id", ""))
+            if receipt_id != str(event_payload.get("completion_receipt_id", "")):
+                raise ExecutionRecoveryError("recovery_replay_catalog_receipt_conflict")
+            receipt = self.receipt_store.get(receipt_id)
+            if receipt is None or receipt.outcome != "committed":
+                raise ExecutionRecoveryError("recovery_replay_catalog_receipt_invalid")
+            status_path = self._status_snapshot_path(action_id)
+            try:
+                with open(status_path, "r", encoding="utf-8") as handle:
+                    status_snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+                status_payload = status_snapshot["payload"]
+                status_signature = str(status_snapshot["signature"])
+            except _DuplicateJSONKeyError as exc:
+                raise ExecutionRecoveryError("recovery_replay_catalog_duplicate_record") from exc
+            except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ExecutionRecoveryError("recovery_replay_catalog_status_missing") from exc
+            if not isinstance(status_payload, Mapping) or not hmac.compare_digest(status_signature, _snapshot_signature(status_payload, self.receipt_store.signing_key)):
+                raise ExecutionRecoveryError("recovery_replay_catalog_status_signature_invalid")
+            if status_payload.get("action_id") != action_id or replay_payload.get("status_snapshot_digest") != request_fingerprint(status_payload):
+                raise ExecutionRecoveryError("recovery_replay_catalog_status_conflict")
+            records.append({"action_id": action_id, "inventory_path": inventory_path, "snapshot_path": replay_path, "snapshot_digest": request_fingerprint(replay_payload), "completion_receipt_id": receipt_id})
+        return {"schema_version": "noesis.recovery-replay-evidence-catalog.v1", "status": "passed", "count": len(records), "records": records, "catalog_digest": request_fingerprint({"records": records})}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -363,7 +436,8 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_snapshot_missing")
             replay_snapshot = self.verify_replay_outcome_snapshot(action)
             replay_inventory_snapshot = self.verify_replay_snapshot_inventory_snapshot(action)
-            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot}
+            replay_catalog = self.audit_replay_evidence_catalog()
+            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None

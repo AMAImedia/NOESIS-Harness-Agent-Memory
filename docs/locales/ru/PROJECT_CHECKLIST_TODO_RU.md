@@ -1527,3 +1527,11 @@ Focused durable inventory result: `51/51` assurance, recovery, child-runtime и 
 | CHILD-92 | Multi-action replay isolation | `DONE / BOUNDED LOCAL` | Two completed actions preserve independent replay/inventory/status sidecars and both exact replays return `replayed`. |
 | CHILD-93 | Native/external action-scoped evidence | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness multi-action replay evidence не проверялись. |
 Focused action-scoped result: `51/51` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 replay evidence catalog checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-94 | Global replay evidence catalog | `DONE / BOUNDED LOCAL` | `audit_replay_evidence_catalog()` выпускает read-only `noesis.recovery-replay-evidence-catalog.v1` с deterministic catalog digest. |
+| CHILD-95 | Cross-artifact binding | `DONE / BOUNDED LOCAL` | Каждый inventory record связывается с action-scoped replay snapshot, action event, committed completion receipt и action-scoped status snapshot. |
+| CHILD-96 | Catalog fail-closed audit | `DONE / BOUNDED LOCAL` | Missing, duplicate, stale, path-conflicting, signature-invalid и identity-conflicting records отклоняются; exact replay запускает catalog audit. |
+| CHILD-97 | Native/external replay catalog | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness catalog audits не проверялись. |
+Focused catalog result: `52/52` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

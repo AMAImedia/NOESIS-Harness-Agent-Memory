@@ -20,6 +20,8 @@ After a confirmed replay snapshot is written, the executor atomically persists a
 
 Replay and inventory sidecars are action-scoped and use a deterministic digest of `action_id` in their filenames. The recovery-status projection used by replay is also action-scoped, so two completed actions on one append-only event log cannot overwrite each other’s replay evidence or status evidence. Global operator status remains available as a separate aggregate snapshot.
 
+`audit_replay_evidence_catalog()` is a read-only projection with schema `noesis.recovery-replay-evidence-catalog.v1`. It enumerates all action-scoped inventory sidecars, verifies their signatures and paths, binds each record to its replay snapshot, action event, committed completion receipt, and action-scoped status snapshot, and returns a deterministic catalog digest. Missing, duplicate, stale, path-conflicting, signature-invalid, or identity-conflicting records fail closed. Exact replay runs this catalog audit before returning `replayed`.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

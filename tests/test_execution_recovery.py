@@ -56,6 +56,9 @@ class ExecutionRecoveryTests(unittest.TestCase):
         inventory_snapshot = executor.verify_replay_snapshot_inventory_snapshot(self.action)
         self.assertEqual(inventory_snapshot["payload"]["schema_version"], "noesis.recovery-replay-snapshot-inventory-snapshot.v1")
         self.assertEqual(replay["replay_inventory_snapshot"]["status"], "passed")
+        self.assertEqual(replay["replay_catalog"]["schema_version"], "noesis.recovery-replay-evidence-catalog.v1")
+        self.assertEqual(replay["replay_catalog"]["count"], 1)
+        self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 1)
         inventory_one = executor.audit_replay_snapshot_inventory(self.action)
         inventory_two = executor.audit_replay_snapshot_inventory(self.action)
         self.assertEqual(inventory_one, inventory_two)
@@ -79,7 +82,10 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertTrue(Path(first_replay_path).exists())
         self.assertTrue(Path(first_inventory_path).exists())
         self.assertEqual(executor.handle(self.action, self.context)["status"], "replayed")
-        self.assertEqual(executor.handle(action_two, self.context)["status"], "replayed")
+        replay_two = executor.handle(action_two, self.context)
+        self.assertEqual(replay_two["status"], "replayed")
+        self.assertEqual(replay_two["replay_catalog"]["count"], 2)
+        self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 2)
         audited = executor.audit_completion_events()
         self.assertEqual(audited["status"], "passed")
         self.assertEqual(audited["count"], 2)
@@ -216,6 +222,19 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_identity_conflict"):
             executor.audit_replay_snapshot_inventory(self.action)
+
+    def test_replay_catalog_rejects_duplicate_action_records(self):
+        event_path = str(Path(self.tmp.name) / "duplicate-catalog-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        original_path = Path(executor._replay_inventory_snapshot_path(self.action.action_id))
+        duplicate_path = Path(str(original_path).replace(".inventory.json", ".zzz.json.inventory.json"))
+        duplicate = json.loads(original_path.read_text(encoding="utf-8"))
+        duplicate["payload"]["inventory_path"] = str(duplicate_path)
+        duplicate["signature"] = _snapshot_signature(duplicate["payload"], self.key)
+        duplicate_path.write_text(json.dumps(duplicate, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_catalog_duplicate_action"):
+            executor.audit_replay_evidence_catalog()
 
     def test_replay_snapshot_rejects_duplicate_record_keys(self):
         event_path = str(Path(self.tmp.name) / "duplicate-record-events.jsonl")
