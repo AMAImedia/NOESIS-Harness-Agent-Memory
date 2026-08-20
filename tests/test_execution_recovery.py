@@ -574,6 +574,33 @@ class ExecutionRecoveryTests(unittest.TestCase):
         executor.persist_replay_evidence_completeness()
         self.assertEqual(completeness_path.read_bytes(), stable_completeness)
 
+    def test_startup_completeness_rejects_orphan_manifest_before_parsing(self):
+        event_path = str(Path(self.tmp.name) / "completeness-orphan-manifest-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        orphan_path = Path(event_path + ".replay-commit.orphan.json")
+        orphan_path.write_text("not-json", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_orphan_manifest"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        orphan_path.unlink()
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
+
+    def test_startup_completeness_rejects_manifest_path_collision(self):
+        event_path = str(Path(self.tmp.name) / "completeness-path-collision-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        self.recovery.begin("run-collision-2", "sha256:before")
+        self.recovery.complete("run-collision-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        proposal = PatchProposal("patch-collision-2", "ws-1", "snap-base", "snap-head", ({"path": "out-collision-2.txt", "kind": "modified"},), "approved")
+        self.patches.put(proposal)
+        action_two = ExecutionRecoveryAction("action-collision-2", "rollback", "run-collision-2", self.receipt.receipt_id, "patch-collision-2", "ws-1", "snap-base", "operator-1", "session-1")
+        executor.handle(action_two, self.context)
+        canonical = executor._replay_commit_manifest_path(self.action.action_id)
+        with patch.object(executor, "_replay_commit_manifest_path", return_value=canonical):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_manifest_path_collision"):
+                executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 2)
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

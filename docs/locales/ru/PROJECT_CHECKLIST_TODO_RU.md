@@ -1764,3 +1764,16 @@ Focused catalog-record binding result: `53/53` execution-recovery tests passed w
 | CHILD-194 | Native/external duplicate identity | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness duplicate identity recovery не проверялись. |
 
 Focused duplicate-identity result: `54/54` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 strict manifest discovery checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-195 | Orphan manifest denial | `DONE / BOUNDED LOCAL` | Unknown/orphan manifest filename отклоняется до parsing с `recovery_replay_completeness_orphan_manifest`. |
+| CHILD-196 | Canonical path collision | `DONE / BOUNDED LOCAL` | Если две expected actions отображаются в один canonical manifest path, audit fail-closed с `recovery_replay_completeness_manifest_path_collision`. |
+| CHILD-197 | No pre-parity parsing | `DONE / BOUNDED LOCAL` | Orphan `not-json` файл отклоняется по filename discovery, не маскируясь как corrupt/partial accepted record. |
+| CHILD-198 | Clean restoration | `DONE / BOUNDED LOCAL` | После удаления orphan manifest и восстановления canonical mapping completeness count снова проходит. |
+| CHILD-199 | Native/external manifest discovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness unknown/orphan manifest discovery не проверялись. |
+
+Focused manifest-discovery result: `56/56` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

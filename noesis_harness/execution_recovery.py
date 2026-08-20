@@ -561,6 +561,12 @@ class ExecutionRecoveryExecutor:
                     raise ExecutionRecoveryError("recovery_replay_completeness_duplicate_action")
                 expected[action_id] = dict(payload)
         candidates = sorted(name for name in os.listdir(parent) if name.startswith(base) and name.endswith(".json"))
+        expected_manifest_names = {os.path.basename(self._replay_commit_manifest_path(action_id)) for action_id in expected}
+        if len(expected_manifest_names) != len(expected):
+            raise ExecutionRecoveryError("recovery_replay_completeness_manifest_path_collision")
+        unknown_manifest_names = set(candidates) - expected_manifest_names
+        if unknown_manifest_names:
+            raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
         records = []
         seen = set()
         for name in candidates:
