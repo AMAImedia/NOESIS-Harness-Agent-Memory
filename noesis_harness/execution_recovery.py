@@ -200,6 +200,35 @@ class ExecutionRecoveryExecutor:
             return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "not_run", "claim": False, "reason": str(snapshot.get("reason", "no_completion_events")), "chain": evidence.get("chain")}
         return {"schema_version": "noesis.recovery-evidence-status.v1", "status": "passed", "claim": True, "chain": evidence.get("chain"), "snapshot": snapshot}
 
+    def _status_snapshot_path(self) -> str:
+        return str(self.events.path) + ".status.json"
+
+    def persist_recovery_evidence_status(self) -> Mapping[str, Any]:
+        """Atomically persist a signed machine-readable recovery status projection."""
+        status = self.recovery_evidence_status()
+        payload = {"schema_version": "noesis.recovery-evidence-status-snapshot.v1", "event_path": str(self.events.path), "status": status["status"], "claim": bool(status["claim"]), "reason": str(status.get("reason", "")), "chain_digest": str((status.get("chain") or {}).get("chain_digest", ""))}
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._status_snapshot_path(), snapshot)
+        return snapshot
+
+    def verify_recovery_evidence_status_snapshot(self) -> Mapping[str, Any]:
+        """Verify the persisted status projection against current recovery evidence."""
+        try:
+            with open(self._status_snapshot_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_status_snapshot_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_status_snapshot_signature_invalid")
+        current = self.recovery_evidence_status()
+        expected = {"event_path": str(self.events.path), "status": current["status"], "claim": bool(current["claim"]), "reason": str(current.get("reason", "")), "chain_digest": str((current.get("chain") or {}).get("chain_digest", ""))}
+        for key, value in expected.items():
+            if payload.get(key) != value:
+                raise ExecutionRecoveryError("recovery_status_snapshot_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -261,6 +290,7 @@ class ExecutionRecoveryExecutor:
         payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "chain_snapshot_id": action.chain_snapshot_id, "chain_snapshot_digest": chain_snapshot.get("snapshot_digest", "") if chain_snapshot is not None else "", "completion_receipt_id": completion.receipt_id, "recovery_state": state, "previous_event_digest": prior_digest}
         self.events.append("execution_recovery_completed", payload, event_id="execution-recovery:" + action.action_id)
         self.persist_completion_event_snapshot()
+        self.persist_recovery_evidence_status()
         return payload
 
 

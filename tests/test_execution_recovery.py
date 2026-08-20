@@ -44,6 +44,8 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(evidence["chain"]["count"], 1)
         self.assertEqual(executor.recovery_evidence_status()["status"], "passed")
         self.assertTrue(executor.recovery_evidence_status()["claim"])
+        status_snapshot = executor.verify_recovery_evidence_status_snapshot()
+        self.assertEqual(status_snapshot["status"], "passed")
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
 
@@ -92,6 +94,22 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(blocked["status"], "blocked")
         self.assertFalse(blocked["claim"])
         self.assertEqual(blocked["reason"], "recovery_event_snapshot_missing")
+
+    def test_status_snapshot_rejects_tamper_and_projection_drift(self):
+        event_path = str(Path(self.tmp.name) / "status-snapshot-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".status.json")
+        original = snapshot_path.read_text(encoding="utf-8")
+        tampered = json.loads(original)
+        tampered["payload"]["claim"] = False
+        snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "status_snapshot_signature_invalid"):
+            executor.verify_recovery_evidence_status_snapshot()
+        snapshot_path.write_text(original, encoding="utf-8")
+        Path(event_path + ".snapshot.json").unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "status_snapshot_drift"):
+            executor.verify_recovery_evidence_status_snapshot()
 
     def test_startup_evidence_gate_rejects_missing_snapshot(self):
         event_path = str(Path(self.tmp.name) / "missing-snapshot-events.jsonl")

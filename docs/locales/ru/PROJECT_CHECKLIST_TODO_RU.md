@@ -1448,3 +1448,15 @@ Focused startup/replay result: `40/40` assurance, recovery, child-runtime и exp
 | CHILD-62 | Native/external status projection | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness status evidence не проверялись. |
 
 Focused status result: `41/41` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 recovery status snapshot checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-63 | Signed status snapshot | `DONE / BOUNDED LOCAL` | После completion сохраняется signed status sidecar с status, claim, reason и chain digest. |
+| CHILD-64 | Status snapshot reopen | `DONE / BOUNDED LOCAL` | Reopen проверяет HMAC и сравнивает projection с current recovery evidence. |
+| CHILD-65 | Status snapshot tamper/drift | `DONE / BOUNDED LOCAL` | Tampered sidecar и drift underlying event/snapshot state fail-closed. |
+| CHILD-66 | Native/external status snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness status snapshots не проверялись. |
+
+Focused status snapshot result: `42/42` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
