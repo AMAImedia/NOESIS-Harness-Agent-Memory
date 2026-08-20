@@ -53,6 +53,9 @@ class ExecutionRecoveryTests(unittest.TestCase):
         audited = executor.audit_replay_outcome(self.action)
         self.assertEqual(audited["action_id"], self.action.action_id)
         self.assertEqual(audited["completion_receipt_id"], replay["replay_evidence"]["completion_receipt_id"])
+        inventory_snapshot = executor.verify_replay_snapshot_inventory_snapshot(self.action)
+        self.assertEqual(inventory_snapshot["payload"]["schema_version"], "noesis.recovery-replay-snapshot-inventory-snapshot.v1")
+        self.assertEqual(replay["replay_inventory_snapshot"]["status"], "passed")
         inventory_one = executor.audit_replay_snapshot_inventory(self.action)
         inventory_two = executor.audit_replay_snapshot_inventory(self.action)
         self.assertEqual(inventory_one, inventory_two)
@@ -149,6 +152,38 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_signature_invalid"):
             executor.handle(self.action, self.context)
+
+    def test_replay_inventory_snapshot_missing_blocks_exact_replay(self):
+        event_path = str(Path(self.tmp.name) / "missing-inventory-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(event_path + ".replay.json.inventory.json").unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_inventory_snapshot_missing"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_inventory_snapshot_rejects_signed_path_mismatch(self):
+        event_path = str(Path(self.tmp.name) / "inventory-path-mismatch-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".replay.json.inventory.json")
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["inventory_path"] = str(Path(self.tmp.name) / "other-inventory.json")
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_inventory_snapshot_path_mismatch"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_inventory_snapshot_rejects_signed_drift(self):
+        event_path = str(Path(self.tmp.name) / "inventory-drift-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".replay.json.inventory.json")
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["snapshot_digest"] = "sha256:drift"
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_inventory_snapshot_drift"):
+            executor.verify_replay_snapshot_inventory_snapshot(self.action)
 
     def test_replay_snapshot_rejects_signed_path_mismatch(self):
         event_path = str(Path(self.tmp.name) / "path-mismatch-events.jsonl")

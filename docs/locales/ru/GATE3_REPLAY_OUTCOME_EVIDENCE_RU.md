@@ -16,4 +16,6 @@
 
 `audit_replay_snapshot_inventory()` — deterministic read-only projection со schema `noesis.recovery-replay-snapshot-inventory.v1`. Он фиксирует verified sidecar path, payload digest, action identity, action digest и completion receipt identity. Signed replay snapshot содержит canonical sidecar path; path mismatch отклоняется до inventory projection. Duplicate JSON keys считаются conflicting records; mismatched action identity или completion receipt identity дают explicit identity-conflict error. Повторный audit неизменённого evidence обязан давать byte-equivalent результат; verification failure передаётся fail-closed без частичного inventory.
 
+После подтверждённой записи replay snapshot executor атомарно сохраняет signed sidecar `noesis.recovery-replay-snapshot-inventory-snapshot.v1`. Exact replay проверяет durable inventory snapshot против current replay snapshot до возврата `replayed`. Missing, corrupt, path-mismatched, tampered или drifted inventory snapshot fail-closed; во время replay inventory snapshot не создаётся молча заново.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).

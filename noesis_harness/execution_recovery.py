@@ -307,6 +307,44 @@ class ExecutionRecoveryExecutor:
         payload = verified["payload"]
         return {"schema_version": "noesis.recovery-replay-snapshot-inventory.v1", "status": "passed", "snapshot_path": self._replay_snapshot_path(), "snapshot_digest": request_fingerprint(payload), "action_id": str(payload.get("action_id", "")), "action_digest": str(payload.get("action_digest", "")), "completion_receipt_id": str(payload.get("completion_receipt_id", ""))}
 
+    def _replay_inventory_snapshot_path(self) -> str:
+        return self._replay_snapshot_path() + ".inventory.json"
+
+    def persist_replay_snapshot_inventory(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
+        """Atomically persist signed evidence for the verified replay inventory."""
+        inventory = self.audit_replay_snapshot_inventory(action)
+        payload = dict(inventory)
+        payload["schema_version"] = "noesis.recovery-replay-snapshot-inventory-snapshot.v1"
+        payload["inventory_path"] = self._replay_inventory_snapshot_path()
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_inventory_snapshot_path(), snapshot)
+        return snapshot
+
+    def verify_replay_snapshot_inventory_snapshot(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
+        """Verify durable replay inventory evidence against current immutable evidence."""
+        try:
+            with open(self._replay_inventory_snapshot_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_duplicate_record") from exc
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_missing") from exc
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_signature_invalid")
+        if payload.get("inventory_path") != self._replay_inventory_snapshot_path():
+            raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_path_mismatch")
+        current = self.audit_replay_snapshot_inventory(action)
+        for key, value in current.items():
+            if key == "schema_version":
+                continue
+            if payload.get(key) != value:
+                raise ExecutionRecoveryError("recovery_replay_inventory_snapshot_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -316,7 +354,8 @@ class ExecutionRecoveryExecutor:
             if not os.path.exists(self._replay_snapshot_path()):
                 raise ExecutionRecoveryError("recovery_replay_snapshot_missing")
             replay_snapshot = self.verify_replay_outcome_snapshot(action)
-            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot}
+            replay_inventory_snapshot = self.verify_replay_snapshot_inventory_snapshot(action)
+            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None
@@ -367,6 +406,7 @@ class ExecutionRecoveryExecutor:
         self.persist_completion_event_snapshot()
         self.persist_recovery_evidence_status()
         self.persist_replay_outcome_snapshot(action)
+        self.persist_replay_snapshot_inventory(action)
         return payload
 
 

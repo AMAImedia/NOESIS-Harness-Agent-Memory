@@ -1511,3 +1511,11 @@ Focused replay inventory result: `45/45` assurance, recovery, child-runtime и e
 | CHILD-84 | Replay identity confusion | `DONE / BOUNDED LOCAL` | Signed action ID/digest or completion receipt mismatch rejected with `recovery_replay_snapshot_identity_conflict`. |
 | CHILD-85 | Native/external adversarial inventory | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness inventory adversarial lanes не запускались. |
 Focused adversarial result: `48/48` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 durable replay inventory snapshot checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-86 | Durable inventory snapshot | `DONE / BOUNDED LOCAL` | После replay snapshot сохраняется signed `noesis.recovery-replay-snapshot-inventory-snapshot.v1` sidecar через atomic replace. |
+| CHILD-87 | Inventory snapshot reopen | `DONE / BOUNDED LOCAL` | Exact replay и explicit verifier сравнивают durable inventory snapshot с current replay snapshot до возврата `replayed`. |
+| CHILD-88 | Inventory snapshot recovery denial | `DONE / BOUNDED LOCAL` | Missing, corrupt, signed path mismatch и evidence drift fail-closed; automatic recreation во время replay запрещена. |
+| CHILD-89 | Native/external inventory snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness inventory snapshots не проверялись. |
+Focused durable inventory result: `51/51` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
