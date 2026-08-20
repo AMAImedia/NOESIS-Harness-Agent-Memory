@@ -32,4 +32,6 @@ Completeness projection также сохраняется как signed `noesis.
 
 До promotion любого replay evidence в `replayed` executor проверяет signed `noesis.recovery-event-chain-snapshot.v1` против append-only completion event log. Эта проверка выполняется до action-scoped status verification, поэтому missing или drifted chain evidence сообщает direct chain denial. Duplicate JSON keys в chain snapshot отклоняются.
 
+Action replay projection также проверяет completion-event prefix target action и требует, чтобы его final committed receipt ID совпадал с completion receipt ID replay record. Полученный `event_chain_digest` входит в signed replay evidence snapshot и не позволяет replay against different committed completion event.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).

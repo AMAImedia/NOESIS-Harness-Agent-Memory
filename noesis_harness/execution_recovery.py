@@ -263,10 +263,13 @@ class ExecutionRecoveryExecutor:
         completion_receipt = self.receipt_store.get(completion_receipt_id)
         if completion_receipt is None or completion_receipt.outcome != "committed":
             raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
+        chain = self.audit_completion_events(action.action_id)
+        if not chain["completion_receipt_ids"] or chain["completion_receipt_ids"][-1] != completion_receipt_id:
+            raise ExecutionRecoveryError("recovery_replay_event_receipt_binding")
         if not os.path.exists(self._status_snapshot_path(action.action_id)):
             raise ExecutionRecoveryError("recovery_status_snapshot_missing")
         status_snapshot = self.verify_recovery_evidence_status_snapshot(action.action_id)
-        return {"schema_version": "noesis.recovery-replay-evidence.v1", "status": "passed", "claim": True, "action_id": action.action_id, "action_digest": action_digest, "completion_receipt_id": completion_receipt_id, "status_snapshot_digest": request_fingerprint(status_snapshot["payload"])}
+        return {"schema_version": "noesis.recovery-replay-evidence.v1", "status": "passed", "claim": True, "action_id": action.action_id, "action_digest": action_digest, "completion_receipt_id": completion_receipt_id, "event_chain_digest": chain["chain_digest"], "status_snapshot_digest": request_fingerprint(status_snapshot["payload"])}
 
     def _replay_snapshot_path(self, action_id: str) -> str:
         action_key = request_fingerprint({"action_id": str(action_id)}).replace(":", "_")

@@ -32,6 +32,8 @@ The completeness projection is also persisted as signed `noesis.recovery-replay-
 
 Before any replay evidence is promoted to `replayed`, the executor verifies the signed `noesis.recovery-event-chain-snapshot.v1` against the append-only completion event log. This check precedes action-scoped status verification so missing or drifted chain evidence reports the chain denial directly. Duplicate JSON keys in the chain snapshot are rejected.
 
+The action replay projection also audits the target action’s completion-event prefix and requires its final committed receipt ID to equal the replay record’s completion receipt ID. The resulting `event_chain_digest` is included in the signed replay evidence snapshot, preventing an action from being replayed against a different committed completion event.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

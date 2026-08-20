@@ -1583,3 +1583,11 @@ Focused finality result: `62/62` assurance, recovery, child-runtime и export te
 | CHILD-120 | Duplicate chain snapshot records | `DONE / BOUNDED LOCAL` | Duplicate JSON keys в completion-chain snapshot fail-closed. |
 | CHILD-121 | Native/external chain replay | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completion-chain replay не проверялись. |
 Focused chain replay result: `64/64` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 replay-to-event receipt binding checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-122 | Target event prefix | `DONE / BOUNDED LOCAL` | Replay projection audits completion-event prefix for target action before producing signed replay evidence. |
+| CHILD-123 | Receipt identity binding | `DONE / BOUNDED LOCAL` | Final committed receipt ID in target event must equal replay record completion receipt ID. |
+| CHILD-124 | Event chain digest projection | `DONE / BOUNDED LOCAL` | Signed replay evidence includes target `event_chain_digest`; replay snapshot verification rechecks it deterministically. |
+| CHILD-125 | Native/external receipt binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt-to-event replay binding не проверялись. |
+Focused receipt-binding result: `64/64` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
