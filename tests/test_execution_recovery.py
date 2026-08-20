@@ -83,6 +83,44 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(inventory_one["schema_version"], "noesis.recovery-replay-snapshot-inventory.v1")
         self.assertEqual(inventory_one["action_id"], self.action.action_id)
 
+    def test_replay_evidence_promotion_finalizes_generation_and_denies_writes(self):
+        event_path = str(Path(self.tmp.name) / "finalization-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        finalized = executor.promote_replay_evidence_finalization()
+        self.assertEqual(finalized["status"], "passed")
+        self.assertTrue(finalized["finalized"])
+        self.assertEqual(executor.verify_replay_evidence_finalization()["status"], "passed")
+        generation = executor.verify_replay_generation_receipt()["payload"]
+        protected = [str(record["path"]) for record in generation["files"]] + [executor._replay_generation_receipt_path(), executor._replay_finalization_path()]
+        self.assertTrue(all(os.stat(path).st_mode & 0o222 == 0 for path in protected))
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_immutable"):
+            executor.persist_replay_evidence_commit_manifest(self.action)
+        fresh = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        self.assertEqual(fresh.verify_replay_evidence_finalization()["status"], "passed")
+
+    def test_replay_evidence_promotion_interruption_fails_closed(self):
+        event_path = str(Path(self.tmp.name) / "interrupted-finalization-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-finalization-interruption")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_not_immutable"):
+            executor.verify_replay_evidence_finalization()
+
+    def test_replay_evidence_finalization_detects_modified_artifact(self):
+        event_path = str(Path(self.tmp.name) / "tampered-finalization-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        executor.promote_replay_evidence_finalization()
+        generation = executor.verify_replay_generation_receipt()["payload"]
+        target = Path(generation["files"][0]["path"])
+        os.chmod(target, os.stat(target).st_mode | 0o200)
+        target.write_bytes(target.read_bytes() + b"tampered")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_generation_receipt_drift"):
+            executor.verify_replay_evidence_finalization()
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

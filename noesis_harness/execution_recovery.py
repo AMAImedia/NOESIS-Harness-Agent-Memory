@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import os
+import stat
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,6 +25,7 @@ REPLAY_COMPLETENESS_RECORD_FIELDS = frozenset({"action_id", "manifest_path", "ac
 REPLAY_GENERATION_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_id", "event_chain_digest", "completeness_digest", "files", "generation_digest", "receipt_path"})
 REPLAY_GENERATION_FILE_FIELDS = frozenset({"path", "sha256"})
 REPLAY_EVENT_CHAIN_FIELDS = frozenset({"schema_version", "event_path", "event_ids", "completion_receipt_ids", "chain_digest", "count"})
+REPLAY_FINALIZATION_FIELDS = frozenset({"schema_version", "status", "event_path", "generation_receipt_path", "generation_id", "event_chain_digest", "completeness_digest", "generation_digest", "files", "finalization_path"})
 
 
 class _DuplicateJSONKeyError(ValueError):
@@ -176,6 +178,7 @@ class ExecutionRecoveryExecutor:
 
     def persist_completion_event_snapshot(self) -> Mapping[str, Any]:
         """Atomically persist a signed projection snapshot of completion events."""
+        self._assert_generation_mutable()
         audit = self.audit_completion_events()
         payload = {"schema_version": "noesis.recovery-event-chain-snapshot.v1", "event_path": str(self.events.path), "event_ids": list(audit["event_ids"]), "completion_receipt_ids": list(audit["completion_receipt_ids"]), "chain_digest": audit["chain_digest"], "count": audit["count"]}
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
@@ -297,6 +300,7 @@ class ExecutionRecoveryExecutor:
 
     def persist_replay_outcome_snapshot(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Atomically persist signed evidence for a future exact replay."""
+        self._assert_generation_mutable()
         evidence = self.audit_replay_outcome(action)
         payload = dict(evidence)
         payload["schema_version"] = "noesis.recovery-replay-evidence-snapshot.v1"
@@ -343,6 +347,7 @@ class ExecutionRecoveryExecutor:
 
     def persist_replay_snapshot_inventory(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Atomically persist signed evidence for the verified replay inventory."""
+        self._assert_generation_mutable()
         inventory = self.audit_replay_snapshot_inventory(action)
         payload = dict(inventory)
         payload["schema_version"] = "noesis.recovery-replay-snapshot-inventory-snapshot.v1"
@@ -455,6 +460,26 @@ class ExecutionRecoveryExecutor:
     def _replay_generation_receipt_path(self) -> str:
         return str(self.events.path) + ".replay-generation.json"
 
+    def _replay_finalization_path(self) -> str:
+        return str(self.events.path) + ".replay-finalized.json"
+
+    def _assert_generation_mutable(self) -> None:
+        if os.path.exists(self._replay_finalization_path()):
+            raise ExecutionRecoveryError("recovery_replay_finalization_immutable")
+
+    @staticmethod
+    def _is_readonly(path: str) -> bool:
+        try:
+            return not bool(os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
+        except OSError:
+            return False
+
+    @staticmethod
+    def _make_readonly(paths: tuple[str, ...]) -> None:
+        for path in paths:
+            mode = os.stat(path).st_mode
+            os.chmod(path, mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
+
     def _replay_generation_paths(self) -> tuple[str, ...]:
         parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
         paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path()}
@@ -507,6 +532,7 @@ class ExecutionRecoveryExecutor:
 
     def persist_replay_generation_receipt(self) -> Mapping[str, Any]:
         """Atomically persist the signed generation receipt for the current evidence files."""
+        self._assert_generation_mutable()
         projection = self._replay_generation_projection()
         payload = dict(projection)
         payload["schema_version"] = "noesis.recovery-replay-generation-receipt.v1"
@@ -568,8 +594,62 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_generation_receipt_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def promote_replay_evidence_finalization(self) -> Mapping[str, Any]:
+        """Promote a verified generation to finalized and make its artifacts read-only."""
+        self._assert_generation_mutable()
+        self.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        generation = self.verify_replay_generation_receipt()
+        generation_payload = generation["payload"]
+        files = tuple(str(record["path"]) for record in generation_payload["files"])
+        protected = files + (self._replay_generation_receipt_path(),)
+        for path in protected:
+            if not os.path.isfile(path) or os.path.islink(path) or os.stat(path).st_nlink != 1:
+                raise ExecutionRecoveryError("recovery_replay_finalization_file_invalid")
+        payload = {"schema_version": "noesis.recovery-replay-finalization.v1", "status": "finalized", "event_path": str(self.events.path), "generation_receipt_path": self._replay_generation_receipt_path(), "generation_id": generation_payload["generation_id"], "event_chain_digest": generation_payload["event_chain_digest"], "completeness_digest": generation_payload["completeness_digest"], "generation_digest": generation_payload["generation_digest"], "files": list(generation_payload["files"]), "finalization_path": self._replay_finalization_path()}
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_finalization_path(), snapshot)
+        try:
+            self._make_readonly(protected + (self._replay_finalization_path(),))
+        except OSError as exc:
+            raise ExecutionRecoveryError("recovery_replay_finalization_partial") from exc
+        return self.verify_replay_evidence_finalization()
+
+    def verify_replay_evidence_finalization(self) -> Mapping[str, Any]:
+        """Verify the finalized marker, generation bytes, and OS-level immutability."""
+        try:
+            with open(self._replay_finalization_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_finalization_duplicate_record") from exc
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_replay_finalization_missing") from exc
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_replay_finalization_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_replay_finalization_signature_invalid")
+        if set(payload) != REPLAY_FINALIZATION_FIELDS:
+            raise ExecutionRecoveryError("recovery_replay_finalization_schema_invalid")
+        if payload.get("schema_version") != "noesis.recovery-replay-finalization.v1" or payload.get("status") != "finalized":
+            raise ExecutionRecoveryError("recovery_replay_finalization_status_invalid")
+        if payload.get("event_path") != str(self.events.path) or payload.get("generation_receipt_path") != self._replay_generation_receipt_path() or payload.get("finalization_path") != self._replay_finalization_path():
+            raise ExecutionRecoveryError("recovery_replay_finalization_path_mismatch")
+        generation = self.verify_replay_generation_receipt()
+        generation_payload = generation["payload"]
+        for key in ("generation_id", "event_chain_digest", "completeness_digest", "generation_digest", "files"):
+            if payload.get(key) != generation_payload.get(key):
+                raise ExecutionRecoveryError("recovery_replay_finalization_generation_drift")
+        self.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        protected = tuple(str(record["path"]) for record in generation_payload["files"]) + (self._replay_generation_receipt_path(), self._replay_finalization_path())
+        for path in protected:
+            if not os.path.isfile(path) or os.path.islink(path) or os.stat(path).st_nlink != 1 or not self._is_readonly(path):
+                raise ExecutionRecoveryError("recovery_replay_finalization_not_immutable")
+        return {"status": "passed", "finalized": True, "payload": dict(payload), "signature": signature}
+
     def persist_replay_evidence_catalog(self) -> Mapping[str, Any]:
         """Atomically persist signed evidence for the verified replay catalog."""
+        self._assert_generation_mutable()
         catalog = self.audit_replay_evidence_catalog()
         payload = dict(catalog)
         payload["schema_version"] = "noesis.recovery-replay-evidence-catalog-snapshot.v1"
@@ -624,6 +704,7 @@ class ExecutionRecoveryExecutor:
 
     def persist_replay_evidence_commit_manifest(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
         """Persist the final signed marker for a complete replay evidence bundle."""
+        self._assert_generation_mutable()
         replay_evidence = self.audit_replay_outcome(action)
         status_snapshot = self.verify_recovery_evidence_status_snapshot(action.action_id)
         replay_snapshot = self.verify_replay_outcome_snapshot(action)
@@ -703,7 +784,7 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
@@ -811,6 +892,7 @@ class ExecutionRecoveryExecutor:
 
     def persist_replay_evidence_completeness(self) -> Mapping[str, Any]:
         """Atomically persist signed completeness evidence for the replay bundle."""
+        self._assert_generation_mutable()
         completeness = self.audit_replay_evidence_completeness()
         payload = dict(completeness)
         payload["schema_version"] = "noesis.recovery-replay-evidence-completeness-snapshot.v1"

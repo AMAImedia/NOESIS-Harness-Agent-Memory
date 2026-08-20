@@ -36,6 +36,8 @@ The action replay projection also audits the target action’s completion-event 
 
 The final commit manifest additionally carries a deterministic `bundle_digest` over its canonical action-scoped fields. Verification recomputes this digest before accepting the manifest, binding the status, replay, inventory, catalog, completeness, receipt, and path projections as one evidence bundle.
 
+Promotion is explicit and marker-last. `promote_replay_evidence_finalization()` first requires durable completeness and a passed generation receipt, then atomically writes a signed `noesis.recovery-replay-finalization.v1` marker containing the complete generation projection. Only after the marker exists does it remove owner/group/other write bits from every generation file, the generation receipt, and the finalization marker. Verification requires the marker, generation receipt, complete bundle, byte digests, regular-file identity, and read-only OS permissions. An interruption during the permission phase leaves a visible marker but fails closed as partial finalization; it can never be reported as finalized. Once the marker exists, every replay evidence writer rejects mutation with `recovery_replay_finalization_immutable`. A later file mutation or permission restoration is detected by generation digest drift or the finalization immutability check. Finalization is therefore an explicit promotion boundary, not an inferred status, and a fresh process must verify it without regeneration.
+
 ## Boundary
 
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.

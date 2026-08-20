@@ -1904,3 +1904,16 @@ Focused event-snapshot result: `64/64` execution-recovery tests passed with Pyth
 | CHILD-246 | Native/external chain root | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness cross-artifact chain root не проверялись. |
 
 Focused chain-root result: `65/65` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 explicit replay finalization checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-247 | Explicit replay promotion | `DONE / BOUNDED LOCAL` | `promote_replay_evidence_finalization()` требует durable completeness и passed generation receipt, затем atomic пишет signed finalization marker. |
+| CHILD-248 | OS-level immutability | `DONE / BOUNDED LOCAL` | Generation files, generation receipt и finalization marker переводятся в read-only mode; fresh executor verifies без regeneration. |
+| CHILD-249 | Interrupted promotion recovery | `DONE / BOUNDED LOCAL` | Marker-last protocol и partial permission failure fail-closed как `recovery_replay_finalization_partial` / `not_immutable`. |
+| CHILD-250 | Post-finalization mutation denial | `DONE / BOUNDED LOCAL` | Все replay evidence writers отвергают последующую запись с `recovery_replay_finalization_immutable`; altered artifact вызывает generation drift. |
+| CHILD-251 | Native/external finalization | `NOT_RUN / ENVIRONMENT-GATED` | Windows/macOS filesystem semantics и external harness finalization не запускались. |
+
+Focused finalization result: `68/68` execution-recovery tests passed; full suite `762/762` passed on Python 3.14.7 with tracemalloc and `-W error::ResourceWarning`.
