@@ -56,6 +56,30 @@ class ExecutionAssuranceTests(unittest.TestCase):
             with self.assertRaisesRegex(AssuranceError, "invalid_signed_receipt"):
                 reopened.put(create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True))
 
+    def test_persistent_chain_snapshot_reopens_and_rejects_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"chain-snapshot-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            prepared = create_receipt(request={"tool": "snapshot"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+            committed = create_receipt(request={"tool": "snapshot"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            for receipt in (prepared, committed):
+                store.put(receipt)
+            snapshot = store.save_chain_snapshot((prepared.receipt_id, committed.receipt_id))
+            self.assertEqual(store.save_chain_snapshot((prepared.receipt_id, committed.receipt_id)), snapshot)
+            reopened = ExecutionReceiptStore(path, signing_key=key)
+            self.assertEqual(reopened.get_chain_snapshot(snapshot["snapshot_id"]), snapshot)
+            with self.assertRaisesRegex(AssuranceError, "receipt_chain_snapshot_missing"):
+                reopened.get_chain_snapshot("chain-snapshot:missing")
+            conn = sqlite3.connect(path)
+            try:
+                conn.execute("UPDATE receipt_chain_snapshots SET payload = ? WHERE snapshot_id = ?", ("{}", snapshot["snapshot_id"]))
+                conn.commit()
+            finally:
+                conn.close()
+            with self.assertRaisesRegex(AssuranceError, "receipt_chain_snapshot_tampered"):
+                ExecutionReceiptStore(path, signing_key=key).get_chain_snapshot(snapshot["snapshot_id"])
+
     def test_durable_receipt_chain_reopens_and_rejects_drift(self):
         with tempfile.TemporaryDirectory() as directory:
             path = str(Path(directory) / "receipts.db")

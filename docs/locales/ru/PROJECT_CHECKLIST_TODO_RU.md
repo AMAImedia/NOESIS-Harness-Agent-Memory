@@ -1364,3 +1364,15 @@ Focused receipt-chain result: `34/34` assurance, recovery, child-runtime и expo
 | CHILD-34 | Native/external durable chains | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness durable stores не проверялись. |
 
 Focused durable chain result: `35/35` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 persistent chain snapshot checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-35 | Persistent chain snapshot | `DONE / BOUNDED LOCAL` | Ordered chain snapshot сохраняется с deterministic ID и idempotent duplicate semantics. |
+| CHILD-36 | Snapshot reopen verification | `DONE / BOUNDED LOCAL` | Snapshot payload и current chain digest проверяются после SQLite/WAL reopen. |
+| CHILD-37 | Snapshot drift/tamper rejection | `DONE / BOUNDED LOCAL` | Missing snapshot, malformed payload и current-chain drift fail-closed. |
+| CHILD-38 | Native/external snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness snapshot stores не проверялись. |
+
+Focused snapshot result: `36/36` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

@@ -228,6 +228,7 @@ class ExecutionReceiptStore:
         with self._connection() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("CREATE TABLE IF NOT EXISTS execution_receipts (receipt_id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS receipt_chain_snapshots (snapshot_id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
             conn.commit()
 
     @contextmanager
@@ -283,6 +284,42 @@ class ExecutionReceiptStore:
                 raise AssuranceError("receipt_chain_missing")
             receipts.append(receipt)
         return validate_receipt_chain(tuple(receipts), self.signing_key)
+
+    def save_chain_snapshot(self, receipt_ids: tuple[str, ...]) -> Mapping[str, Any]:
+        """Persist an ordered chain evidence snapshot idempotently."""
+        chain = self.audit_chain(receipt_ids)
+        stable = {"receipt_ids": list(receipt_ids), "chain_digest": chain["chain_digest"]}
+        snapshot_id = "chain-snapshot:" + _digest(stable)
+        snapshot = dict(stable, snapshot_id=snapshot_id, status="passed", snapshot_digest=_digest(dict(stable, snapshot_id=snapshot_id, status="passed")))
+        payload = json.dumps(snapshot, sort_keys=True, separators=(",", ":"))
+        with self._connection() as conn:
+            row = conn.execute("SELECT payload FROM receipt_chain_snapshots WHERE snapshot_id = ?", (snapshot_id,)).fetchone()
+            if row is not None:
+                if row[0] != payload:
+                    raise AssuranceError("receipt_chain_snapshot_conflict")
+                return json.loads(row[0])
+            conn.execute("INSERT INTO receipt_chain_snapshots(snapshot_id, payload) VALUES (?, ?)", (snapshot_id, payload))
+            conn.commit()
+        return snapshot
+
+    def get_chain_snapshot(self, snapshot_id: str) -> Mapping[str, Any]:
+        """Verify a persisted snapshot and its current durable receipt chain."""
+        with self._connection() as conn:
+            row = conn.execute("SELECT payload FROM receipt_chain_snapshots WHERE snapshot_id = ?", (str(snapshot_id),)).fetchone()
+        if row is None:
+            raise AssuranceError("receipt_chain_snapshot_missing")
+        try:
+            snapshot = json.loads(row[0])
+            stable = {"receipt_ids": list(snapshot["receipt_ids"]), "chain_digest": str(snapshot["chain_digest"])}
+            expected = _digest(dict(stable, snapshot_id=str(snapshot["snapshot_id"]), status=str(snapshot["status"])))
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise AssuranceError("receipt_chain_snapshot_tampered") from exc
+        if snapshot.get("snapshot_id") != str(snapshot_id) or snapshot.get("status") != "passed" or snapshot.get("snapshot_digest") != expected:
+            raise AssuranceError("receipt_chain_snapshot_tampered")
+        current = self.audit_chain(tuple(str(item) for item in snapshot["receipt_ids"]))
+        if current["chain_digest"] != snapshot["chain_digest"]:
+            raise AssuranceError("receipt_chain_snapshot_drift")
+        return snapshot
 
     def audit(self) -> Mapping[str, Any]:
         """Verify every stored receipt and return a deterministic integrity snapshot."""
