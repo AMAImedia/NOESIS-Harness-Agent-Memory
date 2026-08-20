@@ -1981,3 +1981,15 @@ Focused repair-chain result: `76/76` execution-recovery tests passed with Python
 | CHILD-275 | Native/external crash recovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external crash-consistency lanes не запускались. |
 
 Focused crash-consistency result: `78/78` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 repair-chain readiness snapshot checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-276 | Readiness audit | `DONE / BOUNDED LOCAL` | `audit_replay_chain_readiness()` публикует `noesis.recovery-repair-chain-readiness.v1`. |
+| CHILD-277 | Observable states | `DONE / BOUNDED LOCAL` | Различаются `missing`, `partial`, `reordered`, `corrupt`, `immutable` и `passed`. |
+| CHILD-278 | Diagnostic/acceptance separation | `DONE / BOUNDED LOCAL` | Non-throwing audit не заменяет fail-closed `verify_replay_evidence_readiness()`. |
+| CHILD-279 | Native/external readiness snapshot | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external telemetry lanes не запускались. |
+
+Focused readiness result: `79/79` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
