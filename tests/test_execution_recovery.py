@@ -439,6 +439,37 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(Path(executor._replay_completeness_snapshot_path()).read_bytes(), stable_bytes)
         self.assertEqual(executor.handle(action_two, self.context)["status"], "replayed")
 
+    def test_multi_action_corrupted_manifest_blocks_bundle_then_explicit_rebuild_passes(self):
+        event_path = str(Path(self.tmp.name) / "completeness-manifest-corruption-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        self.recovery.begin("run-corrupt-2", "sha256:before")
+        self.recovery.complete("run-corrupt-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        proposal = PatchProposal("patch-corrupt-2", "ws-1", "snap-base", "snap-head", ({"path": "out-corrupt-2.txt", "kind": "modified"},), "approved")
+        self.patches.put(proposal)
+        action_two = ExecutionRecoveryAction("action-corrupt-2", "rollback", "run-corrupt-2", self.receipt.receipt_id, "patch-corrupt-2", "ws-1", "snap-base", "operator-1", "session-1")
+        executor.handle(action_two, self.context)
+        manifest_path = Path(executor._replay_commit_manifest_path(action_two.action_id))
+        original_manifest = manifest_path.read_bytes()
+        corrupted = json.loads(original_manifest)
+        corrupted["payload"]["action_digest"] = "sha256:signed-but-wrong-action"
+        corrupted["payload"]["bundle_digest"] = executor._replay_bundle_digest(corrupted["payload"])
+        corrupted["signature"] = _snapshot_signature(corrupted["payload"], self.key)
+        manifest_path.write_text(json.dumps(corrupted, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_identity_conflict"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_drift"):
+            executor.verify_replay_evidence_commit_manifest(action_two)
+        manifest_path.write_bytes(original_manifest)
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 2)
+        rebuilt = executor.persist_replay_evidence_commit_manifest(action_two)
+        self.assertEqual(rebuilt["payload"]["action_id"], action_two.action_id)
+        repaired_bytes = manifest_path.read_bytes()
+        executor.persist_replay_evidence_commit_manifest(action_two)
+        self.assertEqual(manifest_path.read_bytes(), repaired_bytes)
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 2)
+        self.assertEqual(executor.verify_replay_evidence_commit_manifest(action_two)["status"], "passed")
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

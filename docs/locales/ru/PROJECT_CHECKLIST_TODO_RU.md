@@ -1712,3 +1712,16 @@ Focused interrupted-write result: `49/49` execution-recovery tests passed with P
 | CHILD-174 | Native/external multi-action recovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness multi-action crash recovery не проверялись. |
 
 Focused multi-action result: `50/50` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 multi-action manifest-corruption checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-175 | Signed manifest corruption denial | `DONE / BOUNDED LOCAL` | Signed-but-wrong action digest в одном manifest вызывает `recovery_replay_completeness_identity_conflict`. |
+| CHILD-176 | No partial pass | `DONE / BOUNDED LOCAL` | Startup completeness не выдаёт partial `passed`; весь multi-action bundle отклоняется до восстановления corrupted manifest. |
+| CHILD-177 | Trusted explicit repair | `DONE / BOUNDED LOCAL` | После explicit restoration trusted signed manifest audit снова принимает обе action; verifier не реконструирует bundle из untrusted current state. |
+| CHILD-178 | Deterministic repair finalization | `DONE / BOUNDED LOCAL` | Повторная final manifest persistence byte-identical; completeness `manifest_count=2` и durable replay verification проходят. |
+| CHILD-179 | Native/external manifest repair | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness manifest corruption/repair не проверялись. |
+
+Focused manifest-corruption result: `51/51` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
