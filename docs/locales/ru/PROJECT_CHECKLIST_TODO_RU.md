@@ -1305,3 +1305,15 @@ Gate 3 focused result after integration: `37/37` tests passed with Python 3.14.7
 | CHILD-15 | Native/external recovery evidence | `NOT_RUN / ENVIRONMENT-GATED` | Matching Windows/macOS hosts and pinned external harness recovery environments remain unavailable. |
 
 Focused recovery result: `29/29` assurance, recovery, child-runtime and export tests passed with Python 3.14.7 and `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 terminal lifecycle checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-16 | Terminal state transition guard | `DONE / BOUNDED LOCAL` | `running` может terminalize только один раз; update guarded by running state. |
+| CHILD-17 | Exact completion idempotency | `DONE / BOUNDED LOCAL` | Exact duplicate terminal completion возвращает durable record без mutation. |
+| CHILD-18 | Terminal conflict rejection | `DONE / BOUNDED LOCAL` | Другой status/workspace digest/receipt ID отклоняется с `execution_run_terminal_conflict`. |
+| CHILD-19 | Native/external lifecycle evidence | `NOT_RUN / ENVIRONMENT-GATED` | Matching Windows/macOS hosts и pinned external harness environments остаются недоступны. |
+
+Focused terminal lifecycle result: `30/30` assurance, recovery, child-runtime и export tests passed with Python 3.14.7 and `-W error::ResourceWarning`.

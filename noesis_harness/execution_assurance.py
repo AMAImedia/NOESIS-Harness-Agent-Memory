@@ -140,10 +140,17 @@ class ExecutionRecoveryStore:
         if status not in {"completed", "failed", "timed_out", "denied"}:
             raise AssuranceError("invalid_recovery_terminal_status")
         with self._connection() as conn:
-            now = __import__("time").time()
-            conn.execute("UPDATE execution_runs SET status = ?, workspace_after = ?, receipt_id = ?, updated_at = ? WHERE run_id = ?", (status, str(workspace_after), str(receipt_id), now, str(run_id)))
-            if conn.total_changes != 1:
+            row = conn.execute("SELECT status, workspace_after, receipt_id FROM execution_runs WHERE run_id = ?", (str(run_id),)).fetchone()
+            if row is None:
                 raise AssuranceError("execution_run_not_found")
+            if row[0] != "running":
+                if row[0] == status and row[1] == str(workspace_after) and row[2] == str(receipt_id):
+                    return self.get(run_id)
+                raise AssuranceError("execution_run_terminal_conflict")
+            now = __import__("time").time()
+            conn.execute("UPDATE execution_runs SET status = ?, workspace_after = ?, receipt_id = ?, updated_at = ? WHERE run_id = ? AND status = 'running'", (status, str(workspace_after), str(receipt_id), now, str(run_id)))
+            if conn.total_changes != 1:
+                raise AssuranceError("execution_run_terminal_conflict")
             conn.commit()
         return self.get(run_id)
 

@@ -55,6 +55,17 @@ class ExecutionAssuranceTests(unittest.TestCase):
             with self.assertRaisesRegex(AssuranceError, "invalid_signed_receipt"):
                 reopened.put(create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True))
 
+    def test_terminal_completion_is_idempotent_but_conflicts_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = ExecutionRecoveryStore(str(Path(directory) / "recovery.db"))
+            store.begin("run-terminal", "sha256:before")
+            first = store.complete("run-terminal", workspace_after="sha256:after", receipt_id="receipt-1", status="completed")
+            duplicate = store.complete("run-terminal", workspace_after="sha256:after", receipt_id="receipt-1", status="completed")
+            self.assertEqual(duplicate["status"], "completed")
+            self.assertEqual(duplicate["receipt_id"], first["receipt_id"])
+            with self.assertRaisesRegex(AssuranceError, "terminal_conflict"):
+                store.complete("run-terminal", workspace_after="sha256:other", receipt_id="receipt-2", status="failed")
+
     def test_interrupted_recovery_is_explicit_and_never_claims_rollback(self):
         with tempfile.TemporaryDirectory() as directory:
             path = str(Path(directory) / "recovery.db")
