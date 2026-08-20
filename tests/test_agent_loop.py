@@ -66,6 +66,11 @@ class _MalformedAcquireLeases(_Leases):
         return ["invalid"]
 
 
+class _AcquireErrorLeases(_Leases):
+    def acquire(self, task_key, agent_id):
+        raise ConnectionError("lease failure")
+
+
 class _RenewErrorLeases(_Leases):
     def renew(self, task_key, agent_id):
         raise TimeoutError("renew failure")
@@ -74,6 +79,14 @@ class _RenewErrorLeases(_Leases):
 class _ClockError:
     def __call__(self):
         raise OverflowError("clock failure")
+
+
+class _FalsyClock:
+    def __bool__(self):
+        return False
+
+    def __call__(self):
+        return 321.0
 
 
 class _EventsError:
@@ -125,6 +138,11 @@ class AgentLoopTests(unittest.TestCase):
     def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None, memory=None, budget=None):
         return AgentLoop("agent", memory or _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock, budget=budget)
 
+    def test_lease_exception_is_bounded(self):
+        result = self.make_loop(leases=_AcquireErrorLeases()).run("task", "query", lambda context: {"done": True})
+        self.assertEqual(result["status"], "lease_error")
+        self.assertEqual(result["reason"], "ConnectionError")
+
     def test_malformed_lease_response_is_bounded(self):
         result = self.make_loop(leases=_MalformedAcquireLeases()).run("task", "query", lambda context: {"done": True})
         self.assertEqual(result["status"], "lease_shape_error")
@@ -154,6 +172,11 @@ class AgentLoopTests(unittest.TestCase):
             self.make_loop(max_turns=-1)
         with self.assertRaisesRegex(ValueError, "max_turns_invalid"):
             self.make_loop(max_turns=True)
+
+    def test_falsy_callable_clock_is_used(self):
+        loop = self.make_loop(max_turns=1, clock=_FalsyClock())
+        result = loop.run("task", "query", lambda context: {"done": True, "output": "accepted"})
+        self.assertEqual(result["turns"][0]["ts"], 321.0)
 
     def test_clock_exception_releases_lease(self):
         leases = _Leases()

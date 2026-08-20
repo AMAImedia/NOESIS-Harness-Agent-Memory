@@ -7,6 +7,7 @@
 | Passing action сообщает `done` | `done` | Lease освобождается после validated completion. |
 | Достигнут maximum turn count | `max_turns` | Loop bounded и не может выполняться бесконечно. |
 | Lease недоступен | `blocked` | Action callback не вызывается без ownership. |
+| Lease acquire exception | `lease_error` | Ownership dependency failure ограничивается до action. |
 | Malformed lease response | `lease_shape_error` | Invalid ownership response останавливает цикл до action. |
 | Loop guard блокирует повтор | `loop` | Повторяющийся action fingerprint останавливает цикл до action. |
 | Context pack failure | `context_over` | Цикл останавливается вместо превышения budget. |
@@ -26,7 +27,8 @@
 | Lease renewal exception | `lease_renew_error` | Renewal failure ограничивается result, lease освобождается. |
 | Budget exhausted | `budget` | Следующие turns запрещены после исчерпания bounded budget. |
 
-Constructor отклоняет неположительный или нецелый `max_turns` и non-callable injected clock до получения любого lease. Action и judge outputs должны быть mappings; malformed outputs ограничиваются как failures. Budget authorization выполняется до memory writeback. Memory writeback выполняется только при `pass=true` от judge и принятом turn budget; rejected или budget-denied candidates не сохраняются.
+Constructor отклоняет неположительный или нецелый `max_turns` и non-callable injected clock до получения любого lease. Callable clock сохраняется, даже если его boolean value равен false.
+ Action и judge outputs должны быть mappings; malformed outputs ограничиваются как failures. Budget authorization выполняется до memory writeback. Memory writeback выполняется только при `pass=true` от judge и принятом turn budget; rejected или budget-denied candidates не сохраняются.
  Telemetry append failures изолируются и не превращают valid control result в execution failure.
  Loop может сохранять memory только после получения action result; promotion остаётся под human approval и отдельными evidence contracts.
  Это local control-plane loop, а не доказательство autonomous external Hermes execution или self-learning без approval.

@@ -31,7 +31,7 @@ class AgentLoop:
         self.hitl = hitl
         self.events = events
         self.max_turns = max_turns
-        self.clock = clock or time.time
+        self.clock = time.time if clock is None else clock
 
     def _log(self, kind, payload):
         if self.events is not None:
@@ -46,7 +46,11 @@ class AgentLoop:
         outputs = []
         turns = []
         for n in range(1, self.max_turns + 1):
-            claim = self.leases.acquire(task_key, self.agent_id)
+            try:
+                claim = self.leases.acquire(task_key, self.agent_id)
+            except Exception as exc:
+                self._log("lease_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                return {"status": "lease_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
             if not isinstance(claim, Mapping):
                 self._log("lease_shape_error", {"task": task_key, "turn": n})
                 return {"status": "lease_shape_error", "turns": turns, "outputs": outputs}
