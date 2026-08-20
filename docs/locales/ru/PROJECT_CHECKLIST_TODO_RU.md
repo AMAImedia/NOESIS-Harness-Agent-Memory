@@ -1599,3 +1599,11 @@ Focused receipt-binding result: `64/64` assurance, recovery, child-runtime и ex
 | CHILD-128 | Bundle tamper denial | `DONE / BOUNDED LOCAL` | Изменение bundle digest или любого покрытого поля блокирует final manifest verification. |
 | CHILD-129 | Native/external bundle digest | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness whole-bundle digest не проверялись. |
 Focused bundle-digest result: `64/64` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 startup completeness bundle-digest checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-130 | Startup digest verification | `DONE / BOUNDED LOCAL` | `audit_replay_evidence_completeness()` independently recomputes each signed manifest `bundle_digest`. |
+| CHILD-131 | Count-parity tamper denial | `DONE / BOUNDED LOCAL` | Bundle digest denial occurs before startup completeness claim and count-parity acceptance. |
+| CHILD-132 | Direct manifest denial ordering | `DONE / BOUNDED LOCAL` | Exact manifest drift reports `recovery_replay_commit_manifest_drift` before aggregate completeness drift. |
+| CHILD-133 | Native/external startup digest | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness startup completeness digest не проверялись. |
+Focused startup completeness result: `65/65` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

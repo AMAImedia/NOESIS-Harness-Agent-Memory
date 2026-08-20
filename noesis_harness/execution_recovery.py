@@ -530,12 +530,12 @@ class ExecutionRecoveryExecutor:
         catalog_record = next((record for record in catalog_snapshot["payload"].get("records", ()) if str(record.get("action_id", "")) == action.action_id), None)
         if catalog_record is None:
             raise ExecutionRecoveryError("recovery_replay_commit_manifest_catalog_record_missing")
-        completeness_snapshot = self.verify_replay_evidence_completeness_snapshot()
         expected = {"schema_version": "noesis.recovery-replay-evidence-commit-manifest.v1", "action_id": action.action_id, "action_digest": replay_evidence["action_digest"], "completion_receipt_id": replay_evidence["completion_receipt_id"], "event_path": str(self.events.path), "status_snapshot_path": self._status_snapshot_path(action.action_id), "replay_snapshot_path": self._replay_snapshot_path(action.action_id), "inventory_snapshot_path": self._replay_inventory_snapshot_path(action.action_id), "catalog_snapshot_path": self._replay_catalog_snapshot_path(), "completeness_snapshot_path": self._replay_completeness_snapshot_path(), "status_snapshot_digest": request_fingerprint(status_snapshot["payload"]), "replay_snapshot_digest": request_fingerprint(replay_snapshot["payload"]), "inventory_snapshot_digest": request_fingerprint(inventory_snapshot["payload"]), "catalog_record_digest": request_fingerprint(catalog_record), "completeness_record_digest": self._replay_completeness_record_digest(action, replay_evidence, catalog_record, self._replay_commit_manifest_path(action.action_id))}
         expected["bundle_digest"] = self._replay_bundle_digest(expected)
         for key, value in expected.items():
             if payload.get(key) != value:
                 raise ExecutionRecoveryError("recovery_replay_commit_manifest_drift")
+        self.verify_replay_evidence_completeness_snapshot()
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
     def audit_replay_evidence_completeness(self) -> Mapping[str, Any]:
@@ -574,6 +574,8 @@ class ExecutionRecoveryExecutor:
             seen.add(action_id)
             if os.path.abspath(manifest_path) != os.path.abspath(self._replay_commit_manifest_path(action_id)):
                 raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
+            if payload.get("bundle_digest") != self._replay_bundle_digest(payload):
+                raise ExecutionRecoveryError("recovery_replay_completeness_bundle_digest_mismatch")
             event_payload = expected.get(action_id)
             if event_payload is None or payload.get("action_digest") != event_payload.get("action_digest") or payload.get("completion_receipt_id") != event_payload.get("completion_receipt_id"):
                 raise ExecutionRecoveryError("recovery_replay_completeness_identity_conflict")
