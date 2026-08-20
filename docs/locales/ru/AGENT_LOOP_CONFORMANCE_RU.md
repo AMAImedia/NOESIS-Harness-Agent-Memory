@@ -28,7 +28,8 @@
 | Lease renewal exception | `lease_renew_error` | Renewal failure ограничивается result, lease освобождается. |
 | Budget exhausted | `budget` | Следующие turns запрещены после исчерпания bounded budget. |
 
-Constructor отклоняет неположительный или нецелый `max_turns` и non-callable injected clock до получения любого lease. Callable clock сохраняется, даже если его boolean value равен false.
+Constructor отклоняет неположительный или нецелый `max_turns`, non-callable injected clock и отсутствующие required dependency methods до получения любого lease. Optional budget и event sinks проверяются, если переданы.
+ Callable clock сохраняется, даже если его boolean value равен false.
  Action и judge outputs должны быть mappings; malformed outputs ограничиваются как failures. Budget authorization выполняется до memory writeback. Memory writeback выполняется только при `pass=true` от judge и принятом turn budget; rejected или budget-denied candidates не сохраняются.
  Telemetry append failures изолируются и не превращают valid control result в execution failure.
  Loop может сохранять memory только после получения action result; promotion остаётся под human approval и отдельными evidence contracts.

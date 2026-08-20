@@ -21,6 +21,22 @@ class AgentLoop:
             raise ValueError("max_turns_invalid")
         if clock is not None and not callable(clock):
             raise ValueError("clock_invalid")
+        required = (
+            ("memory", memory, "save"),
+            ("leases", leases, "acquire"),
+            ("leases", leases, "release"),
+            ("leases", leases, "renew"),
+            ("pack", pack, "pack"),
+            ("guard", guard, "check"),
+            ("judge", judge, "judge"),
+        )
+        if budget is not None:
+            required += (("budget", budget, "spend"),)
+        for owner, component, method in required:
+            if not callable(getattr(component, method, None)):
+                raise ValueError("%s_%s_invalid" % (owner, method))
+        if events is not None and not callable(getattr(events, "append", None)):
+            raise ValueError("events_append_invalid")
         self.agent_id = agent_id
         self.memory = memory
         self.leases = leases

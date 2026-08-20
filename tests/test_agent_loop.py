@@ -135,8 +135,16 @@ class _Judge:
 
 
 class AgentLoopTests(unittest.TestCase):
-    def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None, memory=None, budget=None):
-        return AgentLoop("agent", memory or _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock, budget=budget)
+    def make_loop(self, leases=None, guard=None, max_turns=2, pack=None, judge=None, clock=None, memory=None, budget=None, events=None):
+        return AgentLoop("agent", memory or _Memory(), leases or _Leases(), pack or _Pack(), guard or _Guard(), judge or _Judge(), max_turns=max_turns, clock=clock, budget=budget, events=events)
+
+    def test_invalid_dependencies_are_rejected_at_construction(self):
+        with self.assertRaisesRegex(ValueError, "leases_acquire_invalid"):
+            self.make_loop(leases=object())
+        with self.assertRaisesRegex(ValueError, "pack_pack_invalid"):
+            self.make_loop(pack=object())
+        with self.assertRaisesRegex(ValueError, "events_append_invalid"):
+            self.make_loop(events=object())
 
     def test_invalid_action_is_rejected_before_lease(self):
         leases = _Leases()
