@@ -30,19 +30,30 @@ class _Leases:
 
 
 class _Pack:
-    def __init__(self, ok=True):
+    def __init__(self, ok=True, error=False):
         self.ok = ok
+        self.error = error
 
     def pack(self, query):
+        if self.error:
+            raise LookupError("pack failure")
         return {"ok": self.ok, "tokens": 4}
 
 
 class _Guard:
-    def __init__(self, ok=True):
+    def __init__(self, ok=True, error=False):
         self.ok = ok
+        self.error = error
 
     def check(self, action):
+        if self.error:
+            raise LookupError("guard failure")
         return {"ok": self.ok}
+
+
+class _RenewErrorLeases(_Leases):
+    def renew(self, task_key, agent_id):
+        raise TimeoutError("renew failure")
 
 
 class _MemoryError(_Memory):
@@ -91,6 +102,20 @@ class AgentLoopTests(unittest.TestCase):
         self.assertEqual(result["status"], "loop")
         self.assertEqual(calls, [])
 
+    def test_pack_exception_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, pack=_Pack(error=True)).run("task", "query", lambda context: {"done": True})
+        self.assertEqual(result["status"], "pack_error")
+        self.assertEqual(result["reason"], "LookupError")
+        self.assertEqual(leases.released, 1)
+
+    def test_guard_exception_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, guard=_Guard(error=True)).run("task", "query", lambda context: {"done": True})
+        self.assertEqual(result["status"], "guard_error")
+        self.assertEqual(result["reason"], "LookupError")
+        self.assertEqual(leases.released, 1)
+
     def test_context_failure_releases_lease(self):
         leases = _Leases()
         result = self.make_loop(leases=leases, pack=_Pack(ok=False)).run("task", "query", lambda context: {"done": True})
@@ -109,6 +134,13 @@ class AgentLoopTests(unittest.TestCase):
         result = self.make_loop(leases=leases, judge=_Judge(ok=False)).run("task", "query", lambda context: {"output": "candidate"})
         self.assertEqual(result["status"], "judge_error")
         self.assertEqual(result["reason"], "RuntimeError")
+        self.assertEqual(leases.released, 1)
+
+    def test_renew_exception_releases_lease(self):
+        leases = _RenewErrorLeases()
+        result = self.make_loop(leases=leases).run("task", "query", lambda context: {"output": "candidate"})
+        self.assertEqual(result["status"], "lease_renew_error")
+        self.assertEqual(result["reason"], "TimeoutError")
         self.assertEqual(leases.released, 1)
 
     def test_memory_exception_releases_lease(self):

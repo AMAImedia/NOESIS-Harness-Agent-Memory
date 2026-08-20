@@ -42,11 +42,21 @@ class AgentLoop:
                 self._log("lease_miss", {"task": task_key, "holder": claim.get("holder")})
                 return {"status": "blocked", "holder": claim.get("holder"),
                         "turns": turns, "outputs": outputs}
-            packed = self.pack.pack(query)
+            try:
+                packed = self.pack.pack(query)
+            except Exception as exc:
+                self.leases.release(task_key, self.agent_id)
+                self._log("pack_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                return {"status": "pack_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
             if not packed.get("ok"):
                 self.leases.release(task_key, self.agent_id)
                 return {"status": "context_over", "turns": turns, "outputs": outputs}
-            chk = self.guard.check("%s|%s" % (task_key, query))
+            try:
+                chk = self.guard.check("%s|%s" % (task_key, query))
+            except Exception as exc:
+                self.leases.release(task_key, self.agent_id)
+                self._log("guard_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                return {"status": "guard_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
             if not chk.get("ok"):
                 self._log("loop_block", {"task": task_key, "turn": n})
                 self.leases.release(task_key, self.agent_id)
@@ -95,6 +105,11 @@ class AgentLoop:
             if not verdict.get("pass"):
                 self.leases.release(task_key, self.agent_id)
                 return {"status": "judge_fail", "turns": turns, "outputs": outputs}
-            self.leases.renew(task_key, self.agent_id)
+            try:
+                self.leases.renew(task_key, self.agent_id)
+            except Exception as exc:
+                self.leases.release(task_key, self.agent_id)
+                self._log("lease_renew_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                return {"status": "lease_renew_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
         self.leases.release(task_key, self.agent_id)
         return {"status": "max_turns", "turns": turns, "outputs": outputs}
