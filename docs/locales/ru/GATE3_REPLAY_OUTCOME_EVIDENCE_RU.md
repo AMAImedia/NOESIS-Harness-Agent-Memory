@@ -28,4 +28,6 @@ Replay и inventory sidecars являются action-scoped и использу�
 
 `audit_replay_evidence_completeness()` — read-only startup-style audit со schema `noesis.recovery-replay-evidence-completeness.v1`. Он требует один valid action-scoped commit manifest на каждый completed recovery event, проверяет receipt identity и manifest paths, а также требует равенства manifest count, event count и catalog count. Missing, duplicate, corrupt, conflicting или uncommitted completion блокирует completeness claim.
 
+Completeness projection также сохраняется как signed `noesis.recovery-replay-evidence-completeness-snapshot.v1`. Exact replay проверяет durable claim против current bundle после commit manifest gate. Missing, corrupt, path-mismatched, tampered или drifted completeness snapshot fail-closed и никогда не создаётся молча заново во время replay.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).

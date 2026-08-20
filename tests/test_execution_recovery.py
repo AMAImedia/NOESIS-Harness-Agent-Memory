@@ -66,6 +66,9 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(replay["replay_commit_manifest"]["status"], "passed")
         self.assertEqual(replay["replay_completeness"]["schema_version"], "noesis.recovery-replay-evidence-completeness.v1")
         self.assertEqual(replay["replay_completeness"]["manifest_count"], 1)
+        completeness_snapshot = executor.verify_replay_evidence_completeness_snapshot()
+        self.assertEqual(completeness_snapshot["payload"]["schema_version"], "noesis.recovery-replay-evidence-completeness-snapshot.v1")
+        self.assertEqual(replay["replay_completeness_snapshot"]["status"], "passed")
         self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 1)
         inventory_one = executor.audit_replay_snapshot_inventory(self.action)
         inventory_two = executor.audit_replay_snapshot_inventory(self.action)
@@ -96,6 +99,8 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(replay_two["replay_catalog_snapshot"]["payload"]["count"], 2)
         self.assertEqual(replay_two["replay_commit_manifest"]["status"], "passed")
         self.assertEqual(replay_two["replay_completeness"]["manifest_count"], 2)
+        self.assertEqual(replay_two["replay_completeness_snapshot"]["payload"]["manifest_count"], 2)
+        self.assertEqual(executor.verify_replay_evidence_completeness_snapshot()["status"], "passed")
         self.assertEqual(executor.verify_replay_evidence_commit_manifest(action_two)["status"], "passed")
         self.assertEqual(executor.verify_replay_evidence_catalog_snapshot()["status"], "passed")
         self.assertEqual(executor.audit_replay_evidence_catalog()["count"], 2)
@@ -235,6 +240,38 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_identity_conflict"):
             executor.audit_replay_snapshot_inventory(self.action)
+
+    def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
+        event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(executor._replay_completeness_snapshot_path()).unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_missing"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_completeness_snapshot_rejects_signed_path_mismatch(self):
+        event_path = str(Path(self.tmp.name) / "completeness-path-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["completeness_path"] = str(Path(self.tmp.name) / "other-completeness.json")
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_path_mismatch"):
+            executor.handle(self.action, self.context)
+
+    def test_replay_completeness_snapshot_rejects_signed_drift(self):
+        event_path = str(Path(self.tmp.name) / "completeness-drift-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_completeness_snapshot_path())
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["completeness_digest"] = "sha256:drift"
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_drift"):
+            executor.verify_replay_evidence_completeness_snapshot()
 
     def test_replay_completeness_rejects_missing_manifest(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-manifest-events.jsonl")

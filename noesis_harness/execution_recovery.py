@@ -566,6 +566,44 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_completeness_catalog_mismatch")
         return {"schema_version": "noesis.recovery-replay-evidence-completeness.v1", "status": "passed", "event_count": len(expected), "manifest_count": len(records), "catalog_count": int(catalog["count"]), "records": records, "completeness_digest": request_fingerprint({"records": records, "catalog_digest": catalog["catalog_digest"]})}
 
+    def _replay_completeness_snapshot_path(self) -> str:
+        return str(self.events.path) + ".replay-completeness.json"
+
+    def persist_replay_evidence_completeness(self) -> Mapping[str, Any]:
+        """Atomically persist signed completeness evidence for the replay bundle."""
+        completeness = self.audit_replay_evidence_completeness()
+        payload = dict(completeness)
+        payload["schema_version"] = "noesis.recovery-replay-evidence-completeness-snapshot.v1"
+        payload["completeness_path"] = self._replay_completeness_snapshot_path()
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_completeness_snapshot_path(), snapshot)
+        return snapshot
+
+    def verify_replay_evidence_completeness_snapshot(self) -> Mapping[str, Any]:
+        """Verify durable completeness evidence against the current bundle."""
+        try:
+            with open(self._replay_completeness_snapshot_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_duplicate_record") from exc
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_missing") from exc
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_signature_invalid")
+        if payload.get("completeness_path") != self._replay_completeness_snapshot_path():
+            raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_path_mismatch")
+        current = self.audit_replay_evidence_completeness()
+        for key, value in current.items():
+            if key == "schema_version":
+                continue
+            if payload.get(key) != value:
+                raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -580,7 +618,8 @@ class ExecutionRecoveryExecutor:
             replay_catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
             replay_commit_manifest = self.verify_replay_evidence_commit_manifest(action)
             replay_completeness = self.audit_replay_evidence_completeness()
-            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness}
+            replay_completeness_snapshot = self.verify_replay_evidence_completeness_snapshot()
+            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness, "replay_completeness_snapshot": replay_completeness_snapshot}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None
@@ -635,6 +674,7 @@ class ExecutionRecoveryExecutor:
         self.persist_replay_snapshot_inventory(action)
         self.persist_replay_evidence_catalog()
         self.persist_replay_evidence_commit_manifest(action)
+        self.persist_replay_evidence_completeness()
         return payload
 
 
