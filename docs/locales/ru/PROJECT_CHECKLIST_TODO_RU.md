@@ -1328,3 +1328,15 @@ Focused terminal lifecycle result: `30/30` assurance, recovery, child-runtime и
 | CHILD-22 | Native/external receipt audit | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external harness receipt stores не проверялись без matching environments. |
 
 Focused receipt audit result: `32/32` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 receipt lifecycle checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-23 | Explicit receipt transitions | `DONE / BOUNDED LOCAL` | Allowed prepared/terminal/rollback transitions are centralized and immutable. |
+| CHILD-24 | Receipt identity binding | `DONE / BOUNDED LOCAL` | Request, policy, workspace-before и artifact-diff digests must remain identical across transitions. |
+| CHILD-25 | Invalid transition rejection | `DONE / BOUNDED LOCAL` | Reuse across requests, artifact states и unsupported outcomes fail closed. |
+| CHILD-26 | Native/external lifecycle transitions | `NOT_RUN / ENVIRONMENT-GATED` | Matching Windows/macOS и pinned external harness receipt histories не проверялись. |
+
+Focused receipt lifecycle result: `33/33` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

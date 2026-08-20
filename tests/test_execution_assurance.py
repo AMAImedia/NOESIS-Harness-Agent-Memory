@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from noesis_harness.execution_assurance import AssuranceError, ExecutionReceiptStore, ExecutionRecoveryStore, build_artifact_diff, create_receipt, verify_receipt
+from noesis_harness.execution_assurance import AssuranceError, ExecutionReceiptStore, ExecutionRecoveryStore, build_artifact_diff, create_receipt, validate_receipt_transition, verify_receipt
 
 
 class ExecutionAssuranceTests(unittest.TestCase):
@@ -55,6 +55,20 @@ class ExecutionAssuranceTests(unittest.TestCase):
             self.assertEqual(reopened.get(receipt.receipt_id), receipt)
             with self.assertRaisesRegex(AssuranceError, "invalid_signed_receipt"):
                 reopened.put(create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True))
+
+    def test_receipt_lifecycle_transitions_are_explicit_and_immutable(self):
+        key = b"receipt-transition-signing-key"
+        prepared = create_receipt(request={"tool": "transition"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+        committed = create_receipt(request={"tool": "transition"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+        rolled_back = create_receipt(request={"tool": "transition"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:b", outcome="rolled_back", rollback_available=False, signing_key=key)
+        self.assertTrue(validate_receipt_transition(prepared, committed))
+        self.assertTrue(validate_receipt_transition(committed, rolled_back))
+        self.assertTrue(validate_receipt_transition(prepared, prepared))
+        with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+            validate_receipt_transition(committed, prepared)
+        different_request = create_receipt(request={"tool": "other"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="rolled_back", rollback_available=False, signing_key=key)
+        with self.assertRaisesRegex(AssuranceError, "identity_mismatch"):
+            validate_receipt_transition(committed, different_request)
 
     def test_receipt_store_audit_is_deterministic_and_restart_safe(self):
         with tempfile.TemporaryDirectory() as directory:

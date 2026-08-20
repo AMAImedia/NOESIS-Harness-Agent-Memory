@@ -93,6 +93,22 @@ def create_receipt(*, request: Mapping[str, Any], policy: Mapping[str, Any], wor
     return ExecutionReceipt(receipt_id, ASSURANCE_SCHEMA, request_digest, policy_digest, workspace_before, workspace_after, outcome, rollback_available, tuple(side_effects), receipt_digest, signature, artifact_diff_digest)
 
 
+def validate_receipt_transition(previous: ExecutionReceipt, current: ExecutionReceipt) -> bool:
+    """Validate an immutable receipt lifecycle transition without mutating history."""
+    if not isinstance(previous, ExecutionReceipt) or not isinstance(current, ExecutionReceipt):
+        raise AssuranceError("receipt_transition_type_required")
+    if previous.receipt_id == current.receipt_id:
+        return previous == current
+    if previous.request_digest != current.request_digest or previous.policy_digest != current.policy_digest:
+        raise AssuranceError("receipt_transition_identity_mismatch")
+    if previous.workspace_before != current.workspace_before or previous.artifact_diff_digest != current.artifact_diff_digest:
+        raise AssuranceError("receipt_transition_artifact_mismatch")
+    allowed = {"prepared": {"committed", "rejected", "failed", "timed_out"}, "committed": {"rolled_back"}, "failed": {"rolled_back"}, "timed_out": {"rolled_back"}, "rejected": set(), "rolled_back": set()}
+    if current.outcome not in allowed.get(previous.outcome, set()):
+        raise AssuranceError("invalid_receipt_transition")
+    return True
+
+
 def verify_receipt(receipt: ExecutionReceipt, signing_key: Optional[bytes] = None) -> bool:
     stable = {"request_digest": receipt.request_digest, "policy_digest": receipt.policy_digest, "workspace_before": receipt.workspace_before, "workspace_after": receipt.workspace_after, "outcome": receipt.outcome, "rollback_available": receipt.rollback_available, "side_effects": list(receipt.side_effects), "artifact_diff_digest": receipt.artifact_diff_digest}
     if not (receipt.schema_version == ASSURANCE_SCHEMA and receipt.receipt_id == "receipt:" + receipt.receipt_digest[7:] and receipt.receipt_digest == _digest(stable)):
@@ -259,4 +275,4 @@ class ExecutionReceiptStore:
         return {"status": "passed", "count": len(receipt_ids), "receipt_ids": tuple(receipt_ids), "aggregate_digest": _digest(tuple(payloads))}
 
 
-__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "artifact_manifest", "build_artifact_diff_from_manifests", "build_artifact_diff", "create_receipt", "request_fingerprint", "verify_receipt"]
+__all__ = ["ASSURANCE_SCHEMA", "AssuranceError", "ExecutionReceipt", "ExecutionReceiptStore", "ExecutionRecoveryStore", "artifact_manifest", "build_artifact_diff_from_manifests", "build_artifact_diff", "create_receipt", "request_fingerprint", "validate_receipt_transition", "verify_receipt"]
