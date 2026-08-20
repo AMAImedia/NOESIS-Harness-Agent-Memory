@@ -1496,3 +1496,10 @@ Focused replay outcome result: `43/43` assurance, recovery, child-runtime и exp
 | CHILD-78 | Native/external replay snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness replay snapshots не проверялись. |
 
 Focused replay snapshot result: `45/45` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+## 2026-08-20 — Gate 3 replay snapshot inventory audit checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-79 | Deterministic replay snapshot inventory | `DONE / BOUNDED LOCAL` | `audit_replay_snapshot_inventory()` выпускает read-only `noesis.recovery-replay-snapshot-inventory.v1` с verified path, payload digest, action identity и completion receipt identity. |
+| CHILD-80 | Inventory repeatability | `DONE / BOUNDED LOCAL` | Повторный audit неизменённого sidecar даёт byte-equivalent projection; verification failure не создаёт partial inventory. |
+| CHILD-81 | Native/external inventory | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness inventory audits не проверялись. |
+Focused replay inventory result: `45/45` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

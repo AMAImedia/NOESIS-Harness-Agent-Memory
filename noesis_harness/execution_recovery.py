@@ -279,6 +279,12 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def audit_replay_snapshot_inventory(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
+        """Return a deterministic inventory for the verified replay snapshot."""
+        verified = self.verify_replay_outcome_snapshot(action)
+        payload = verified["payload"]
+        return {"schema_version": "noesis.recovery-replay-snapshot-inventory.v1", "status": "passed", "snapshot_path": self._replay_snapshot_path(), "snapshot_digest": request_fingerprint(payload), "action_id": str(payload.get("action_id", "")), "action_digest": str(payload.get("action_digest", "")), "completion_receipt_id": str(payload.get("completion_receipt_id", ""))}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
