@@ -652,6 +652,8 @@ class ExecutionRecoveryExecutor:
         path = self._replay_repair_chain_path()
         if not os.path.exists(path):
             return []
+        if os.path.islink(path) or not os.path.isfile(path) or os.stat(path).st_nlink != 1:
+            raise ExecutionRecoveryError("recovery_repair_chain_file_identity")
         entries = []
         previous = "genesis"
         expected_id = 1
@@ -677,7 +679,9 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_repair_chain_duplicate_record") from exc
         except ExecutionRecoveryError:
             raise
-        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        except json.JSONDecodeError as exc:
+            raise ExecutionRecoveryError("recovery_repair_chain_partial_record") from exc
+        except (OSError, KeyError, TypeError, ValueError) as exc:
             raise ExecutionRecoveryError("recovery_repair_chain_corrupt") from exc
         return entries
 
@@ -689,8 +693,9 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_repair_chain_order_invalid")
         parent = os.path.dirname(os.path.abspath(self._replay_repair_chain_path())) or "."
         os.makedirs(parent, exist_ok=True)
+        record = json.dumps({"payload": dict(payload), "signature": signature}, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
         with open(self._replay_repair_chain_path(), "a", encoding="utf-8") as handle:
-            handle.write(json.dumps({"payload": dict(payload), "signature": signature}, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
+            handle.write(record)
             handle.flush()
             os.fsync(handle.fileno())
 

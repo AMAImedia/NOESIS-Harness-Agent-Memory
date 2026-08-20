@@ -1968,3 +1968,16 @@ Focused repair-provenance result: `75/75` execution-recovery tests passed with P
 | CHILD-270 | Native/external repair chain | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external operator repair-chain lanes не запускались. |
 
 Focused repair-chain result: `76/76` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 repair-chain crash-consistency checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-271 | Durable chain append | `DONE / BOUNDED LOCAL` | Complete signed JSONL record flush-ится и `fsync()`-ится до read-only protection. |
+| CHILD-272 | Partial terminal record | `DONE / BOUNDED LOCAL` | Truncated append fail-closed как `recovery_repair_chain_partial_record`. |
+| CHILD-273 | File identity | `DONE / BOUNDED LOCAL` | Symlink/hardlink repair chain fail-closed как `recovery_repair_chain_file_identity`. |
+| CHILD-274 | Strict startup denial | `DONE / BOUNDED LOCAL` | Active repair receipt не принимается при malformed, orphan или physically aliased chain. |
+| CHILD-275 | Native/external crash recovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external crash-consistency lanes не запускались. |
+
+Focused crash-consistency result: `78/78` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

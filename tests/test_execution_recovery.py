@@ -248,6 +248,36 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_repair_chain_order_invalid"):
             executor.verify_replay_evidence_finalization()
 
+    def test_repair_chain_partial_append_fails_closed(self):
+        event_path = str(Path(self.tmp.name) / "repair-chain-partial-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-partial-chain")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        chain_path = Path(executor._replay_repair_chain_path())
+        os.chmod(chain_path, os.stat(chain_path).st_mode | 0o200)
+        with chain_path.open("a", encoding="utf-8") as handle:
+            handle.write('{"payload":')
+        os.chmod(chain_path, os.stat(chain_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_repair_chain_partial_record"):
+            executor.verify_replay_evidence_finalization()
+
+    def test_repair_chain_hardlink_fails_closed(self):
+        event_path = str(Path(self.tmp.name) / "repair-chain-hardlink-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-hardlink-chain")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        chain_path = Path(executor._replay_repair_chain_path())
+        hardlink = Path(self.tmp.name) / "repair-chain-hardlink-copy.jsonl"
+        os.link(chain_path, hardlink)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_repair_chain_file_identity"):
+            executor.verify_replay_evidence_finalization()
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
