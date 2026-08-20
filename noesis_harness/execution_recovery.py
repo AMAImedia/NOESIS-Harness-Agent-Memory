@@ -567,6 +567,14 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path()}
+        for action_id in expected:
+            expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
+        sidecar_prefix = os.path.basename(str(self.events.path)) + "."
+        sidecar_candidates = {name for name in os.listdir(parent) if name.startswith(sidecar_prefix) and name.endswith(".json")}
+        expected_sidecar_names = {os.path.basename(path) for path in expected_sidecar_paths}
+        if sidecar_candidates - expected_sidecar_names:
+            raise ExecutionRecoveryError("recovery_replay_completeness_orphan_sidecar")
         records = []
         seen = set()
         for name in candidates:
@@ -594,6 +602,8 @@ class ExecutionRecoveryExecutor:
             for field, expected_path in expected_paths.items():
                 if payload.get(field) != expected_path:
                     raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
+                if os.path.islink(expected_path):
+                    raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_alias")
                 if not os.path.isfile(expected_path) and field != "completeness_snapshot_path":
                     raise ExecutionRecoveryError("recovery_replay_completeness_bundle_path_missing")
                 if field != "event_path" and os.path.isfile(expected_path):

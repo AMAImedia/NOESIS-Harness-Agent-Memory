@@ -601,6 +601,31 @@ class ExecutionRecoveryTests(unittest.TestCase):
                 executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
         self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 2)
 
+    def test_startup_completeness_rejects_orphan_sidecar_filename(self):
+        event_path = str(Path(self.tmp.name) / "completeness-orphan-sidecar-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        orphan_path = Path(event_path + ".status.orphan.json")
+        orphan_path.write_text("not-json", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_orphan_sidecar"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        orphan_path.unlink()
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
+
+    def test_startup_completeness_rejects_canonical_sidecar_symlink_alias(self):
+        event_path = str(Path(self.tmp.name) / "completeness-sidecar-alias-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        status_path = Path(executor._status_snapshot_path(self.action.action_id))
+        alias_path = status_path.with_name(status_path.name + ".alias-target")
+        status_path.rename(alias_path)
+        status_path.symlink_to(alias_path.name)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_sidecar_alias"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        status_path.unlink()
+        alias_path.rename(status_path)
+        self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

@@ -1777,3 +1777,16 @@ Focused duplicate-identity result: `54/54` execution-recovery tests passed with 
 | CHILD-199 | Native/external manifest discovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness unknown/orphan manifest discovery не проверялись. |
 
 Focused manifest-discovery result: `56/56` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 strict sidecar-binding checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-200 | Orphan sidecar denial | `DONE / BOUNDED LOCAL` | Extra `.status` sidecar filename отклоняется с `recovery_replay_completeness_orphan_sidecar` до sidecar parsing. |
+| CHILD-201 | Canonical sidecar alias denial | `DONE / BOUNDED LOCAL` | Symlink вместо canonical action status path отклоняется с `recovery_replay_completeness_sidecar_alias`. |
+| CHILD-202 | Sidecar allowlist | `DONE / BOUNDED LOCAL` | Strict expected set охватывает event, status, replay, inventory, catalog, completeness и commit-manifest artifacts. |
+| CHILD-203 | Clean sidecar restoration | `DONE / BOUNDED LOCAL` | После удаления orphan и восстановления regular canonical file completeness count снова проходит. |
+| CHILD-204 | Native/external sidecar binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness sidecar alias/orphan discovery не проверялись. |
+
+Focused sidecar-binding result: `58/58` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
