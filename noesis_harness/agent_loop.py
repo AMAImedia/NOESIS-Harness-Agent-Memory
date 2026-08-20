@@ -11,6 +11,7 @@ Stdlib. The act() callback is injected — core never calls an LLM.
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 
 
 class AgentLoop:
@@ -34,7 +35,11 @@ class AgentLoop:
 
     def _log(self, kind, payload):
         if self.events is not None:
-            self.events.append(kind, payload)
+            try:
+                self.events.append(kind, payload)
+            except Exception:
+                return False
+        return True
 
     def run(self, task_key, query, act):
         """act(ctx) -> {done, output, memory?}  Never called without a lease."""
@@ -73,6 +78,10 @@ class AgentLoop:
                 self.leases.release(task_key, self.agent_id)
                 self._log("act_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
                 return {"status": "act_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
+            if not isinstance(result, Mapping):
+                self.leases.release(task_key, self.agent_id)
+                self._log("result_shape_error", {"task": task_key, "turn": n})
+                return {"status": "result_shape_error", "turns": turns, "outputs": outputs}
             out = str(result.get("output") or "")
             outputs.append(out)
             try:
@@ -81,6 +90,10 @@ class AgentLoop:
                 self.leases.release(task_key, self.agent_id)
                 self._log("judge_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
                 return {"status": "judge_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
+            if not isinstance(verdict, Mapping):
+                self.leases.release(task_key, self.agent_id)
+                self._log("judge_shape_error", {"task": task_key, "turn": n})
+                return {"status": "judge_shape_error", "turns": turns, "outputs": outputs}
             turn = {"n": n, "output": out, "judge": verdict,
                     "tokens": packed.get("tokens"), "ts": self.clock()}
             turns.append(turn)

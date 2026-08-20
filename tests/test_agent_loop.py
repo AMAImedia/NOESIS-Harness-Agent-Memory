@@ -56,6 +56,16 @@ class _RenewErrorLeases(_Leases):
         raise TimeoutError("renew failure")
 
 
+class _EventsError:
+    def append(self, kind, payload):
+        raise OSError("telemetry failure")
+
+
+class _JudgeShape:
+    def judge(self, outputs):
+        return ["invalid"]
+
+
 class _MemoryError(_Memory):
     def save(self, value, kind, confidence):
         raise OSError("memory failure")
@@ -113,6 +123,24 @@ class AgentLoopTests(unittest.TestCase):
         result = self.make_loop(guard=_Guard(ok=False)).run("task", "query", lambda context: calls.append(context) or {"done": True})
         self.assertEqual(result["status"], "loop")
         self.assertEqual(calls, [])
+
+    def test_malformed_action_result_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases).run("task", "query", lambda context: ["invalid"])
+        self.assertEqual(result["status"], "result_shape_error")
+        self.assertEqual(leases.released, 1)
+
+    def test_malformed_judge_result_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, judge=_JudgeShape()).run("task", "query", lambda context: {"output": "candidate"})
+        self.assertEqual(result["status"], "judge_shape_error")
+        self.assertEqual(leases.released, 1)
+
+    def test_telemetry_exception_does_not_break_loop(self):
+        loop = self.make_loop(max_turns=1)
+        loop.events = _EventsError()
+        result = loop.run("task", "query", lambda context: {"done": True, "output": "accepted"})
+        self.assertEqual(result["status"], "done")
 
     def test_pack_exception_releases_lease(self):
         leases = _Leases()

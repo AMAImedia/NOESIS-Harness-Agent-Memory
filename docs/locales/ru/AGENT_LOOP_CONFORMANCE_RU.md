@@ -11,15 +11,18 @@
 | Context pack failure | `context_over` | Цикл останавливается вместо превышения budget. |
 | Pack exception | `pack_error` | Dependency failure ограничивается result, lease освобождается. |
 | Guard exception | `guard_error` | Dependency failure ограничивается result, lease освобождается. |
+| Malformed action result | `result_shape_error` | Non-mapping output отклоняется до judge или writeback. |
 | Judge failure | `judge_fail` | Failed output не считается успешной работой. |
 | Action exception | `act_error` | Exception ограничивается result, lease освобождается. |
 | Judge exception | `judge_error` | Exception ограничивается result, lease освобождается. |
+| Malformed judge result | `judge_shape_error` | Non-mapping verdict отклоняется, lease освобождается. |
 | Memory write exception | `memory_error` | Failed writeback ограничивается result, lease освобождается. |
 | Budget exception | `budget_error` | Budget failure ограничивается result, lease освобождается. |
 | Lease renewal exception | `lease_renew_error` | Renewal failure ограничивается result, lease освобождается. |
 | Budget exhausted | `budget` | Следующие turns запрещены после исчерпания bounded budget. |
 
-Constructor отклоняет неположительный или нецелый `max_turns` и non-callable injected clock до получения любого lease. Loop может сохранять memory только после получения action result; promotion остаётся под human approval и отдельными evidence contracts.
+Constructor отклоняет неположительный или нецелый `max_turns` и non-callable injected clock до получения любого lease. Action и judge outputs должны быть mappings; malformed outputs ограничиваются как failures. Telemetry append failures изолируются и не превращают valid control result в execution failure.
+ Loop может сохранять memory только после получения action result; promotion остаётся под human approval и отдельными evidence contracts.
  Это local control-plane loop, а не доказательство autonomous external Hermes execution или self-learning без approval.
 
 Каждый early stop после acquire освобождает lease, включая context-pack failure, pack exception, loop-guard rejection, guard exception, action exception, judge exception, memory write exception, budget exception и lease renewal exception.
