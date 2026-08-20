@@ -576,6 +576,12 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
             if payload.get("bundle_digest") != self._replay_bundle_digest(payload):
                 raise ExecutionRecoveryError("recovery_replay_completeness_bundle_digest_mismatch")
+            expected_paths = {"event_path": str(self.events.path), "status_snapshot_path": self._status_snapshot_path(action_id), "replay_snapshot_path": self._replay_snapshot_path(action_id), "inventory_snapshot_path": self._replay_inventory_snapshot_path(action_id), "catalog_snapshot_path": self._replay_catalog_snapshot_path(), "completeness_snapshot_path": self._replay_completeness_snapshot_path()}
+            for field, expected_path in expected_paths.items():
+                if payload.get(field) != expected_path:
+                    raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
+                if not os.path.isfile(expected_path) and field != "completeness_snapshot_path":
+                    raise ExecutionRecoveryError("recovery_replay_completeness_bundle_path_missing")
             event_payload = expected.get(action_id)
             if event_payload is None or payload.get("action_digest") != event_payload.get("action_digest") or payload.get("completion_receipt_id") != event_payload.get("completion_receipt_id"):
                 raise ExecutionRecoveryError("recovery_replay_completeness_identity_conflict")

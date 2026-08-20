@@ -296,6 +296,14 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_drift"):
             executor.verify_replay_evidence_completeness_snapshot()
 
+    def test_replay_completeness_rejects_missing_bundle_path(self):
+        event_path = str(Path(self.tmp.name) / "missing-bundle-path-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(executor._replay_snapshot_path(self.action.action_id)).unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_bundle_path_missing"):
+            executor.audit_replay_evidence_completeness()
+
     def test_replay_completeness_rejects_bundle_digest_mismatch(self):
         event_path = str(Path(self.tmp.name) / "bundle-digest-completeness-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

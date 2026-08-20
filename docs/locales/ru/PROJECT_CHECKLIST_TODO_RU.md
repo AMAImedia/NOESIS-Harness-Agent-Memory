@@ -1607,3 +1607,11 @@ Focused bundle-digest result: `64/64` assurance, recovery, child-runtime и expo
 | CHILD-132 | Direct manifest denial ordering | `DONE / BOUNDED LOCAL` | Exact manifest drift reports `recovery_replay_commit_manifest_drift` before aggregate completeness drift. |
 | CHILD-133 | Native/external startup digest | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness startup completeness digest не проверялись. |
 Focused startup completeness result: `65/65` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 startup partial-bundle path checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-134 | Referenced path completeness | `DONE / BOUNDED LOCAL` | Startup audit требует existence и canonical binding для event/status/replay/inventory/catalog/completeness paths. |
+| CHILD-135 | Partial-bundle denial | `DONE / BOUNDED LOCAL` | Missing action evidence path блокирует completeness claim с `recovery_replay_completeness_bundle_path_missing`. |
+| CHILD-136 | Bootstrap exception | `DONE / BOUNDED LOCAL` | Только собственный completeness snapshot может отсутствовать до его first atomic bootstrap write. |
+| CHILD-137 | Native/external path completeness | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness partial-bundle path audits не проверялись. |
+Focused partial-bundle result: `66/66` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
