@@ -1868,3 +1868,15 @@ Focused rotation result: `63/63` execution-recovery tests passed with Python 3.1
 | CHILD-234 | Native/external prefix replay | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness old-prefix replay не проверялись. |
 
 Focused old-prefix cross-binding result: `63/63` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 event-chain repair checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-235 | Chain reorder denial | `DONE / BOUNDED LOCAL` | Reordered completion events отклоняются с chain mismatch до generation receipt verification. |
+| CHILD-236 | Chain duplicate/fork denial | `DONE / BOUNDED LOCAL` | Duplicate action event отклоняется как `recovery_completion_event_fork`; receipt не маскирует fork. |
+| CHILD-237 | Trusted append-only repair | `DONE / BOUNDED LOCAL` | После восстановления исходного event order и unique identities current generation receipt снова проходит deterministic verification. |
+| CHILD-238 | Native/external chain repair | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness event-chain repair не проверялись. |
+
+Focused event-chain result: `63/63` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

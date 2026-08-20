@@ -120,10 +120,20 @@ class ExecutionRecoveryTests(unittest.TestCase):
         records = [json.loads(line) for line in original_events.splitlines() if line.strip()]
         records.reverse()
         Path(event_path).write_text("\n".join(json.dumps(record, sort_keys=True) for record in records) + "\n", encoding="utf-8")
+        verifier = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
         with self.assertRaisesRegex(ExecutionRecoveryError, "chain_mismatch"):
-            ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).audit_completion_events()
+            verifier.audit_completion_events()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "chain_mismatch"):
+            verifier.verify_replay_generation_receipt()
+
+        duplicate_records = [json.loads(line) for line in original_events.splitlines() if line.strip()]
+        duplicate_records.append(duplicate_records[-1])
+        Path(event_path).write_text("\n".join(json.dumps(record, sort_keys=True) for record in duplicate_records) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "completion_event_fork"):
+            verifier.verify_replay_generation_receipt()
 
         Path(event_path).write_text(original_events, encoding="utf-8")
+        self.assertEqual(verifier.verify_replay_generation_receipt()["status"], "passed")
         snapshot_path.write_text(original_snapshot, encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "event_snapshot_drift"):
             ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).verify_completion_event_snapshot()
