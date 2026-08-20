@@ -1424,3 +1424,15 @@ Focused event-chain result: `39/39` assurance, recovery, child-runtime и export
 | CHILD-54 | Native/external event snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness event snapshots не проверялись. |
 
 Focused durable snapshot result: `39/39` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 recovery evidence startup checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-55 | Startup/replay evidence gate | `DONE / BOUNDED LOCAL` | `verify_recovery_evidence()` audit-ит event chain и snapshot как explicit startup/replay check. |
+| CHILD-56 | Missing snapshot honesty | `DONE / BOUNDED LOCAL` | Non-empty event log без snapshot fail-closed; empty log остаётся `not_run` no-op. |
+| CHILD-57 | Snapshot replay integrity | `DONE / BOUNDED LOCAL` | Reopen проверяет HMAC, IDs, receipts, count и chain digest без automatic repair. |
+| CHILD-58 | Native/external startup gates | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness startup verification не проверялись. |
+
+Focused startup/replay result: `40/40` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

@@ -39,6 +39,9 @@ class ExecutionRecoveryTests(unittest.TestCase):
         completion = self.receipts.get(result["completion_receipt_id"])
         self.assertIsNotNone(completion)
         self.assertEqual(completion.outcome, "committed")
+        evidence = executor.verify_recovery_evidence()
+        self.assertEqual(evidence["status"], "passed")
+        self.assertEqual(evidence["chain"]["count"], 1)
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
 
@@ -73,6 +76,14 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "event_snapshot_signature_invalid"):
             ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).verify_completion_event_snapshot()
+
+    def test_startup_evidence_gate_rejects_missing_snapshot(self):
+        event_path = str(Path(self.tmp.name) / "missing-snapshot-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        Path(event_path + ".snapshot.json").unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "event_snapshot_missing"):
+            ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True).verify_recovery_evidence()
 
     def test_replay_rejects_tampered_completion_receipt_reference(self):
         event_path = str(Path(self.tmp.name) / "tampered-completion-events.jsonl")

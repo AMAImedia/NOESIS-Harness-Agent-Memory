@@ -178,6 +178,17 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_event_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def verify_recovery_evidence(self) -> Mapping[str, Any]:
+        """Verify recovery chain and its durable snapshot as a startup/replay gate."""
+        chain = self.audit_completion_events()
+        snapshot_path = self._completion_snapshot_path()
+        if chain["count"] == 0 and not os.path.exists(snapshot_path):
+            return {"status": "passed", "chain": chain, "snapshot": {"status": "not_run", "reason": "no_completion_events"}}
+        if not os.path.exists(snapshot_path):
+            raise ExecutionRecoveryError("recovery_event_snapshot_missing")
+        snapshot = self.verify_completion_event_snapshot()
+        return {"status": "passed", "chain": chain, "snapshot": snapshot}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
