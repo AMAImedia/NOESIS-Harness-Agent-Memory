@@ -1388,3 +1388,15 @@ Focused snapshot result: `36/36` assurance, recovery, child-runtime и export te
 | CHILD-42 | Native/external recovery linkage | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness recovery snapshots не проверялись. |
 
 Focused snapshot-recovery result: `37/37` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 recovery completion receipt checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-43 | Signed recovery completion receipt | `DONE / BOUNDED LOCAL` | Successful recovery creates committed signed receipt bound to action, run, scope, operator and optional snapshot. |
+| CHILD-44 | Replay receipt verification | `DONE / BOUNDED LOCAL` | Exact replay validates referenced completion receipt before returning `replayed`. |
+| CHILD-45 | Event tamper rejection | `DONE / BOUNDED LOCAL` | Tampered completion receipt reference fails closed; action payload replay conflict remains enforced. |
+| CHILD-46 | Native/external completion receipts | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness completion receipts не проверялись. |
+
+Focused completion receipt result: `38/38` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

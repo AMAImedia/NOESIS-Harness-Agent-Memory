@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
-from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, request_fingerprint
+from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, request_fingerprint
 from .workspaces import PatchReviewStore, WorkspaceError
 
 RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
@@ -94,6 +94,11 @@ class ExecutionRecoveryExecutor:
         if existing is not None:
             if existing.get("action_digest") != action_digest:
                 raise ExecutionRecoveryError("recovery_action_replay_conflict")
+            completion_receipt_id = str(existing.get("completion_receipt_id", ""))
+            if completion_receipt_id:
+                completion_receipt = self.receipt_store.get(completion_receipt_id)
+                if completion_receipt is None or completion_receipt.outcome != "committed":
+                    raise ExecutionRecoveryError("recovery_completion_receipt_invalid")
             return {"status": "replayed", "result": existing}
         run = self.recovery_store.get(action.run_id)
         receipt = None
@@ -134,7 +139,9 @@ class ExecutionRecoveryExecutor:
         else:
             state = self.recovery_store.mark_recovered(action.run_id)
             operation_status = "recovered"
-        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "chain_snapshot_id": action.chain_snapshot_id, "chain_snapshot_digest": chain_snapshot.get("snapshot_digest", "") if chain_snapshot is not None else "", "recovery_state": state}
+        completion = create_receipt(request={"recovery_action": action.to_mapping(), "run_id": action.run_id, "operation_status": operation_status}, policy={"scope": action.scope, "operator_id": action.operator_id, "chain_snapshot_id": action.chain_snapshot_id}, workspace_before=str(state.get("workspace_before", "")), workspace_after=state.get("workspace_after"), outcome="committed", rollback_available=False, side_effects=("recovery:" + operation_status,), signing_key=self.receipt_store.signing_key, artifact_diff={"digest": action.artifact_diff_digest} if action.artifact_diff_digest else None)
+        self.receipt_store.put(completion)
+        payload = {"schema_version": RECOVERY_ACTION_SCHEMA, "action_id": action.action_id, "action_digest": action_digest, "operation": action.operation, "run_id": action.run_id, "receipt_id": receipt.receipt_id if receipt is not None else "", "proposal_id": proposal.proposal_id if proposal is not None else "", "operator_id": action.operator_id, "status": operation_status, "rollback_performed": action.operation == "rollback", "artifact_diff_digest": action.artifact_diff_digest, "chain_snapshot_id": action.chain_snapshot_id, "chain_snapshot_digest": chain_snapshot.get("snapshot_digest", "") if chain_snapshot is not None else "", "completion_receipt_id": completion.receipt_id, "recovery_state": state}
         self.events.append("execution_recovery_completed", payload, event_id="execution-recovery:" + action.action_id)
         return payload
 

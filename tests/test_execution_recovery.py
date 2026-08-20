@@ -1,4 +1,5 @@
 import tempfile
+import json
 import unittest
 from pathlib import Path
 
@@ -35,8 +36,24 @@ class ExecutionRecoveryTests(unittest.TestCase):
         self.assertEqual(result["status"], "rolled_back")
         self.assertTrue(result["rollback_performed"])
         self.assertEqual(self.recovery.get("run-1")["status"], "rolled_back")
+        completion = self.receipts.get(result["completion_receipt_id"])
+        self.assertIsNotNone(completion)
+        self.assertEqual(completion.outcome, "committed")
         replay = executor.handle(self.action, self.context)
         self.assertEqual(replay["status"], "replayed")
+
+    def test_replay_rejects_tampered_completion_receipt_reference(self):
+        event_path = str(Path(self.tmp.name) / "tampered-completion-events.jsonl")
+        self.recovery.begin("run-tamper", "sha256:before")
+        self.recovery.complete("run-tamper", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        action = ExecutionRecoveryAction("action-tamper", "rollback", "run-tamper", self.receipt.receipt_id, "patch-1", "ws-1", "snap-base", "operator-1", "session-1")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(action, self.context)
+        records = [json.loads(line) for line in Path(event_path).read_text(encoding="utf-8").splitlines() if line.strip()]
+        records[0]["payload"]["completion_receipt_id"] = "receipt:missing"
+        Path(event_path).write_text("\n".join(json.dumps(record, sort_keys=True) for record in records) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "completion_receipt_invalid"):
+            executor.handle(action, self.context)
 
     def test_interrupted_run_requires_explicit_authenticated_recovery(self):
         self.recovery.begin("run-interrupted", "sha256:before", "sha256:request")
