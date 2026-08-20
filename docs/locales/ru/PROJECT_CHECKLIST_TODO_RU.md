@@ -1535,3 +1535,11 @@ Focused action-scoped result: `51/51` assurance, recovery, child-runtime и expo
 | CHILD-96 | Catalog fail-closed audit | `DONE / BOUNDED LOCAL` | Missing, duplicate, stale, path-conflicting, signature-invalid и identity-conflicting records отклоняются; exact replay запускает catalog audit. |
 | CHILD-97 | Native/external replay catalog | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness catalog audits не проверялись. |
 Focused catalog result: `52/52` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 durable replay catalog snapshot checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-98 | Durable catalog snapshot | `DONE / BOUNDED LOCAL` | После catalog audit сохраняется signed `noesis.recovery-replay-evidence-catalog-snapshot.v1` sidecar через atomic replace. |
+| CHILD-99 | Catalog snapshot reopen | `DONE / BOUNDED LOCAL` | Exact replay проверяет durable global catalog snapshot против current catalog до возврата `replayed`. |
+| CHILD-100 | Catalog snapshot recovery denial | `DONE / BOUNDED LOCAL` | Missing, corrupt, signed path mismatch и catalog drift fail-closed; automatic recreation during replay запрещена. |
+| CHILD-101 | Native/external catalog snapshots | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness durable catalog snapshots не проверялись. |
+Focused durable catalog result: `55/55` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

@@ -426,6 +426,44 @@ class ExecutionRecoveryExecutor:
             records.append({"action_id": action_id, "inventory_path": inventory_path, "snapshot_path": replay_path, "snapshot_digest": request_fingerprint(replay_payload), "completion_receipt_id": receipt_id})
         return {"schema_version": "noesis.recovery-replay-evidence-catalog.v1", "status": "passed", "count": len(records), "records": records, "catalog_digest": request_fingerprint({"records": records})}
 
+    def _replay_catalog_snapshot_path(self) -> str:
+        return str(self.events.path) + ".replay-catalog.json"
+
+    def persist_replay_evidence_catalog(self) -> Mapping[str, Any]:
+        """Atomically persist signed evidence for the verified replay catalog."""
+        catalog = self.audit_replay_evidence_catalog()
+        payload = dict(catalog)
+        payload["schema_version"] = "noesis.recovery-replay-evidence-catalog-snapshot.v1"
+        payload["catalog_path"] = self._replay_catalog_snapshot_path()
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_catalog_snapshot_path(), snapshot)
+        return snapshot
+
+    def verify_replay_evidence_catalog_snapshot(self) -> Mapping[str, Any]:
+        """Verify durable catalog evidence against current action-scoped records."""
+        try:
+            with open(self._replay_catalog_snapshot_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_duplicate_record") from exc
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_missing") from exc
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_signature_invalid")
+        if payload.get("catalog_path") != self._replay_catalog_snapshot_path():
+            raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_path_mismatch")
+        current = self.audit_replay_evidence_catalog()
+        for key, value in current.items():
+            if key == "schema_version":
+                continue
+            if payload.get(key) != value:
+                raise ExecutionRecoveryError("recovery_replay_catalog_snapshot_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -437,7 +475,8 @@ class ExecutionRecoveryExecutor:
             replay_snapshot = self.verify_replay_outcome_snapshot(action)
             replay_inventory_snapshot = self.verify_replay_snapshot_inventory_snapshot(action)
             replay_catalog = self.audit_replay_evidence_catalog()
-            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog}
+            replay_catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
+            return {"status": "replayed", "result": existing, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None
@@ -490,6 +529,7 @@ class ExecutionRecoveryExecutor:
         self.persist_recovery_evidence_status(action.action_id)
         self.persist_replay_outcome_snapshot(action)
         self.persist_replay_snapshot_inventory(action)
+        self.persist_replay_evidence_catalog()
         return payload
 
 

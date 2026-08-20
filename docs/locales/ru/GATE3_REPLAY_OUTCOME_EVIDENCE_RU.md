@@ -22,4 +22,6 @@ Replay и inventory sidecars являются action-scoped и использу�
 
 `audit_replay_evidence_catalog()` — read-only projection со schema `noesis.recovery-replay-evidence-catalog.v1`. Он перечисляет все action-scoped inventory sidecars, проверяет signatures и paths, связывает каждый record с replay snapshot, action event, committed completion receipt и action-scoped status snapshot, а также выпускает deterministic catalog digest. Missing, duplicate, stale, path-conflicting, signature-invalid или identity-conflicting records fail-closed. Exact replay запускает catalog audit до возврата `replayed`.
 
+После проверки catalog executor атомарно сохраняет signed global sidecar `noesis.recovery-replay-evidence-catalog-snapshot.v1`. Exact replay проверяет durable aggregate snapshot против current catalog. Missing, corrupt, path-mismatched, tampered или drifted catalog snapshot блокирует replay и никогда не создаётся молча заново во время replay.
+
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).
