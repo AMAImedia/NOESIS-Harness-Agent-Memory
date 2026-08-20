@@ -925,6 +925,19 @@ print(executor.verify_replay_generation_receipt()['status'])
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_drift"):
             executor.verify_replay_evidence_commit_manifest(self.action)
 
+    def test_replay_commit_manifest_rejects_event_chain_digest_substitution(self):
+        event_path = str(Path(self.tmp.name) / "commit-manifest-chain-root-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(executor._replay_commit_manifest_path(self.action.action_id))
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["replay_event_chain_digest"] = "sha256:old-prefix"
+        snapshot["payload"]["bundle_digest"] = executor._replay_bundle_digest(snapshot["payload"])
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_drift"):
+            executor.verify_replay_evidence_commit_manifest(self.action)
+
     def test_replay_catalog_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-catalog-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

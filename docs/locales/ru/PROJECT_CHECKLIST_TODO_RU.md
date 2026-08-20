@@ -1892,3 +1892,15 @@ Focused event-chain result: `63/63` execution-recovery tests passed with Python 
 | CHILD-242 | Native/external chain snapshot | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness chain snapshot rotation не проверялись. |
 
 Focused event-snapshot result: `64/64` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 cross-artifact chain-root checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-243 | Generation/global chain binding | `DONE / BOUNDED LOCAL` | Generation receipt связывает current global `event_chain_digest` с signed event-chain snapshot. |
+| CHILD-244 | Final manifest/action chain binding | `DONE / BOUNDED LOCAL` | Final commit manifest содержит exact `replay_event_chain_digest` для action prefix. |
+| CHILD-245 | Chain-root substitution denial | `DONE / BOUNDED LOCAL` | Validly signed manifest со старым-prefix chain digest fail-closed до completeness acceptance. |
+| CHILD-246 | Native/external chain root | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness cross-artifact chain root не проверялись. |
+
+Focused chain-root result: `65/65` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
