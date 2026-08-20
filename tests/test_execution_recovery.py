@@ -416,6 +416,29 @@ class ExecutionRecoveryTests(unittest.TestCase):
             executor.verify_replay_evidence_completeness_snapshot()
         self.assertTrue(partial_path.exists())
 
+    def test_multi_action_snapshot_stale_after_crash_then_finalizes_full_catalog(self):
+        event_path = str(Path(self.tmp.name) / "completeness-multi-action-crash-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        self.recovery.begin("run-2", "sha256:before")
+        self.recovery.complete("run-2", workspace_after="sha256:after", receipt_id=self.receipt.receipt_id, status="completed")
+        proposal = PatchProposal("patch-2", "ws-1", "snap-base", "snap-head", ({"path": "out-2.txt", "kind": "modified"},), "approved")
+        self.patches.put(proposal)
+        action_two = ExecutionRecoveryAction("action-2", "rollback", "run-2", self.receipt.receipt_id, "patch-2", "ws-1", "snap-base", "operator-1", "session-1")
+        with patch.object(executor, "persist_replay_evidence_completeness", side_effect=OSError("simulated_crash_before_snapshot_update")):
+            with self.assertRaisesRegex(OSError, "simulated_crash_before_snapshot_update"):
+                executor.handle(action_two, self.context)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_snapshot_drift"):
+            executor.verify_replay_evidence_completeness_snapshot()
+        final_snapshot = executor.persist_replay_evidence_completeness()
+        executor.persist_replay_evidence_commit_manifest(action_two)
+        self.assertEqual(final_snapshot["payload"]["manifest_count"], 2)
+        self.assertEqual(final_snapshot["payload"]["catalog_count"], 2)
+        stable_bytes = Path(executor._replay_completeness_snapshot_path()).read_bytes()
+        executor.persist_replay_evidence_completeness()
+        self.assertEqual(Path(executor._replay_completeness_snapshot_path()).read_bytes(), stable_bytes)
+        self.assertEqual(executor.handle(action_two, self.context)["status"], "replayed")
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

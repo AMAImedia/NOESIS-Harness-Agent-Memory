@@ -1700,3 +1700,15 @@ Focused deterministic-reopen result: `47/47` execution-recovery tests passed wit
 | CHILD-170 | Native/external interrupted write | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness interruption/reopen behavior не проверялись. |
 
 Focused interrupted-write result: `49/49` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 multi-action completeness crash-boundary checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-171 | Stale prior snapshot denial | `DONE / BOUNDED LOCAL` | После append второго completion event старый one-action completeness snapshot получает `recovery_replay_completeness_snapshot_drift` и не принимается для replay. |
+| CHILD-172 | Explicit finalization recovery | `DONE / BOUNDED LOCAL` | После simulated crash explicit completeness write и final manifest write восстанавливают valid multi-action evidence без silent repair. |
+| CHILD-173 | Full-catalog deterministic recovery | `DONE / BOUNDED LOCAL` | Recovered snapshot содержит `manifest_count=2`, `catalog_count=2`; повторная persistence byte-identical; exact replay второй action проходит. |
+| CHILD-174 | Native/external multi-action recovery | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness multi-action crash recovery не проверялись. |
+
+Focused multi-action result: `50/50` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
