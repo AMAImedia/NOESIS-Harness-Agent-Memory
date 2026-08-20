@@ -113,13 +113,14 @@ class ExecutionRecoveryAction:
 
 class ExecutionRecoveryExecutor:
     """Verify evidence and perform only an explicit injected rollback/recovery."""
-    def __init__(self, *, receipt_store: ExecutionReceiptStore, recovery_store: ExecutionRecoveryStore, patch_store: PatchReviewStore, event_path: str, rollback_handler: Callable[[ExecutionRecoveryAction], bool] | None = None):
+    def __init__(self, *, receipt_store: ExecutionReceiptStore, recovery_store: ExecutionRecoveryStore, patch_store: PatchReviewStore, event_path: str, rollback_handler: Callable[[ExecutionRecoveryAction], bool] | None = None, require_finalized_replay: bool = False):
         from .event_store import EventStore
         self.receipt_store = receipt_store
         self.recovery_store = recovery_store
         self.patch_store = patch_store
         self.events = EventStore(event_path)
         self.rollback_handler = rollback_handler
+        self.require_finalized_replay = bool(require_finalized_replay)
 
     def _existing(self, action_id: str) -> Mapping[str, Any] | None:
         for event in self.events.iter_events():
@@ -953,6 +954,17 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def verify_replay_evidence_readiness(self, *, require_finalized: bool = False) -> Mapping[str, Any]:
+        """Verify startup replay evidence and optionally require immutable finalization."""
+        completeness = self.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        finalization = None
+        finalized = os.path.exists(self._replay_finalization_path())
+        if require_finalized and not finalized:
+            raise ExecutionRecoveryError("recovery_replay_finalization_required")
+        if finalized:
+            finalization = self.verify_replay_evidence_finalization()
+        return {"status": "passed", "finalized": bool(finalized), "completeness": completeness, "finalization": finalization}
+
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)
         existing = self._existing(action.action_id)
@@ -967,9 +979,10 @@ class ExecutionRecoveryExecutor:
             replay_catalog = self.audit_replay_evidence_catalog()
             replay_catalog_snapshot = self.verify_replay_evidence_catalog_snapshot()
             replay_commit_manifest = self.verify_replay_evidence_commit_manifest(action)
-            replay_completeness = self.audit_replay_evidence_completeness(require_durable_snapshot=True)
+            readiness = self.verify_replay_evidence_readiness(require_finalized=self.require_finalized_replay)
+            replay_completeness = readiness["completeness"]
             replay_completeness_snapshot = self.verify_replay_evidence_completeness_snapshot()
-            return {"status": "replayed", "result": existing, "recovery_evidence": recovery_evidence, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness, "replay_completeness_snapshot": replay_completeness_snapshot}
+            return {"status": "replayed", "result": existing, "recovery_evidence": recovery_evidence, "replay_evidence": replay_evidence, "replay_snapshot": replay_snapshot, "replay_inventory_snapshot": replay_inventory_snapshot, "replay_catalog": replay_catalog, "replay_catalog_snapshot": replay_catalog_snapshot, "replay_commit_manifest": replay_commit_manifest, "replay_completeness": replay_completeness, "replay_completeness_snapshot": replay_completeness_snapshot, "replay_readiness": readiness}
         run = self.recovery_store.get(action.run_id)
         receipt = None
         proposal = None

@@ -1917,3 +1917,15 @@ Focused chain-root result: `65/65` execution-recovery tests passed with Python 3
 | CHILD-251 | Native/external finalization | `NOT_RUN / ENVIRONMENT-GATED` | Windows/macOS filesystem semantics и external harness finalization не запускались. |
 
 Focused finalization result: `68/68` execution-recovery tests passed; full suite `762/762` passed on Python 3.14.7 with tracemalloc and `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 strict finalized-readiness checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-252 | Startup replay readiness API | `DONE / BOUNDED LOCAL` | `verify_replay_evidence_readiness(require_finalized=True)` требует durable completeness, generation receipt и immutable finalization marker. |
+| CHILD-253 | Strict exact replay mode | `DONE / BOUNDED LOCAL` | `require_finalized_replay=True` блокирует `replayed` до explicit promotion; после promotion fresh executor проходит replay. |
+| CHILD-254 | Partial marker readiness denial | `DONE / BOUNDED LOCAL` | Interrupted permission phase fail-closed при startup readiness как `recovery_replay_finalization_not_immutable`. |
+| CHILD-255 | Native/external readiness | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external harness startup finalization не запускались. |
+
+Focused strict-readiness result: `70/70` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

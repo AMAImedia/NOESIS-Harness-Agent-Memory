@@ -121,6 +121,29 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_generation_receipt_drift"):
             executor.verify_replay_evidence_finalization()
 
+    def test_strict_replay_requires_finalization_and_accepts_finalized_generation(self):
+        event_path = str(Path(self.tmp.name) / "strict-readiness-events.jsonl")
+        writer = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        writer.handle(self.action, self.context)
+        strict = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True, require_finalized_replay=True)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_required"):
+            strict.handle(self.action, self.context)
+        writer.promote_replay_evidence_finalization()
+        replayed = strict.handle(self.action, self.context)
+        self.assertEqual(replayed["status"], "replayed")
+        self.assertTrue(replayed["replay_readiness"]["finalized"])
+        self.assertEqual(strict.verify_replay_evidence_readiness(require_finalized=True)["status"], "passed")
+
+    def test_startup_readiness_rejects_partial_finalization_marker(self):
+        event_path = str(Path(self.tmp.name) / "partial-readiness-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-startup-partial")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_not_immutable"):
+            executor.verify_replay_evidence_readiness(require_finalized=True)
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
