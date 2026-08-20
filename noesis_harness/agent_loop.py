@@ -98,7 +98,7 @@ class AgentLoop:
                     "tokens": packed.get("tokens"), "ts": self.clock()}
             turns.append(turn)
             self._log("turn", {"n": n, "agent": self.agent_id, "ok": verdict.get("pass")})
-            if result.get("memory"):
+            if result.get("memory") and verdict.get("pass"):
                 try:
                     self.memory.save(str(result["memory"]), kind="semantic", confidence=0.6)
                 except Exception as exc:

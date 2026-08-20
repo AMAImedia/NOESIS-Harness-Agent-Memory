@@ -21,7 +21,7 @@
 | Lease renewal exception | `lease_renew_error` | Renewal failure ограничивается result, lease освобождается. |
 | Budget exhausted | `budget` | Следующие turns запрещены после исчерпания bounded budget. |
 
-Constructor отклоняет неположительный или нецелый `max_turns` и non-callable injected clock до получения любого lease. Action и judge outputs должны быть mappings; malformed outputs ограничиваются как failures. Telemetry append failures изолируются и не превращают valid control result в execution failure.
+Constructor отклоняет неположительный или нецелый `max_turns` и non-callable injected clock до получения любого lease. Action и judge outputs должны быть mappings; malformed outputs ограничиваются как failures. Memory writeback выполняется только при `pass=true` от judge; rejected candidates не сохраняются. Telemetry append failures изолируются и не превращают valid control result в execution failure.
  Loop может сохранять memory только после получения action result; promotion остаётся под human approval и отдельными evidence contracts.
  Это local control-plane loop, а не доказательство autonomous external Hermes execution или self-learning без approval.
 

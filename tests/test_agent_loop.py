@@ -66,6 +66,11 @@ class _JudgeShape:
         return ["invalid"]
 
 
+class _JudgeFail:
+    def judge(self, outputs):
+        return {"pass": False}
+
+
 class _MemoryError(_Memory):
     def save(self, value, kind, confidence):
         raise OSError("memory failure")
@@ -123,6 +128,14 @@ class AgentLoopTests(unittest.TestCase):
         result = self.make_loop(guard=_Guard(ok=False)).run("task", "query", lambda context: calls.append(context) or {"done": True})
         self.assertEqual(result["status"], "loop")
         self.assertEqual(calls, [])
+
+    def test_failed_judge_does_not_write_memory(self):
+        leases = _Leases()
+        memory = _Memory()
+        result = self.make_loop(leases=leases, memory=memory, judge=_JudgeFail()).run("task", "query", lambda context: {"memory": "rejected"})
+        self.assertEqual(result["status"], "judge_fail")
+        self.assertEqual(memory.saved, [])
+        self.assertEqual(leases.released, 1)
 
     def test_malformed_action_result_releases_lease(self):
         leases = _Leases()
