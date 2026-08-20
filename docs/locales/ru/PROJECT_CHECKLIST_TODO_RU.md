@@ -1623,3 +1623,11 @@ Focused partial-bundle result: `66/66` assurance, recovery, child-runtime и exp
 | CHILD-140 | Sidecar corruption denial | `DONE / BOUNDED LOCAL` | Corrupt или invalid signature блокируют completeness claim до count parity. |
 | CHILD-141 | Native/external sidecar integrity | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness sidecar integrity не проверялись. |
 Focused sidecar-integrity result: `67/67` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 startup sidecar binding checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-142 | Action identity binding | `DONE / BOUNDED LOCAL` | Startup audit сравнивает action IDs status/replay/inventory sidecars с manifest action identity. |
+| CHILD-143 | Sidecar digest binding | `DONE / BOUNDED LOCAL` | Status/replay/inventory payload digests сравниваются с manifest digest fields. |
+| CHILD-144 | Cross-action/stale denial | `DONE / BOUNDED LOCAL` | Valid signature с другой action identity или stale content блокирует completeness claim. |
+| CHILD-145 | Native/external sidecar binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness sidecar binding не проверялись. |
+Focused sidecar-binding result: `68/68` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

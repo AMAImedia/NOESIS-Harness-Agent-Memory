@@ -594,6 +594,12 @@ class ExecutionRecoveryExecutor:
                         raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_corrupt") from exc
                     if not isinstance(sidecar_payload, Mapping) or not hmac.compare_digest(sidecar_signature, _snapshot_signature(sidecar_payload, self.receipt_store.signing_key)):
                         raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_signature_invalid")
+                    if field in {"status_snapshot_path", "replay_snapshot_path", "inventory_snapshot_path"}:
+                        if str(sidecar_payload.get("action_id", "")) != action_id:
+                            raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_identity_conflict")
+                        digest_field = {"status_snapshot_path": "status_snapshot_digest", "replay_snapshot_path": "replay_snapshot_digest", "inventory_snapshot_path": "inventory_snapshot_digest"}[field]
+                        if payload.get(digest_field) != request_fingerprint(sidecar_payload):
+                            raise ExecutionRecoveryError("recovery_replay_completeness_sidecar_digest_mismatch")
             event_payload = expected.get(action_id)
             if event_payload is None or payload.get("action_digest") != event_payload.get("action_digest") or payload.get("completion_receipt_id") != event_payload.get("completion_receipt_id"):
                 raise ExecutionRecoveryError("recovery_replay_completeness_identity_conflict")
