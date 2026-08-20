@@ -1293,3 +1293,15 @@ Current local MEM-09 fixture result: 4 repetitions × 24 distractors, 4/4 releva
 | CHILD-11 | Native/external artifact evidence | `NOT_RUN / ENVIRONMENT-GATED` | Windows/macOS matching hosts и pinned external harness environments недоступны; нельзя обобщать Linux evidence. |
 
 Gate 3 focused result after integration: `37/37` tests passed with Python 3.14.7 and `-W error::ResourceWarning`.
+
+
+## 2026-08-20 — Gate 3 recovery replay assurance checkpoint
+
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-12 | Recovery action fingerprint | `DONE / BOUNDED LOCAL` | Full action mapping получает deterministic fingerprint; duplicate exact replay is idempotent, changed payload under same action ID is rejected. |
+| CHILD-13 | Artifact-aware rollback guard | `DONE / BOUNDED LOCAL` | Optional `artifact_diff_digest` action binding is compared with stored signed receipt before handler invocation; mismatch fails closed. |
+| CHILD-14 | Recovery honesty | `DONE / BOUNDED LOCAL` | Rollback/recovery state and append-only completion event are written only after injected handler confirms transition. |
+| CHILD-15 | Native/external recovery evidence | `NOT_RUN / ENVIRONMENT-GATED` | Matching Windows/macOS hosts and pinned external harness recovery environments remain unavailable. |
+
+Focused recovery result: `29/29` assurance, recovery, child-runtime and export tests passed with Python 3.14.7 and `-W error::ResourceWarning`.
