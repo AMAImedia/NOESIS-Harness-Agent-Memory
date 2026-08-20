@@ -12,6 +12,7 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, request_fingerprint
@@ -434,6 +435,78 @@ class ExecutionRecoveryExecutor:
     def _replay_catalog_snapshot_path(self) -> str:
         return str(self.events.path) + ".replay-catalog.json"
 
+    def _replay_generation_receipt_path(self) -> str:
+        return str(self.events.path) + ".replay-generation.json"
+
+    def _replay_generation_paths(self) -> tuple[str, ...]:
+        parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
+        paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path()}
+        action_ids = []
+        for event in self.events.iter_events():
+            if event.get("type") == "execution_recovery_completed":
+                payload = event.get("payload")
+                if isinstance(payload, Mapping):
+                    action_id = str(payload.get("action_id", ""))
+                    if action_id:
+                        action_ids.append(action_id)
+        for action_id in sorted(set(action_ids)):
+            paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
+        return tuple(sorted(path for path in paths if os.path.dirname(os.path.abspath(path)) == os.path.abspath(parent)))
+
+    @staticmethod
+    def _replay_generation_digest(files: list[Mapping[str, Any]]) -> str:
+        return request_fingerprint({"files": files})
+
+    def _replay_generation_projection(self) -> Mapping[str, Any]:
+        files = []
+        complete = True
+        for path in self._replay_generation_paths():
+            if not os.path.isfile(path) or os.path.islink(path):
+                complete = False
+                continue
+            try:
+                digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+            except (OSError, ValueError):
+                complete = False
+                continue
+            files.append({"path": path, "sha256": digest})
+        return {"schema_version": "noesis.recovery-replay-generation-projection.v1", "status": "passed" if complete else "provisional", "event_path": str(self.events.path), "files": files, "generation_digest": self._replay_generation_digest(files)}
+
+    def persist_replay_generation_receipt(self) -> Mapping[str, Any]:
+        """Atomically persist the signed generation receipt for the current evidence files."""
+        projection = self._replay_generation_projection()
+        payload = dict(projection)
+        payload["schema_version"] = "noesis.recovery-replay-generation-receipt.v1"
+        payload["receipt_path"] = self._replay_generation_receipt_path()
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_generation_receipt_path(), snapshot)
+        return snapshot
+
+    def verify_replay_generation_receipt(self) -> Mapping[str, Any]:
+        """Verify the signed generation receipt against every current evidence file."""
+        try:
+            with open(self._replay_generation_receipt_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_duplicate_record") from exc
+        except FileNotFoundError as exc:
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_missing") from exc
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_signature_invalid")
+        if payload.get("receipt_path") != self._replay_generation_receipt_path() or payload.get("event_path") != str(self.events.path):
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_path_mismatch")
+        if payload.get("status") != "passed":
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_incomplete")
+        current = self._replay_generation_projection()
+        for key in ("status", "event_path", "files", "generation_digest"):
+            if payload.get(key) != current.get(key):
+                raise ExecutionRecoveryError("recovery_replay_generation_receipt_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
+
     def persist_replay_evidence_catalog(self) -> Mapping[str, Any]:
         """Atomically persist signed evidence for the verified replay catalog."""
         catalog = self.audit_replay_evidence_catalog()
@@ -442,6 +515,7 @@ class ExecutionRecoveryExecutor:
         payload["catalog_path"] = self._replay_catalog_snapshot_path()
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
         _atomic_write_json(self._replay_catalog_snapshot_path(), snapshot)
+        self.persist_replay_generation_receipt()
         return snapshot
 
     def verify_replay_evidence_catalog_snapshot(self) -> Mapping[str, Any]:
@@ -509,6 +583,7 @@ class ExecutionRecoveryExecutor:
         payload["bundle_digest"] = self._replay_bundle_digest(payload)
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
         _atomic_write_json(self._replay_commit_manifest_path(action.action_id), snapshot)
+        self.persist_replay_generation_receipt()
         return snapshot
 
     def verify_replay_evidence_commit_manifest(self, action: ExecutionRecoveryAction) -> Mapping[str, Any]:
@@ -567,7 +642,7 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
@@ -667,6 +742,7 @@ class ExecutionRecoveryExecutor:
                 if str(exc) == "recovery_replay_completeness_snapshot_missing":
                     raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_required") from exc
                 raise
+            self.verify_replay_generation_receipt()
         return result
 
     def _replay_completeness_snapshot_path(self) -> str:
@@ -680,6 +756,7 @@ class ExecutionRecoveryExecutor:
         payload["completeness_path"] = self._replay_completeness_snapshot_path()
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
         _atomic_write_json(self._replay_completeness_snapshot_path(), snapshot)
+        self.persist_replay_generation_receipt()
         return snapshot
 
     def verify_replay_evidence_completeness_snapshot(self) -> Mapping[str, Any]:
@@ -806,6 +883,7 @@ class ExecutionRecoveryExecutor:
         self.persist_replay_evidence_commit_manifest(action)
         self.persist_replay_evidence_completeness()
         self.persist_replay_evidence_commit_manifest(action)
+        self.persist_replay_generation_receipt()
         return payload
 
 

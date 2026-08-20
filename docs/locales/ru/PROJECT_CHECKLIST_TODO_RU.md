@@ -1816,3 +1816,16 @@ Focused path-containment result: `59/59` execution-recovery tests passed with Py
 | CHILD-214 | Native/external crash consistency | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness simultaneous finalization не проверялись. |
 
 Focused crash-consistency result: `60/60` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 generation-receipt checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-215 | Generation receipt schema | `DONE / BOUNDED LOCAL` | Signed `noesis.recovery-replay-generation-receipt.v1` содержит canonical file inventory и `generation_digest`. |
+| CHILD-216 | Whole-generation binding | `DONE / BOUNDED LOCAL` | Startup проверяет receipt после per-artifact checks; изменённый file inventory или digest блокирует generation целиком. |
+| CHILD-217 | Receipt drift/missing denial | `DONE / BOUNDED LOCAL` | Signed stale digest вызывает `recovery_replay_generation_receipt_drift`; missing receipt вызывает `recovery_replay_generation_receipt_missing`. |
+| CHILD-218 | Deterministic receipt persistence | `DONE / BOUNDED LOCAL` | Повторная запись unchanged generation receipt byte-identical; trusted rebuild восстанавливает pass. |
+| CHILD-219 | Native/external generation receipt | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness generation receipt не проверялись. |
+
+Focused generation-receipt result: `61/61` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.

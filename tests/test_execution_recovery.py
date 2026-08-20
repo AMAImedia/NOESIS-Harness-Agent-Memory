@@ -662,6 +662,29 @@ class ExecutionRecoveryTests(unittest.TestCase):
         status_path.write_bytes(original_status)
         self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
 
+    def test_generation_receipt_rejects_drift_missing_and_rewrites_deterministically(self):
+        event_path = str(Path(self.tmp.name) / "generation-receipt-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        receipt_path = Path(executor._replay_generation_receipt_path())
+        original_receipt = receipt_path.read_bytes()
+        tampered = json.loads(original_receipt)
+        tampered["payload"]["generation_digest"] = "sha256:stale-generation-fixture"
+        tampered["signature"] = _snapshot_signature(tampered["payload"], self.key)
+        receipt_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_generation_receipt_drift"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        receipt_path.write_bytes(original_receipt)
+        self.assertEqual(executor.verify_replay_generation_receipt()["status"], "passed")
+        first_bytes = receipt_path.read_bytes()
+        executor.persist_replay_generation_receipt()
+        self.assertEqual(receipt_path.read_bytes(), first_bytes)
+        receipt_path.unlink()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_generation_receipt_missing"):
+            executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        executor.persist_replay_generation_receipt()
+        self.assertEqual(executor.verify_replay_generation_receipt()["status"], "passed")
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
