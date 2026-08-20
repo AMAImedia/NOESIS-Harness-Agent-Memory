@@ -20,6 +20,19 @@ from .workspaces import PatchReviewStore, WorkspaceError
 RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
 
 
+class _DuplicateJSONKeyError(ValueError):
+    """Raised when a signed JSON record contains conflicting duplicate keys."""
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise _DuplicateJSONKeyError(key)
+        result[key] = value
+    return result
+
+
 def _completion_event_digest(payload: Mapping[str, Any]) -> str:
     return request_fingerprint({str(key): value for key, value in payload.items() if key != "previous_event_digest"})
 
@@ -256,6 +269,7 @@ class ExecutionRecoveryExecutor:
         evidence = self.audit_replay_outcome(action)
         payload = dict(evidence)
         payload["schema_version"] = "noesis.recovery-replay-evidence-snapshot.v1"
+        payload["snapshot_path"] = self._replay_snapshot_path()
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
         _atomic_write_json(self._replay_snapshot_path(), snapshot)
         return snapshot
@@ -264,16 +278,24 @@ class ExecutionRecoveryExecutor:
         """Verify the durable replay evidence snapshot against current immutable evidence."""
         try:
             with open(self._replay_snapshot_path(), "r", encoding="utf-8") as handle:
-                snapshot = json.load(handle)
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
             payload = snapshot["payload"]
             signature = str(snapshot["signature"])
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_replay_snapshot_duplicate_record") from exc
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise ExecutionRecoveryError("recovery_replay_snapshot_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_replay_snapshot_signature_invalid")
+        expected_path = self._replay_snapshot_path()
+        if payload.get("snapshot_path") != expected_path:
+            raise ExecutionRecoveryError("recovery_replay_snapshot_path_mismatch")
         current = self.audit_replay_outcome(action)
+        for key in ("action_id", "action_digest", "completion_receipt_id"):
+            if payload.get(key) != current.get(key):
+                raise ExecutionRecoveryError("recovery_replay_snapshot_identity_conflict")
         for key, value in current.items():
-            if key == "schema_version":
+            if key == "schema_version" or key in {"action_id", "action_digest", "completion_receipt_id"}:
                 continue
             if payload.get(key) != value:
                 raise ExecutionRecoveryError("recovery_replay_snapshot_drift")

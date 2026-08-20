@@ -14,6 +14,6 @@
 
 После подтверждённого recovery completion executor атомарно сохраняет signed sidecar `noesis.recovery-replay-evidence-snapshot.v1`. Exact replay обязан проверить этот sidecar против current action, committed receipt и status snapshot. Missing, tampered или drifted replay snapshot отклоняется до возврата результата `replayed`.
 
-`audit_replay_snapshot_inventory()` — deterministic read-only projection со schema `noesis.recovery-replay-snapshot-inventory.v1`. Он фиксирует verified sidecar path, payload digest, action identity, action digest и completion receipt identity. Повторный audit неизменённого evidence обязан давать byte-equivalent результат; verification failure передаётся fail-closed без частичного inventory.
+`audit_replay_snapshot_inventory()` — deterministic read-only projection со schema `noesis.recovery-replay-snapshot-inventory.v1`. Он фиксирует verified sidecar path, payload digest, action identity, action digest и completion receipt identity. Signed replay snapshot содержит canonical sidecar path; path mismatch отклоняется до inventory projection. Duplicate JSON keys считаются conflicting records; mismatched action identity или completion receipt identity дают explicit identity-conflict error. Повторный audit неизменённого evidence обязан давать byte-equivalent результат; verification failure передаётся fail-closed без частичного inventory.
 
 English primary contract: [`GATE3_REPLAY_OUTCOME_EVIDENCE.md`](../../GATE3_REPLAY_OUTCOME_EVIDENCE.md).

@@ -1503,3 +1503,11 @@ Focused replay snapshot result: `45/45` assurance, recovery, child-runtime и ex
 | CHILD-80 | Inventory repeatability | `DONE / BOUNDED LOCAL` | Повторный audit неизменённого sidecar даёт byte-equivalent projection; verification failure не создаёт partial inventory. |
 | CHILD-81 | Native/external inventory | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness inventory audits не проверялись. |
 Focused replay inventory result: `45/45` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.
+## 2026-08-20 — Gate 3 replay inventory adversarial closure checkpoint
+| ID | Gate | Статус | Evidence |
+|---|---|---|---|
+| CHILD-82 | Signed snapshot path binding | `DONE / BOUNDED LOCAL` | Replay snapshot подписывает canonical sidecar path; signed path mismatch fail-closed с `recovery_replay_snapshot_path_mismatch`. |
+| CHILD-83 | Duplicate/conflicting snapshot records | `DONE / BOUNDED LOCAL` | Duplicate JSON keys rejected as `recovery_replay_snapshot_duplicate_record`; no partial inventory is emitted. |
+| CHILD-84 | Replay identity confusion | `DONE / BOUNDED LOCAL` | Signed action ID/digest or completion receipt mismatch rejected with `recovery_replay_snapshot_identity_conflict`. |
+| CHILD-85 | Native/external adversarial inventory | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness inventory adversarial lanes не запускались. |
+Focused adversarial result: `48/48` assurance, recovery, child-runtime и export tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full-suite validation pending.

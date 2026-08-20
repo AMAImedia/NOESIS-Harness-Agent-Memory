@@ -14,7 +14,7 @@ This is the normative contract for the machine-readable evidence returned by an 
 
 After a confirmed recovery completion, the executor atomically persists a signed `noesis.recovery-replay-evidence-snapshot.v1` sidecar. Exact replay must verify this sidecar against the current action, committed receipt, and status snapshot. Missing, tampered, or drifted replay snapshots are rejected before a `replayed` result is returned.
 
-`audit_replay_snapshot_inventory()` is a deterministic, read-only projection with schema `noesis.recovery-replay-snapshot-inventory.v1`. It records the verified sidecar path, payload digest, action identity, action digest, and completion receipt identity. Repeated audits over unchanged evidence must be byte-equivalent; verification failure is propagated fail-closed rather than producing a partial inventory.
+`audit_replay_snapshot_inventory()` is a deterministic, read-only projection with schema `noesis.recovery-replay-snapshot-inventory.v1`. It records the verified sidecar path, payload digest, action identity, action digest, and completion receipt identity. The signed replay snapshot carries the canonical sidecar path, and verification rejects a path mismatch before inventory projection. Duplicate JSON keys are rejected as conflicting records, while mismatched action identity or completion receipt identity raises an explicit identity-conflict error. Repeated audits over unchanged evidence must be byte-equivalent; verification failure is propagated fail-closed rather than producing a partial inventory.
 
 ## Boundary
 

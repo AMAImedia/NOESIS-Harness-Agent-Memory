@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt
-from noesis_harness.execution_recovery import ExecutionRecoveryAction, ExecutionRecoveryError, ExecutionRecoveryExecutor
+from noesis_harness.execution_recovery import ExecutionRecoveryAction, ExecutionRecoveryError, ExecutionRecoveryExecutor, _snapshot_signature
 from noesis_harness.workspaces import PatchProposal, PatchReviewStore
 
 
@@ -149,6 +149,41 @@ class ExecutionRecoveryTests(unittest.TestCase):
         snapshot_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_signature_invalid"):
             executor.handle(self.action, self.context)
+
+    def test_replay_snapshot_rejects_signed_path_mismatch(self):
+        event_path = str(Path(self.tmp.name) / "path-mismatch-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".replay.json")
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["snapshot_path"] = str(Path(self.tmp.name) / "other-replay.json")
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_path_mismatch"):
+            executor.audit_replay_snapshot_inventory(self.action)
+
+    def test_replay_snapshot_rejects_signed_action_identity_confusion(self):
+        event_path = str(Path(self.tmp.name) / "identity-confusion-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".replay.json")
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["action_id"] = "action-confused"
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        snapshot_path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_identity_conflict"):
+            executor.audit_replay_snapshot_inventory(self.action)
+
+    def test_replay_snapshot_rejects_duplicate_record_keys(self):
+        event_path = str(Path(self.tmp.name) / "duplicate-record-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        snapshot_path = Path(event_path + ".replay.json")
+        original = snapshot_path.read_text(encoding="utf-8").strip()
+        duplicate = original[:-1] + ',"payload":{"action_id":"conflicting"}}'
+        snapshot_path.write_text(duplicate + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_snapshot_duplicate_record"):
+            executor.audit_replay_snapshot_inventory(self.action)
 
     def test_startup_evidence_gate_rejects_missing_snapshot(self):
         event_path = str(Path(self.tmp.name) / "missing-snapshot-events.jsonl")
