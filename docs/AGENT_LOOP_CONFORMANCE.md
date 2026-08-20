@@ -21,7 +21,8 @@
 | Lease renewal exception | `lease_renew_error` | Renewal failure is bounded to a result and the lease is released. |
 | Budget exhaustion | `budget` | Further turns are denied after the bounded budget is consumed. |
 
-The constructor rejects non-positive or non-integer `max_turns` and rejects a non-callable injected clock before any lease can be acquired. Action and judge outputs must be mappings; malformed outputs are bounded as failures. Memory writeback occurs only when the judge returns `pass=true`; rejected candidates are not persisted. Telemetry append failures are isolated and do not convert a valid control result into an execution failure.
+The constructor rejects non-positive or non-integer `max_turns` and rejects a non-callable injected clock before any lease can be acquired. Action and judge outputs must be mappings; malformed outputs are bounded as failures. Budget authorization occurs before memory writeback. Memory writeback occurs only when the judge returns `pass=true` and the budget manager accepts the turn; rejected or budget-denied candidates are not persisted.
+ Telemetry append failures are isolated and do not convert a valid control result into an execution failure.
  The loop may write memory only after an action result is returned; promotion remains governed by the separate human-approval and evidence contracts.
  This is a local control-plane loop, not proof of autonomous external Hermes execution or self-learning without approval.
 

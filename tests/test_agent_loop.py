@@ -81,6 +81,11 @@ class _BudgetError:
         raise RuntimeError("budget failure")
 
 
+class _BudgetExhausted:
+    def spend(self, key, units, validated):
+        return {"ok": False, "reason": "exhausted"}
+
+
 class _Judge:
     def __init__(self, ok=True):
         self.ok = ok
@@ -201,6 +206,14 @@ class AgentLoopTests(unittest.TestCase):
         result = self.make_loop(leases=leases, memory=_MemoryError()).run("task", "query", lambda context: {"memory": "candidate"})
         self.assertEqual(result["status"], "memory_error")
         self.assertEqual(result["reason"], "OSError")
+        self.assertEqual(leases.released, 1)
+
+    def test_exhausted_budget_does_not_write_memory(self):
+        leases = _Leases()
+        memory = _Memory()
+        result = self.make_loop(leases=leases, memory=memory, budget=_BudgetExhausted()).run("task", "query", lambda context: {"memory": "unapproved"})
+        self.assertEqual(result["status"], "budget")
+        self.assertEqual(memory.saved, [])
         self.assertEqual(leases.released, 1)
 
     def test_budget_exception_releases_lease(self):
