@@ -21,6 +21,8 @@ from .workspaces import PatchReviewStore, WorkspaceError
 RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
 REPLAY_COMPLETENESS_SNAPSHOT_FIELDS = frozenset({"schema_version", "status", "event_count", "manifest_count", "catalog_count", "records", "completeness_digest", "completeness_path"})
 REPLAY_COMPLETENESS_RECORD_FIELDS = frozenset({"action_id", "manifest_path", "action_digest", "completion_receipt_id", "catalog_record_digest"})
+REPLAY_GENERATION_RECEIPT_FIELDS = frozenset({"schema_version", "status", "event_path", "files", "generation_digest", "receipt_path"})
+REPLAY_GENERATION_FILE_FIELDS = frozenset({"path", "sha256"})
 
 
 class _DuplicateJSONKeyError(ValueError):
@@ -497,10 +499,32 @@ class ExecutionRecoveryExecutor:
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_corrupt") from exc
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_signature_invalid")
+        if set(payload) != REPLAY_GENERATION_RECEIPT_FIELDS:
+            unknown = set(payload) - REPLAY_GENERATION_RECEIPT_FIELDS
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_unknown_field" if unknown else "recovery_replay_generation_receipt_missing_field")
+        if payload.get("schema_version") != "noesis.recovery-replay-generation-receipt.v1":
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_schema_invalid")
         if payload.get("receipt_path") != self._replay_generation_receipt_path() or payload.get("event_path") != str(self.events.path):
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_path_mismatch")
         if payload.get("status") != "passed":
             raise ExecutionRecoveryError("recovery_replay_generation_receipt_incomplete")
+        files = payload.get("files")
+        if not isinstance(files, list) or not files or any(not isinstance(record, Mapping) or set(record) != REPLAY_GENERATION_FILE_FIELDS for record in files):
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_file_schema_invalid")
+        paths = [str(record.get("path", "")) for record in files]
+        parent = os.path.realpath(os.path.dirname(os.path.abspath(str(self.events.path))) or ".")
+        if paths != sorted(paths) or len(paths) != len(set(paths)):
+            raise ExecutionRecoveryError("recovery_replay_generation_receipt_file_identity_invalid")
+        for record in files:
+            path = str(record.get("path", ""))
+            digest = str(record.get("sha256", ""))
+            if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+                raise ExecutionRecoveryError("recovery_replay_generation_receipt_file_digest_invalid")
+            try:
+                if os.path.commonpath((parent, os.path.realpath(path))) != parent or os.path.islink(path) or os.stat(path).st_nlink != 1:
+                    raise ExecutionRecoveryError("recovery_replay_generation_receipt_path_invalid")
+            except (OSError, ValueError) as exc:
+                raise ExecutionRecoveryError("recovery_replay_generation_receipt_path_invalid") from exc
         current = self._replay_generation_projection()
         for key in ("status", "event_path", "files", "generation_digest"):
             if payload.get(key) != current.get(key):

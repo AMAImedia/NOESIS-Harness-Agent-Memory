@@ -685,6 +685,37 @@ class ExecutionRecoveryTests(unittest.TestCase):
         executor.persist_replay_generation_receipt()
         self.assertEqual(executor.verify_replay_generation_receipt()["status"], "passed")
 
+    def test_generation_receipt_schema_and_process_boundary(self):
+        event_path = str(Path(self.tmp.name) / "generation-schema-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        receipt_path = Path(executor._replay_generation_receipt_path())
+        original = receipt_path.read_bytes()
+        cases = (("unknown", lambda payload: payload.update({"unknown": "fixture"}), "recovery_replay_generation_receipt_unknown_field"), ("missing", lambda payload: payload.pop("files"), "recovery_replay_generation_receipt_missing_field"), ("schema", lambda payload: payload.update({"schema_version": "noesis.recovery-replay-generation-receipt.v0"}), "recovery_replay_generation_receipt_schema_invalid"), ("path", lambda payload: payload.update({"receipt_path": str(Path(self.tmp.name) / "alias.json")}), "recovery_replay_generation_receipt_path_mismatch"))
+        for _, mutate, reason in cases:
+            tampered = json.loads(original)
+            mutate(tampered["payload"])
+            tampered["signature"] = _snapshot_signature(tampered["payload"], self.key)
+            receipt_path.write_text(json.dumps(tampered, sort_keys=True) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ExecutionRecoveryError, reason):
+                executor.verify_replay_generation_receipt()
+            receipt_path.write_bytes(original)
+        root = Path(__file__).resolve().parents[1]
+        child = """import sys
+from noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore
+from noesis_harness.execution_recovery import ExecutionRecoveryExecutor
+from noesis_harness.workspaces import PatchReviewStore
+root, event_path = sys.argv[1], sys.argv[2]
+key = b'execution-recovery-signing-key'
+executor = ExecutionRecoveryExecutor(receipt_store=ExecutionReceiptStore(root + '/receipts.db', signing_key=key), recovery_store=ExecutionRecoveryStore(root + '/recovery.db'), patch_store=PatchReviewStore(root + '/patches.db'), event_path=event_path, rollback_handler=lambda _: True)
+print(executor.verify_replay_generation_receipt()['status'])
+"""
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(root)
+        process = subprocess.run([sys.executable, "-c", child, str(self.tmp.name), event_path], capture_output=True, text=True, check=True, env=env)
+        self.assertEqual(process.stdout.strip(), "passed")
+        self.assertEqual(process.stderr, "")
+
     def test_replay_completeness_snapshot_missing_blocks_exact_replay(self):
         event_path = str(Path(self.tmp.name) / "missing-completeness-snapshot-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

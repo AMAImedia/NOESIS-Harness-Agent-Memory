@@ -1829,3 +1829,17 @@ Focused crash-consistency result: `60/60` execution-recovery tests passed with P
 | CHILD-219 | Native/external generation receipt | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness generation receipt не проверялись. |
 
 Focused generation-receipt result: `61/61` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
+
+
+## 2026-08-21 — Gate 3 generation-receipt schema checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-220 | Canonical receipt fields | `DONE / BOUNDED LOCAL` | Outer generation receipt и file records используют exact immutable field sets. |
+| CHILD-221 | Receipt schema denial | `DONE / BOUNDED LOCAL` | Unknown/missing fields и stale schema version fail-closed до digest comparison. |
+| CHILD-222 | Receipt path/file identity | `DONE / BOUNDED LOCAL` | Non-canonical path, symlink, hardlink, duplicate file identity и invalid SHA-256 отклоняются. |
+| CHILD-223 | Process-boundary reopen | `DONE / BOUNDED LOCAL` | Отдельный Python 3.14 process verify-ит signed generation receipt без regeneration. |
+| CHILD-224 | Multi-action receipt rotation | `DONE / BOUNDED LOCAL` | Receipt deterministic обновляется после multi-action finalization и восстанавливается только через trusted rebuild. |
+| CHILD-225 | Native/external receipt schema | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и pinned external harness receipt rotation не проверялись. |
+
+Focused generation-schema result: `62/62` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`; full regression и release audits должны быть подтверждены перед commit.
