@@ -481,6 +481,28 @@ class ExecutionRecoveryExecutor:
             mode = os.stat(path).st_mode
             os.chmod(path, mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
 
+    @staticmethod
+    def _make_writable(paths: tuple[str, ...]) -> None:
+        for path in paths:
+            mode = os.stat(path).st_mode
+            os.chmod(path, mode | stat.S_IWUSR)
+
+    def _archive_partial_finalization(self) -> str:
+        source = self._replay_finalization_path()
+        if not os.path.isfile(source) or os.path.islink(source):
+            raise ExecutionRecoveryError("recovery_replay_finalization_missing")
+        parent = os.path.dirname(os.path.abspath(source)) or "."
+        archive = os.path.join(parent, "_archive")
+        os.makedirs(archive, exist_ok=True)
+        base = os.path.basename(source) + ".partial"
+        target = os.path.join(archive, base)
+        index = 1
+        while os.path.exists(target):
+            target = os.path.join(archive, base + "." + str(index))
+            index += 1
+        os.replace(source, target)
+        return target
+
     def _replay_generation_paths(self) -> tuple[str, ...]:
         parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
         paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path()}
@@ -614,6 +636,28 @@ class ExecutionRecoveryExecutor:
         except OSError as exc:
             raise ExecutionRecoveryError("recovery_replay_finalization_partial") from exc
         return self.verify_replay_evidence_finalization()
+
+    def repair_replay_evidence_finalization(self) -> Mapping[str, Any]:
+        """Archive a partial marker and deterministically re-finalize trusted evidence."""
+        if not os.path.exists(self._replay_finalization_path()):
+            raise ExecutionRecoveryError("recovery_replay_finalization_missing")
+        try:
+            self.verify_replay_evidence_finalization()
+        except ExecutionRecoveryError as exc:
+            if str(exc) != "recovery_replay_finalization_not_immutable":
+                raise
+        else:
+            raise ExecutionRecoveryError("recovery_replay_finalization_already_finalized")
+        self.audit_replay_evidence_completeness(require_durable_snapshot=True)
+        generation = self.verify_replay_generation_receipt()["payload"]
+        protected = tuple(str(record["path"]) for record in generation["files"]) + (self._replay_generation_receipt_path(),)
+        archive_path = self._archive_partial_finalization()
+        try:
+            self._make_writable(protected)
+        except OSError as exc:
+            raise ExecutionRecoveryError("recovery_replay_finalization_repair_failed") from exc
+        finalized = self.promote_replay_evidence_finalization()
+        return {"status": "passed", "repaired": True, "archived_partial_finalization": archive_path, "finalization": finalized}
 
     def verify_replay_evidence_finalization(self) -> Mapping[str, Any]:
         """Verify the finalized marker, generation bytes, and OS-level immutability."""

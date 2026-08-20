@@ -1929,3 +1929,16 @@ Focused finalization result: `68/68` execution-recovery tests passed; full suite
 | CHILD-255 | Native/external readiness | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external harness startup finalization не запускались. |
 
 Focused strict-readiness result: `70/70` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 partial-finalization repair checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-256 | Guarded operator repair | `DONE / BOUNDED LOCAL` | `repair_replay_evidence_finalization()` принимает только immutability-only partial failure, повторно проверяет trusted generation и архивирует marker. |
+| CHILD-257 | Archive-before-repromotion | `DONE / BOUNDED LOCAL` | Partial marker перемещается в `_archive/`; active marker не удаляется молча и не перезаписывается напрямую. |
+| CHILD-258 | Repair denial | `DONE / BOUNDED LOCAL` | Corrupt signature/schema/digest и уже finalized generation не repair-ятся автоматически. |
+| CHILD-259 | Deterministic re-finalization | `DONE / BOUNDED LOCAL` | Re-finalized active marker byte-stable и strict fresh executor снова принимает generation. |
+| CHILD-260 | Native/external repair | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external operator repair не запускались. |
+
+Focused repair result: `73/73` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

@@ -144,6 +144,47 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_not_immutable"):
             executor.verify_replay_evidence_readiness(require_finalized=True)
 
+    def test_partial_finalization_repair_archives_marker_and_refinalizes_deterministically(self):
+        event_path = str(Path(self.tmp.name) / "repair-finalization-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-repair-source")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        repaired = executor.repair_replay_evidence_finalization()
+        self.assertEqual(repaired["status"], "passed")
+        self.assertTrue(Path(repaired["archived_partial_finalization"]).is_file())
+        final_bytes = Path(executor._replay_finalization_path()).read_bytes()
+        repaired_again = executor.verify_replay_evidence_finalization()
+        self.assertEqual(repaired_again["status"], "passed")
+        self.assertEqual(Path(executor._replay_finalization_path()).read_bytes(), final_bytes)
+        strict = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True, require_finalized_replay=True)
+        self.assertEqual(strict.handle(self.action, self.context)["status"], "replayed")
+
+    def test_finalization_repair_rejects_valid_finalized_generation(self):
+        event_path = str(Path(self.tmp.name) / "repair-valid-finalization-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        executor.promote_replay_evidence_finalization()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_already_finalized"):
+            executor.repair_replay_evidence_finalization()
+
+    def test_finalization_repair_rejects_corrupt_partial_marker_without_archiving(self):
+        event_path = str(Path(self.tmp.name) / "repair-corrupt-finalization-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-corrupt-source")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        path = Path(executor._replay_finalization_path())
+        snapshot = json.loads(path.read_text(encoding="utf-8"))
+        snapshot["signature"] = "tampered"
+        path.write_text(json.dumps(snapshot, sort_keys=True) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_signature_invalid"):
+            executor.repair_replay_evidence_finalization()
+        self.assertTrue(path.exists())
+        self.assertFalse((Path(self.tmp.name) / "_archive").exists())
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
