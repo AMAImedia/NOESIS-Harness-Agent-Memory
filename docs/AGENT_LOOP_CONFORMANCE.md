@@ -22,6 +22,7 @@
 | Memory write exception | `memory_error` | Failed writeback is bounded to a result and the lease is released. |
 | Budget exception | `budget_error` | Budget failures are bounded to a result and the lease is released. |
 | Malformed budget response | `budget_shape_error` | Invalid budget response is rejected and the lease is released. |
+| Clock exception | `clock_error` | Receipt timestamp failure is bounded and the lease is released. |
 | Lease renewal exception | `lease_renew_error` | Renewal failure is bounded to a result and the lease is released. |
 | Budget exhaustion | `budget` | Further turns are denied after the bounded budget is consumed. |
 

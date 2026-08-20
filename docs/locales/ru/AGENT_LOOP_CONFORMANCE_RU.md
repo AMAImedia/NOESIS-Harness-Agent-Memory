@@ -22,6 +22,7 @@
 | Memory write exception | `memory_error` | Failed writeback ограничивается result, lease освобождается. |
 | Budget exception | `budget_error` | Budget failure ограничивается result, lease освобождается. |
 | Malformed budget response | `budget_shape_error` | Invalid budget response отклоняется, lease освобождается. |
+| Clock exception | `clock_error` | Timestamp failure ограничивается result, lease освобождается. |
 | Lease renewal exception | `lease_renew_error` | Renewal failure ограничивается result, lease освобождается. |
 | Budget exhausted | `budget` | Следующие turns запрещены после исчерпания bounded budget. |
 

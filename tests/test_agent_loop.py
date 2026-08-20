@@ -71,6 +71,11 @@ class _RenewErrorLeases(_Leases):
         raise TimeoutError("renew failure")
 
 
+class _ClockError:
+    def __call__(self):
+        raise OverflowError("clock failure")
+
+
 class _EventsError:
     def append(self, kind, payload):
         raise OSError("telemetry failure")
@@ -149,6 +154,13 @@ class AgentLoopTests(unittest.TestCase):
             self.make_loop(max_turns=-1)
         with self.assertRaisesRegex(ValueError, "max_turns_invalid"):
             self.make_loop(max_turns=True)
+
+    def test_clock_exception_releases_lease(self):
+        leases = _Leases()
+        result = self.make_loop(leases=leases, clock=_ClockError()).run("task", "query", lambda context: {"output": "candidate"})
+        self.assertEqual(result["status"], "clock_error")
+        self.assertEqual(result["reason"], "OverflowError")
+        self.assertEqual(leases.released, 1)
 
     def test_non_callable_clock_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "clock_invalid"):

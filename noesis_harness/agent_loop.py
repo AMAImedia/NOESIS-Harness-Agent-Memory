@@ -105,8 +105,14 @@ class AgentLoop:
                 self.leases.release(task_key, self.agent_id)
                 self._log("judge_shape_error", {"task": task_key, "turn": n})
                 return {"status": "judge_shape_error", "turns": turns, "outputs": outputs}
+            try:
+                timestamp = self.clock()
+            except Exception as exc:
+                self.leases.release(task_key, self.agent_id)
+                self._log("clock_error", {"task": task_key, "turn": n, "error": type(exc).__name__})
+                return {"status": "clock_error", "reason": type(exc).__name__, "turns": turns, "outputs": outputs}
             turn = {"n": n, "output": out, "judge": verdict,
-                    "tokens": packed.get("tokens"), "ts": self.clock()}
+                    "tokens": packed.get("tokens"), "ts": timestamp}
             turns.append(turn)
             self._log("turn", {"n": n, "agent": self.agent_id, "ok": verdict.get("pass")})
             if self.budget is not None:
