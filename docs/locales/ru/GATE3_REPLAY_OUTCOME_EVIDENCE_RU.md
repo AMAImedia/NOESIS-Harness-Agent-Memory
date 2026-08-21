@@ -104,3 +104,7 @@ Adversarial coverage теперь передаёт opt-in remote-parity audit di
 ### Denial remote-parity lookup error
 
 Adversarial coverage теперь принудительно делает opt-in remote SHA lookup неуспешным. Release audit записывает error, устанавливает `remote_matches_local=false` и fail-closed вместо признания unavailable remote verified parity. Offline mode остаётся явно network-free.
+
+### Continuity recall benchmark
+
+Обязательный repository lane `benchmarks/recall20.py` повторно запущен после latest hardening и вернул `recall20 20/20 acc=1.00`. Это только local regression signal, а не external model-quality или superiority claim.

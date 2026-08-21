@@ -2214,3 +2214,9 @@ Focused release-audit result: `8/8` tests and `792/792` full tests passed with P
 | CHILD-350 | Remote parity lookup error | `DONE / BOUNDED LOCAL` | Adversarial lookup failure records `remote_error`, sets parity false and release clean false. |
 | CHILD-351 | External parity availability | `NOT_RUN / ENVIRONMENT-GATED` | Remote lookup denial не является native Windows/macOS или external A/B evidence. |
 Focused release-audit result: `9/9` tests and `793/793` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Recall benchmark continuity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-352 | Local recall benchmark continuity | `DONE / BOUNDED LOCAL` | `benchmarks/recall20.py`: `20/20`, `acc=1.00` после latest hardening. |
+| CHILD-353 | External memory-quality comparison | `NOT_RUN / ENVIRONMENT-GATED` | Recall20 local regression signal не является external model-quality или superiority evidence. |
