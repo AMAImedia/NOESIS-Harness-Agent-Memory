@@ -2228,3 +2228,10 @@ Focused release-audit result: `9/9` tests and `793/793` full tests passed with P
 | CHILD-355 | CI/packaging static contracts | `DONE / BOUNDED LOCAL` | CI consistency и Windows/macOS manifest contract checks passed; native builds not executed. |
 | CHILD-356 | Native packaging execution | `NOT_RUN / ENVIRONMENT-GATED` | Static manifest pass не является native Windows/macOS build/signing evidence. |
 Packaging focused tests: `7/7` passed; recall benchmark remains `20/20 acc=1.00`; full suite remains `793/793` passed.
+
+## 2026-08-21 — Native-build claim denial checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-357 | False native-build execution claim | `DONE / BOUNDED LOCAL` | Cross-platform matrix с `native_builds_executed=true` fail-closed в `blocked`; execution claim остаётся false. |
+| CHILD-358 | Native build execution | `NOT_RUN / ENVIRONMENT-GATED` | Denial fixture не является реальным Windows/macOS build или signing run. |
+Focused cross-platform result: `4/4` tests; full suite: `794/794` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

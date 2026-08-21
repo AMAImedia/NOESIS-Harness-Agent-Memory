@@ -34,6 +34,13 @@ class CrossPlatformGateMatrixTests(unittest.TestCase):
         self.assertEqual(report["lanes"]["windows_native"]["status"], "not_run")
         self.assertFalse(report["native_or_external_execution_claim"])
 
+    def test_native_execution_claim_is_fail_closed(self):
+        native = self.native()
+        native["native_builds_executed"] = True
+        report = build(native, self.external())
+        self.assertEqual(report["overall_status"], "blocked")
+        self.assertFalse(report["native_or_external_execution_claim"])
+
     def test_invalid_status_is_fail_closed(self):
         external = self.external()
         external["lanes"]["hermes"]["status"] = "maybe"

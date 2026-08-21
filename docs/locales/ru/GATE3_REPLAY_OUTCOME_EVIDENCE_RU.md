@@ -112,3 +112,7 @@ Adversarial coverage теперь принудительно делает opt-in
 ### Continuity packaging и metadata
 
 Local packaging и release-contract lanes повторно запущены: release metadata coverage прошёл без missing files/findings, CI/packaging consistency прошёл, Windows и macOS manifests прошли static contract verification, а native builds остались явно unexecuted. Эти проверки подтверждают packaging honesty и structure, но не native build success.
+
+### Denial native-build claim
+
+Cross-platform gate matrix теперь имеет adversarial coverage для native report с `native_builds_executed=true`, использующего только static local fixture. Matrix становится `blocked` и сохраняет `native_or_external_execution_claim=false`, что защищает границу между static packaging verification и фактическими native builds.

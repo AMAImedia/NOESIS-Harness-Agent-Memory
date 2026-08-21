@@ -113,3 +113,7 @@ The repository-required `benchmarks/recall20.py` lane was rerun after the latest
 ### Packaging and metadata continuity
 
 The local packaging and release-contract lanes were rerun: release metadata coverage passed with no missing files or findings, CI/packaging consistency passed, Windows and macOS manifests passed static contract verification, and native builds remained explicitly unexecuted. These checks validate packaging honesty and structure, not native build success.
+
+### Native-build claim denial
+
+The cross-platform gate matrix now has adversarial coverage for a native report that sets `native_builds_executed=true` while relying on the static local fixture. The matrix becomes `blocked` and keeps `native_or_external_execution_claim=false`, preserving the boundary between static packaging verification and actual native builds.
