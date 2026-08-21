@@ -2396,3 +2396,11 @@ Machine-readable evidence: `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json`; focus
 | LEARN-EVIDENCE-08 | Terminal transition guard | `DONE / BOUNDED LOCAL` | Duplicate terminal events are idempotent; commit-after-abort and abort-after-commit fail closed. |
 | LEARN-EVIDENCE-09 | Cross-file atomicity | `NOT_RUN / NOT CLAIMED` | Journal exposes incomplete state but does not claim transaction-coordinated atomicity across independent files. |
 Machine-readable evidence: `docs/COORDINATED_MUTATION_JOURNAL_EVIDENCE.json`; focused journal result: `1/1`.
+
+## 2026-08-21 — Administrative session and mutation journal contract synchronization
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-DOCS-07 | English primary contract | `DONE / BOUNDED LOCAL` | `docs/ADMIN_SESSION_AND_MUTATION_JOURNAL.md` описывает idempotent session open, mutation states и denial boundaries. |
+| LEARN-DOCS-08 | Russian supplemental contract | `DONE / BOUNDED LOCAL` | `docs/locales/ru/ADMIN_SESSION_AND_MUTATION_JOURNAL_RU.md` зеркалирует English contract без расширения claims. |
+| LEARN-DOCS-09 | External/native documentation boundary | `NOT_RUN / ENVIRONMENT-GATED` | Документы не заменяют external identity-provider, native Windows/macOS или external A/B execution. |
+Evidence: `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json`, `docs/COORDINATED_MUTATION_JOURNAL_EVIDENCE.json`.
