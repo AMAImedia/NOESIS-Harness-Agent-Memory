@@ -2156,3 +2156,10 @@ Focused release-audit result: `3/3` tests and `787/787` full tests passed with P
 | CHILD-332 | Roadmap checkpoint commit resolution | `DONE / BOUNDED LOCAL` | Offline release audit проверяет существование checkpoint как local Git commit object; unresolvable reference fail-closed. |
 | CHILD-333 | Native/external commit provenance | `NOT_RUN / ENVIRONMENT-GATED` | Проверка local Git object не заменяет native Windows/macOS или external A/B evidence. |
 Focused release-audit result: `3/3` tests and `787/787` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Roadmap checkpoint ancestry checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-334 | Roadmap checkpoint ancestry | `DONE / BOUNDED LOCAL` | Offline release audit проверяет, что checkpoint — ancestor local HEAD; divergent/future reference fail-closed. |
+| CHILD-335 | Native/external ancestry | `NOT_RUN / ENVIRONMENT-GATED` | Local Git ancestry не заменяет native Windows/macOS или external A/B evidence. |
+Focused release-audit result: `3/3` tests and `787/787` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

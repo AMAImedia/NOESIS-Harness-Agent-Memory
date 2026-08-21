@@ -73,3 +73,7 @@ The offline release audit now validates the machine-readable roadmap reconciliat
 ### Roadmap checkpoint commit resolution
 
 The release audit now verifies that the roadmap checkpoint is not only well-formed but resolves to an actual local Git commit object. Unresolvable checkpoint references fail closed as `roadmap_checkpoint_unresolvable`, strengthening provenance between planning evidence and repository history without requiring the checkpoint to equal the current commit.
+
+### Roadmap checkpoint ancestry validation
+
+The release audit now requires the recorded roadmap checkpoint commit to be an ancestor of the audited local `HEAD`, in addition to resolving as a real commit object. A future, unrelated, or divergent checkpoint fails closed as `roadmap_checkpoint_not_ancestor`, preventing release evidence from pointing outside the audited repository history.

@@ -32,6 +32,14 @@ def _commit_exists(project: Path, checkpoint: str) -> bool:
         return False
 
 
+def _commit_is_ancestor(project: Path, checkpoint: str, head: str) -> bool:
+    try:
+        subprocess.check_output(["git", "merge-base", "--is-ancestor", checkpoint, head], cwd=str(project), text=True, stderr=subprocess.DEVNULL)
+        return True
+    except (OSError, subprocess.CalledProcessError):
+        return False
+
+
 def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, Any]:
     project = Path(root).resolve()
     package = project / "noesis_harness"
@@ -90,6 +98,8 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
                 roadmap_errors.append("roadmap_checkpoint_invalid")
             elif not _commit_exists(project, checkpoint):
                 roadmap_errors.append("roadmap_checkpoint_unresolvable")
+            elif not _commit_is_ancestor(project, checkpoint, local):
+                roadmap_errors.append("roadmap_checkpoint_not_ancestor")
             if roadmap.get("status") != "local_reconciliation_and_next03_bounded_verified":
                 roadmap_errors.append("roadmap_status_mismatch")
         except (OSError, json.JSONDecodeError, TypeError):
@@ -116,7 +126,7 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
         "syntax_errors": syntax_errors,
         "secret_like_hits": secret_hits,
         "synthetic_fixture_hits": synthetic_fixture_hits,
-        "roadmap_consistency": {"path": str(roadmap_path), "errors": roadmap_errors, "checkpoint_valid": not any(error == "roadmap_checkpoint_invalid" for error in roadmap_errors)},
+        "roadmap_consistency": {"path": str(roadmap_path), "errors": roadmap_errors, "checkpoint_valid": not any(error.startswith("roadmap_checkpoint_") for error in roadmap_errors)},
         "external_readiness": {
             "path": str(readiness_path),
             "overall_status": readiness.get("overall_status"),

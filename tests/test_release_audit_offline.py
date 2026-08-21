@@ -15,6 +15,8 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
                 return "0123456789abcdef0123456789abcdef01234567\n"
             if command[:2] == ["git", "cat-file"]:
                 return ""
+            if command[:2] == ["git", "merge-base"]:
+                return ""
             if command[:2] == ["git", "status"]:
                 return ""
             raise AssertionError(command)

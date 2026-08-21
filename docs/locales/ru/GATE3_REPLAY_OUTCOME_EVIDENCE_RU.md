@@ -72,3 +72,7 @@ Offline release audit теперь проверяет machine-readable roadmap r
 ### Resolution roadmap checkpoint commit
 
 Release audit теперь проверяет, что roadmap checkpoint не только имеет корректную форму, но и разрешается в реальный local Git commit object. Неразрешимый checkpoint fail-closed как `roadmap_checkpoint_unresolvable`, усиливая provenance между planning evidence и repository history без требования равенства checkpoint текущему commit.
+
+### Проверка ancestry roadmap checkpoint
+
+Release audit теперь требует, чтобы recorded roadmap checkpoint commit был ancestor audited local `HEAD`, помимо разрешения в реальный commit object. Future, unrelated или divergent checkpoint fail-closed как `roadmap_checkpoint_not_ancestor`, не позволяя release evidence ссылаться вне audited repository history.
