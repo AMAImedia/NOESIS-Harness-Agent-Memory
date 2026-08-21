@@ -2207,3 +2207,10 @@ Focused release-audit result: `7/7` tests and `791/791` full tests passed with P
 | CHILD-348 | Remote SHA parity denial | `DONE / BOUNDED LOCAL` | Adversarial remote mismatch returns `clean=false` and `remote_matches_local=false`; offline mode remains network-free. |
 | CHILD-349 | External release parity | `NOT_RUN / ENVIRONMENT-GATED` | GitHub SHA parity не является native Windows/macOS или external A/B execution evidence. |
 Focused release-audit result: `8/8` tests and `792/792` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Remote-parity lookup-error denial checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-350 | Remote parity lookup error | `DONE / BOUNDED LOCAL` | Adversarial lookup failure records `remote_error`, sets parity false and release clean false. |
+| CHILD-351 | External parity availability | `NOT_RUN / ENVIRONMENT-GATED` | Remote lookup denial не является native Windows/macOS или external A/B evidence. |
+Focused release-audit result: `9/9` tests and `793/793` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

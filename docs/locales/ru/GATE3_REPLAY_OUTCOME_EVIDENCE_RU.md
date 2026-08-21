@@ -100,3 +100,7 @@ Adversarial coverage теперь проверяет readiness matrix, кото�
 ### Denial remote-parity mismatch
 
 Adversarial coverage теперь передаёт opt-in remote-parity audit divergent `origin/main` SHA. Audit возвращает `clean: false` и `remote_matches_local: false`, доказывая, что remote checkpoint mismatch не может считаться verified release, а offline mode по-прежнему не использует network по умолчанию.
+
+### Denial remote-parity lookup error
+
+Adversarial coverage теперь принудительно делает opt-in remote SHA lookup неуспешным. Release audit записывает error, устанавливает `remote_matches_local=false` и fail-closed вместо признания unavailable remote verified parity. Offline mode остаётся явно network-free.

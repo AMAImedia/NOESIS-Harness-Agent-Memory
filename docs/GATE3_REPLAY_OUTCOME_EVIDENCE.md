@@ -101,3 +101,7 @@ A repeated-run adversarial test now compares normalized JSON bytes from two iden
 ### Remote-parity mismatch denial
 
 Adversarial coverage now supplies a divergent `origin/main` SHA to the opt-in remote-parity audit. The audit returns `clean: false` and `remote_matches_local: false`, proving that a remote checkpoint mismatch cannot be mistaken for a verified release while offline mode remains network-free by default.
+
+### Remote-parity lookup-error denial
+
+Adversarial coverage now forces the opt-in remote SHA lookup to fail. The release audit records the error, sets `remote_matches_local` false, and fails closed instead of treating an unavailable remote as verified parity. Offline mode remains explicitly network-free.
