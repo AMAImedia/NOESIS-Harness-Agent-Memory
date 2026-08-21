@@ -2326,3 +2326,10 @@ Machine-readable evidence обновлено; focused scoring result: `17/17`.
 | MEM-11 | Durable distribution honesty | `DONE / BOUNDED LOCAL` | `persistence_verified=true`; baseline/nextgen distributions и deterministic digest сохраняются без model self-grading. |
 | MEM-12 | Native/external memory execution | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external long-context A/B не запускались; local durability не обобщается на внешние среды. |
 Machine-readable evidence: `docs/MEMORY_LONG_CONTEXT_REOPEN_EVIDENCE.json`; focused memory result: `13/13`.
+## 2026-08-21 — Human-governed promotion activation checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-ACT-08 | Receipt-before-activation ordering | `DONE / BOUNDED LOCAL` | Immutable skill content and signed `PROMOTION_RECEIPT.json` записываются до active-pointer replacement. |
+| LEARN-ACT-09 | Activation crash recovery | `DONE / BOUNDED LOCAL` | При simulated `os.replace` failure receipt сохраняется, old active pointer не меняется, automatic activation отсутствует. |
+| LEARN-ACT-10 | Deployment/external activation | `NOT_RUN / ENVIRONMENT-GATED` | Production operator identity, native deployment and external activation evidence остаются environment-gated. |
+Machine-readable evidence: `docs/LEARNING_PROMOTION_ACTIVATION_EVIDENCE.json`; focused promotion result: `10/10`.

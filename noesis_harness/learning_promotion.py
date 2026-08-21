@@ -415,7 +415,15 @@ class LearningPromotionPipeline:
         if not verified:
             (skill_dir / ".rejected").write_text("promotion_verification_failed\n", encoding="utf-8")
             raise LearningPromotionError("promotion_verification_failed")
+        signed_payload = {"schema_version": "noesis.immutable-skill-promotion-receipt.v1", "proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "content_digest": proposal.content_digest, "provenance_digest": proposal.provenance_digest, "immutable": True, "active": bool(activate)}
+        legacy_payload = {"proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "active": bool(activate)}
+        signed = "v2:" + self._sign(signed_payload) + ":" + self._sign(legacy_payload)
+        receipt_path = skill_dir / "PROMOTION_RECEIPT.json"
+        receipt_path.write_text(_canonical({"payload": signed_payload, "signature": signed}) + "\n", encoding="utf-8")
         previous = self.active_version(proposal.skill_name)
+        updated = PromotionProposal(**{**asdict(proposal), "state": "promoted", "version": version})
+        self._proposals[proposal_id] = updated
+        self._state.put("promotion_proposals", proposal_id, updated)
         if activate:
             self._previous_active[proposal.skill_name] = previous or ""
             self._state.put_previous_active(proposal.skill_name, previous or "")
@@ -424,14 +432,6 @@ class LearningPromotionPipeline:
             active_next = skill_root / "ACTIVE.next"
             active_next.write_text(version + "\n", encoding="utf-8")
             os.replace(str(active_next), str(active_path))
-        updated = PromotionProposal(**{**asdict(proposal), "state": "promoted", "version": version})
-        self._proposals[proposal_id] = updated
-        self._state.put("promotion_proposals", proposal_id, updated)
-        signed_payload = {"schema_version": "noesis.immutable-skill-promotion-receipt.v1", "proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "content_digest": proposal.content_digest, "provenance_digest": proposal.provenance_digest, "immutable": True, "active": bool(activate)}
-        legacy_payload = {"proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "active": bool(activate)}
-        signed = "v2:" + self._sign(signed_payload) + ":" + self._sign(legacy_payload)
-        receipt_path = skill_dir / "PROMOTION_RECEIPT.json"
-        receipt_path.write_text(_canonical({"payload": signed_payload, "signature": signed}) + "\n", encoding="utf-8")
         return updated, signed
 
     def rollback(self, proposal_id: str) -> PromotionProposal:

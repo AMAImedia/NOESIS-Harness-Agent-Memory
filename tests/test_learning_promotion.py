@@ -1,6 +1,7 @@
 import dataclasses
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from noesis_harness.learning_promotion import LearningPromotionError, LearningPromotionPipeline
@@ -114,6 +115,20 @@ class LearningPromotionTests(unittest.TestCase):
         pipe._proposals[proposal.proposal_id] = dataclasses.replace(proposal, provenance_digest="")
         with self.assertRaisesRegex(LearningPromotionError, "proposal_provenance_mismatch"):
             pipe.approve(proposal.proposal_id, approved_by="reviewer", tests=lambda: True)
+
+    def test_activation_failure_leaves_signed_receipt_and_old_active_pointer(self):
+        pipe = self.pipeline(); receipt = self.receipt(pipe)
+        evaluation = pipe.evaluate(receipt.receipt_id, [{"case_id": "a", "passed": True}], evaluator_version="eval-1")
+        proposal = pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="crash-safe-skill", content="# safe\n")
+        pipe.approve(proposal.proposal_id, approved_by="owner", tests=lambda: True)
+        with mock.patch("noesis_harness.learning_promotion.os.replace", side_effect=OSError("simulated activation crash")):
+            with self.assertRaises(OSError):
+                pipe.promote(proposal.proposal_id, content="# safe\n", verify=lambda path: path.read_text() == "# safe\n")
+        skill_root = Path(pipe.root) / "crash-safe-skill"
+        versions = tuple(path for path in skill_root.iterdir() if path.is_dir())
+        self.assertEqual(len(versions), 1)
+        self.assertTrue((versions[0] / "PROMOTION_RECEIPT.json").is_file())
+        self.assertEqual(pipe.active_version("crash-safe-skill"), "")
 
     def test_immutable_promotion_signature_and_rollback(self):
         pipe = self.pipeline(); receipt = self.receipt(pipe)
