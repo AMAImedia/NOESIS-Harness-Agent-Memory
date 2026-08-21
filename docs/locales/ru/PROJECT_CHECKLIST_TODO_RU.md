@@ -2312,3 +2312,10 @@ Machine-readable evidence: `docs/EXTERNAL_LANE_JOURNAL_EVIDENCE.json`; full regr
 | CHILD-381 | Bounded metric values | `DONE / BOUNDED LOCAL` | Каждый dimension value обязан быть numeric, не boolean и находиться в диапазоне `[0,1]`; imputation запрещена. |
 | CHILD-382 | External comparative execution | `NOT_RUN / ENVIRONMENT-GATED` | Local signed-fixture tests проверяют только fail-closed evaluator behavior; external quality/ranking и native evidence не запускались. |
 Machine-readable evidence: `docs/COMPARATIVE_CASE_COMPLETENESS_EVIDENCE.json`; focused scoring result: `16/16`.
+## 2026-08-21 — Comparative observed-metric status checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-383 | Observed metric status | `DONE / BOUNDED LOCAL` | Каждый accepted dimension обязан иметь explicit `status=observed`; numeric `not_run`/`simulated` values не агрегируются. |
+| CHILD-384 | Non-observed metric denial | `DONE / BOUNDED LOCAL` | Signed case с `status=not_run` получает `invalid_case_receipt` и не создаёт `score_available`. |
+| CHILD-385 | External scoring boundary | `NOT_RUN / ENVIRONMENT-GATED` | Local fixture denial не является external quality measurement, ranking или native host evidence. |
+Machine-readable evidence обновлено; focused scoring result: `17/17`.

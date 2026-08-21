@@ -46,6 +46,17 @@ class CaseScoringTests(unittest.TestCase):
         self.assertEqual(report["score_status"], "blocked")
         self.assertTrue(any(item.startswith("invalid_case_receipt") for item in report["case_errors"]))
 
+    def test_unobserved_numeric_dimension_is_blocked(self):
+        lane_evidence = [evidence_for("hermes", "h1"), evidence_for("opencode", "o1"), evidence_for("deepseek_harness", "d1")]
+        manifest_value = manifest(protocol_fingerprint=lane_evidence[0]["protocol_fingerprint"], case_ids=["case-a"])
+        unobserved = {name: dict(value) for name, value in DIMENSIONS.items()}
+        unobserved["recovery"]["status"] = "not_run"
+        cases = [create_case_receipt(system=lane, revision=revision, protocol_fingerprint=manifest_value["protocol_fingerprint"], case_id="case-a", evaluator_revision="eval-1", dimensions=unobserved, key=KEY) for lane, revision in (("hermes", "h1"), ("opencode", "o1"), ("deepseek_harness", "d1"))]
+        report = build_report(manifest_value, lane_evidence, KEY, cases)
+        self.assertFalse(report["score_available"])
+        self.assertEqual(report["score_status"], "blocked")
+        self.assertTrue(any(item.startswith("invalid_case_receipt") for item in report["case_errors"]))
+
     def test_missing_case_is_blocked_and_not_imputed(self):
         lane_evidence = [evidence_for("hermes", "h1"), evidence_for("opencode", "o1"), evidence_for("deepseek_harness", "d1")]
         manifest_value = manifest(protocol_fingerprint=lane_evidence[0]["protocol_fingerprint"], case_ids=["case-a", "case-b"])

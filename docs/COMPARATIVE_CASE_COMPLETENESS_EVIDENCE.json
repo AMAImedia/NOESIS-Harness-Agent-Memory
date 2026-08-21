@@ -15,16 +15,18 @@
   "acceptance": {
     "exact_dimension_field_set": true,
     "bounded_numeric_values_0_to_1": true,
+    "observed_status_required": true,
     "missing_dimension_denied": true,
     "extra_dimension_denied": true,
     "nonnumeric_dimension_denied": true,
     "out_of_range_dimension_denied": true,
+    "unobserved_numeric_dimension_denied": true,
     "value_imputation": false,
     "score_claim": false
   },
   "focused_tests": {
     "suite": "tests.test_case_scoring tests.test_comparative_report tests.test_operator_import",
-    "passed": 16,
+    "passed": 17,
     "failed": 0,
     "resource_warning_policy": "error"
   },

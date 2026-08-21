@@ -53,7 +53,7 @@ def verify_case_receipt(receipt: Mapping[str, Any], key: str) -> bool:
     failures = receipt.get("safety_failures")
     if not isinstance(dimensions, Mapping) or not isinstance(failures, list):
         return False
-    if set(dimensions) != set(DIMENSIONS) or any(name not in DIMENSIONS or not isinstance(value, Mapping) or not isinstance(value.get("value"), (int, float)) or isinstance(value.get("value"), bool) or not 0.0 <= float(value.get("value")) <= 1.0 for name, value in dimensions.items()):
+    if set(dimensions) != set(DIMENSIONS) or any(name not in DIMENSIONS or not isinstance(value, Mapping) or value.get("status") != "observed" or not isinstance(value.get("value"), (int, float)) or isinstance(value.get("value"), bool) or not 0.0 <= float(value.get("value")) <= 1.0 for name, value in dimensions.items()):
         return False
     try:
         supplied = str(receipt.get("signature", ""))
