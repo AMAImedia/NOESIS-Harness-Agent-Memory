@@ -1993,3 +1993,15 @@ Focused crash-consistency result: `78/78` execution-recovery tests passed with P
 | CHILD-279 | Native/external readiness snapshot | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external telemetry lanes не запускались. |
 
 Focused readiness result: `79/79` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 signed repair-chain readiness checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-280 | Signed readiness receipt | `DONE / BOUNDED LOCAL` | Readiness receipt подписан и сохраняется read-only после repair. |
+| CHILD-281 | Tip/finalization binding | `DONE / BOUNDED LOCAL` | `readiness_digest` связывает chain tip, ordered IDs и active finalization SHA-256. |
+| CHILD-282 | Stale substitution denial | `DONE / BOUNDED LOCAL` | Validly re-signed snapshot с чужим tip fail-closed как readiness drift. |
+| CHILD-283 | Native/external signed telemetry | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external signed readiness lanes не запускались. |
+
+Focused signed-readiness result: `80/80` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

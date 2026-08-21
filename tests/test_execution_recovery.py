@@ -298,6 +298,26 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_repair_chain_partial_record"):
             executor.verify_replay_evidence_readiness(require_finalized=False)
 
+    def test_signed_readiness_snapshot_rejects_stale_tip_substitution(self):
+        event_path = str(Path(self.tmp.name) / "signed-readiness-stale-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-signed-readiness")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        readiness_path = Path(executor._replay_repair_readiness_path())
+        snapshot = json.loads(readiness_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["tip_digest"] = "stale-tip-substitution"
+        snapshot["payload"]["readiness_digest"] = request_fingerprint({key: value for key, value in snapshot["payload"].items() if key != "readiness_digest"})
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        os.chmod(readiness_path, os.stat(readiness_path).st_mode | 0o200)
+        readiness_path.write_text(json.dumps(snapshot, sort_keys=True), encoding="utf-8")
+        os.chmod(readiness_path, os.stat(readiness_path).st_mode & ~0o222)
+        self.assertEqual(executor.audit_replay_chain_readiness()["status"], "corrupt")
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_readiness_snapshot_drift"):
+            executor.verify_replay_evidence_readiness(require_finalized=True)
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

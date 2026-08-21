@@ -471,6 +471,9 @@ class ExecutionRecoveryExecutor:
     def _replay_repair_chain_path(self) -> str:
         return str(self.events.path) + ".replay-repair-chain.jsonl"
 
+    def _replay_repair_readiness_path(self) -> str:
+        return str(self.events.path) + ".replay-repair-readiness.json"
+
     def _assert_generation_mutable(self) -> None:
         if os.path.exists(self._replay_finalization_path()):
             raise ExecutionRecoveryError("recovery_replay_finalization_immutable")
@@ -742,7 +745,8 @@ class ExecutionRecoveryExecutor:
         self._append_replay_repair_chain(repair_payload, repair_snapshot["signature"])
         _atomic_write_json(self._replay_repair_receipt_path(), repair_snapshot)
         self._make_readonly((self._replay_repair_receipt_path(), self._replay_repair_chain_path()))
-        return {"status": "passed", "repaired": True, "archived_partial_finalization": archive_path, "finalization": self.verify_replay_evidence_finalization(), "repair_receipt": repair_snapshot}
+        readiness_snapshot = self._persist_replay_chain_readiness_snapshot()
+        return {"status": "passed", "repaired": True, "archived_partial_finalization": archive_path, "finalization": self.verify_replay_evidence_finalization(), "repair_receipt": repair_snapshot, "repair_chain_readiness": readiness_snapshot}
 
     def verify_replay_evidence_repair_receipt(self) -> Mapping[str, Any]:
         """Verify signed provenance for a repaired replay finalization."""
@@ -960,7 +964,7 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path(), self._replay_repair_readiness_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
@@ -1129,6 +1133,33 @@ class ExecutionRecoveryExecutor:
                 raise ExecutionRecoveryError("recovery_replay_completeness_snapshot_drift")
         return {"status": "passed", "payload": dict(payload), "signature": signature}
 
+    def _persist_replay_chain_readiness_snapshot(self) -> Mapping[str, Any]:
+        audit = self.audit_replay_chain_readiness()
+        payload = {key: value for key, value in audit.items() if key not in {"readiness_snapshot", "signature"}}
+        payload["finalization_sha256"] = self._sha256_file(self._replay_finalization_path())
+        payload["readiness_digest"] = request_fingerprint({key: value for key, value in payload.items() if key != "readiness_digest"})
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_repair_readiness_path(), snapshot)
+        self._make_readonly((self._replay_repair_readiness_path(),))
+        return snapshot
+
+    def _verify_replay_chain_readiness_snapshot(self, current: Mapping[str, Any]) -> Mapping[str, Any]:
+        try:
+            with open(self._replay_repair_readiness_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except (_DuplicateJSONKeyError, OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_repair_readiness_snapshot_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_repair_readiness_snapshot_signature_invalid")
+        expected = {key: value for key, value in current.items() if key not in {"readiness_snapshot", "signature"}}
+        expected["finalization_sha256"] = self._sha256_file(self._replay_finalization_path())
+        expected["readiness_digest"] = request_fingerprint(expected)
+        if set(payload) != set(expected) or any(payload.get(key) != value for key, value in expected.items()) or payload.get("readiness_digest") != request_fingerprint({key: value for key, value in payload.items() if key != "readiness_digest"}) or not self._is_readonly(self._replay_repair_readiness_path()):
+            raise ExecutionRecoveryError("recovery_replay_readiness_snapshot_drift")
+        return {"payload": dict(payload), "signature": signature}
+
     def audit_replay_chain_readiness(self) -> Mapping[str, Any]:
         """Return a non-throwing, fail-closed audit snapshot for repair-chain recovery."""
         path = self._replay_repair_chain_path()
@@ -1151,11 +1182,19 @@ class ExecutionRecoveryExecutor:
         status = "immutable" if readonly else "partial"
         if entries and readonly:
             status = "passed"
-        return {"schema_version": "noesis.recovery-repair-chain-readiness.v1", "status": status, "path": path, "record_count": len(entries), "readonly": readonly, "repair_ids": [int(entry["repair_id"]) for entry in entries], "tip_digest": str(entries[-1]["repair_digest"]) if entries else ""}
-
+        result = {"schema_version": "noesis.recovery-repair-chain-readiness.v1", "status": status, "path": path, "record_count": len(entries), "readonly": readonly, "repair_ids": [int(entry["repair_id"]) for entry in entries], "tip_digest": str(entries[-1]["repair_digest"]) if entries else ""}
+        if os.path.exists(self._replay_repair_readiness_path()):
+            try:
+                result["readiness_snapshot"] = self._verify_replay_chain_readiness_snapshot(result)
+            except ExecutionRecoveryError as exc:
+                result["status"] = "corrupt"
+                result["error"] = str(exc)
+        return result
     def verify_replay_evidence_readiness(self, *, require_finalized: bool = False) -> Mapping[str, Any]:
         """Verify startup replay evidence and optionally require immutable finalization."""
         repair_chain = self.audit_replay_chain_readiness()
+        if repair_chain.get("status") == "corrupt" and os.path.exists(self._replay_repair_readiness_path()):
+            raise ExecutionRecoveryError(str(repair_chain.get("error", "recovery_replay_readiness_snapshot_drift")))
         completeness = self.audit_replay_evidence_completeness(require_durable_snapshot=True)
         finalization = None
         finalized = os.path.exists(self._replay_finalization_path())
