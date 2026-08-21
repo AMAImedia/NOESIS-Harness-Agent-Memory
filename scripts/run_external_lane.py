@@ -216,8 +216,22 @@ def main(argv=None) -> int:
                 consumed, reason = consume_approval_receipt(receipt, args.receipt_store)
                 if not consumed:
                     raise PermissionError(reason)
-            outcome = execute(spec, args.workspace, approval=True, timeout=args.timeout)
-            report.update({"execution": "started", "status": outcome.status, "returncode": outcome.returncode, "stdout": outcome.stdout, "stderr": outcome.stderr, "timed_out": outcome.timed_out, "approval_id": receipt["approval_id"]})
+                started, reason = record_execution_state(args.receipt_store, receipt["approval_id"], "started", "approved runner started")
+                if not started:
+                    raise PermissionError(reason)
+            try:
+                outcome = execute(spec, args.workspace, approval=True, timeout=args.timeout)
+            except Exception:
+                if args.receipt_store:
+                    record_execution_state(args.receipt_store, receipt["approval_id"], "abandoned", "runner raised before terminal outcome")
+                raise
+            if args.receipt_store:
+                terminal_state = "abandoned" if outcome.timed_out else "completed"
+                terminal_detail = "runner timed out" if outcome.timed_out else "runner returned " + outcome.status
+                recorded, reason = record_execution_state(args.receipt_store, receipt["approval_id"], terminal_state, terminal_detail)
+                if not recorded:
+                    raise PermissionError(reason)
+            report.update({"execution": "started", "status": outcome.status, "returncode": outcome.returncode, "stdout": outcome.stdout, "stderr": outcome.stderr, "timed_out": outcome.timed_out, "approval_id": receipt["approval_id"], "journal_state": "abandoned" if outcome.timed_out else "completed"})
     except (RunnerConfigurationError, PermissionError, OSError, ValueError, json.JSONDecodeError) as exc:
         report = {"schema_version": "noesis.external-lane-plan.v1", "execution": "denied", "status": "not_run", "reason": str(exc)}
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)

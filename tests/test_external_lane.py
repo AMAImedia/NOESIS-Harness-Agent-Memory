@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import sqlite3
 import sys
 import tempfile
 import time
@@ -51,6 +52,33 @@ class ExternalLaneTests(unittest.TestCase):
             self.assertEqual(report["execution"], "started")
             self.assertEqual(report["status"], "passed")
             self.assertEqual(report["stdout"].strip(), "fixture-run")
+            self.assertEqual(report["journal_state"], "completed")
+            db = sqlite3.connect(receipt_store)
+            try:
+                self.assertEqual(db.execute("SELECT state FROM approval_execution_journal WHERE approval_id=?", (receipt["approval_id"],)).fetchone()[0], "completed")
+            finally:
+                db.close()
+            self.assertEqual(recover_execution(str(receipt_store), receipt["approval_id"])["action"], "no_replay")
+
+    def test_timeout_records_abandoned_and_requires_new_approval(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            key = "approval-key-for-tests-2026"
+            spec = make_spec("hermes", "pinned-h1", [sys.executable, "-c", "import time; time.sleep(1)"], "t" * 64)
+            spec_path = root / "spec.json"
+            output = root / "result.json"
+            receipt_path = root / "approval.json"
+            store = root / "journal.sqlite"
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+            receipt = create_approval_receipt(plan(spec, str(root)), key, now=time.time(), ttl_seconds=300, nonce="timeout")
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            code = main(["--spec", str(spec_path), "--workspace", str(root), "--output", str(output), "--execute", "--approve", "--approval-receipt", str(receipt_path), "--approval-key", key, "--receipt-store", str(store), "--timeout", "0.05"])
+            report = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(code, 2)
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(report["timed_out"])
+            self.assertEqual(report["journal_state"], "abandoned")
+            self.assertEqual(recover_execution(str(store), receipt["approval_id"])["action"], "issue_new_approval")
 
     def test_approval_rejects_mutation_expiry_and_replay(self):
         with tempfile.TemporaryDirectory() as directory:

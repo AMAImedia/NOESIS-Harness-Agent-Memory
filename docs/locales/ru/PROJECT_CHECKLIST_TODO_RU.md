@@ -2298,3 +2298,10 @@ Focused operator artifact result: `12/12` tests; full suite: `800/800` passed wi
 | CHILD-375 | Readiness execution-claim boundary | `DONE / BOUNDED LOCAL` | Operator artifact verifier блокирует passed matrix с `native_or_external_execution_claim=true`. |
 | CHILD-376 | Native/external execution | `NOT_RUN / ENVIRONMENT-GATED` | Claim-denial fixture не является фактическим native Windows/macOS или external A/B execution. |
 Focused operator artifact result: `13/13` tests; full suite: `801/801` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+## 2026-08-21 — External-lane durable execution journal checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-377 | Approval journal launch binding | `DONE / BOUNDED LOCAL` | Approved execution durable-records `started` before child launch, then terminal `completed` for non-timeout returns; exact completion is `no_replay`. |
+| CHILD-378 | Timeout recovery boundary | `DONE / BOUNDED LOCAL` | Timeout returns structured failed outcome, nonzero CLI exit, durable `abandoned`, and recovery action `issue_new_approval`; focused external-lane suite: `11/11`. |
+| CHILD-379 | External execution claim | `NOT_RUN / ENVIRONMENT-GATED` | Journal tests are local governance evidence only; Hermes/OpenCode/DeepSeek Harness execution, comparative scoring and native host evidence remain unexecuted. |
+Machine-readable evidence: `docs/EXTERNAL_LANE_JOURNAL_EVIDENCE.json`; full regression, security/link/schema audits and release audit are required before local commit.

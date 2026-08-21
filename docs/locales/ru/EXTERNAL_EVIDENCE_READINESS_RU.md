@@ -17,6 +17,10 @@ Matrix проверяет exact revision, `environment_digest`, deterministic `r
 
 Comparative readiness требует **все три** required lanes в статусе `passed`, один общий protocol fingerprint и отсутствие global conflict. `scripts/build_comparative_report.py` сначала проверяет эту matrix и оставляет `score_available=false`, пока не поступит case-level scoring evidence. `not_run`, `blocked` и missing data никогда не превращаются в score. Текущий artifact намеренно `not_run`: все три manifest revisions пустые, а `native_or_external_execution_claim` равен `false`. Pinned operator orchestrator использует тот же readiness preflight до рассмотрения любого external execution command.
 
+### Durable approval-journal evidence
+
+Локальная execution boundary хранит в SQLite/WAL states `consumed`, `started`, `completed` и `abandoned`. Valid approval consumed ровно один раз; до запуска процесса durable journal обязан записать `started`; обычный return получает terminal `completed`; timeout или исключение получает `abandoned`. Recovery требует новый approval для abandoned работы и возвращает `no_replay` для completed. Evidence находится в [`EXTERNAL_LANE_JOURNAL_EVIDENCE.json`](../../EXTERNAL_LANE_JOURNAL_EVIDENCE.json); это только governance evidence: он не устанавливает `comparative_ready`, не устанавливает `native_or_external_execution_claim` и не является third-party execution evidence.
+
 ## Текущий artifact
 
 Machine-readable snapshot: [`EXTERNAL_EVIDENCE_READINESS_MATRIX.json`](../../EXTERNAL_EVIDENCE_READINESS_MATRIX.json). Текущие статусы: `hermes=not_run`, `opencode=not_run`, `deepseek_harness=not_run`, потому что exact immutable revisions ещё не предоставлены.

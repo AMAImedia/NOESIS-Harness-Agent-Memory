@@ -19,6 +19,10 @@ The matrix validates exact revision, `environment_digest`, deterministic `receip
 
 Comparative readiness requires **all three** required lanes to be `passed`, with one shared protocol fingerprint and no global conflict. A matrix may be `passed` only for signed evidence supplied by an approved operator workflow; it is still not a quality or superiority claim. `scripts/build_comparative_report.py` consumes this matrix first and keeps `score_available=false` until case-level scoring evidence is present. It never converts `not_run`, `blocked` or missing data into a score. The current repository artifact is intentionally `not_run`: all three manifest revisions are empty and `native_or_external_execution_claim` is `false`. The pinned operator orchestrator embeds the same readiness preflight before it can consider any external execution command.
 
+### Durable approval-journal evidence
+
+The local execution boundary records `consumed`, `started`, `completed`, and `abandoned` states in SQLite/WAL. A valid approval is consumed exactly once; launch is preceded by a durable `started` state; ordinary returns become terminal `completed`; timeouts and raised runner failures become `abandoned`; recovery requires a new approval for abandoned work and returns `no_replay` for completed work. This contract is recorded in [`EXTERNAL_LANE_JOURNAL_EVIDENCE.json`](EXTERNAL_LANE_JOURNAL_EVIDENCE.json) and is governance evidence only. It does not set `comparative_ready`, does not set `native_or_external_execution_claim`, and does not constitute third-party execution evidence.
+
 ## Current artifact
 
 The machine-readable snapshot is [`EXTERNAL_EVIDENCE_READINESS_MATRIX.json`](EXTERNAL_EVIDENCE_READINESS_MATRIX.json). Its current lane statuses are `hermes=not_run`, `opencode=not_run`, and `deepseek_harness=not_run` because exact immutable revisions have not been supplied.

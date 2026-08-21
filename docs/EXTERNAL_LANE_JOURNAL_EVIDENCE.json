@@ -1,0 +1,26 @@
+{
+  "schema_version": "noesis.external-lane-journal-evidence.v1",
+  "status": "passed",
+  "scope": "local_governance_contract",
+  "runtime": "CPython 3.14.7",
+  "focused_tests": {
+    "suite": "tests.test_external_lane tests.test_pinned_lane_orchestrator",
+    "passed": 11,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "journal_states": ["consumed", "started", "completed", "abandoned"],
+  "acceptance": {
+    "dry_run_not_started": true,
+    "approval_required": true,
+    "single_consume": true,
+    "started_before_launch": true,
+    "timeout_abandoned": true,
+    "completed_no_replay": true,
+    "reopen_recovery": true
+  },
+  "external_execution": "not_run",
+  "comparative_ready": false,
+  "native_or_external_execution_claim": false,
+  "claim_boundary": "Local journal tests do not constitute Hermes, OpenCode, or DeepSeek Harness execution evidence."
+}
