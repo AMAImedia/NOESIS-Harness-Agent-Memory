@@ -2136,3 +2136,9 @@ Focused active-delegation result: `3/3` isolation tests and `785/785` full tests
 | CHILD-326 | Durable long-context repeated distribution | `DONE / BOUNDED LOCAL` | `run_durable_long_context_stress()` сохраняет повторяемые trajectories в SQLite/WAL, проверяет baseline/next-generation distributions и deterministic SHA-256 digest. |
 | CHILD-327 | Native/external memory quality lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external model-quality lanes не запускались. |
 Focused memory-quality result: `13/13` tests and `786/786` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Gate 6 native/external readiness boundary checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-328 | Native Windows/macOS execution evidence | `NOT_RUN / ENVIRONMENT-GATED` | Linux sandbox не может доказать native Windows/macOS parity; подключённый Windows probe не предоставил bounded runnable Python/repository session. macOS host отсутствует. |
+| CHILD-329 | External pinned comparative evidence | `NOT_RUN / ENVIRONMENT-GATED` | Hermes, OpenCode и DeepSeek-Harness exact revisions отсутствуют; external A/B не запускался и superiority claim не делается. |

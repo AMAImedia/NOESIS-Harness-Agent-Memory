@@ -60,3 +60,7 @@ Monotonic manifest-binding provenance: каждый успешный manifest-bi
 ### Durable long-context reuse trajectories
 
 Gate 5 теперь включает `run_durable_long_context_stress()` — stdlib-only deterministic runner, который повторяет bounded long-context baseline/next-generation evaluations, сохраняет одну trace trajectory на repetition в SQLite/WAL и возвращает byte-stable distributions с SHA-256 distribution digest. Повторное открытие того же trace store и повтор bounded fixture воспроизводят тот же distribution digest. Это local quality evidence, а не external model benchmark и не заявление о general intelligence.
+
+### Статус границ Gate 6
+
+Подготовка Gate 6 завершена на уровне контрактов, но native и external execution остаются явно `NOT_RUN / ENVIRONMENT-GATED`. Linux sandbox не доказывает Windows/macOS parity; подключённый Windows probe не предоставил bounded runnable repository/Python session, macOS host отсутствует. Comparative external lanes блокируются до появления exact pinned revisions и matching execution environments. Superiority claim не формируется.

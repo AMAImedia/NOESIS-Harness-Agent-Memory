@@ -61,3 +61,7 @@ The local isolation corpus now includes `ActiveDelegationLeakageSuite`, a determ
 ### Durable long-context reuse trajectories
 
 Gate 5 now includes `run_durable_long_context_stress()`, a stdlib-only deterministic runner that repeats bounded long-context baseline/next-generation evaluations, persists one trace trajectory per repetition in SQLite/WAL, and returns byte-stable baseline and next-generation distributions with a SHA-256 distribution digest. Reopening the same trace store and repeating the bounded fixture reproduces the same distribution digest. This is local quality evidence, not an external model benchmark or a claim of general intelligence.
+
+### Gate 6 boundary status
+
+Gate 6 preparation is complete at the contract level, but native and external execution remain explicitly `NOT_RUN / ENVIRONMENT-GATED`. The Linux sandbox does not establish Windows/macOS parity; the connected Windows probe did not yield a bounded runnable repository/Python session, and no macOS host is available. Comparative external lanes remain blocked until exact pinned revisions and matching execution environments exist. No superiority claim is emitted.
