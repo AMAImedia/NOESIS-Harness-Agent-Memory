@@ -2031,3 +2031,15 @@ Focused cross-binding result: `81/81` execution-recovery tests passed with Pytho
 | CHILD-293 | Native/external inventory | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external finalized-inventory lanes не запускались. |
 
 Focused finalized-inventory result: `82/82` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 inventory-verification receipt checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-294 | Verification receipt | `DONE / BOUNDED LOCAL` | Signed `noesis.recovery-replay-inventory-verification.v1` receipt создан для finalized inventory. |
+| CHILD-295 | Acceptance binding | `DONE / BOUNDED LOCAL` | Receipt связывает inventory digest, generation digest, chain root, readiness и finalization status. |
+| CHILD-296 | Stale/replay denial | `DONE / BOUNDED LOCAL` | Stale, modified или validly re-signed receipt fail-closed как verification drift. |
+| CHILD-297 | Native/external verification | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external verification-receipt lanes не запускались. |
+
+Focused verification-receipt result: `83/83` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

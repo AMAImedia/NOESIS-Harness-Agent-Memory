@@ -371,6 +371,28 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_finalized_inventory_drift"):
             executor.verify_finalized_evidence_inventory()
 
+    def test_inventory_verification_receipt_rejects_stale_inventory_binding(self):
+        event_path = str(Path(self.tmp.name) / "inventory-verification-binding-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-verification-receipt")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        self.assertEqual(executor.verify_inventory_verification_receipt()["status"], "passed")
+        verification_path = Path(executor._replay_inventory_verification_path())
+        snapshot = json.loads(verification_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["inventory_digest"] = "stale-inventory-digest"
+        snapshot["payload"]["verification_digest"] = request_fingerprint({key: value for key, value in snapshot["payload"].items() if key != "verification_digest"})
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        os.chmod(verification_path, os.stat(verification_path).st_mode | 0o200)
+        verification_path.write_text(json.dumps(snapshot, sort_keys=True), encoding="utf-8")
+        os.chmod(verification_path, os.stat(verification_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_inventory_verification_drift"):
+            executor.verify_inventory_verification_receipt()
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_inventory_verification_drift"):
+            executor.verify_replay_evidence_readiness(require_finalized=True)
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
