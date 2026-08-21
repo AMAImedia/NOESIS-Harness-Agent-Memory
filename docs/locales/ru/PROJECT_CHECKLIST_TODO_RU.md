@@ -2079,3 +2079,15 @@ Focused verification-run readiness result: `85/85` execution-recovery tests pass
 | CHILD-309 | Native/external snapshot lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external readiness snapshot lanes не запускались. |
 
 Focused signed-readiness-snapshot result: `86/86` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 final-manifest readiness binding checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-310 | Final manifest binding | `DONE / BOUNDED LOCAL` | Final commit manifests получают signed readiness path/digest, run-chain tip и inventory/root digests. |
+| CHILD-311 | Unified root binding | `DONE / BOUNDED LOCAL` | Manifest связывает verification readiness с unified event-chain root без изменения generation receipt projection. |
+| CHILD-312 | Substitution denial | `DONE / BOUNDED LOCAL` | Foreign inventory, run tip или chain root fail-closed как manifest drift. |
+| CHILD-313 | Native/external manifest lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external final-manifest readiness lanes не запускались. |
+
+Focused final-manifest binding result: `87/87` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

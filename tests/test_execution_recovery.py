@@ -468,6 +468,27 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_inventory_verification_readiness_drift"):
             executor.verify_replay_evidence_readiness(require_finalized=True)
 
+    def test_final_manifest_rejects_foreign_verification_readiness_binding(self):
+        event_path = str(Path(self.tmp.name) / "manifest-readiness-binding-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-manifest-readiness")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        manifest_path = Path(executor._replay_commit_manifest_path(self.action.action_id))
+        self.assertEqual(executor.verify_replay_evidence_commit_manifest(self.action)["status"], "passed")
+        snapshot = json.loads(manifest_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["verification_inventory_digest"] = "foreign-inventory"
+        snapshot["payload"]["readiness_binding_digest"] = request_fingerprint({key: value for key, value in snapshot["payload"].items() if key not in {"bundle_digest", "readiness_binding_digest"}})
+        snapshot["payload"]["bundle_digest"] = executor._replay_bundle_digest(snapshot["payload"])
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        os.chmod(manifest_path, os.stat(manifest_path).st_mode | 0o200)
+        manifest_path.write_text(json.dumps(snapshot, sort_keys=True), encoding="utf-8")
+        os.chmod(manifest_path, os.stat(manifest_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_drift"):
+            executor.verify_replay_evidence_commit_manifest(self.action)
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

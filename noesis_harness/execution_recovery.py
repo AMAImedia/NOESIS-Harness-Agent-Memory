@@ -537,7 +537,7 @@ class ExecutionRecoveryExecutor:
                     if action_id:
                         action_ids.append(action_id)
         for action_id in sorted(set(action_ids)):
-            paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
+            paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id)})
         return tuple(sorted(path for path in paths if os.path.dirname(os.path.abspath(path)) == os.path.abspath(parent)))
 
     @staticmethod
@@ -950,6 +950,12 @@ class ExecutionRecoveryExecutor:
         if catalog_record is None:
             raise ExecutionRecoveryError("recovery_replay_commit_manifest_catalog_record_missing")
         expected = {"schema_version": "noesis.recovery-replay-evidence-commit-manifest.v1", "action_id": action.action_id, "action_digest": replay_evidence["action_digest"], "completion_receipt_id": replay_evidence["completion_receipt_id"], "event_path": str(self.events.path), "status_snapshot_path": self._status_snapshot_path(action.action_id), "replay_snapshot_path": self._replay_snapshot_path(action.action_id), "inventory_snapshot_path": self._replay_inventory_snapshot_path(action.action_id), "catalog_snapshot_path": self._replay_catalog_snapshot_path(), "completeness_snapshot_path": self._replay_completeness_snapshot_path(), "status_snapshot_digest": request_fingerprint(status_snapshot["payload"]), "replay_snapshot_digest": request_fingerprint(replay_snapshot["payload"]), "replay_event_chain_digest": str(replay_evidence["event_chain_digest"]), "inventory_snapshot_digest": request_fingerprint(inventory_snapshot["payload"]), "catalog_record_digest": request_fingerprint(catalog_record), "completeness_record_digest": self._replay_completeness_record_digest(action, replay_evidence, catalog_record, self._replay_commit_manifest_path(action.action_id))}
+        readiness_path = self._replay_inventory_verification_readiness_path()
+        if os.path.exists(readiness_path):
+            readiness = self.verify_inventory_verification_chain_readiness_snapshot()["payload"]
+            inventory = self.verify_finalized_evidence_inventory()["payload"]
+            expected.update({"verification_readiness_path": readiness_path, "verification_readiness_digest": request_fingerprint(readiness), "verification_chain_tip_digest": readiness["tip_digest"], "verification_inventory_digest": readiness["inventory_digest"], "verification_chain_root_digest": inventory["chain_root_digest"]})
+            expected["readiness_binding_digest"] = request_fingerprint({key: value for key, value in expected.items() if key not in {"bundle_digest", "readiness_binding_digest"}})
         expected["bundle_digest"] = self._replay_bundle_digest(expected)
         for key, value in expected.items():
             if payload.get(key) != value:
@@ -1180,7 +1186,35 @@ class ExecutionRecoveryExecutor:
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
         _atomic_write_json(self._replay_inventory_verification_readiness_path(), snapshot)
         self._make_readonly((self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path(), self._replay_inventory_verification_readiness_path()))
+        self._bind_commit_manifests_to_verification_readiness(snapshot)
         return snapshot
+
+    def _bind_commit_manifests_to_verification_readiness(self, readiness_snapshot: Mapping[str, Any]) -> None:
+        readiness_payload = readiness_snapshot["payload"]
+        readiness_digest = request_fingerprint(readiness_payload)
+        inventory = self.verify_finalized_evidence_inventory()["payload"]
+        parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
+        prefix = os.path.basename(str(self.events.path)) + ".replay-commit."
+        for name in sorted(os.listdir(parent)):
+            if not name.startswith(prefix) or not name.endswith(".json"):
+                continue
+            path = os.path.join(parent, name)
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+                payload = dict(snapshot["payload"])
+                signature = str(snapshot["signature"])
+            except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError, _DuplicateJSONKeyError) as exc:
+                raise ExecutionRecoveryError("recovery_replay_commit_manifest_corrupt") from exc
+            if not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+                raise ExecutionRecoveryError("recovery_replay_commit_manifest_signature_invalid")
+            if self._is_readonly(path):
+                self._make_writable((path,))
+            payload.update({"verification_readiness_path": self._replay_inventory_verification_readiness_path(), "verification_readiness_digest": readiness_digest, "verification_chain_tip_digest": readiness_payload["tip_digest"], "verification_inventory_digest": readiness_payload["inventory_digest"], "verification_chain_root_digest": inventory["chain_root_digest"]})
+            payload["readiness_binding_digest"] = request_fingerprint({key: value for key, value in payload.items() if key not in {"bundle_digest", "readiness_binding_digest"}})
+            payload["bundle_digest"] = self._replay_bundle_digest(payload)
+            _atomic_write_json(path, {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)})
+            self._make_readonly((path,))
 
     def verify_inventory_verification_chain_readiness_snapshot(self) -> Mapping[str, Any]:
         try:
