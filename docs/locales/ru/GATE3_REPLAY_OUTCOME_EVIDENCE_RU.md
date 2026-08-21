@@ -116,3 +116,7 @@ Local packaging и release-contract lanes повторно запущены: rel
 ### Denial native-build claim
 
 Cross-platform gate matrix теперь имеет adversarial coverage для native report с `native_builds_executed=true`, использующего только static local fixture. Matrix становится `blocked` и сохраняет `native_or_external_execution_claim=false`, что защищает границу между static packaging verification и фактическими native builds.
+
+### Denial external-versus-native boundary
+
+Adversarial coverage отмечает все external lanes как `passed`, но оставляет Windows и macOS native target evidence в `not_run`. Cross-platform matrix остаётся `not_run` и не поднимает `native_or_external_execution_claim`, доказывая, что external readiness не переопределяет unexecuted native boundary.

@@ -2235,3 +2235,10 @@ Packaging focused tests: `7/7` passed; recall benchmark remains `20/20 acc=1.00`
 | CHILD-357 | False native-build execution claim | `DONE / BOUNDED LOCAL` | Cross-platform matrix с `native_builds_executed=true` fail-closed в `blocked`; execution claim остаётся false. |
 | CHILD-358 | Native build execution | `NOT_RUN / ENVIRONMENT-GATED` | Denial fixture не является реальным Windows/macOS build или signing run. |
 Focused cross-platform result: `4/4` tests; full suite: `794/794` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — External-versus-native boundary denial checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-359 | External readiness versus native gap | `DONE / BOUNDED LOCAL` | Все external lanes `passed` при native targets `not_run` сохраняют overall `not_run` и false execution claim. |
+| CHILD-360 | Native target execution | `NOT_RUN / ENVIRONMENT-GATED` | Boundary test не является фактическим native Windows/macOS execution. |
+Focused cross-platform result: `5/5` tests; full suite: `795/795` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

@@ -34,6 +34,16 @@ class CrossPlatformGateMatrixTests(unittest.TestCase):
         self.assertEqual(report["lanes"]["windows_native"]["status"], "not_run")
         self.assertFalse(report["native_or_external_execution_claim"])
 
+    def test_external_comparative_ready_cannot_override_native_gap(self):
+        external = self.external()
+        external["comparative_ready"] = True
+        for lane in external["lanes"].values():
+            lane["status"] = "passed"
+        report = build(self.native(), external)
+        self.assertEqual(report["overall_status"], "not_run")
+        self.assertEqual(report["lanes"]["windows_native"]["status"], "not_run")
+        self.assertFalse(report["native_or_external_execution_claim"])
+
     def test_native_execution_claim_is_fail_closed(self):
         native = self.native()
         native["native_builds_executed"] = True
