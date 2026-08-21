@@ -1,0 +1,46 @@
+{
+  "schema_version": "noesis.durable-turn-replay-evidence.v1",
+  "gate": "RECOVERY-TURN-REPLAY-01",
+  "status": "passed_bounded_local",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only": true,
+    "resource_warning_policy": "error"
+  },
+  "implementation": "noesis_harness/turn_checkpoint.py",
+  "tests": "tests/test_turn_checkpoint.py",
+  "artifact_sha256": {
+    "noesis_harness/turn_checkpoint.py": "d26cad4615198779dd549557c02c40c4d597f18f1c5c2f9b79a9cb15f68acced",
+    "tests/test_turn_checkpoint.py": "f5b6831cf3c4ab0d72ca82f0f54ec17f8ea053cc9205fed322167e8daa710fcf",
+    "docs/DURABLE_TURN_CHECKPOINTS.md": "3f14145118659eea3791f84087245d81ab699fee6488b2d05207ba45f41bebda",
+    "docs/locales/ru/PROJECT_CHECKLIST_TODO_RU.md": "cbf84d7fe03e5ba70879fcb58447c2319a7370dc94d09215e8deaf5dacb1ef1c"
+  },
+  "verified_contracts": [
+    "exact persisted turn replay returns original verified record",
+    "altered state replay fails with checkpoint_replay_conflict",
+    "sequential turn advancement remains enforced",
+    "SQLite/WAL checkpoint and run projection commit atomically",
+    "checkpoint and state digests verify on reopen",
+    "previous-digest chain remains verifiable",
+    "interrupted run recovers latest verified state without inventing a turn",
+    "connections close under success and exception paths"
+  ],
+  "focused_tests": {
+    "suite": "tests.test_turn_checkpoint tests.test_recovery tests.test_chaos_recovery tests.test_execution_recovery tests.test_delegated_bridge_integration",
+    "passed": 103,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "full_suite": {
+    "passed": 815,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "external_boundary": {
+    "status": "NOT_RUN",
+    "native_windows_macos": "NOT_RUN",
+    "external_harness": "NOT_RUN",
+    "reason": "The local Linux lane cannot establish native host or pinned external crash-consistency parity."
+  },
+  "claim_boundary": "This evidence proves bounded local checkpoint replay and recovery behavior only; it does not prove cross-process filesystem semantics on native Windows/macOS or external harness parity."
+}

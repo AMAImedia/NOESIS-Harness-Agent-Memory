@@ -2466,3 +2466,13 @@ Machine-readable evidence: `docs/PRODUCTION_LIFECYCLE_FRONTIER_EVIDENCE.json`; c
 | EVIDENCE-STORE-08 | Altered event replay | `DONE / BOUNDED LOCAL` | Тот же event ID с изменённым type/payload отклоняется `EventStoreConflict`; reopen также обнаруживает drift в durable log. |
 | EVIDENCE-STORE-09 | External/native parity | `NOT_RUN / ENVIRONMENT-GATED` | EventStore evidence не заменяет native Windows/macOS или external A/B execution. |
 Machine-readable evidence: `docs/EVENT_STORE_REPLAY_CONFLICT_EVIDENCE.json`; focused result: `24/24`.
+
+## 2026-08-22 — Durable turn replay recovery checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| RECOVERY-TURN-REPLAY-01 | Exact turn replay | `DONE / BOUNDED LOCAL` | Повтор уже сохранённого turn с идентичными state/output/status возвращает исходный проверенный checkpoint без duplicate row. |
+| RECOVERY-TURN-REPLAY-02 | Altered turn replay | `DONE / LOCAL VERIFIED` | Повтор того же turn с изменённым state отклоняется как `checkpoint_replay_conflict`; sequential advancement и previous-digest chain сохраняются. |
+| RECOVERY-TURN-REPLAY-03 | Native/external crash parity | `NOT_RUN / ENVIRONMENT-GATED` | Linux local WAL evidence не заменяет native Windows/macOS filesystem semantics или pinned external crash-consistency harness. |
+
+Machine-readable evidence: `docs/DURABLE_TURN_REPLAY_EVIDENCE.json`; focused recovery result: `103/103`; full regression: `815/815`; `ResourceWarning`: `0`.

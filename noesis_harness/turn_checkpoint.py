@@ -131,10 +131,21 @@ class DurableTurnCheckpointStore:
         if not isinstance(state, Mapping):
             raise TurnCheckpointError("state_mapping_required")
         current = self.latest(run_id)
+        state_dict = dict(state)
+        requested_status = "completed" if done else "checkpointed"
+        requested_output_digest = _digest(output)
+        if turn <= current.turn:
+            with self._connect() as db:
+                existing_row = db.execute("SELECT * FROM turn_checkpoints WHERE run_id=? AND turn=?", (run_id, turn)).fetchone()
+            if existing_row is None:
+                raise TurnCheckpointError("turn_not_sequential")
+            existing = self._decode(existing_row)
+            if (existing.status, dict(existing.state), existing.output_digest, existing.previous_digest) == (requested_status, state_dict, requested_output_digest, current.previous_digest if turn == current.turn else existing.previous_digest):
+                return existing
+            raise TurnCheckpointError("checkpoint_replay_conflict")
         if turn != current.turn + 1:
             raise TurnCheckpointError("turn_not_sequential")
-        state_dict = dict(state)
-        payload = {"schema_version": SCHEMA, "run_id": run_id, "turn": turn, "status": "completed" if done else "checkpointed", "state": state_dict, "output_digest": _digest(output), "state_digest": _digest(state_dict), "previous_digest": current.state_digest, "created_at": float(self.clock())}
+        payload = {"schema_version": SCHEMA, "run_id": run_id, "turn": turn, "status": requested_status, "state": state_dict, "output_digest": requested_output_digest, "state_digest": _digest(state_dict), "previous_digest": current.state_digest, "created_at": float(self.clock())}
         digest = _digest(payload)
         record = TurnCheckpoint(run_id, turn, payload["status"], state_dict, payload["output_digest"], payload["state_digest"], payload["previous_digest"], payload["created_at"])
         with self._connect() as db:

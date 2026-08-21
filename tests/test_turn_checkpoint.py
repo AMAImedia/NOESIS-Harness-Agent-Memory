@@ -29,9 +29,11 @@ class TurnCheckpointTests(unittest.TestCase):
             store.begin("run-2")
             with self.assertRaisesRegex(TurnCheckpointError, "turn_not_sequential"):
                 store.commit_turn("run-2", 1, {}, {})
-            store.commit_turn("run-2", 0, {}, {})
-            with self.assertRaisesRegex(TurnCheckpointError, "turn_not_sequential"):
-                store.commit_turn("run-2", 0, {}, {})
+            first = store.commit_turn("run-2", 0, {}, {})
+            replay = store.commit_turn("run-2", 0, {}, {})
+            self.assertEqual(replay, first)
+            with self.assertRaisesRegex(TurnCheckpointError, "checkpoint_replay_conflict"):
+                store.commit_turn("run-2", 0, {"changed": True}, {})
 
     def test_corrupted_checkpoint_is_rejected(self):
         with tempfile.TemporaryDirectory() as root:
