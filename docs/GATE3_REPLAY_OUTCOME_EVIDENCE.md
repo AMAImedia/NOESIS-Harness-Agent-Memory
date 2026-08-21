@@ -49,3 +49,7 @@ The repair-chain readiness audit exposes a separate `noesis.recovery-repair-chai
 This proves local replay evidence binding and deterministic reporting. It does not prove process isolation, artifact restoration completeness, semantic safety, or native/external execution. Those claims require separate matching-host and pinned-revision evidence.
 
 Implementation: [`noesis_harness/execution_recovery.py`](../noesis_harness/execution_recovery.py). Focused coverage: [`tests/test_execution_recovery.py`](../tests/test_execution_recovery.py).
+
+### Manifest-binding-chain readiness snapshot
+
+Each successful manifest-binding provenance run now persists a signed, read-only `noesis.recovery-replay-manifest-readiness-binding-chain-readiness.v1` snapshot. The snapshot binds the canonical binding-run chain, current manifest-binding receipt, binding digest, finalized inventory digest, unified chain-root digest, chain tip digest, run count, and explicit readiness and verification results through `readiness_digest`. Strict verification recomputes the current chain and receipt before comparing the signed snapshot. Missing, corrupt, writable, stale, foreign, or validly re-signed snapshots fail closed as `recovery_manifest_binding_readiness_*`; the snapshot is included in strict orphan-sidecar discovery. This remains bounded local evidence only; native Windows/macOS and external execution lanes are `NOT_RUN / ENVIRONMENT-GATED`.

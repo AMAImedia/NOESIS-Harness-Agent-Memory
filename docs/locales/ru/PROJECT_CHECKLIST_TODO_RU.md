@@ -2115,3 +2115,10 @@ Focused manifest-binding receipt result: `88/88` execution-recovery tests passed
 | CHILD-321 | Native/external provenance lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external binding-run lanes не запускались. |
 
 Focused manifest-binding chain result: `89/89` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Gate 3 manifest-binding-chain readiness checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-322 | Binding-chain readiness snapshot | `DONE / BOUNDED LOCAL` | Signed read-only `noesis.recovery-replay-manifest-readiness-binding-chain-readiness.v1` связывает chain tip, binding receipt, inventory и unified chain root; stale/writable/validly re-signed drift fail-closed. |
+| CHILD-323 | Native/external readiness lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external manifest-binding readiness lanes не запускались. |
+Focused manifest-binding readiness result: `90/90` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
