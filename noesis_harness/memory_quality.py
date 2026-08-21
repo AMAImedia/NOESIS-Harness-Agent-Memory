@@ -132,6 +132,7 @@ class DurableLongContextStressReport:
     nextgen_recall_distribution: Tuple[float, ...]
     trace_sessions: int
     distribution_digest: str
+    persistence_verified: bool = False
 
 
 @dataclass(frozen=True)
@@ -296,15 +297,21 @@ def run_durable_long_context_stress(trace_path: str, *, scales: Sequence[int] = 
     store = DurableMemoryQualityTraceStore(str(Path(trace_path).expanduser()))
     baseline_distribution = []
     nextgen_distribution = []
+    persistence_verified = True
+    trace_file = str(Path(trace_path).expanduser())
     for repetition in range(int(repetitions)):
         outcomes = ControlledMemoryEvaluator().evaluate(cases)
         baseline_distribution.append(sum(outcome.legacy_recall for outcome in outcomes) / len(outcomes))
         nextgen_distribution.append(sum(outcome.nextgen_recall for outcome in outcomes) / len(outcomes))
         adapter = DurableMemoryQualityAdapter(type("LongContextMemory", (), {"observe": lambda self, *args: None})(), store)
         trajectory = tuple(MemoryTrajectoryStep(case.case_id, case.query, case.relevant_source_ids, case.relevant_source_ids, case.relevant_source_ids, used_tokens=min(case.budget_tokens, 8), budget_tokens=case.budget_tokens) for index, case in enumerate(cases))
-        adapter.record_trajectory("long-context-%d" % repetition, trajectory)
+        session_id = "long-context-%d" % repetition
+        adapter.record_trajectory(session_id, trajectory)
+        reopened_store = DurableMemoryQualityTraceStore(trace_file)
+        persistence_verified = persistence_verified and len(reopened_store.list_session(session_id)) == len(trajectory)
+        del reopened_store
     encoded = json.dumps({"baseline": baseline_distribution, "nextgen": nextgen_distribution}, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return DurableLongContextStressReport(int(repetitions), len(cases), tuple(baseline_distribution), tuple(nextgen_distribution), int(repetitions), hashlib.sha256(encoded).hexdigest())
+    return DurableLongContextStressReport(int(repetitions), len(cases), tuple(baseline_distribution), tuple(nextgen_distribution), int(repetitions), hashlib.sha256(encoded).hexdigest(), bool(persistence_verified))
 
 
 def compare_baseline_nextgen(cases: Sequence[MemoryABCase], repetitions: int = 3) -> MemoryComparisonReport:

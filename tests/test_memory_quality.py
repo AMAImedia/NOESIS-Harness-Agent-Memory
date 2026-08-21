@@ -149,6 +149,7 @@ class MemoryQualityTests(unittest.TestCase):
             self.assertEqual(report.trace_sessions, 3)
             self.assertEqual(report.baseline_recall_distribution, (0.0, 0.0, 0.0))
             self.assertEqual(report.nextgen_recall_distribution, (1.0, 1.0, 1.0))
+            self.assertTrue(report.persistence_verified)
             reopened = run_durable_long_context_stress(str(Path(tmp) / "long-context.db"), scales=(8, 16), repetitions=3)
             self.assertEqual(reopened.distribution_digest, report.distribution_digest)
 

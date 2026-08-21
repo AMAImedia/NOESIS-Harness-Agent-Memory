@@ -1,0 +1,31 @@
+{
+  "schema_version": "noesis.memory-long-context-reopen-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_memory_quality",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "sqlite_wal_trace_persistence": true,
+    "reopen_after_each_repetition": true,
+    "complete_trajectory_count_verified": true,
+    "deterministic_distribution_digest": true,
+    "model_self_grading": false
+  },
+  "fixture_result": {
+    "scales": [8, 16],
+    "repetitions": 3,
+    "cases": 2,
+    "trace_sessions": 3,
+    "persistence_verified": true,
+    "baseline_recall_distribution": [0.0, 0.0, 0.0],
+    "nextgen_recall_distribution": [1.0, 1.0, 1.0]
+  },
+  "focused_tests": {
+    "suite": "tests.test_memory_quality",
+    "passed": 13,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "This is deterministic local SQLite/WAL durability and retrieval evidence, not a general intelligence or comparative superiority claim."
+}

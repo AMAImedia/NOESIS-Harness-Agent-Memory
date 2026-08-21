@@ -2319,3 +2319,10 @@ Machine-readable evidence: `docs/COMPARATIVE_CASE_COMPLETENESS_EVIDENCE.json`; f
 | CHILD-384 | Non-observed metric denial | `DONE / BOUNDED LOCAL` | Signed case с `status=not_run` получает `invalid_case_receipt` и не создаёт `score_available`. |
 | CHILD-385 | External scoring boundary | `NOT_RUN / ENVIRONMENT-GATED` | Local fixture denial не является external quality measurement, ranking или native host evidence. |
 Machine-readable evidence обновлено; focused scoring result: `17/17`.
+## 2026-08-21 — Durable long-context trace reopen checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| MEM-10 | Per-repetition trace reopen | `DONE / BOUNDED LOCAL` | Long-context stress после каждой repetition reopen-ит SQLite/WAL trace store и проверяет полный trajectory count. |
+| MEM-11 | Durable distribution honesty | `DONE / BOUNDED LOCAL` | `persistence_verified=true`; baseline/nextgen distributions и deterministic digest сохраняются без model self-grading. |
+| MEM-12 | Native/external memory execution | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external long-context A/B не запускались; local durability не обобщается на внешние среды. |
+Machine-readable evidence: `docs/MEMORY_LONG_CONTEXT_REOPEN_EVIDENCE.json`; focused memory result: `13/13`.
