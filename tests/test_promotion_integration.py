@@ -218,6 +218,8 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertTrue(verify_signed_mutation_receipt(first["result"]["audit_receipt"], b"session-signing-key-123"))
         self.assertEqual(journal.status("session-action-1"), "committed")
         self.assertEqual(replay["status"], "replayed")
+        with self.assertRaisesRegex(PermissionError, "operator_session_action_replay_conflict"):
+            executor.handle(OperatorSessionAction("session-action-1", "open", "admin-1", "other-session", ttl_seconds=60, scopes=("promotion:review",)), context)
         self.assertTrue(registry.context("admin-1", "target-session").authenticated)
         closed = executor.handle(OperatorSessionAction("session-action-2", "close", "admin-1", "target-session"), context)
         self.assertEqual(closed["status"], "applied")

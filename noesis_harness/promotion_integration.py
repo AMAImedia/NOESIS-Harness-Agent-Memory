@@ -188,8 +188,10 @@ class PromotionActionExecutor:
             self._deny(action, str(exc), PermissionError)
         existing = self._existing(action.action_id)
         if existing is not None:
-            self.integration.telemetry.record("promotion_action_replayed", action_id=action.action_id, proposal_id=action.proposal_id)
-            return {"status": "replayed", "receipt": existing.to_mapping()}
+            if all(existing.to_mapping().get(key) == action.to_mapping().get(key) for key in ("action_id", "proposal_id", "action", "operator_id")):
+                self.integration.telemetry.record("promotion_action_replayed", action_id=action.action_id, proposal_id=action.proposal_id)
+                return {"status": "replayed", "receipt": existing.to_mapping()}
+            self._deny(action, "promotion_action_replay_conflict", PermissionError)
         proposal = self.integration.pipeline._proposals.get(action.proposal_id)
         if proposal is None:
             self._deny(action, "proposal_not_found", KeyError)
@@ -807,7 +809,9 @@ class OperatorSessionActionExecutor:
             raise PermissionError("operator_identity_mismatch")
         existing = self._existing(action.action_id)
         if existing is not None:
-            return {"status": "replayed", "result": existing}
+            if all(existing.get(key) == action.to_mapping().get(key) for key in ("action_id", "action", "operator_id", "session_id", "ttl_seconds", "scopes")):
+                return {"status": "replayed", "result": existing}
+            raise PermissionError("operator_session_action_replay_conflict")
         current = self.registry.context(action.operator_id, action.session_id)
         if action.action == "open":
             if current.authenticated:

@@ -2412,3 +2412,11 @@ Evidence: `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json`, `docs/COORDINATED_MUTA
 | LEARN-WIRE-07 | Deployment adoption | `DONE / BOUNDED LOCAL` | HealthServer получает signed operator-session action handler и reviewed administrative-policy handler; state directory создаётся до SQLite/WAL initialization. |
 | LEARN-WIRE-08 | Native/external parity | `NOT_RUN / ENVIRONMENT-GATED` | Portable local wiring не заменяет native Windows/macOS host run или external identity-provider/A-B execution. |
 Machine-readable evidence: `docs/PORTABLE_DEPLOYMENT_WIRING_EVIDENCE.json`; focused launcher result: `5/5`.
+
+## 2026-08-21 — Action replay identity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-AUTH-07 | Exact action replay | `DONE / LOCAL VERIFIED` | Идентичный promotion/session action ID replay остаётся idempotent и не создаёт новую state transition. |
+| LEARN-AUTH-08 | Altered-payload replay | `DONE / BOUNDED LOCAL` | Тот же action ID с другим proposal/session/target/scopes отклоняется как replay conflict. |
+| LEARN-AUTH-09 | External identity source | `NOT_RUN / ENVIRONMENT-GATED` | Локальная replay identity проверка не заменяет внешний identity provider. |
+Machine-readable evidence: `docs/ACTION_REPLAY_IDENTITY_EVIDENCE.json`; focused promotion result: `23/23`.
