@@ -19,3 +19,7 @@ An incomplete prepared mutation is recoverable evidence requiring an explicit op
 ## Evidence and boundaries
 
 Machine-readable evidence is recorded in `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json` and `docs/COORDINATED_MUTATION_JOURNAL_EVIDENCE.json`. The focused contracts are tested under Python 3.14 with `ResourceWarning` treated as an error. Native Windows/macOS execution, external identity providers, and external A/B lanes remain `not_run` until matching pinned environments and operator-approved evidence exist.
+
+## Runtime-owned learning policy
+
+Portable deployment derives promotion capture policy from authoritative `TaskSessionStore` task ownership and session identity metadata. A task-event/session mismatch, missing owner, or disallowed derived scope returns a denied policy simulation. The portable path does not use a static fixture policy and still keeps evaluation, approval, promotion, and activation separately gated.

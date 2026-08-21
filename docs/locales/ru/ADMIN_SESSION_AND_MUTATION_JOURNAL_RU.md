@@ -19,3 +19,7 @@
 ## Evidence и границы
 
 Machine-readable evidence сохраняется в `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json` и `docs/COORDINATED_MUTATION_JOURNAL_EVIDENCE.json`. Фокусированные контракты тестируются под Python 3.14 с `ResourceWarning` как error. Native Windows/macOS, external identity providers и external A/B lanes остаются `not_run` до появления подходящих pinned environments и operator-approved evidence.
+
+## Runtime-owned learning policy
+
+Portable deployment выводит policy для promotion capture из authoritative ownership task и session metadata в `TaskSessionStore`. Несовпадение task-event/session, отсутствие owner или недопустимый derived scope дают denied policy simulation. Portable path не использует static fixture policy; evaluation, approval, promotion и activation остаются раздельными явно разрешаемыми этапами.
