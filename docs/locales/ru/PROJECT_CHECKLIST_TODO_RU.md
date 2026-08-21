@@ -2513,3 +2513,12 @@ Machine-readable evidence: `docs/P11_TERMINAL_WEB_PY314_EVIDENCE.json`.
 | P12-02 | Native Windows/macOS package | `NOT_RUN / HOST REQUIRED` | Native `.exe/.app`, signing, embedded runtime and matching filesystem semantics are not available in the Linux lane. |
 
 Machine-readable evidence: `docs/P12_PY314_PACKAGING_EVIDENCE.json`.
+
+## 2026-08-22 — P13 local benchmark and parity Python 3.14 baseline
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| P13-01-PY314 | Local benchmark and parity contracts | `DONE / BOUNDED LOCAL BASELINE` | Benchmark schemas, pinned-runner contracts, local task-execution parity, aggregate evidence и native/external readiness tests прошли `33/33` на Python 3.14 при `ResourceWarning=0`. |
+| P13-02 | External comparative A/B | `NOT_RUN / PINNED ENVIRONMENT REQUIRED` | Hermes, OpenCode и DeepSeek Harness exact revisions и disposable operator-approved environments отсутствуют; ranking и superiority claim не строятся. |
+
+Machine-readable evidence: `docs/P13_LOCAL_BENCHMARK_PARITY_PY314_EVIDENCE.json`.

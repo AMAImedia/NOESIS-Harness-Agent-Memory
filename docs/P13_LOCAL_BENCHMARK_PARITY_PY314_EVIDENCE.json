@@ -1,0 +1,44 @@
+{
+  "schema_version": "noesis.p13-local-benchmark-parity-python314-evidence.v1",
+  "gate": "P13-01-PY314",
+  "status": "passed_bounded_local_baseline",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only": true,
+    "resource_warning_policy": "error"
+  },
+  "focused_suite": [
+    "tests.test_multi_agent_benchmark",
+    "tests.test_work_product_benchmark",
+    "tests.test_pinned_runner_adapter",
+    "tests.test_external_runner_contract",
+    "tests.test_aggregate_external_evidence",
+    "tests.test_native_parity",
+    "tests.test_task_execution_parity",
+    "tests.test_runner_evidence",
+    "tests.test_external_evidence_readiness",
+    "tests.test_task_execution_parity"
+  ],
+  "focused_tests": {
+    "passed": 33,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "verified_contracts": [
+    "deterministic local benchmark schemas",
+    "connector-neutral pinned runner contracts",
+    "local task execution parity evidence",
+    "external readiness matrix fail-closed behavior",
+    "native parity evidence remains not_run without host",
+    "aggregate evidence does not escalate comparative claims"
+  ],
+  "external_boundary": {
+    "status": "NOT_RUN",
+    "hermes": "NOT_RUN",
+    "opencode": "NOT_RUN",
+    "deepseek_harness": "NOT_RUN",
+    "native_windows_macos": "NOT_RUN",
+    "reason": "Exact external revisions, disposable operator-approved environments, and matching native hosts are unavailable."
+  },
+  "claim_boundary": "This evidence proves local benchmark and parity contracts only; it does not rank NOESIS against external systems or claim best-in-world performance."
+}
