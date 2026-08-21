@@ -1,0 +1,35 @@
+{
+  "schema_version": "noesis.comparative-case-completeness-evidence.v1",
+  "status": "passed",
+  "scope": "local_scoring_contract",
+  "runtime": "CPython 3.14.7",
+  "required_dimensions": [
+    "task_correctness",
+    "patch_correctness",
+    "recovery",
+    "isolation_egress",
+    "cross_agent_leakage",
+    "long_context_use",
+    "review_burden"
+  ],
+  "acceptance": {
+    "exact_dimension_field_set": true,
+    "bounded_numeric_values_0_to_1": true,
+    "missing_dimension_denied": true,
+    "extra_dimension_denied": true,
+    "nonnumeric_dimension_denied": true,
+    "out_of_range_dimension_denied": true,
+    "value_imputation": false,
+    "score_claim": false
+  },
+  "focused_tests": {
+    "suite": "tests.test_case_scoring tests.test_comparative_report tests.test_operator_import",
+    "passed": 16,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "external_execution": "not_run",
+  "comparative_ready": false,
+  "native_or_external_execution_claim": false,
+  "claim_boundary": "Local signed-fixture validation proves report fail-closed behavior only; it is not external lane quality evidence."
+}

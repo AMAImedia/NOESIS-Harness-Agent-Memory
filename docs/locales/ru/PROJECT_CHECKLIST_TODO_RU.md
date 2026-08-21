@@ -2305,3 +2305,10 @@ Focused operator artifact result: `13/13` tests; full suite: `801/801` passed wi
 | CHILD-378 | Timeout recovery boundary | `DONE / BOUNDED LOCAL` | Timeout returns structured failed outcome, nonzero CLI exit, durable `abandoned`, and recovery action `issue_new_approval`; focused external-lane suite: `11/11`. |
 | CHILD-379 | External execution claim | `NOT_RUN / ENVIRONMENT-GATED` | Journal tests are local governance evidence only; Hermes/OpenCode/DeepSeek Harness execution, comparative scoring and native host evidence remain unexecuted. |
 Machine-readable evidence: `docs/EXTERNAL_LANE_JOURNAL_EVIDENCE.json`; full regression, security/link/schema audits and release audit are required before local commit.
+## 2026-08-21 — Comparative case-dimension completeness checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-380 | Exact scoring dimension set | `DONE / BOUNDED LOCAL` | Signed case receipt теперь требует ровно семь declared dimensions; missing/extra fields invalidate the receipt. |
+| CHILD-381 | Bounded metric values | `DONE / BOUNDED LOCAL` | Каждый dimension value обязан быть numeric, не boolean и находиться в диапазоне `[0,1]`; imputation запрещена. |
+| CHILD-382 | External comparative execution | `NOT_RUN / ENVIRONMENT-GATED` | Local signed-fixture tests проверяют только fail-closed evaluator behavior; external quality/ranking и native evidence не запускались. |
+Machine-readable evidence: `docs/COMPARATIVE_CASE_COMPLETENESS_EVIDENCE.json`; focused scoring result: `16/16`.

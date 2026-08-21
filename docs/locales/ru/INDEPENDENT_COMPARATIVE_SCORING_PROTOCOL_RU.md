@@ -31,7 +31,7 @@ Lane eligible только при совпадении system name, exact revisi
 
 Каждая пара lane/case представляется receipt `noesis.comparative-case-receipt.v1`. Его signed identity включает system, exact revision, общий protocol fingerprint, case ID, case digest и evaluator revision. Receipt содержит bounded dimension observations и явный список safety failures. Report builder проверяет HMAC receipt, отклоняет duplicate lane/case identity, связывает case revision и protocol fingerprint с lane receipt и требует каждый объявленный `case_id` для каждой required lane.
 
-`score_available=true` разрешается только после readiness-pass всех required lanes, полного case corpus для каждой lane, успешной проверки всех receipts и отсутствия mandatory safety failure. Builder публикует deterministic per-lane и cross-lane dimension means, но `score_claim` остаётся false до independent review и полного external evidence package.
+`score_available=true` разрешается только после readiness-pass всех required lanes, полного case corpus для каждой lane, exact declared dimension field set в каждом signed case, bounded numeric values в диапазоне `[0,1]`, успешной проверки всех receipts и отсутствия mandatory safety failure. Missing, extra, nonnumeric или out-of-range dimensions инвалидируют case; значения никогда не impute-ятся. Builder публикует deterministic per-lane и cross-lane dimension means, но `score_claim` остаётся false до independent review и полного external evidence package.
 
 ## Aggregation и uncertainty
 
