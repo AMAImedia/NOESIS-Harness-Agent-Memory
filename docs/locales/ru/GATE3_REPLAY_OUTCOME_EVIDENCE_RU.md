@@ -68,3 +68,7 @@ Gate 5 теперь включает `run_durable_long_context_stress()` — std
 ### Guard согласованности roadmap checkpoint
 
 Offline release audit теперь проверяет machine-readable roadmap reconciliation artifact: schema version, полный 40-символьный hexadecimal checkpoint commit и bounded `NEXT-03` status. Invalid roadmap metadata fail-closed как release-audit failure и не может незаметно пропустить stale planning evidence. Guard проверяет форму artifact и не требует невозможного self-referential current-HEAD hash.
+
+### Resolution roadmap checkpoint commit
+
+Release audit теперь проверяет, что roadmap checkpoint не только имеет корректную форму, но и разрешается в реальный local Git commit object. Неразрешимый checkpoint fail-closed как `roadmap_checkpoint_unresolvable`, усиливая provenance между planning evidence и repository history без требования равенства checkpoint текущему commit.

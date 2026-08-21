@@ -2149,3 +2149,10 @@ Focused memory-quality result: `13/13` tests and `786/786` full tests passed wit
 | CHILD-330 | Roadmap checkpoint consistency guard | `DONE / BOUNDED LOCAL` | Offline release audit проверяет schema, full-hex checkpoint commit и `NEXT-03` status; invalid metadata fail-closed. |
 | CHILD-331 | Native/external release consistency | `NOT_RUN / ENVIRONMENT-GATED` | Guard не подменяет native Windows/macOS или external A/B execution evidence. |
 Focused release-audit result: `3/3` tests and `787/787` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Roadmap checkpoint commit-resolution checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-332 | Roadmap checkpoint commit resolution | `DONE / BOUNDED LOCAL` | Offline release audit проверяет существование checkpoint как local Git commit object; unresolvable reference fail-closed. |
+| CHILD-333 | Native/external commit provenance | `NOT_RUN / ENVIRONMENT-GATED` | Проверка local Git object не заменяет native Windows/macOS или external A/B evidence. |
+Focused release-audit result: `3/3` tests and `787/787` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

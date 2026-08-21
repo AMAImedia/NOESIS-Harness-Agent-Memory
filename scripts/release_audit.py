@@ -24,6 +24,14 @@ PATTERNS = [
 ]
 
 
+def _commit_exists(project: Path, checkpoint: str) -> bool:
+    try:
+        subprocess.check_output(["git", "cat-file", "-e", checkpoint + "^{commit}"], cwd=str(project), text=True, stderr=subprocess.DEVNULL)
+        return True
+    except (OSError, subprocess.CalledProcessError):
+        return False
+
+
 def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, Any]:
     project = Path(root).resolve()
     package = project / "noesis_harness"
@@ -80,6 +88,8 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
             checkpoint = roadmap.get("checkpoint_commit")
             if not isinstance(checkpoint, str) or len(checkpoint) != 40 or any(character not in "0123456789abcdef" for character in checkpoint.lower()):
                 roadmap_errors.append("roadmap_checkpoint_invalid")
+            elif not _commit_exists(project, checkpoint):
+                roadmap_errors.append("roadmap_checkpoint_unresolvable")
             if roadmap.get("status") != "local_reconciliation_and_next03_bounded_verified":
                 roadmap_errors.append("roadmap_status_mismatch")
         except (OSError, json.JSONDecodeError, TypeError):

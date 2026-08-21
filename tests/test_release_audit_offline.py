@@ -13,6 +13,8 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
                 raise AssertionError("offline audit attempted network parity")
             if command[:2] == ["git", "rev-parse"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
+            if command[:2] == ["git", "cat-file"]:
+                return ""
             if command[:2] == ["git", "status"]:
                 return ""
             raise AssertionError(command)

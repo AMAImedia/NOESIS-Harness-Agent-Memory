@@ -69,3 +69,7 @@ Gate 6 preparation is complete at the contract level, but native and external ex
 ### Roadmap checkpoint consistency guard
 
 The offline release audit now validates the machine-readable roadmap reconciliation artifact: schema version, a full 40-character hexadecimal checkpoint commit, and the bounded `NEXT-03` status are checked before a clean release result is emitted. Invalid roadmap metadata fails closed as release-audit failure rather than silently allowing stale planning evidence. The guard validates artifact shape without requiring a self-referential current-HEAD hash.
+
+### Roadmap checkpoint commit resolution
+
+The release audit now verifies that the roadmap checkpoint is not only well-formed but resolves to an actual local Git commit object. Unresolvable checkpoint references fail closed as `roadmap_checkpoint_unresolvable`, strengthening provenance between planning evidence and repository history without requiring the checkpoint to equal the current commit.
