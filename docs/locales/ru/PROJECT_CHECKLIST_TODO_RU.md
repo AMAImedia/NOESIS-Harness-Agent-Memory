@@ -1216,7 +1216,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-PROD-03 | Automatic activation boundary | `DONE / LOCAL VERIFIED` | Readiness reports automatic evaluation/approval/promotion/activation disabled |
 | LEARN-PROD-04 | Concrete deployment binding | `DONE / BOUNDED LOCAL` | Portable launcher binds the facade to persistent session/reviewer stores and the injected HealthServer promotion action handler when signing configuration is explicit |
 | LEARN-PROD-05 | Durable promotion state/evaluator deployment | `DONE / LOCAL VERIFIED` | SQLite/WAL persistence, restart reconstruction, evaluator manifest conflict rejection, duplicate idempotency and bounded HealthServer/UI/SSE snapshot; 430-test full suite |
-| NEXT-03 | Governed executable child runtime | `IN PROGRESS / BOUNDED LOCAL` | Manifest/grant contract, strict hardened-backend requirement and Linux/Bubblewrap filesystem/network isolation are verified; remaining receipt/diff/recovery integration and native backend evidence are open |
+| NEXT-03 | Governed executable child runtime | `DONE / BOUNDED LOCAL` | Manifest/grant contract, signed promotion-receipt requirement, strict hardened-backend policy, Linux/Bubblewrap filesystem/network isolation, signed execution receipt, artifact diff review and interrupted-run recovery are verified; native backend evidence remains open |
 
 ### Gate 3 child runtime evidence
 
@@ -2375,3 +2375,9 @@ Machine-readable evidence: `docs/MEMORY_REAL_REUSE_TRAJECTORY_EVIDENCE.json`; fo
 | MEM-17 | Shape-collision denial | `DONE / BOUNDED LOCAL` | Одинаковый recall distribution при `trajectory_width=1` и `2` получает разные digests. |
 | MEM-18 | External memory evidence | `NOT_RUN / ENVIRONMENT-GATED` | Digest binding не заменяет native Windows/macOS или external long-context execution. |
 Machine-readable evidence updated; focused memory result: `13/13`.
+## 2026-08-21 — Governed child-runtime bounded-local closure
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-386 | Governed executable child runtime | `DONE / BOUNDED LOCAL` | Receipt/diff/recovery integration and hardened promotion-receipt activation boundary are now covered by code, adversarial tests and durable evidence. |
+| CHILD-387 | Native child-runtime execution | `NOT_RUN / HOST REQUIRED` | Windows/macOS sandbox backend and native signed execution evidence remain unexecuted. |
+Machine-readable evidence: `docs/SKILL_RUNTIME_PROMOTION_RECEIPT_EVIDENCE.json`, `docs/LEARNING_PROMOTION_ACTIVATION_EVIDENCE.json`; full regression: `807/807`.
