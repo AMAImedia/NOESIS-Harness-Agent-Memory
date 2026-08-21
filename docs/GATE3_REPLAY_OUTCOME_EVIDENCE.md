@@ -137,3 +137,7 @@ The cross-platform gate CLI now returns exit code 2 for every `not_run` or `bloc
 ### Missing safety metadata defaults
 
 The cross-platform matrix now defaults absent `network_allowed` and `credentials_available` fields to `false`. A report cannot silently become permissive because a safety field was omitted; the missing-field behavior is covered by an adversarial regression test.
+
+### Disposable-workspace metadata default
+
+External lane preflight now defaults an omitted `disposable_workspace` field to false. A manifest must explicitly declare a disposable workspace before becoming ready for operator approval; omission remains `not_run` and records `disposable_workspace_required`.

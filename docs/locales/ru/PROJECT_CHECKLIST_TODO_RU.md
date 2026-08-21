@@ -2270,3 +2270,10 @@ Focused cross-platform result: `6/6` tests плюс not_run CLI exit=2; full sui
 | CHILD-367 | Missing network/credential guards | `DONE / BOUNDED LOCAL` | Отсутствующие safety fields дают `network_allowed=false` и `credentials_available=false`; implicit allow запрещён. |
 | CHILD-368 | Native/external execution | `NOT_RUN / ENVIRONMENT-GATED` | Default-denial test не является native Windows/macOS или external A/B execution. |
 Focused cross-platform result: `7/7` tests; full suite: `797/797` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Disposable-workspace metadata default checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-369 | External disposable workspace guard | `DONE / BOUNDED LOCAL` | Omitted `disposable_workspace` теперь fail-closed как `not_run` с `disposable_workspace_required`. |
+| CHILD-370 | External lane execution | `NOT_RUN / ENVIRONMENT-GATED` | Preflight default-denial не является pinned external A/B execution. |
+Focused external preflight result: `10/10` tests; full suite: `798/798` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

@@ -142,7 +142,7 @@ def build_operator_preflight(manifest: Mapping[str, Any]) -> dict[str, Any]:
         checks.append("network_not_deny_by_default")
     if manifest.get("credentials_present", False):
         checks.append("credentials_present")
-    if manifest.get("disposable_workspace", True) is not True:
+    if manifest.get("disposable_workspace", False) is not True:
         checks.append("disposable_workspace_required")
     if not isinstance(workspace, str) or not workspace:
         checks.append("workspace_missing")

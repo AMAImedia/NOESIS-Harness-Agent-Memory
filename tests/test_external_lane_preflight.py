@@ -23,6 +23,11 @@ class ExternalLanePreflightTests(unittest.TestCase):
             self.assertFalse(report["execution_allowed"])
             self.assertTrue(report["operator_approval_required"])
 
+    def test_missing_disposable_workspace_is_not_run(self):
+        report = build_operator_preflight({"revisions": {}, "executables": {}, "workspace": "/tmp/operator"})
+        self.assertEqual(report["status"], "not_run")
+        self.assertIn("disposable_workspace_required", report["checks"])
+
     def test_unsafe_policy_is_not_run(self):
         report = build_operator_preflight({"revisions": {lane: "rev" for lane in ("hermes", "opencode", "deepseek_harness")}, "executables": {}, "workspace": "/tmp/x", "network_allowed": True, "credentials_present": True, "disposable_workspace": False})
         self.assertEqual(report["status"], "not_run")

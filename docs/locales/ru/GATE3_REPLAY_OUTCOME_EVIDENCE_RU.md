@@ -136,3 +136,7 @@ Cross-platform gate CLI теперь возвращает exit code 2 для л�
 ### Defaults missing safety metadata
 
 Cross-platform matrix теперь использует `false` по умолчанию для отсутствующих `network_allowed` и `credentials_available`. Report не может стать permissive из-за omitted safety field; missing-field behavior покрыт adversarial regression test.
+
+### Default disposable-workspace metadata
+
+External lane preflight теперь использует `false` по умолчанию при omitted `disposable_workspace`. Manifest должен явно объявить disposable workspace до перехода в `ready_for_operator_approval`; omission остаётся `not_run` и добавляет `disposable_workspace_required`.
