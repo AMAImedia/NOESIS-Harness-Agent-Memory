@@ -16,8 +16,7 @@
     "tests.test_native_parity",
     "tests.test_task_execution_parity",
     "tests.test_runner_evidence",
-    "tests.test_external_evidence_readiness",
-    "tests.test_task_execution_parity"
+    "tests.test_external_evidence_readiness"
   ],
   "focused_tests": {
     "passed": 33,
