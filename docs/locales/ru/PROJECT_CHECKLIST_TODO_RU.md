@@ -2122,3 +2122,10 @@ Focused manifest-binding chain result: `89/89` execution-recovery tests passed w
 | CHILD-322 | Binding-chain readiness snapshot | `DONE / BOUNDED LOCAL` | Signed read-only `noesis.recovery-replay-manifest-readiness-binding-chain-readiness.v1` связывает chain tip, binding receipt, inventory и unified chain root; stale/writable/validly re-signed drift fail-closed. |
 | CHILD-323 | Native/external readiness lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external manifest-binding readiness lanes не запускались. |
 Focused manifest-binding readiness result: `90/90` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Gate 4 simultaneous-active delegation leakage checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-324 | Simultaneous active delegation leakage corpus | `DONE / BOUNDED LOCAL` | `ActiveDelegationLeakageSuite` расширен до 6 concurrent holdouts: sibling/absolute/traversal denial, distinct workspace roots и same-lane containment; все проходят fail-closed. |
+| CHILD-325 | Native/external delegation lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и broader external simultaneous-delegation lanes не запускались. |
+Focused active-delegation result: `3/3` isolation tests and `785/785` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

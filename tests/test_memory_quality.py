@@ -12,7 +12,7 @@ class ActiveDelegationLeakageTests(unittest.TestCase):
         suite = ActiveDelegationLeakageSuite()
         results = suite.evaluate()
         self.assertEqual(tuple(result.case_id for result in results), suite.CASE_IDS)
-        self.assertEqual(len(results), 4)
+        self.assertEqual(len(results), 6)
         self.assertTrue(all(result.passed for result in results), results)
         self.assertEqual(suite.pass_rate(), 1.0)
 

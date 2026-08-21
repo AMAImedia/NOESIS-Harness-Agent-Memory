@@ -23,26 +23,38 @@ class IsolationHoldoutResult:
 class ActiveDelegationLeakageSuite:
     """Run concurrent workspace escape probes while delegated lanes are active."""
 
-    CASE_IDS: Tuple[str, ...] = ("sibling_read_denied", "sibling_write_denied", "absolute_path_denied", "traversal_denied")
+    CASE_IDS: Tuple[str, ...] = ("sibling_read_denied", "sibling_write_denied", "absolute_path_denied", "traversal_denied", "distinct_workspace_roots", "same_lane_workspace_only")
 
     def evaluate(self) -> Tuple[IsolationHoldoutResult, ...]:
         with tempfile.TemporaryDirectory(prefix="noesis-active-leakage-") as root:
-            executor = SafeParallelExecutor(root, max_concurrency=4)
-            lanes = [AgentLane("agent-%d" % index, "task-%d" % index, "agent-%d" % index) for index in range(4)]
+            executor = SafeParallelExecutor(root, max_concurrency=6)
+            lanes = [AgentLane("agent-%d" % index, "task-%d" % index, "agent-%d" % index) for index in range(len(self.CASE_IDS))]
             probes = {"sibling_read_denied": "../agent-1/secret.txt", "sibling_write_denied": "../agent-2/write.txt", "absolute_path_denied": str(Path(root).parent / "outside.txt"), "traversal_denied": "../../escape.txt"}
             observed: dict[str, str] = {}
+            workspace_paths: dict[str, str] = {}
 
             def callback(ctx):
-                case_id = tuple(probes)[int(ctx.task_id.rsplit("-", 1)[-1])]
-                try:
-                    ctx.path(probes[case_id])
-                    observed[case_id] = "allowed"
-                except Exception as exc:
-                    observed[case_id] = type(exc).__name__
+                index = int(ctx.task_id.rsplit("-", 1)[-1])
+                case_id = tuple(probes)[index] if index < len(probes) else self.CASE_IDS[index]
+                workspace_paths[ctx.agent_id] = str(ctx.workspace)
+                if case_id in probes:
+                    try:
+                        ctx.path(probes[case_id])
+                        observed[case_id] = "allowed"
+                    except Exception as exc:
+                        observed[case_id] = type(exc).__name__
+                elif case_id == "distinct_workspace_roots":
+                    observed[case_id] = str(ctx.workspace)
+                else:
+                    own = ctx.path("own-artifact.txt")
+                    observed[case_id] = "contained" if own.parent == ctx.workspace and str(ctx.workspace).startswith(str(Path(root))) else "escaped"
                 return case_id
 
             results = executor.execute(lanes, callback, session_id="active-leakage", max_duration_seconds=5)
-            return tuple(IsolationHoldoutResult(case_id, observed.get(case_id) != "allowed" and any(result.status == "passed" and result.output == case_id for result in results), observed.get(case_id, "missing"), "concurrent workspace boundary") for case_id in self.CASE_IDS)
+            passed_outputs = {result.output for result in results if result.status == "passed"}
+            distinct = len({result.workspace for result in results if result.status == "passed"}) == len(self.CASE_IDS)
+            observed["distinct_workspace_roots"] = "distinct" if distinct else "aliased"
+            return tuple(IsolationHoldoutResult(case_id, (observed.get(case_id) != "allowed" and case_id in passed_outputs) if case_id in probes else (observed.get(case_id) in {"distinct", "contained"} and case_id in passed_outputs), observed.get(case_id, "missing"), "concurrent workspace boundary") for case_id in self.CASE_IDS)
 
     def pass_rate(self) -> float:
         results = self.evaluate()
@@ -145,4 +157,4 @@ class CrossAgentLeakageSuite:
         return sum(1 for result in results if result.passed) / len(results) if results else 1.0
 
 
-__all__ = ["CrossAgentLeakageSuite", "IsolationHoldoutResult"]
+__all__ = ["ActiveDelegationLeakageSuite", "CrossAgentLeakageSuite", "IsolationHoldoutResult"]
