@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -49,6 +50,29 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
                 report = audit(str(root), include_remote=False)
             self.assertFalse(report["clean"])
             self.assertEqual(report["roadmap_consistency"]["errors"], ["roadmap_checkpoint_invalid"])
+
+    def test_divergent_roadmap_checkpoint_is_audit_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "noesis_harness").mkdir()
+            (root / "docs").mkdir()
+            (root / "docs" / "ROADMAP_RECONCILIATION_EVIDENCE.json").write_text('{"schema_version":"noesis.roadmap-reconciliation.v1","checkpoint_commit":"1111111111111111111111111111111111111111","status":"local_reconciliation_and_next03_bounded_verified"}', encoding="utf-8")
+
+            def fake_check_output(command, **kwargs):
+                if command[:2] == ["git", "rev-parse"]:
+                    return "2222222222222222222222222222222222222222\\n"
+                if command[:2] == ["git", "cat-file"]:
+                    return ""
+                if command[:2] == ["git", "merge-base"]:
+                    raise subprocess.CalledProcessError(1, command)
+                if command[:2] == ["git", "status"]:
+                    return ""
+                raise AssertionError(command)
+
+            with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
+                report = audit(str(root), include_remote=False)
+            self.assertFalse(report["clean"])
+            self.assertEqual(report["roadmap_consistency"]["errors"], ["roadmap_checkpoint_not_ancestor"])
 
     def test_secret_like_content_is_audit_failure(self):
         with tempfile.TemporaryDirectory() as directory:

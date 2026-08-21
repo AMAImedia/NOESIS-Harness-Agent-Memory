@@ -76,3 +76,7 @@ Release audit теперь проверяет, что roadmap checkpoint не т
 ### Проверка ancestry roadmap checkpoint
 
 Release audit теперь требует, чтобы recorded roadmap checkpoint commit был ancestor audited local `HEAD`, помимо разрешения в реальный commit object. Future, unrelated или divergent checkpoint fail-closed как `roadmap_checkpoint_not_ancestor`, не позволяя release evidence ссылаться вне audited repository history.
+
+### Evidence denial divergent checkpoint
+
+Adversarial coverage теперь включает checkpoint с корректным форматом, который разрешается в commit object, но не является ancestor audited `HEAD`. Release audit отклоняет scope-divergence как `roadmap_checkpoint_not_ancestor`, показывая, что одной syntax/object validity недостаточно без проверки repository lineage.
