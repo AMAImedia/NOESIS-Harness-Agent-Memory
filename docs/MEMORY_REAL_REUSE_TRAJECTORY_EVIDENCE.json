@@ -1,0 +1,37 @@
+{
+  "schema_version": "noesis.memory-real-reuse-trajectory-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_real_memory_quality",
+  "runtime": "CPython 3.14.7",
+  "stress_configuration": {
+    "repetitions": 4,
+    "scale": 24,
+    "trajectory_width": 2,
+    "budget_tokens": 64,
+    "total_cases": 8,
+    "session_count": 4
+  },
+  "acceptance": {
+    "real_sqlite_memory_store": true,
+    "multi_turn_context_reuse": true,
+    "reopen_after_trajectory": true,
+    "all_relevant_facts_recalled": true,
+    "persistence_verified": true,
+    "bounded_trajectory_width": true,
+    "model_self_grading": false
+  },
+  "result": {
+    "recall_mean": 1.0,
+    "recall_distribution": [1.0, 1.0, 1.0, 1.0],
+    "deterministic_distribution": true
+  },
+  "focused_tests": {
+    "suite": "tests.test_memory_quality",
+    "passed": 13,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "This is bounded local real-memory durability/reuse evidence, not external model quality or worldwide superiority evidence."
+}

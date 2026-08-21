@@ -240,7 +240,7 @@ class DurableMemoryQualityAdapter:
         return MultiSessionMemoryQualityReport(len(grouped), len(aggregate_cases), session_metrics, aggregate)
 
 
-def run_real_memory_reuse_stress(memory_path: str, trace_path: str, *, repetitions: int = 3, scale: int = 32, budget_tokens: int = 64) -> RealMemoryReuseStressReport:
+def run_real_memory_reuse_stress(memory_path: str, trace_path: str, *, repetitions: int = 3, scale: int = 32, budget_tokens: int = 64, trajectory_width: int = 2) -> RealMemoryReuseStressReport:
     """Exercise durable Memory recall across repeated sessions and reopen boundaries.
 
     The runner writes deterministic semantic facts and distractors into the real
@@ -248,7 +248,7 @@ def run_real_memory_reuse_stress(memory_path: str, trace_path: str, *, repetitio
     durable quality trace store, closes/reopens Memory between repetitions, and
     aggregates the resulting distribution. It never asks a model to grade itself.
     """
-    if repetitions < 1 or repetitions > 100 or scale < 1 or budget_tokens < 1:
+    if repetitions < 1 or repetitions > 100 or scale < 1 or budget_tokens < 1 or trajectory_width < 1 or trajectory_width > 8:
         raise MemoryQualityError("real_stress_parameters_invalid")
     from .memory import Memory
     memory_file = str(Path(memory_path).expanduser())
@@ -258,20 +258,28 @@ def run_real_memory_reuse_stress(memory_path: str, trace_path: str, *, repetitio
     for repetition in range(int(repetitions)):
         session_id = "real-reuse-%d" % repetition
         memory = Memory(memory_file)
-        relevant_id = memory.save("verified rollback recovery checkpoint token %d" % repetition, confidence=1.0)
-        for index in range(int(scale)):
-            memory.save("historical unrelated distractor %d repetition %d" % (index, repetition), confidence=0.2)
-        hits = memory.recall("rollback recovery checkpoint token %d" % repetition, limit=4)
-        selected_ids = tuple(str(hit.get("id")) for hit in hits if hit.get("id"))
-        recalled = float(relevant_id in selected_ids)
-        case = MemoryQualityCase("real-case-%d" % repetition, (relevant_id,), selected_ids, (relevant_id,) if recalled else (), True, True, (relevant_id,) if recalled else (), (relevant_id,), min(budget_tokens, 8), budget_tokens, True, (relevant_id,) if recalled else (), (relevant_id,))
+        turn_ids: list[tuple[str, str]] = []
+        for turn in range(int(trajectory_width)):
+            query = "verified rollback recovery checkpoint token %d turn %d" % (repetition, turn)
+            relevant_id = memory.save(query, confidence=1.0)
+            turn_ids.append((relevant_id, query))
+            for index in range(int(scale)):
+                memory.save("historical unrelated distractor %d repetition %d turn %d" % (index, repetition, turn), confidence=0.2)
         adapter = DurableMemoryQualityAdapter(memory, trace_store)
-        adapter.record(session_id, case, query="rollback recovery checkpoint token %d" % repetition)
+        repetition_recall: list[float] = []
+        for turn, (relevant_id, query) in enumerate(turn_ids):
+            hits = memory.recall(query, limit=4)
+            selected_ids = tuple(str(hit.get("id")) for hit in hits if hit.get("id"))
+            recalled = float(relevant_id in selected_ids)
+            repetition_recall.append(recalled)
+            case = MemoryQualityCase("real-case-%d-%d" % (repetition, turn), (relevant_id,), selected_ids, (relevant_id,) if recalled else (), True, True, (relevant_id,) if recalled else (), (relevant_id,), min(budget_tokens, 8), budget_tokens, True, (relevant_id,) if recalled else (), (relevant_id,))
+            adapter.record(session_id, case, query=query)
         del memory
         reopened = Memory(memory_file)
-        persistence_verified = persistence_verified and any(row.get("id") == relevant_id for row in reopened.recall("rollback recovery checkpoint token %d" % repetition, limit=8))
+        for relevant_id, query in turn_ids:
+            persistence_verified = persistence_verified and any(row.get("id") == relevant_id for row in reopened.recall(query, limit=8))
         del reopened
-        recall_distribution.append(recalled)
+        recall_distribution.append(sum(repetition_recall) / len(repetition_recall))
     report = DurableMemoryQualityAdapter(Memory(memory_file), trace_store).evaluate_sessions(tuple("real-reuse-%d" % index for index in range(int(repetitions))))
     encoded = json.dumps(tuple(recall_distribution), separators=(",", ":"), sort_keys=True).encode("utf-8")
     return RealMemoryReuseStressReport(int(repetitions), int(scale), report.session_count, report.total_cases, sum(recall_distribution) / len(recall_distribution), tuple(recall_distribution), bool(persistence_verified), hashlib.sha256(encoded).hexdigest())

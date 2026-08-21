@@ -134,7 +134,7 @@ class MemoryQualityTests(unittest.TestCase):
             report = run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality.db"), repetitions=4, scale=24)
             self.assertEqual(report.repetitions, 4)
             self.assertEqual(report.session_count, 4)
-            self.assertEqual(report.total_cases, 4)
+            self.assertEqual(report.total_cases, 8)
             self.assertEqual(report.recall_mean, 1.0)
             self.assertEqual(report.recall_distribution, (1.0, 1.0, 1.0, 1.0))
             self.assertTrue(report.persistence_verified)
@@ -160,6 +160,8 @@ class MemoryQualityTests(unittest.TestCase):
                 run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality.db"), repetitions=0)
             with self.assertRaisesRegex(MemoryQualityError, "real_stress_parameters_invalid"):
                 run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality.db"), scale=0)
+            with self.assertRaisesRegex(MemoryQualityError, "real_stress_parameters_invalid"):
+                run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality.db"), trajectory_width=9)
 
     def test_duplicate_and_empty_memory_cases_fail_closed(self):
         evaluator = MemoryQualityEvaluator()

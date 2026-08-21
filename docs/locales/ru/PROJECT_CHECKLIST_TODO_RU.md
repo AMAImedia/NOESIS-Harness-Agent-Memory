@@ -1256,7 +1256,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | MEM-06 | Durable trace and long-context stress | `DONE / BOUNDED LOCAL` | `DurableMemoryQualityAdapter` writes/reopens SQLite/WAL traces; 64-token fixtures run at scales 32/128/512/1024 over five repetitions |
 | MEM-07 | Baseline versus nextgen distribution | `DONE / BOUNDED LOCAL` | Baseline recall mean 0.0, nextgen recall mean 1.0, gain 1.0; both budget compliance rates 1.0; fixture is deterministic and local-only |
 | MEM-08 | Native Windows/macOS evidence preparation | `DONE / PREPARED NOT_RUN` | Fail-closed PowerShell/macOS bundles, environment digest contract and artifact requirements are ready; matching host execution remains `not_run` |
-| MEM-09 | Durable memory traces with real long-context reuse | `NEXT LOCAL GATE` | Connect traces to broader context/reuse trajectories and non-fixture repeated stress distributions |
+| MEM-09 | Durable memory traces with real long-context reuse | `DONE / BOUNDED LOCAL` | Real SQLite Memory stress now records bounded multi-turn trajectories (`trajectory_width=2`), reopens after each trajectory, verifies all relevant facts, and produces deterministic repeated distributions. |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -2361,3 +2361,10 @@ Machine-readable evidence updated; focused promotion result: `11/11`.
 | SKILL-RUNTIME-09 | Receipt path isolation | `DONE / BOUNDED LOCAL` | Receipt symlink или отсутствующий receipt fail-closed; non-hardened dev mode остаётся explicit и не является release evidence. |
 | SKILL-RUNTIME-10 | Native sandbox execution | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS backend parity и external deployment execution не запускались. |
 Machine-readable evidence: `docs/SKILL_RUNTIME_PROMOTION_RECEIPT_EVIDENCE.json`; focused runtime result: `5/5`.
+## 2026-08-21 — Real-memory multi-turn reuse checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| MEM-13 | Multi-turn real-memory trajectory | `DONE / BOUNDED LOCAL` | Repeated sessions now write two relevant turns plus distractors, record each retrieval and aggregate eight durable cases across four sessions. |
+| MEM-14 | Reopen-boundary reuse | `DONE / BOUNDED LOCAL` | Memory reopens after each trajectory and verifies every relevant ID; `persistence_verified=true`, recall distribution `(1.0, 1.0, 1.0, 1.0)`. |
+| MEM-15 | External/native long-context execution | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS and external A/B long-context lanes remain unexecuted. |
+Machine-readable evidence: `docs/MEMORY_REAL_REUSE_TRAJECTORY_EVIDENCE.json`; focused memory result: `13/13`.
