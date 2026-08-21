@@ -85,3 +85,7 @@ Adversarial coverage now includes a valid-format checkpoint that resolves as a c
 ### External-readiness matrix integrity guard
 
 The release audit now recomputes the canonical SHA-256 over the readiness matrix lanes and global checks, rejects digest drift, and rejects contradictory execution/comparative status combinations. This protects the local `not_run` boundary from tampered or internally inconsistent readiness metadata without claiming external execution.
+
+### NEXT-03 roadmap consistency guard
+
+The release audit now validates the machine-readable NEXT-03 reconciliation contract: bounded activation remains disabled, local facade/deployment/durable-state statuses match their proven values, required local subgates are present, the sole remaining open subgate is native Windows/macOS evidence, and all external comparison boundaries remain `not_run` with no superiority claim. This prevents the roadmap artifact from under-reporting closed local evidence or over-reporting host-gated execution.

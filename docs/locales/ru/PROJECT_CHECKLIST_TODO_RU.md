@@ -2178,3 +2178,11 @@ Focused release-audit result: `4/4` tests and `788/788` full tests passed with P
 | CHILD-339 | Readiness claim consistency | `DONE / BOUNDED LOCAL` | Invalid execution/comparative combinations fail-closed; external execution claim remains false. |
 | CHILD-340 | Native/external readiness integrity | `NOT_RUN / ENVIRONMENT-GATED` | Local matrix integrity не доказывает native Windows/macOS или external A/B execution. |
 Focused release-audit result: `5/5` tests and `789/789` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — NEXT-03 roadmap consistency checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-341 | NEXT-03 local status consistency | `DONE / BOUNDED LOCAL` | Release audit проверяет bounded activation, local statuses, verified subgates и единственный native-open subgate. |
+| CHILD-342 | External boundary consistency | `DONE / BOUNDED LOCAL` | Roadmap external boundaries должны оставаться `not_run`, superiority claim — false; contradictory metadata fail-closed. |
+| CHILD-343 | Native/external execution | `NOT_RUN / ENVIRONMENT-GATED` | Consistency guard не заменяет native Windows/macOS или external A/B фактическим запуском. |
+Focused release-audit result: `5/5` tests and `789/789` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

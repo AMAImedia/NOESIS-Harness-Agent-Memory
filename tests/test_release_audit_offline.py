@@ -50,7 +50,7 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
             with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
                 report = audit(str(root), include_remote=False)
             self.assertFalse(report["clean"])
-            self.assertEqual(report["roadmap_consistency"]["errors"], ["roadmap_checkpoint_invalid"])
+            self.assertIn("roadmap_checkpoint_invalid", report["roadmap_consistency"]["errors"])
 
     def test_divergent_roadmap_checkpoint_is_audit_failure(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -73,7 +73,7 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
             with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
                 report = audit(str(root), include_remote=False)
             self.assertFalse(report["clean"])
-            self.assertEqual(report["roadmap_consistency"]["errors"], ["roadmap_checkpoint_not_ancestor"])
+            self.assertIn("roadmap_checkpoint_not_ancestor", report["roadmap_consistency"]["errors"])
 
     def test_tampered_readiness_digest_is_audit_failure(self):
         with tempfile.TemporaryDirectory() as directory:

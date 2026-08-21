@@ -115,6 +115,24 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
                 roadmap_errors.append("roadmap_checkpoint_not_ancestor")
             if roadmap.get("status") != "local_reconciliation_and_next03_bounded_verified":
                 roadmap_errors.append("roadmap_status_mismatch")
+            gate = roadmap.get("next_local_gate")
+            if not isinstance(gate, dict) or gate.get("id") != "NEXT-03":
+                roadmap_errors.append("roadmap_next_gate_mismatch")
+            else:
+                if gate.get("automatic_activation") is not False:
+                    roadmap_errors.append("roadmap_activation_guard_missing")
+                if gate.get("facade_status") != "bounded_local_verified" or gate.get("deployment_binding_status") != "bounded_local_verified" or gate.get("durable_state_status") != "locally_verified":
+                    roadmap_errors.append("roadmap_local_status_mismatch")
+                if gate.get("child_runtime_status") != "in_progress_bounded_local":
+                    roadmap_errors.append("roadmap_child_runtime_status_mismatch")
+                if gate.get("open_subgates") != ["native_windows_macos_evidence"]:
+                    roadmap_errors.append("roadmap_open_subgates_mismatch")
+                required_verified = {"durable_long_context_reuse_trajectories", "broader_active_delegation_leakage_holdouts", "long_context_stress_fixture"}
+                if not required_verified.issubset(set(gate.get("verified_subgates", []))):
+                    roadmap_errors.append("roadmap_verified_subgates_incomplete")
+            boundaries = roadmap.get("external_boundaries")
+            if not isinstance(boundaries, dict) or any(boundaries.get(key) != "not_run" for key in ("windows_native", "macos_native", "hermes_external_ab", "opencode_external_ab", "deepseek_harness_external_ab")) or boundaries.get("superiority_claim") is not False:
+                roadmap_errors.append("roadmap_external_boundary_mismatch")
         except (OSError, json.JSONDecodeError, TypeError):
             roadmap_errors.append("roadmap_artifact_invalid")
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=str(project), text=True)
