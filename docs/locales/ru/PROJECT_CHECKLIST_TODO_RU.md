@@ -1080,9 +1080,13 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-ADMIN-03 | Explicit operator session actions | `DONE / LOCAL VERIFIED` | `OperatorSessionAction` and executor implement only open/close with idempotent replay |
 | LEARN-ADMIN-04 | Safe UI mutation endpoints | `DONE / LOCAL VERIFIED` | `/api/operator-sessions` and `/api/admin/reviewer-policy` validate and delegate only via POST handlers |
 | LEARN-ADMIN-05 | No implicit promotion/activation | `DONE / BOUNDED` | Administrative operations cannot create active skill pointers or trigger promotion |
-| LEARN-ADMIN-06 | External identity provider | `NEXT LOCAL GATE` | Replace local admin allow-list with reviewed external/operator identity integration when a pinned provider exists |
+| LEARN-ADMIN-06 | External identity provider | `DONE / BOUNDED LOCAL PREPARATION` | `ExternalIdentityPreparation` validates decoded issuer/subject/audience/expiry/scope claims and emits stable digest-bound context; provider signature verification, key discovery, login/network behavior remain `NOT_RUN` until a pinned provider adapter exists |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
+
+## 2026-08-21 — External identity-provider preparation evidence
+
+`LEARN-ADMIN-06` is closed only for the bounded local preparation contract. The provider-neutral adapter validates decoded claims and produces a deterministic identity digest; it does not execute external authentication. Machine-readable evidence: `docs/EXTERNAL_IDENTITY_PREPARATION_EVIDENCE.json`. External provider signature/key/network behavior remains `NOT_RUN`.
 
 ## 2026-08-18 — Signed Administrative Mutation Evidence
 
@@ -2454,3 +2458,11 @@ Machine-readable evidence: `docs/REVIEWER_GRANT_SCOPE_IDENTITY_EVIDENCE.json`; f
 ## 2026-08-21 — Production lifecycle frontier reconciliation
 The previously marked `NEXT LOCAL GATE` lifecycle rows above are now reconciled as `DONE / BOUNDED LOCAL` where portable deployment, runtime-owned policy, durable sessions, reviewer policy, action executor and HealthServer binding are covered by executable evidence. This does not close `LEARN-ADMIN-06` external identity-provider integration, `BLOCKED-01` native Windows/macOS evidence, or `BLOCKED-02` pinned external A/B.
 Machine-readable evidence: `docs/PRODUCTION_LIFECYCLE_FRONTIER_EVIDENCE.json`; checkpoint baseline `a35e969`; full regression `811/811`; recall `20/20`; remote parity verified.
+
+## 2026-08-21 — EventStore immutable replay identity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| EVIDENCE-STORE-07 | Exact event replay | `DONE / LOCAL VERIFIED` | Идентичный event ID/type/payload повторяется idempotently без новой записи. |
+| EVIDENCE-STORE-08 | Altered event replay | `DONE / BOUNDED LOCAL` | Тот же event ID с изменённым type/payload отклоняется `EventStoreConflict`; reopen также обнаруживает drift в durable log. |
+| EVIDENCE-STORE-09 | External/native parity | `NOT_RUN / ENVIRONMENT-GATED` | EventStore evidence не заменяет native Windows/macOS или external A/B execution. |
+Machine-readable evidence: `docs/EVENT_STORE_REPLAY_CONFLICT_EVIDENCE.json`; focused result: `24/24`.

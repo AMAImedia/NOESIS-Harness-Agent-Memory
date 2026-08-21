@@ -33,6 +33,10 @@ class EventStoreCorrupt(RuntimeError):
     """A non-tail event-log record is malformed and cannot be replayed safely."""
 
 
+class EventStoreConflict(RuntimeError):
+    """An event ID was reused with different immutable content."""
+
+
 class EventStore:
     """Append-only JSONL event log + deterministic replay projection.
 
@@ -46,6 +50,7 @@ class EventStore:
         self._lock = threading.Lock()
         self._reducers: Dict[str, Callable] = dict(reducers or {})
         self._seen: set = set()       # event_id -> already appended (idempotency)
+        self._fingerprints: dict[str, str] = {}
         self._seq = 0
         self._load_seen()
 
@@ -76,7 +81,13 @@ class EventStore:
     def _load_seen(self) -> None:
         max_seq = 0
         for record in self._read_records(repair_tail=True) or ():
-            self._seen.add(record.get("event_id", ""))
+            event_id = str(record.get("event_id", ""))
+            fingerprint = _fingerprint(str(record.get("type", "")), record.get("payload"))
+            prior = self._fingerprints.get(event_id)
+            if prior is not None and prior != fingerprint:
+                raise EventStoreConflict("event ID reused with different content")
+            self._seen.add(event_id)
+            self._fingerprints[event_id] = fingerprint
             seq = record.get("seq")
             if isinstance(seq, int) and seq > max_seq:
                 max_seq = seq
@@ -95,6 +106,9 @@ class EventStore:
         with self._lock:
             ident = event_id or _fingerprint(event_type, payload)
             if ident in self._seen:
+                current = _fingerprint(event_type, payload)
+                if self._fingerprints.get(ident) != current:
+                    raise EventStoreConflict("event ID reused with different content")
                 return ident
             self._seq += 1
             rec = {"event_id": ident, "type": event_type, "payload": payload, "seq": self._seq}
@@ -102,6 +116,7 @@ class EventStore:
             with open(self.path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")
             self._seen.add(ident)
+            self._fingerprints[ident] = _fingerprint(event_type, payload)
             return ident
 
     def iter_events(self) -> Iterable[Dict[str, Any]]:
@@ -133,4 +148,4 @@ def project_chain(reducers: Dict[str, Callable]) -> Callable:
     return run
 
 
-__all__ = ["EventStore", "EventStoreCorrupt", "project_chain"]
+__all__ = ["EventStore", "EventStoreCorrupt", "EventStoreConflict", "project_chain"]

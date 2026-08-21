@@ -68,6 +68,9 @@ class ObservationLedger:
         payload = {"schema_version": LINEAGE_SCHEMA, "session_id": observation.session_id, "agent_id": observation.agent_id, "resource_id": observation.resource_id, "source": observation.source, "sensitivity": observation.sensitivity, "content_digest": digest, "parent_observation": observation.parent_observation, "observed_at": time.time()}
         identity = {key: payload[key] for key in ("session_id", "agent_id", "resource_id", "source", "sensitivity", "content_digest", "parent_observation")}
         event_id = "observation:" + hashlib.sha256(json.dumps(identity, sort_keys=True).encode("utf-8")).hexdigest()
+        for event in self.events.iter_events() or ():
+            if event.get("event_id") == event_id:
+                return event_id
         return self.events.append("resource_observed", payload, event_id=event_id)
 
     def observations(self, session_id: str, agent_id: Optional[str] = None) -> Tuple[Mapping[str, Any], ...]:

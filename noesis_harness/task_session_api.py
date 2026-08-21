@@ -129,7 +129,18 @@ class TaskSessionStore:
         safe = _safe_payload(dict(payload))
         safe["schema_version"] = SCHEMA_VERSION
         safe["command_id"] = command_id or uuid.uuid4().hex
-        return self.events.append(event_type, safe, event_id="cmd_" + safe["command_id"])
+        event_id = "cmd_" + safe["command_id"]
+        if command_id:
+            for event in self.events.iter_events() or ():
+                existing_payload = event.get("payload") or {}
+                if event.get("event_id") != event_id:
+                    continue
+                comparable_existing = {key: value for key, value in existing_payload.items() if key not in {"created_at", "updated_at"}}
+                comparable_new = {key: value for key, value in safe.items() if key not in {"created_at", "updated_at"}}
+                if event.get("type") != event_type or comparable_existing != comparable_new:
+                    raise TaskSessionError("command_replay_conflict")
+                return event_id
+        return self.events.append(event_type, safe, event_id=event_id)
 
     @staticmethod
     def _command_fields(command: Mapping[str, Any]) -> tuple[str, str, Mapping[str, Any]]:
@@ -197,7 +208,10 @@ class TaskSessionStore:
         if target not in _ALLOWED_TASK_TRANSITIONS[current]:
             raise TaskSessionError("invalid transition %s -> %s" % (current, target))
         now = time.time()
-        self._append("task_state_changed", {"task_id": task_id, "session_id": record["session_id"], "from": current, "state": target, "reason": reason, "updated_at": now}, command_id or "transition-%s-%s" % (task_id, target))
+        payload = {"task_id": task_id, "session_id": record["session_id"], "from": current, "state": target, "reason": reason, "updated_at": now}
+        stable_transition = {key: payload[key] for key in ("task_id", "session_id", "from", "state", "reason")}
+        default_command_id = "transition-" + hashlib.sha256(json.dumps(stable_transition, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:48]
+        self._append("task_state_changed", payload, command_id or default_command_id)
         return self.task(task_id)
 
     def append_message(self, session_id: str, role: str, content: str, command_id: Optional[str] = None) -> str:

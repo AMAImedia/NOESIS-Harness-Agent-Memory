@@ -29,4 +29,10 @@ Operator actions отдельно replay-safe по `action_id`: completed action
 
 Implementation: `noesis_harness/learning_promotion.py` и `noesis_harness/promotion_integration.py`; lifecycle wiring: `noesis_harness/execution_bridge.py` и `noesis_harness/portable_launcher.py`; HTTP contract: `noesis_harness/health_server.py`; tests: `tests/test_learning_promotion.py`, `tests/test_promotion_integration.py`, `tests/test_execution_bridge.py` и `tests/test_ui_contract_health.py`. Gate 2 tests проверяют restart reconstruction, evaluator manifest conflict, duplicate idempotency и bounded state.
 
+## 2026-08-21 — Подготовка внешнего провайдера идентичности
+
+`ExternalIdentityPreparation` закрывает локальную подготовительную часть `LEARN-ADMIN-06`. Компонент принимает уже декодированные claims и проверяет allow-list доверенных issuer, точное наличие настроенной audience, непустой subject, срок действия и обязательные административные scopes. Результатом является стабильный `PreparedExternalIdentity` с каноническим digest claims; из него можно получить `OperatorAuthContext` только для явно переданного локального session ID. SDK провайдера, сеть, проверка подписи токена, discovery ключей, login и refresh намеренно не выполняются. Поэтому `readiness()` возвращает `prepared_not_run` и `external_verification: NOT_RUN`; для настоящего внешнего claim нужен pinned provider adapter.
+
+Реализация: `noesis_harness/external_identity.py`; focused tests: `tests/test_external_identity.py`. Контракт provider-neutral и fail-closed; он не является доказательством интеграции с внешним провайдером.
+
 English primary: [`LEARNING_PROMOTION_INTEGRATION.md`](../../LEARNING_PROMOTION_INTEGRATION.md).

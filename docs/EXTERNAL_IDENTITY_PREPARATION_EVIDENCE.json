@@ -1,0 +1,51 @@
+{
+  "schema_version": "noesis.external-identity-preparation-evidence.v1",
+  "gate": "LEARN-ADMIN-06",
+  "status": "passed_bounded_local_preparation",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only": true,
+    "resource_warning_policy": "error"
+  },
+  "implementation": {
+    "module": "noesis_harness/external_identity.py",
+    "tests": "tests/test_external_identity.py",
+    "package_export": true
+  },
+  "artifact_sha256": {
+    "noesis_harness/external_identity.py": "e51afa50b2f92da23f2f270bc1d4261b38f69a91874b105e71ccf1056105cb5f",
+    "tests/test_external_identity.py": "1d4d4f75b31e4c8b172f10b2feeea48c9c7ca515232c1994d15a270c50232395",
+    "docs/LEARNING_PROMOTION_INTEGRATION.md": "8e73376c074c4465b52cff1978ac87ba912e8b3941d324ae8b72045789b5e40e",
+    "docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md": "b1ecc80de822fe5f16e2c645d20adba68778eace63a5339b696203e273a77014",
+    "docs/locales/ru/PROJECT_CHECKLIST_TODO_RU.md": "5e8d25d458887b51203152b4edd5a8649bfabe0c6f28374f71e2c23fe9002fc6"
+  },
+  "verified_contracts": [
+    "trusted issuer allow-list",
+    "exact configured audience membership",
+    "non-empty subject binding",
+    "expiry validation with bounded clock skew",
+    "required scope validation",
+    "canonical claims digest stability",
+    "OperatorAuthContext derivation requires explicit local session ID",
+    "fail-closed malformed and denied claims"
+  ],
+  "focused_tests": {
+    "passed": 3,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "full_suite": {
+    "passed": 815,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "external_boundary": {
+    "status": "NOT_RUN",
+    "provider_signature_verification": "NOT_RUN",
+    "jwks_key_discovery": "NOT_RUN",
+    "login_and_refresh": "NOT_RUN",
+    "network_behavior": "NOT_RUN",
+    "reason": "No pinned provider adapter or operator-approved external environment was available."
+  },
+  "claim_boundary": "This evidence proves only provider-neutral local preparation of already-decoded claims; it does not prove external identity-provider integration or native host behavior."
+}
