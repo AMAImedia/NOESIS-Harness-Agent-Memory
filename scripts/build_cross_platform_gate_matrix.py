@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     report = build(native, external)
     Path(args.output).write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"output": args.output, "overall_status": report["overall_status"], "comparative_ready": report["comparative_ready"]}, ensure_ascii=False))
-    return 0 if not report["invalid_status_lanes"] and not report["claim_errors"] else 2
+    return 0 if report["overall_status"] == "passed" and not report["invalid_status_lanes"] and not report["claim_errors"] else 2
 
 
 if __name__ == "__main__":

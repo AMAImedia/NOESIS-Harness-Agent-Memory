@@ -2256,3 +2256,10 @@ Focused cross-platform result: `6/6` tests; full suite: `796/796` passed with Py
 | CHILD-363 | Comparative claim process boundary | `DONE / BOUNDED LOCAL` | Invalid comparative claim CLI returns exit code `2` and writes `claim_errors`; valid statuses alone не маскируют failure. |
 | CHILD-364 | External A/B process execution | `NOT_RUN / ENVIRONMENT-GATED` | CLI denial fixture не является pinned external A/B execution. |
 Focused cross-platform result: `6/6` tests плюс CLI exit=2; full suite: `796/796` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Non-passed cross-platform CLI exit guard checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-365 | Cross-platform process exit | `DONE / BOUNDED LOCAL` | Truthful `overall_status=not_run` matrix возвращает CLI exit code `2`; только overall `passed` допускает zero exit. |
+| CHILD-366 | Native/external release gate | `NOT_RUN / ENVIRONMENT-GATED` | Nonzero exit guard не является native Windows/macOS или external A/B execution. |
+Focused cross-platform result: `6/6` tests плюс not_run CLI exit=2; full suite: `796/796` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

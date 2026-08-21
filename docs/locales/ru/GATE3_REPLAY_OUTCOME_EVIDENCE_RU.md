@@ -128,3 +128,7 @@ Cross-platform builder теперь отклоняет `comparative_ready=true`,
 ### Guard CLI exit comparative claim
 
 Cross-platform matrix CLI теперь возвращает nonzero при наличии `claim_errors`, даже если все lane status strings syntactically valid. Adversarial CLI fixture возвращает exit code 2 для invalid comparative-readiness claim, поэтому automation fail-closed и на process boundary, и в JSON report.
+
+### Guard CLI non-passed cross-platform result
+
+Cross-platform gate CLI теперь возвращает exit code 2 для любого `not_run` или `blocked` overall result, включая честные native/external environment-gated outcomes. Local matrix можно inspect и record, но automation не сможет ошибочно считать её успешным release gate.
