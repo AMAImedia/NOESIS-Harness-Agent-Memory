@@ -326,8 +326,11 @@ class ReviewerAuthorizationStore:
     def revoke(self, operator_id: str, session_id: str) -> Mapping[str, Any]:
         if not operator_id or not session_id:
             raise ValueError("reviewer_identity_required")
+        existing = self._records().get((str(operator_id), str(session_id)))
+        if existing is not None and not existing.get("active", False):
+            return dict(existing)
         payload = {"operator_id": str(operator_id), "session_id": str(session_id), "active": False}
-        self.events.append("reviewer_revoked", payload, event_id="reviewer-revoke:" + operator_id + ":" + session_id + ":" + str(self.events.count()))
+        self.events.append("reviewer_revoked", payload, event_id="reviewer-revoke:" + operator_id + ":" + session_id)
         return payload
 
     def _records(self) -> dict[tuple[str, str], Mapping[str, Any]]:

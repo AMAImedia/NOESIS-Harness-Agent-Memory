@@ -8,6 +8,7 @@
     "scope_digest_binds_event_identity": true,
     "deliberate_scope_update_persists": true,
     "revoke_remains_append_only": true,
+    "revoke_replay_is_idempotent": true,
     "missing_or_revoked_grant_denies": true
   },
   "focused_tests": {

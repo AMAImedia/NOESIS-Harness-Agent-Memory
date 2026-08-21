@@ -183,6 +183,10 @@ class PromotionIntegrationTests(unittest.TestCase):
         updated = store.grant("reviewer-1", "session-1", ("promotion:review", "admin:reviewers"))
         self.assertNotEqual(updated["scopes"], first["scopes"])
         self.assertEqual(store._records()[("reviewer-1", "session-1")]["scopes"], ["admin:reviewers", "promotion:review"])
+        store.revoke("reviewer-1", "session-1")
+        count_after_revoke = store.events.count()
+        self.assertEqual(store.revoke("reviewer-1", "session-1")["active"], False)
+        self.assertEqual(store.events.count(), count_after_revoke)
 
     def test_administrative_policy_requires_reviewed_admin_context(self):
         now = [100.0]

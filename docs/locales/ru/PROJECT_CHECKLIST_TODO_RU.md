@@ -2443,3 +2443,10 @@ Machine-readable evidence: `docs/RUNTIME_OWNED_POLICY_EVIDENCE.json`; focused re
 | LEARN-REVIEW-08 | Deliberate scope update | `DONE / BOUNDED LOCAL` | Изменённый scope set получает отдельную durable grant event и становится текущим reviewer state. |
 | LEARN-REVIEW-09 | External identity provider | `NOT_RUN / ENVIRONMENT-GATED` | Локальный grant store не выдаётся за внешний identity integration. |
 Machine-readable evidence: `docs/REVIEWER_GRANT_SCOPE_IDENTITY_EVIDENCE.json`; focused result: `24/24`.
+
+## 2026-08-21 — Reviewer revoke replay checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-REVIEW-10 | Revoke replay | `DONE / LOCAL VERIFIED` | Повторный revoke уже неактивного reviewer grant возвращает существующее состояние и не добавляет новый event. |
+| LEARN-REVIEW-11 | Revoked authorization denial | `DONE / BOUNDED LOCAL` | Revoked grant остаётся невалидным для required review scope. |
+Machine-readable evidence: `docs/REVIEWER_GRANT_SCOPE_IDENTITY_EVIDENCE.json`; focused result: `24/24`.
