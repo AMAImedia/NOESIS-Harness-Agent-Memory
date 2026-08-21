@@ -1106,7 +1106,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-JOURNAL-03 | Executor wiring | `DONE / LOCAL VERIFIED` | Admin reviewer and session mutation executors optionally coordinate with the journal |
 | LEARN-JOURNAL-04 | Fail-closed recovery | `DONE / BOUNDED` | Interrupted operation is visible and not auto-promoted or silently reconciled |
 | LEARN-JOURNAL-05 | Honest atomicity boundary | `DONE / BOUNDED` | The journal coordinates separate logs but does not claim cross-file atomic commit |
-| LEARN-JOURNAL-06 | Single-store transactional backend | `NEXT LOCAL GATE` | Move state and audit records to a transaction-coordinated SQLite/WAL journal when required |
+| LEARN-JOURNAL-06 | Single-store transactional backend | `DONE / BOUNDED LOCAL` | SQLite/WAL migration audit stores state and signed receipts transactionally; exact replay is idempotent and valid-signature altered replay fails closed. |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -2420,3 +2420,10 @@ Machine-readable evidence: `docs/PORTABLE_DEPLOYMENT_WIRING_EVIDENCE.json`; focu
 | LEARN-AUTH-08 | Altered-payload replay | `DONE / BOUNDED LOCAL` | Тот же action ID с другим proposal/session/target/scopes отклоняется как replay conflict. |
 | LEARN-AUTH-09 | External identity source | `NOT_RUN / ENVIRONMENT-GATED` | Локальная replay identity проверка не заменяет внешний identity provider. |
 Machine-readable evidence: `docs/ACTION_REPLAY_IDENTITY_EVIDENCE.json`; focused promotion result: `23/23`.
+## 2026-08-21 — SQLite migration receipt replay checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-JOURNAL-07 | Exact migration receipt replay | `DONE / LOCAL VERIFIED` | Повторная запись идентичного signed receipt возвращает исходную запись без duplicate audit row. |
+| LEARN-JOURNAL-08 | Valid-signature altered replay | `DONE / BOUNDED LOCAL` | Изменённый receipt с пересчитанной подписью для того же action ID отклоняется как `migration_receipt_replay_conflict`. |
+| LEARN-JOURNAL-09 | Native/external transaction parity | `NOT_RUN / ENVIRONMENT-GATED` | SQLite evidence не заменяет native Windows/macOS или external provider execution. |
+Machine-readable evidence: `docs/SQLITE_MIGRATION_RECEIPT_REPLAY_EVIDENCE.json`; focused result: `13/13`.

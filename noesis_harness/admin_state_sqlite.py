@@ -229,7 +229,10 @@ class SQLiteAdministrativeBackend:
             db.execute("BEGIN IMMEDIATE")
             existing = db.execute("SELECT receipt_json FROM migration_mode_audit WHERE action_id=?", (str(receipt["action_id"]),)).fetchone()
             if existing is not None:
-                return json.loads(str(existing["receipt_json"]))
+                previous = json.loads(str(existing["receipt_json"]))
+                if _canonical(previous) == _canonical(dict(receipt)):
+                    return previous
+                raise SQLiteAdminStateError("migration_receipt_replay_conflict")
             db.execute("INSERT INTO migration_mode_audit VALUES(?,?,?,?,?,?,?)", (str(receipt["action_id"]), str(receipt["mode"]), str(receipt["previous_mode"]), str(receipt["operator_id"]), str(receipt["reason"]), _canonical(dict(receipt)), float(self.clock())))
             return dict(receipt)
 
