@@ -120,3 +120,7 @@ Cross-platform gate matrix теперь имеет adversarial coverage для n
 ### Denial external-versus-native boundary
 
 Adversarial coverage отмечает все external lanes как `passed`, но оставляет Windows и macOS native target evidence в `not_run`. Cross-platform matrix остаётся `not_run` и не поднимает `native_or_external_execution_claim`, доказывая, что external readiness не переопределяет unexecuted native boundary.
+
+### Denial invalid comparative-readiness claim
+
+Cross-platform builder теперь отклоняет `comparative_ready=true`, если все три external lanes не имеют `passed`. Claimed comparative result с missing или `not_run` lanes получает `comparative_readiness_claim_invalid`, `comparative_ready=false` и `blocked` matrix.

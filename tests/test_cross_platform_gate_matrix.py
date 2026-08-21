@@ -34,6 +34,14 @@ class CrossPlatformGateMatrixTests(unittest.TestCase):
         self.assertEqual(report["lanes"]["windows_native"]["status"], "not_run")
         self.assertFalse(report["native_or_external_execution_claim"])
 
+    def test_invalid_comparative_ready_claim_is_blocked(self):
+        external = self.external()
+        external["comparative_ready"] = True
+        report = build(self.native(), external)
+        self.assertEqual(report["overall_status"], "blocked")
+        self.assertFalse(report["comparative_ready"])
+        self.assertIn("comparative_readiness_claim_invalid", report["claim_errors"])
+
     def test_external_comparative_ready_cannot_override_native_gap(self):
         external = self.external()
         external["comparative_ready"] = True

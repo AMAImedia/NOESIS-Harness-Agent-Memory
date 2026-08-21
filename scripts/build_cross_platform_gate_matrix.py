@@ -31,17 +31,22 @@ def build(native: dict[str, Any], external: dict[str, Any]) -> dict[str, Any]:
         "deepseek_harness_external": {"status": external.get("lanes", {}).get("deepseek_harness", {}).get("status", "blocked"), "reason": external.get("lanes", {}).get("deepseek_harness", {}).get("reason", "missing_external_lane")},
     }
     invalid = [name for name, item in lanes.items() if item["status"] not in ALLOWED]
-    overall = "blocked" if invalid or any(item["status"] == "blocked" for item in lanes.values()) else ("passed" if all(item["status"] == "passed" for item in lanes.values()) else "not_run")
+    external_names = ("hermes_external", "opencode_external", "deepseek_harness_external")
+    external_claim = bool(external.get("comparative_ready", False))
+    external_lanes_passed = all(lanes[name]["status"] == "passed" for name in external_names)
+    claim_errors = ["comparative_readiness_claim_invalid"] if external_claim and not external_lanes_passed else []
+    overall = "blocked" if invalid or claim_errors or any(item["status"] == "blocked" for item in lanes.values()) else ("passed" if all(item["status"] == "passed" for item in lanes.values()) else "not_run")
     return {
         "schema_version": SCHEMA,
         "lanes": lanes,
         "overall_status": overall,
-        "comparative_ready": bool(external.get("comparative_ready", False)),
+        "comparative_ready": external_claim and external_lanes_passed and not claim_errors,
         "native_or_external_execution_claim": False,
         "native_builds_executed": bool(native.get("native_builds_executed", False)),
         "network_allowed": bool(native.get("network_allowed", True)),
         "credentials_available": bool(native.get("credentials_available", True)),
         "invalid_status_lanes": invalid,
+        "claim_errors": claim_errors,
         "claim_boundary": "local_verifier_pass_does_not_create_native_or_external_execution_evidence",
     }
 

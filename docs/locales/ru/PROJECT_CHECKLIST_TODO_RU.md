@@ -2242,3 +2242,10 @@ Focused cross-platform result: `4/4` tests; full suite: `794/794` passed with Py
 | CHILD-359 | External readiness versus native gap | `DONE / BOUNDED LOCAL` | Все external lanes `passed` при native targets `not_run` сохраняют overall `not_run` и false execution claim. |
 | CHILD-360 | Native target execution | `NOT_RUN / ENVIRONMENT-GATED` | Boundary test не является фактическим native Windows/macOS execution. |
 Focused cross-platform result: `5/5` tests; full suite: `795/795` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Invalid comparative-readiness claim denial checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-361 | Comparative claim lane completeness | `DONE / BOUNDED LOCAL` | `comparative_ready=true` при missing/not_run external lane fail-closed как `comparative_readiness_claim_invalid`. |
+| CHILD-362 | External A/B execution | `NOT_RUN / ENVIRONMENT-GATED` | Claim-denial fixture не является pinned external A/B execution. |
+Focused cross-platform result: `6/6` tests; full suite: `796/796` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
