@@ -2368,3 +2368,10 @@ Machine-readable evidence: `docs/SKILL_RUNTIME_PROMOTION_RECEIPT_EVIDENCE.json`;
 | MEM-14 | Reopen-boundary reuse | `DONE / BOUNDED LOCAL` | Memory reopens after each trajectory and verifies every relevant ID; `persistence_verified=true`, recall distribution `(1.0, 1.0, 1.0, 1.0)`. |
 | MEM-15 | External/native long-context execution | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS and external A/B long-context lanes remain unexecuted. |
 Machine-readable evidence: `docs/MEMORY_REAL_REUSE_TRAJECTORY_EVIDENCE.json`; focused memory result: `13/13`.
+## 2026-08-21 — Real-memory evidence identity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| MEM-16 | Configuration-bound stress digest | `DONE / BOUNDED LOCAL` | Distribution digest теперь включает repetitions, scale, budget, trajectory width, sessions, cases и persistence status. |
+| MEM-17 | Shape-collision denial | `DONE / BOUNDED LOCAL` | Одинаковый recall distribution при `trajectory_width=1` и `2` получает разные digests. |
+| MEM-18 | External memory evidence | `NOT_RUN / ENVIRONMENT-GATED` | Digest binding не заменяет native Windows/macOS или external long-context execution. |
+Machine-readable evidence updated; focused memory result: `13/13`.

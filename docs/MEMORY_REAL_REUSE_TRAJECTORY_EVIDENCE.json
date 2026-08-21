@@ -23,7 +23,9 @@
   "result": {
     "recall_mean": 1.0,
     "recall_distribution": [1.0, 1.0, 1.0, 1.0],
-    "deterministic_distribution": true
+    "deterministic_distribution": true,
+    "digest_binds_configuration": true,
+    "different_trajectory_shape_changes_digest": true
   },
   "focused_tests": {
     "suite": "tests.test_memory_quality",

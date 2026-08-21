@@ -140,6 +140,8 @@ class MemoryQualityTests(unittest.TestCase):
             self.assertTrue(report.persistence_verified)
             reopened = run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality-2.db"), repetitions=4, scale=24)
             self.assertEqual(reopened.distribution_digest, report.distribution_digest)
+            different_shape = run_real_memory_reuse_stress(str(Path(tmp) / "memory.db"), str(Path(tmp) / "quality-3.db"), repetitions=4, scale=24, trajectory_width=1)
+            self.assertNotEqual(different_shape.distribution_digest, report.distribution_digest)
 
     def test_durable_long_context_stress_persists_repeated_distribution(self):
         from noesis_harness.memory_quality import run_durable_long_context_stress

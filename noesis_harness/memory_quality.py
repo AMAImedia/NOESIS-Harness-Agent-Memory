@@ -281,7 +281,7 @@ def run_real_memory_reuse_stress(memory_path: str, trace_path: str, *, repetitio
         del reopened
         recall_distribution.append(sum(repetition_recall) / len(repetition_recall))
     report = DurableMemoryQualityAdapter(Memory(memory_file), trace_store).evaluate_sessions(tuple("real-reuse-%d" % index for index in range(int(repetitions))))
-    encoded = json.dumps(tuple(recall_distribution), separators=(",", ":"), sort_keys=True).encode("utf-8")
+    encoded = json.dumps({"repetitions": int(repetitions), "scale": int(scale), "budget_tokens": int(budget_tokens), "trajectory_width": int(trajectory_width), "session_count": report.session_count, "total_cases": report.total_cases, "persistence_verified": bool(persistence_verified), "recall_distribution": tuple(recall_distribution)}, separators=(",", ":"), sort_keys=True).encode("utf-8")
     return RealMemoryReuseStressReport(int(repetitions), int(scale), report.session_count, report.total_cases, sum(recall_distribution) / len(recall_distribution), tuple(recall_distribution), bool(persistence_verified), hashlib.sha256(encoded).hexdigest())
 
 
