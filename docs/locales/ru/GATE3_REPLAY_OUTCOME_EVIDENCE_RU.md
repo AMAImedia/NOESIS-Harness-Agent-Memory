@@ -132,3 +132,7 @@ Cross-platform matrix CLI теперь возвращает nonzero при на�
 ### Guard CLI non-passed cross-platform result
 
 Cross-platform gate CLI теперь возвращает exit code 2 для любого `not_run` или `blocked` overall result, включая честные native/external environment-gated outcomes. Local matrix можно inspect и record, но automation не сможет ошибочно считать её успешным release gate.
+
+### Defaults missing safety metadata
+
+Cross-platform matrix теперь использует `false` по умолчанию для отсутствующих `network_allowed` и `credentials_available`. Report не может стать permissive из-за omitted safety field; missing-field behavior покрыт adversarial regression test.

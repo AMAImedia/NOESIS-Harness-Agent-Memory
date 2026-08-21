@@ -2263,3 +2263,10 @@ Focused cross-platform result: `6/6` tests плюс CLI exit=2; full suite: `796
 | CHILD-365 | Cross-platform process exit | `DONE / BOUNDED LOCAL` | Truthful `overall_status=not_run` matrix возвращает CLI exit code `2`; только overall `passed` допускает zero exit. |
 | CHILD-366 | Native/external release gate | `NOT_RUN / ENVIRONMENT-GATED` | Nonzero exit guard не является native Windows/macOS или external A/B execution. |
 Focused cross-platform result: `6/6` tests плюс not_run CLI exit=2; full suite: `796/796` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Missing safety metadata defaults checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-367 | Missing network/credential guards | `DONE / BOUNDED LOCAL` | Отсутствующие safety fields дают `network_allowed=false` и `credentials_available=false`; implicit allow запрещён. |
+| CHILD-368 | Native/external execution | `NOT_RUN / ENVIRONMENT-GATED` | Default-denial test не является native Windows/macOS или external A/B execution. |
+Focused cross-platform result: `7/7` tests; full suite: `797/797` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
