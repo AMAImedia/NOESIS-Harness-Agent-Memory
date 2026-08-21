@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from noesis_harness.portable_launcher import PortableLaunchError, resolve_layout, startup_probe
@@ -29,6 +30,36 @@ class PortableLauncherTests(unittest.TestCase):
             layout = resolve_layout(str(Path(root, "install")))
             with self.assertRaises(ValueError):
                 startup_probe(layout, host="0.0.0.0", port=0)
+
+    def test_main_wires_signed_operator_and_admin_handlers(self):
+        import os
+        import noesis_harness.portable_launcher as launcher
+        captured = {}
+
+        class FakeServer:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+                self.address = ("127.0.0.1", 8765)
+            def start(self):
+                return None
+            def stop(self):
+                return None
+
+        with tempfile.TemporaryDirectory() as root, mock.patch.object(launcher, "HealthServer", FakeServer), mock.patch.object(launcher.time, "sleep", side_effect=KeyboardInterrupt):
+            previous = {key: os.environ.get(key) for key in ("NOESIS_MIGRATION_SIGNING_KEY", "NOESIS_OPERATOR_ID", "NOESIS_OPERATOR_SESSION_ID")}
+            os.environ.update({"NOESIS_MIGRATION_SIGNING_KEY": "portable-signing-key-123", "NOESIS_OPERATOR_ID": "admin-1", "NOESIS_OPERATOR_SESSION_ID": "admin-session"})
+            try:
+                self.assertEqual(launcher.main(["--install-root", str(Path(root, "install")), "--data-root", str(Path(root, "data"))]), 0)
+            finally:
+                for key, value in previous.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
+        self.assertTrue(callable(captured["operator_session_action_handler"]))
+        self.assertTrue(callable(captured["administrative_policy_handler"]))
+        self.assertIn("admin:session", captured["operator_scopes"])
+        self.assertIn("admin:reviewers", captured["operator_scopes"])
 
     def test_startup_probe_preserves_data_sentinel(self):
         with tempfile.TemporaryDirectory() as root:

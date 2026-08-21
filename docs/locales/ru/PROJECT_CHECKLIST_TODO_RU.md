@@ -2404,3 +2404,11 @@ Machine-readable evidence: `docs/COORDINATED_MUTATION_JOURNAL_EVIDENCE.json`; fo
 | LEARN-DOCS-08 | Russian supplemental contract | `DONE / BOUNDED LOCAL` | `docs/locales/ru/ADMIN_SESSION_AND_MUTATION_JOURNAL_RU.md` зеркалирует English contract без расширения claims. |
 | LEARN-DOCS-09 | External/native documentation boundary | `NOT_RUN / ENVIRONMENT-GATED` | Документы не заменяют external identity-provider, native Windows/macOS или external A/B execution. |
 Evidence: `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json`, `docs/COORDINATED_MUTATION_JOURNAL_EVIDENCE.json`.
+
+## 2026-08-21 — Portable deployment wiring checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-ROUTE-07 | Production executor replacement | `DONE / BOUNDED LOCAL` | Portable launcher binds real `PromotionActionExecutor` to authenticated operator context, reviewer store, session registry и coordinated journal. |
+| LEARN-WIRE-07 | Deployment adoption | `DONE / BOUNDED LOCAL` | HealthServer получает signed operator-session action handler и reviewed administrative-policy handler; state directory создаётся до SQLite/WAL initialization. |
+| LEARN-WIRE-08 | Native/external parity | `NOT_RUN / ENVIRONMENT-GATED` | Portable local wiring не заменяет native Windows/macOS host run или external identity-provider/A-B execution. |
+Machine-readable evidence: `docs/PORTABLE_DEPLOYMENT_WIRING_EVIDENCE.json`; focused launcher result: `5/5`.
