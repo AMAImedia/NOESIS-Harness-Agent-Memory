@@ -18,7 +18,7 @@ from .admin_migration import OperatorMigrationModeSource
 from .admin_state_sqlite import SQLiteAdministrativeBackend
 from .health_server import HealthServer
 from .learning_promotion import LearningPromotionPipeline
-from .promotion_integration import AdministrativePolicyStore, CoordinatedMutationJournal, EvaluatorRegistry, OperatorSessionAction, OperatorSessionActionExecutor, OperatorAuthContext, OperatorSessionRegistry, ProductionLearningLifecycle, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore, RuntimePolicySimulator
+from .promotion_integration import AdministrativePolicyStore, CoordinatedMutationJournal, EvaluatorRegistry, OperatorSessionAction, OperatorSessionActionExecutor, OperatorAuthContext, OperatorSessionRegistry, OwnershipPolicySimulator, ProductionLearningLifecycle, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
 from .provider_registry import ProviderRegistry
 from .task_session_api import TaskSessionStore
 from .user_data import user_data_paths
@@ -116,7 +116,7 @@ def main(argv=None) -> int:
                 return administrative_policy.revoke_reviewer(context, str(payload.get("operator_id", "")), str(payload.get("session_id", "")))
             raise PortableLaunchError("unsupported_administrative_policy_action")
         action_executor = PromotionActionExecutor(promotion_integration, str(state_root / "promotion_actions.jsonl"), reviewer_store=reviewer_store, session_registry=session_registry)
-        runtime_policy = RuntimePolicySimulator(agent_id=operator_id or "portable-agent", scope="portable:default")
+        runtime_policy = OwnershipPolicySimulator(session_store, lambda task_id: session_store.task(task_id).owner, scope_prefix="session:")
         promotion_lifecycle = ProductionLearningLifecycle(task_store=session_store, event_bridge=PromotionEventBridge(promotion_integration, str(state_root / "promotion_bridge.jsonl")), policy_simulator=runtime_policy.simulate, action_executor=action_executor)
     server = HealthServer(host=args.host, port=args.port, provider_registry=ProviderRegistry(), session_store=session_store, promotion_telemetry=promotion_integration if promotion_integration else None, promotion_action_handler=promotion_lifecycle.handle_operator_action if promotion_lifecycle else None, operator_session_action_handler=operator_session_action_handler, administrative_policy_handler=administrative_policy_handler, migration_mode_source=migration_source, migration_audit_provider=migration_source.mode_audit if migration_source else None, migration_mode_change_handler=migration_source.handle_action if migration_source else None, operator_id=operator_id, operator_session_id=operator_session_id, operator_scopes=("admin:migration", "admin:session", "admin:reviewers", "promotion:review") if operator_id and operator_session_id else ())
     server.start()

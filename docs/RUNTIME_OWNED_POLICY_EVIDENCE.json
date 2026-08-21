@@ -1,0 +1,23 @@
+{
+  "schema_version": "noesis.runtime-owned-policy-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_production_learning_policy",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "policy_source": "TaskSessionStore task/session ownership metadata",
+    "ownership_session_mismatch_denied": true,
+    "missing_owner_denied": true,
+    "scope_derivation": "session:<session_id>",
+    "fixture_static_policy_replaced": true,
+    "automatic_activation": false
+  },
+  "focused_tests": {
+    "suites": ["tests.test_portable_launcher", "tests.test_promotion_integration"],
+    "passed": 28,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "Runtime-owned policy evidence is local-only and does not prove external identity-provider or native host execution."
+}

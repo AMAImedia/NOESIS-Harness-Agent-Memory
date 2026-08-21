@@ -2427,3 +2427,11 @@ Machine-readable evidence: `docs/ACTION_REPLAY_IDENTITY_EVIDENCE.json`; focused 
 | LEARN-JOURNAL-08 | Valid-signature altered replay | `DONE / BOUNDED LOCAL` | Изменённый receipt с пересчитанной подписью для того же action ID отклоняется как `migration_receipt_replay_conflict`. |
 | LEARN-JOURNAL-09 | Native/external transaction parity | `NOT_RUN / ENVIRONMENT-GATED` | SQLite evidence не заменяет native Windows/macOS или external provider execution. |
 Machine-readable evidence: `docs/SQLITE_MIGRATION_RECEIPT_REPLAY_EVIDENCE.json`; focused result: `13/13`.
+
+## 2026-08-21 — Runtime-owned production policy checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-RUNTIME-05 | Runtime-owned policy configuration | `DONE / BOUNDED LOCAL` | Portable production lifecycle использует `OwnershipPolicySimulator` на основе TaskSessionStore task/session owner metadata вместо static fixture policy. |
+| LEARN-RUNTIME-06 | Ownership mismatch denial | `DONE / LOCAL VERIFIED` | Несовпадение event session, отсутствие authoritative owner и недопустимый derived scope отклоняются fail-closed. |
+| LEARN-RUNTIME-07 | External identity provider | `NOT_RUN / ENVIRONMENT-GATED` | Внешний identity provider не подключён и не имитируется локальным policy simulator. |
+Machine-readable evidence: `docs/RUNTIME_OWNED_POLICY_EVIDENCE.json`; focused result: `28/28`.
