@@ -2142,3 +2142,10 @@ Focused memory-quality result: `13/13` tests and `786/786` full tests passed wit
 |---|---|---|---|
 | CHILD-328 | Native Windows/macOS execution evidence | `NOT_RUN / ENVIRONMENT-GATED` | Linux sandbox не может доказать native Windows/macOS parity; подключённый Windows probe не предоставил bounded runnable Python/repository session. macOS host отсутствует. |
 | CHILD-329 | External pinned comparative evidence | `NOT_RUN / ENVIRONMENT-GATED` | Hermes, OpenCode и DeepSeek-Harness exact revisions отсутствуют; external A/B не запускался и superiority claim не делается. |
+
+## 2026-08-21 — Release-audit roadmap consistency checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-330 | Roadmap checkpoint consistency guard | `DONE / BOUNDED LOCAL` | Offline release audit проверяет schema, full-hex checkpoint commit и `NEXT-03` status; invalid metadata fail-closed. |
+| CHILD-331 | Native/external release consistency | `NOT_RUN / ENVIRONMENT-GATED` | Guard не подменяет native Windows/macOS или external A/B execution evidence. |
+Focused release-audit result: `3/3` tests and `787/787` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

@@ -65,3 +65,7 @@ Gate 5 now includes `run_durable_long_context_stress()`, a stdlib-only determini
 ### Gate 6 boundary status
 
 Gate 6 preparation is complete at the contract level, but native and external execution remain explicitly `NOT_RUN / ENVIRONMENT-GATED`. The Linux sandbox does not establish Windows/macOS parity; the connected Windows probe did not yield a bounded runnable repository/Python session, and no macOS host is available. Comparative external lanes remain blocked until exact pinned revisions and matching execution environments exist. No superiority claim is emitted.
+
+### Roadmap checkpoint consistency guard
+
+The offline release audit now validates the machine-readable roadmap reconciliation artifact: schema version, a full 40-character hexadecimal checkpoint commit, and the bounded `NEXT-03` status are checked before a clean release result is emitted. Invalid roadmap metadata fails closed as release-audit failure rather than silently allowing stale planning evidence. The guard validates artifact shape without requiring a self-referential current-HEAD hash.

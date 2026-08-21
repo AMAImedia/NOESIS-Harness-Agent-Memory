@@ -34,6 +34,7 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
     readiness_path = project / "docs" / "EXTERNAL_EVIDENCE_READINESS_MATRIX.json"
     readiness: dict[str, Any] = {}
     readiness_errors: list[str] = []
+    roadmap_errors: list[str] = []
     if readiness_path.exists():
         try:
             readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
@@ -70,6 +71,19 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
                 actual_eval_exec.append({"file": str(path.relative_to(project)), "line": node.lineno, "name": node.func.id})
 
     local = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(project), text=True).strip()
+    roadmap_path = project / "docs" / "ROADMAP_RECONCILIATION_EVIDENCE.json"
+    if roadmap_path.exists():
+        try:
+            roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+            if roadmap.get("schema_version") != "noesis.roadmap-reconciliation.v1":
+                roadmap_errors.append("roadmap_schema_mismatch")
+            checkpoint = roadmap.get("checkpoint_commit")
+            if not isinstance(checkpoint, str) or len(checkpoint) != 40 or any(character not in "0123456789abcdef" for character in checkpoint.lower()):
+                roadmap_errors.append("roadmap_checkpoint_invalid")
+            if roadmap.get("status") != "local_reconciliation_and_next03_bounded_verified":
+                roadmap_errors.append("roadmap_status_mismatch")
+        except (OSError, json.JSONDecodeError, TypeError):
+            roadmap_errors.append("roadmap_artifact_invalid")
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=str(project), text=True)
     remote = None
     remote_error = None
@@ -79,7 +93,7 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
         except (OSError, subprocess.CalledProcessError, IndexError) as exc:
             remote_error = type(exc).__name__ + ": " + str(exc)
     remote_matches_local = None if not include_remote else remote == local
-    clean = not actual_eval_exec and not syntax_errors and not secret_hits and not status and not readiness_errors and (not include_remote or remote_matches_local is True)
+    clean = not actual_eval_exec and not syntax_errors and not secret_hits and not status and not readiness_errors and not roadmap_errors and (not include_remote or remote_matches_local is True)
     return {
         "schema_version": "noesis.local-release-audit.v1",
         "mode": "remote-parity" if include_remote else "offline",
@@ -92,6 +106,7 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
         "syntax_errors": syntax_errors,
         "secret_like_hits": secret_hits,
         "synthetic_fixture_hits": synthetic_fixture_hits,
+        "roadmap_consistency": {"path": str(roadmap_path), "errors": roadmap_errors, "checkpoint_valid": not any(error == "roadmap_checkpoint_invalid" for error in roadmap_errors)},
         "external_readiness": {
             "path": str(readiness_path),
             "overall_status": readiness.get("overall_status"),
