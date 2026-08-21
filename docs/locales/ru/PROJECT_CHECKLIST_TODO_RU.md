@@ -2473,6 +2473,7 @@ Machine-readable evidence: `docs/EVENT_STORE_REPLAY_CONFLICT_EVIDENCE.json`; foc
 |---|---|---|---|
 | RECOVERY-TURN-REPLAY-01 | Exact turn replay | `DONE / BOUNDED LOCAL` | Повтор уже сохранённого turn с идентичными state/output/status возвращает исходный проверенный checkpoint без duplicate row. |
 | RECOVERY-TURN-REPLAY-02 | Altered turn replay | `DONE / LOCAL VERIFIED` | Повтор того же turn с изменённым state отклоняется как `checkpoint_replay_conflict`; sequential advancement и previous-digest chain сохраняются. |
-| RECOVERY-TURN-REPLAY-03 | Native/external crash parity | `NOT_RUN / ENVIRONMENT-GATED` | Linux local WAL evidence не заменяет native Windows/macOS filesystem semantics или pinned external crash-consistency harness. |
+| RECOVERY-TURN-REPLAY-03 | Projection drift denial | `DONE / LOCAL VERIFIED` | Изменённый `turn_runs.latest_digest` обнаруживается как `checkpoint_projection_mismatch`; local projection не может скрыть повреждение checkpoint chain. |
+| RECOVERY-TURN-REPLAY-04 | Native/external crash parity | `NOT_RUN / ENVIRONMENT-GATED` | Linux local WAL evidence не заменяет native Windows/macOS filesystem semantics или pinned external crash-consistency harness. |
 
-Machine-readable evidence: `docs/DURABLE_TURN_REPLAY_EVIDENCE.json`; focused recovery result: `103/103`; full regression: `815/815`; `ResourceWarning`: `0`.
+Machine-readable evidence: `docs/DURABLE_TURN_REPLAY_EVIDENCE.json`; focused recovery result: `104/104`; full regression: `816/816`; `ResourceWarning`: `0`.

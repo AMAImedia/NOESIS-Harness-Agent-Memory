@@ -122,8 +122,13 @@ class DurableTurnCheckpointStore:
         if run is None:
             raise TurnCheckpointError("run_not_found")
         if row is None:
-            return TurnCheckpoint(run_id, int(run["latest_turn"]), str(run["status"]), {}, "", str(run["latest_digest"]), "", 0.0)
-        return self._decode(row)
+            if int(run["latest_turn"]) != -1 or str(run["latest_digest"]):
+                raise TurnCheckpointError("checkpoint_projection_mismatch")
+            return TurnCheckpoint(run_id, -1, str(run["status"]), {}, "", "", "", 0.0)
+        record = self._decode(row)
+        if int(run["latest_turn"]) != record.turn or str(run["latest_digest"]) != record.state_digest:
+            raise TurnCheckpointError("checkpoint_projection_mismatch")
+        return record
 
     def commit_turn(self, run_id: str, turn: int, state: Mapping[str, Any], output: Any, *, done: bool = False) -> TurnCheckpoint:
         if not isinstance(turn, int) or isinstance(turn, bool) or turn < 0:

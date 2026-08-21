@@ -50,6 +50,21 @@ class TurnCheckpointTests(unittest.TestCase):
             with self.assertRaisesRegex(TurnCheckpointError, "checkpoint_corrupt"):
                 store.latest("run-3")
 
+    def test_projection_drift_is_rejected(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "turns.sqlite3"
+            store = DurableTurnCheckpointStore(str(path))
+            store.begin("run-projection")
+            store.commit_turn("run-projection", 0, {"cursor": 1}, "output")
+            db = sqlite3.connect(path)
+            try:
+                with db:
+                    db.execute("UPDATE turn_runs SET latest_digest=? WHERE run_id=?", ("tampered", "run-projection"))
+            finally:
+                db.close()
+            with self.assertRaisesRegex(TurnCheckpointError, "checkpoint_projection_mismatch"):
+                store.latest("run-projection")
+
     def test_interrupt_is_recoverable_without_erasing_last_state(self):
         with tempfile.TemporaryDirectory() as root:
             store = DurableTurnCheckpointStore(str(Path(root) / "turns.sqlite3"))
