@@ -486,6 +486,9 @@ class ExecutionRecoveryExecutor:
     def _replay_inventory_verification_readiness_path(self) -> str:
         return str(self.events.path) + ".replay-inventory-verification-readiness.json"
 
+    def _replay_manifest_binding_receipt_path(self) -> str:
+        return str(self.events.path) + ".replay-manifest-readiness-binding.json"
+
     def _assert_generation_mutable(self) -> None:
         if os.path.exists(self._replay_finalization_path()):
             raise ExecutionRecoveryError("recovery_replay_finalization_immutable")
@@ -984,7 +987,7 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path(), self._replay_repair_readiness_path(), self._replay_finalized_inventory_path(), self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path(), self._replay_inventory_verification_readiness_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path(), self._replay_repair_readiness_path(), self._replay_finalized_inventory_path(), self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path(), self._replay_inventory_verification_readiness_path(), self._replay_manifest_binding_receipt_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
@@ -1215,6 +1218,43 @@ class ExecutionRecoveryExecutor:
             payload["bundle_digest"] = self._replay_bundle_digest(payload)
             _atomic_write_json(path, {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)})
             self._make_readonly((path,))
+        self._persist_manifest_binding_receipt(readiness_snapshot)
+
+    def _persist_manifest_binding_receipt(self, readiness_snapshot: Mapping[str, Any]) -> Mapping[str, Any]:
+        readiness = readiness_snapshot["payload"]
+        inventory = self.verify_finalized_evidence_inventory()["payload"]
+        parent = os.path.dirname(os.path.abspath(str(self.events.path))) or "."
+        prefix = os.path.basename(str(self.events.path)) + ".replay-commit."
+        manifests = []
+        for name in sorted(os.listdir(parent)):
+            if name.startswith(prefix) and name.endswith(".json"):
+                path = os.path.join(parent, name)
+                manifests.append({"path": path, "sha256": self._sha256_file(path)})
+        payload = {"schema_version": "noesis.recovery-replay-manifest-readiness-binding.v1", "status": "passed", "event_path": str(self.events.path), "readiness_path": self._replay_inventory_verification_readiness_path(), "readiness_digest": request_fingerprint(readiness), "inventory_digest": inventory["inventory_digest"], "chain_root_digest": inventory["chain_root_digest"], "verification_chain_tip_digest": readiness["tip_digest"], "manifests": manifests, "receipt_path": self._replay_manifest_binding_receipt_path()}
+        payload["binding_digest"] = request_fingerprint({key: value for key, value in payload.items() if key != "binding_digest"})
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_manifest_binding_receipt_path(), snapshot)
+        self._make_readonly((self._replay_manifest_binding_receipt_path(),))
+        return snapshot
+
+    def verify_manifest_binding_receipt(self) -> Mapping[str, Any]:
+        try:
+            with open(self._replay_manifest_binding_receipt_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except (_DuplicateJSONKeyError, OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_manifest_binding_receipt_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_manifest_binding_receipt_signature_invalid")
+        readiness = self.verify_inventory_verification_chain_readiness_snapshot()["payload"]
+        inventory = self.verify_finalized_evidence_inventory()["payload"]
+        manifests = [{"path": path, "sha256": self._sha256_file(path)} for path in sorted(record["path"] for record in payload.get("manifests", ()))]
+        expected = {"schema_version": "noesis.recovery-replay-manifest-readiness-binding.v1", "status": "passed", "event_path": str(self.events.path), "readiness_path": self._replay_inventory_verification_readiness_path(), "readiness_digest": request_fingerprint(readiness), "inventory_digest": inventory["inventory_digest"], "chain_root_digest": inventory["chain_root_digest"], "verification_chain_tip_digest": readiness["tip_digest"], "manifests": manifests, "receipt_path": self._replay_manifest_binding_receipt_path()}
+        expected["binding_digest"] = request_fingerprint({key: value for key, value in expected.items() if key != "binding_digest"})
+        if set(payload) != set(expected) or any(payload.get(key) != value for key, value in expected.items()) or not self._is_readonly(self._replay_manifest_binding_receipt_path()):
+            raise ExecutionRecoveryError("recovery_manifest_binding_receipt_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
 
     def verify_inventory_verification_chain_readiness_snapshot(self) -> Mapping[str, Any]:
         try:
@@ -1453,7 +1493,10 @@ class ExecutionRecoveryExecutor:
             verification_chain = self.verify_inventory_verification_chain()
         if os.path.exists(self._replay_inventory_verification_readiness_path()):
             verification_chain_readiness_snapshot = self.verify_inventory_verification_chain_readiness_snapshot()
-        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness, "verification_chain_readiness_snapshot": verification_chain_readiness_snapshot}
+        manifest_binding = None
+        if os.path.exists(self._replay_manifest_binding_receipt_path()):
+            manifest_binding = self.verify_manifest_binding_receipt()
+        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness, "verification_chain_readiness_snapshot": verification_chain_readiness_snapshot, "manifest_binding": manifest_binding}
 
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)

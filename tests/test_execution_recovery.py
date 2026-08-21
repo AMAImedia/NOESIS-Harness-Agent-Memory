@@ -489,6 +489,31 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_commit_manifest_drift"):
             executor.verify_replay_evidence_commit_manifest(self.action)
 
+    def test_manifest_binding_receipt_rejects_tamper_and_partial_protection(self):
+        event_path = str(Path(self.tmp.name) / "manifest-binding-receipt-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-manifest-binding-receipt")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        self.assertEqual(executor.verify_manifest_binding_receipt()["status"], "passed")
+        fresh = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        self.assertEqual(fresh.verify_replay_evidence_readiness(require_finalized=True)["manifest_binding"]["status"], "passed")
+        receipt_path = Path(executor._replay_manifest_binding_receipt_path())
+        snapshot = json.loads(receipt_path.read_text(encoding="utf-8"))
+        snapshot["payload"]["verification_chain_tip_digest"] = "foreign-tip"
+        snapshot["payload"]["binding_digest"] = request_fingerprint({key: value for key, value in snapshot["payload"].items() if key != "binding_digest"})
+        snapshot["signature"] = _snapshot_signature(snapshot["payload"], self.key)
+        os.chmod(receipt_path, os.stat(receipt_path).st_mode | 0o200)
+        receipt_path.write_text(json.dumps(snapshot, sort_keys=True), encoding="utf-8")
+        os.chmod(receipt_path, os.stat(receipt_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_manifest_binding_receipt_drift"):
+            executor.verify_manifest_binding_receipt()
+        os.chmod(receipt_path, os.stat(receipt_path).st_mode | 0o200)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_manifest_binding_receipt_drift"):
+            executor.verify_manifest_binding_receipt()
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

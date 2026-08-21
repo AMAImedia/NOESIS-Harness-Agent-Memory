@@ -2091,3 +2091,15 @@ Focused signed-readiness-snapshot result: `86/86` execution-recovery tests passe
 | CHILD-313 | Native/external manifest lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external final-manifest readiness lanes не запускались. |
 
 Focused final-manifest binding result: `87/87` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 immutable manifest-binding receipt checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-314 | Manifest-binding receipt | `DONE / BOUNDED LOCAL` | Signed read-only `noesis.recovery-replay-manifest-readiness-binding.v1` receipt фиксирует все final manifests. |
+| CHILD-315 | Binding digest | `DONE / BOUNDED LOCAL` | Receipt связывает manifest SHA-256 inventory, readiness digest, finalized inventory, chain root и verification-run tip. |
+| CHILD-316 | Receipt recovery | `DONE / BOUNDED LOCAL` | Partial/writable, tampered, stale и foreign receipt fail-closed. |
+| CHILD-317 | Native/external receipt lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external receipt verification lanes не запускались. |
+
+Focused manifest-binding receipt result: `88/88` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
