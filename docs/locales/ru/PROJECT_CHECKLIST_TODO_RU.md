@@ -2347,3 +2347,10 @@ Machine-readable evidence updated; focused promotion result: `10/10`.
 | LEARN-JOURNAL-11 | Journal tamper denial | `DONE / BOUNDED LOCAL` | SQLite status tampering without digest recomputation raises `activation_journal_integrity_failure`; strict test passes. |
 | LEARN-JOURNAL-12 | External activation integrity | `NOT_RUN / ENVIRONMENT-GATED` | Deployment-backed operator activation and native/external recovery remain unexecuted. |
 Machine-readable evidence updated; focused promotion result: `11/11`.
+## 2026-08-21 — Promotion recovery projection checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-RECOVERY-07 | Prepared activation projection | `DONE / BOUNDED LOCAL` | Journal state `prepared` проецируется в `recovery_required` с bounded proposal/version metadata. |
+| LEARN-RECOVERY-08 | Automatic retry denial | `DONE / BOUNDED LOCAL` | `automatic_retry=false`; restart не повторяет activation без explicit operator action. |
+| LEARN-RECOVERY-09 | Production operator recovery | `NOT_RUN / ENVIRONMENT-GATED` | Authenticated reviewer and deployment-specific recovery action не подключены в local-only runtime. |
+Machine-readable evidence updated; focused promotion result: `11/11`.

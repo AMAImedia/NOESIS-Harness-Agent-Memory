@@ -132,8 +132,11 @@ class LearningPromotionTests(unittest.TestCase):
         self.assertTrue((versions[0] / "PROMOTION_RECEIPT.json").is_file())
         self.assertEqual(pipe.active_version("crash-safe-skill"), "")
         self.assertEqual(pipe.durable_state.activation_journal(proposal.proposal_id)["status"], "prepared")
+        self.assertEqual(pipe.durable_state.activation_readiness(proposal.proposal_id)["status"], "recovery_required")
+        self.assertFalse(pipe.durable_state.activation_readiness(proposal.proposal_id)["automatic_retry"])
         reopened = LearningPromotionPipeline(str(pipe.root), b"promotion-test-key-2026")
         self.assertEqual(reopened.durable_state.activation_journal(proposal.proposal_id)["status"], "prepared")
+        self.assertTrue(reopened.durable_state.activation_readiness(proposal.proposal_id)["recovery_required"])
 
     def test_activation_journal_tamper_is_rejected(self):
         pipe = self.pipeline(); receipt = self.receipt(pipe)

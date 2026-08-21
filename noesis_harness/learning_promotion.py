@@ -186,6 +186,15 @@ class DurablePromotionState:
             row = db.execute("SELECT record_json FROM promotion_activation_journal WHERE proposal_id=?", (str(proposal_id),)).fetchone()
         return {} if row is None else self._verify_activation_record(json.loads(str(row["record_json"])))
 
+    def activation_readiness(self, proposal_id: str) -> dict[str, Any]:
+        record = self.activation_journal(proposal_id)
+        if not record:
+            return {"status": "missing", "recovery_required": True, "automatic_retry": False, "reason": "activation_journal_missing"}
+        status = str(record["status"])
+        if status == "prepared":
+            return {"status": "recovery_required", "recovery_required": True, "automatic_retry": False, "reason": "activation_interrupted", "proposal_id": str(proposal_id), "version": str(record["version"])}
+        return {"status": status, "recovery_required": False, "automatic_retry": False, "proposal_id": str(proposal_id), "version": str(record["version"])}
+
     def put_previous_active(self, skill_name: str, version: str) -> None:
         with self._connect() as db:
             db.execute("INSERT INTO promotion_previous_active(skill_name, version) VALUES (?, ?) ON CONFLICT(skill_name) DO UPDATE SET version=excluded.version", (skill_name, version))

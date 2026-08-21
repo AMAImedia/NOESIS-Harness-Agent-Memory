@@ -15,13 +15,16 @@
     "restart_visible": true,
     "interrupted_activation_is_distinguishable": true,
     "content_addressed_record": true,
-    "tamper_detection": true
+    "tamper_detection": true,
+    "recovery_projection": "prepared -> recovery_required",
+    "automatic_retry": false
   },
   "activation_safety": {
     "receipt_precedes_activation": true,
     "activation_failure_preserves_receipt": true,
     "activation_failure_preserves_old_active_pointer": true,
     "activation_failure_leaves_prepared_journal": true,
+    "activation_failure_requires_operator_review": true,
     "automatic_activation": false,
     "rollback_remains_explicit": true
   },
