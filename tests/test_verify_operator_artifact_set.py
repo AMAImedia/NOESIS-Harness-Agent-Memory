@@ -7,6 +7,7 @@ from scripts.run_operator_evidence_pipeline import run_pipeline
 from scripts.signed_readiness_receipt import sign_readiness_receipt
 from scripts.release_gate_artifact import build_gate_artifact
 from scripts.verify_operator_artifact_set import verify_artifact_set
+from scripts.artifact_inventory import build_inventory
 from tests.test_external_evidence_readiness import evidence_for, manifest
 
 KEY = "readiness-test-key-2026"
@@ -47,6 +48,21 @@ class VerifyOperatorArtifactSetTests(unittest.TestCase):
             self.assertFalse(result["automatic_execution"])
             self.assertEqual(result["checks"]["signed_verification_result"]["status"], "passed")
             self.assertEqual(result["checks"]["signed_result_binding"]["status"], "passed")
+
+    def test_schema_valid_not_run_readiness_matrix_blocks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root, _ = self.build_set(Path(directory), with_report=False)
+            matrix_path = artifact_root / "external-evidence-readiness.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["overall_status"] = "not_run"
+            matrix["comparative_ready"] = False
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            original_manifest = json.loads((artifact_root / "artifact-manifest.json").read_text(encoding="utf-8"))
+            refreshed = build_inventory(artifact_root, [matrix_path, artifact_root / "signed-external-evidence-aggregate.json"], KEY, original_manifest["provenance"])
+            (artifact_root / "artifact-manifest.json").write_text(json.dumps(refreshed), encoding="utf-8")
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["checks"]["readiness_matrix"]["reason"], "readiness_matrix_not_passed")
 
     def test_tampering_inventory_listed_file_blocks(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -2284,3 +2284,10 @@ Focused external preflight result: `10/10` tests; full suite: `798/798` passed w
 | CHILD-371 | Metadata adapter activation | `DONE / BOUNDED LOCAL` | Omitted `enabled` переводит adapter в disabled state; activation требует explicit opt-in `enabled=true`. |
 | CHILD-372 | External adapter execution | `NOT_RUN / ENVIRONMENT-GATED` | Translator regression не является external service execution или pinned A/B run. |
 Focused metadata/adapter result: `16/16` tests; full suite: `799/799` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Operator artifact readiness-status binding checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-373 | Readiness status acceptance | `DONE / BOUNDED LOCAL` | Operator artifact verifier принимает readiness только при schema + `overall_status=passed` + `comparative_ready=true`. |
+| CHILD-374 | External readiness execution | `NOT_RUN / ENVIRONMENT-GATED` | Status-binding denial не является pinned external A/B execution. |
+Focused operator artifact result: `12/12` tests; full suite: `800/800` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

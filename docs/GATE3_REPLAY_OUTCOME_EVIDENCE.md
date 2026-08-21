@@ -145,3 +145,7 @@ External lane preflight now defaults an omitted `disposable_workspace` field to 
 ### Foreign metadata activation default
 
 The declarative metadata translator now defaults omitted `enabled` to false. Translation remains metadata-only and cannot activate a Hermes or DeepSeek adapter unless the input explicitly opts in with `enabled=true`; the behavior is covered by regression tests.
+
+### Operator artifact readiness-status binding
+
+Operator artifact-set verification now requires the external readiness artifact to have the expected schema, `overall_status=passed`, and `comparative_ready=true`. A schema-valid `not_run` or blocked matrix is denied before aggregate and signed-result acceptance, preventing readiness status drift from being treated as a successful transfer.

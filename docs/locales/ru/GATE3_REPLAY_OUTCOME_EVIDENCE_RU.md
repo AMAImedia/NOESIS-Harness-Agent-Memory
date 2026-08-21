@@ -144,3 +144,7 @@ External lane preflight теперь использует `false` по умол�
 ### Default activation foreign metadata
 
 Declarative metadata translator теперь использует `false` по умолчанию при omitted `enabled`. Translation остаётся metadata-only и не активирует Hermes или DeepSeek adapter без explicit `enabled=true`; behavior покрыт regression tests.
+
+### Binding operator artifact readiness status
+
+Operator artifact-set verification теперь требует expected schema, `overall_status=passed` и `comparative_ready=true` для external readiness artifact. Schema-valid `not_run` или blocked matrix отклоняется до aggregate и signed-result acceptance, поэтому status drift не считается успешным transfer.
