@@ -88,3 +88,7 @@ Release audit теперь пересчитывает canonical SHA-256 для r
 ### Guard согласованности roadmap NEXT-03
 
 Release audit теперь проверяет machine-readable NEXT-03 reconciliation contract: bounded activation выключена, local facade/deployment/durable-state statuses совпадают с доказанными значениями, required local subgates присутствуют, единственный open subgate — native Windows/macOS evidence, а все external comparison boundaries остаются `not_run` без superiority claim. Это не позволяет roadmap artifact занижать закрытые local evidence или завышать host-gated execution.
+
+### Denial contradictory readiness claim
+
+Adversarial coverage теперь проверяет readiness matrix, которая заявляет comparative success при `not_run` и одновременно содержит unsupported execution claim. Release audit отклоняет обе contradictions, сохраняя различие между local evidence ingestion и фактическим external execution.

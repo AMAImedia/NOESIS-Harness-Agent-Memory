@@ -104,6 +104,40 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
             self.assertFalse(report["clean"])
             self.assertIn("readiness_digest_mismatch", report["external_readiness"]["errors"])
 
+    def test_contradictory_readiness_claims_are_audit_failures(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "noesis_harness").mkdir()
+            (root / "docs").mkdir()
+            lanes = {"hermes": {"status": "not_run"}}
+            canonical = {"lanes": lanes, "global_checks": []}
+            import hashlib
+            digest = hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+            readiness = {
+                "schema_version": "noesis.external-evidence-readiness.v1",
+                "comparative_ready": True,
+                "overall_status": "not_run",
+                "execution_claim": "executed",
+                "native_or_external_execution_claim": False,
+                "global_checks": [],
+                "lanes": lanes,
+                "matrix_digest": digest,
+            }
+            (root / "docs" / "EXTERNAL_EVIDENCE_READINESS_MATRIX.json").write_text(json.dumps(readiness), encoding="utf-8")
+
+            def fake_check_output(command, **kwargs):
+                if command[:2] == ["git", "rev-parse"]:
+                    return "0123456789abcdef0123456789abcdef01234567\\n"
+                if command[:2] == ["git", "status"]:
+                    return ""
+                raise AssertionError(command)
+
+            with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
+                report = audit(str(root), include_remote=False)
+            self.assertFalse(report["clean"])
+            self.assertIn("execution_claim_invalid", report["external_readiness"]["errors"])
+            self.assertIn("comparative_status_contradiction", report["external_readiness"]["errors"])
+
     def test_secret_like_content_is_audit_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

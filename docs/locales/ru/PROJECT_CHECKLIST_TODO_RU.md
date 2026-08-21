@@ -2186,3 +2186,10 @@ Focused release-audit result: `5/5` tests and `789/789` full tests passed with P
 | CHILD-342 | External boundary consistency | `DONE / BOUNDED LOCAL` | Roadmap external boundaries должны оставаться `not_run`, superiority claim — false; contradictory metadata fail-closed. |
 | CHILD-343 | Native/external execution | `NOT_RUN / ENVIRONMENT-GATED` | Consistency guard не заменяет native Windows/macOS или external A/B фактическим запуском. |
 Focused release-audit result: `5/5` tests and `789/789` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Contradictory readiness claim denial
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-344 | Contradictory readiness claims | `DONE / BOUNDED LOCAL` | Adversarial matrix `comparative_ready=true` + `overall_status=not_run` + invalid execution claim; both fail-closed errors verified. |
+| CHILD-345 | External claim boundary | `NOT_RUN / ENVIRONMENT-GATED` | Denial test не является external execution и не повышает comparative readiness. |
+Focused release-audit result: `6/6` tests and `790/790` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
