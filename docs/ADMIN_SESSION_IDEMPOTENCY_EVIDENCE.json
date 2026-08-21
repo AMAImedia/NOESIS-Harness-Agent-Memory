@@ -1,0 +1,23 @@
+{
+  "schema_version": "noesis.admin-session-idempotency-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_reviewed_operator_session_lifecycle",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "duplicate_same_identity_is_noop": true,
+    "duplicate_does_not_extend_ttl": true,
+    "different_operator_same_session_denied": true,
+    "different_scopes_same_session_denied": true,
+    "event_id_is_stable": true,
+    "automatic_identity_escalation": false
+  },
+  "focused_tests": {
+    "suite": "tests.test_promotion_integration",
+    "passed": 23,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "Local session idempotency evidence does not prove external identity-provider integration or native host execution."
+}

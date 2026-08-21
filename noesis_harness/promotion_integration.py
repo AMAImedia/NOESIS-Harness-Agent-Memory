@@ -264,9 +264,15 @@ class OperatorSessionRegistry:
     def open(self, operator_id: str, session_id: str, *, ttl_seconds: float = 900.0, scopes: Sequence[str] = ()) -> Mapping[str, Any]:
         if not operator_id or not session_id or ttl_seconds <= 0 or ttl_seconds > 86400:
             raise ValueError("invalid_operator_session")
+        requested_scopes = sorted({str(item) for item in scopes})
+        existing = self._records().get(str(session_id))
+        if existing is not None:
+            if existing.get("operator_id") == str(operator_id) and existing.get("active", False) and sorted(str(item) for item in existing.get("scopes", ())) == requested_scopes:
+                return dict(existing)
+            raise ValueError("operator_session_conflict")
         now = float(self.clock())
-        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "scopes": sorted({str(item) for item in scopes}), "opened_at": now, "expires_at": now + float(ttl_seconds), "active": True}
-        self.events.append("operator_session_opened", payload, event_id="operator-session-open:" + session_id + ":" + str(self.events.count()))
+        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "scopes": requested_scopes, "opened_at": now, "expires_at": now + float(ttl_seconds), "active": True}
+        self.events.append("operator_session_opened", payload, event_id="operator-session-open:" + session_id)
         return payload
 
     def close(self, operator_id: str, session_id: str, *, reason: str = "closed") -> Mapping[str, Any]:

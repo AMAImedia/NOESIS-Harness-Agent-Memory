@@ -214,6 +214,16 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertEqual(closed["status"], "applied")
         self.assertFalse(registry.context("admin-1", "target-session").authenticated)
 
+    def test_operator_session_open_is_idempotent_and_conflicts_fail_closed(self):
+        registry = OperatorSessionRegistry(tempfile.mktemp(), clock=lambda: 100.0)
+        first = registry.open("operator-1", "session-1", ttl_seconds=10, scopes=("promotion:review",))
+        replay = registry.open("operator-1", "session-1", ttl_seconds=900, scopes=("promotion:review",))
+        self.assertEqual(replay, first)
+        with self.assertRaisesRegex(ValueError, "operator_session_conflict"):
+            registry.open("operator-2", "session-1", ttl_seconds=10, scopes=("promotion:review",))
+        with self.assertRaisesRegex(ValueError, "operator_session_conflict"):
+            registry.open("operator-1", "session-1", ttl_seconds=10, scopes=("admin:session",))
+
     def test_operator_session_registry_persists_and_expires_fail_closed(self):
         now = [100.0]
         path = tempfile.mktemp()

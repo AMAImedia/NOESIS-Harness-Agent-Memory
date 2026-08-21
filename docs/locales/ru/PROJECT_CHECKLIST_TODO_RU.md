@@ -1067,7 +1067,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-SESSION-03 | Close/revoke behavior | `DONE / LOCAL VERIFIED` | Closed sessions fail active validation after restart/replay |
 | LEARN-SESSION-04 | Reviewer executor binding | `DONE / LOCAL VERIFIED` | `PromotionActionExecutor` requires active session when registry is configured |
 | LEARN-SESSION-05 | No implicit activation | `DONE / BOUNDED` | Session lifecycle only controls authorization; it never promotes or activates skills |
-| LEARN-SESSION-06 | Administrative policy source | `NEXT LOCAL GATE` | Replace local injected session configuration with a reviewed administrative policy lifecycle and operator UI integration |
+| LEARN-SESSION-06 | Administrative policy source | `DONE / BOUNDED LOCAL` | Operator session creation is idempotent for the same active identity/scopes; conflicting reuse fails closed. Reviewed external identity-provider/UI integration remains separate. |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -2381,3 +2381,11 @@ Machine-readable evidence updated; focused memory result: `13/13`.
 | CHILD-386 | Governed executable child runtime | `DONE / BOUNDED LOCAL` | Receipt/diff/recovery integration and hardened promotion-receipt activation boundary are now covered by code, adversarial tests and durable evidence. |
 | CHILD-387 | Native child-runtime execution | `NOT_RUN / HOST REQUIRED` | Windows/macOS sandbox backend and native signed execution evidence remain unexecuted. |
 Machine-readable evidence: `docs/SKILL_RUNTIME_PROMOTION_RECEIPT_EVIDENCE.json`, `docs/LEARNING_PROMOTION_ACTIVATION_EVIDENCE.json`; full regression: `807/807`.
+
+## 2026-08-21 — Operator-session idempotency checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-SESSION-07 | Idempotent session open | `DONE / BOUNDED LOCAL` | Повторный open для той же active identity/scopes возвращает исходную запись и не продлевает TTL. |
+| LEARN-SESSION-08 | Session identity conflict | `DONE / BOUNDED LOCAL` | Другой operator или другой scope для существующего session ID отклоняется как `operator_session_conflict`. |
+| LEARN-SESSION-09 | External identity provider | `NOT_RUN / ENVIRONMENT-GATED` | Внешний identity provider и UI lifecycle не подключены в local-only lane. |
+Machine-readable evidence: `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json`; focused session result: `23/23`.
