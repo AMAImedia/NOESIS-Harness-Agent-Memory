@@ -2129,3 +2129,10 @@ Focused manifest-binding readiness result: `90/90` execution-recovery tests pass
 | CHILD-324 | Simultaneous active delegation leakage corpus | `DONE / BOUNDED LOCAL` | `ActiveDelegationLeakageSuite` расширен до 6 concurrent holdouts: sibling/absolute/traversal denial, distinct workspace roots и same-lane containment; все проходят fail-closed. |
 | CHILD-325 | Native/external delegation lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и broader external simultaneous-delegation lanes не запускались. |
 Focused active-delegation result: `3/3` isolation tests and `785/785` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Gate 5 durable long-context quality checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-326 | Durable long-context repeated distribution | `DONE / BOUNDED LOCAL` | `run_durable_long_context_stress()` сохраняет повторяемые trajectories в SQLite/WAL, проверяет baseline/next-generation distributions и deterministic SHA-256 digest. |
+| CHILD-327 | Native/external memory quality lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external model-quality lanes не запускались. |
+Focused memory-quality result: `13/13` tests and `786/786` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

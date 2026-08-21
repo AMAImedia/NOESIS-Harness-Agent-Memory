@@ -125,6 +125,16 @@ class RealMemoryReuseStressReport:
 
 
 @dataclass(frozen=True)
+class DurableLongContextStressReport:
+    repetitions: int
+    cases: int
+    baseline_recall_distribution: Tuple[float, ...]
+    nextgen_recall_distribution: Tuple[float, ...]
+    trace_sessions: int
+    distribution_digest: str
+
+
+@dataclass(frozen=True)
 class MultiSessionMemoryQualityReport:
     session_count: int
     total_cases: int
@@ -278,6 +288,25 @@ def build_long_context_cases(scales: Sequence[int] = (32, 128, 512), budget_toke
     return tuple(cases)
 
 
+def run_durable_long_context_stress(trace_path: str, *, scales: Sequence[int] = (32, 128, 512), budget_tokens: int = 64, repetitions: int = 3) -> DurableLongContextStressReport:
+    """Persist repeated deterministic long-context quality trajectories in SQLite/WAL."""
+    if repetitions < 1 or repetitions > 100 or not scales or any(int(scale) < 1 for scale in scales) or budget_tokens < 1:
+        raise MemoryQualityError("long_context_stress_parameters_invalid")
+    cases = build_long_context_cases(scales, budget_tokens=budget_tokens)
+    store = DurableMemoryQualityTraceStore(str(Path(trace_path).expanduser()))
+    baseline_distribution = []
+    nextgen_distribution = []
+    for repetition in range(int(repetitions)):
+        outcomes = ControlledMemoryEvaluator().evaluate(cases)
+        baseline_distribution.append(sum(outcome.legacy_recall for outcome in outcomes) / len(outcomes))
+        nextgen_distribution.append(sum(outcome.nextgen_recall for outcome in outcomes) / len(outcomes))
+        adapter = DurableMemoryQualityAdapter(type("LongContextMemory", (), {"observe": lambda self, *args: None})(), store)
+        trajectory = tuple(MemoryTrajectoryStep(case.case_id, case.query, case.relevant_source_ids, case.relevant_source_ids, case.relevant_source_ids, used_tokens=min(case.budget_tokens, 8), budget_tokens=case.budget_tokens) for index, case in enumerate(cases))
+        adapter.record_trajectory("long-context-%d" % repetition, trajectory)
+    encoded = json.dumps({"baseline": baseline_distribution, "nextgen": nextgen_distribution}, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return DurableLongContextStressReport(int(repetitions), len(cases), tuple(baseline_distribution), tuple(nextgen_distribution), int(repetitions), hashlib.sha256(encoded).hexdigest())
+
+
 def compare_baseline_nextgen(cases: Sequence[MemoryABCase], repetitions: int = 3) -> MemoryComparisonReport:
     if not cases or repetitions < 1 or repetitions > 100:
         raise MemoryQualityError("comparison_parameters_invalid")
@@ -289,4 +318,4 @@ def compare_baseline_nextgen(cases: Sequence[MemoryABCase], repetitions: int = 3
     return MemoryComparisonReport(int(repetitions), len(cases), baseline, nextgen, nextgen - baseline, sum(outcome.legacy_used_tokens <= outcome.budget_tokens for run in outcomes for outcome in run) / total, sum(outcome.hard_cap_respected for run in outcomes for outcome in run) / total)
 
 
-__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator", "MemoryComparisonReport", "RealMemoryReuseStressReport", "MultiSessionMemoryQualityReport", "MemoryTrajectoryStep", "DurableMemoryQualityTraceStore", "DurableMemoryQualityAdapter", "run_real_memory_reuse_stress", "build_long_context_cases", "compare_baseline_nextgen"]
+__all__ = ["MemoryQualityError", "MemoryQualityCase", "MemoryQualityOutcome", "MemoryQualityMetrics", "MemoryQualityEvaluator", "MemoryComparisonReport", "RealMemoryReuseStressReport", "DurableLongContextStressReport", "MultiSessionMemoryQualityReport", "MemoryTrajectoryStep", "DurableMemoryQualityTraceStore", "DurableMemoryQualityAdapter", "run_real_memory_reuse_stress", "run_durable_long_context_stress", "build_long_context_cases", "compare_baseline_nextgen"]

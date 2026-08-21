@@ -1,6 +1,6 @@
 {
   "schema_version": "noesis.roadmap-reconciliation.v1",
-  "checkpoint_commit": "pending-child-324",
+  "checkpoint_commit": "pending-child-326",
   "status": "local_reconciliation_and_gate1_bounded_verified",
   "runtime": {
     "python": "3.14.7",
@@ -68,13 +68,13 @@
       "baseline_nextgen_memory_distribution",
       "native_parity_operator_bundles",
       "memory_quality_evidence_report",
-      "broader_active_delegation_leakage_holdouts"
-    ],
-    "open_subgates": [
-      "native_windows_macos_evidence",
+      "broader_active_delegation_leakage_holdouts",
       "durable_memory_trace_stress",
       "long_context_repeated_distribution",
       "durable_long_context_reuse_trajectories"
+    ],
+    "open_subgates": [
+      "native_windows_macos_evidence"
     ],
     "required_boundaries": [
       "terminal_task_to_receipt",

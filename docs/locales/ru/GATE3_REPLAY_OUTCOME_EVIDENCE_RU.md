@@ -56,3 +56,7 @@ Monotonic manifest-binding provenance: каждый успешный manifest-bi
 ### Holdouts одновременной active delegation leakage
 
 Локальный isolation corpus теперь включает `ActiveDelegationLeakageSuite` с шестью deterministic concurrent holdouts: denial sibling read, sibling write/traversal, absolute-path denial, distinct workspace roots и same-lane workspace containment. Шесть независимых lanes выполняются одновременно через bounded `SafeParallelExecutor`; каждый результат проверяется по stable case ID и workspace identity. Это расширяет local evidence для одновременных delegated work products, но не заявляет OS-level process isolation. Native Windows/macOS и broader external lanes остаются `NOT_RUN / ENVIRONMENT-GATED`.
+
+### Durable long-context reuse trajectories
+
+Gate 5 теперь включает `run_durable_long_context_stress()` — stdlib-only deterministic runner, который повторяет bounded long-context baseline/next-generation evaluations, сохраняет одну trace trajectory на repetition в SQLite/WAL и возвращает byte-stable distributions с SHA-256 distribution digest. Повторное открытие того же trace store и повтор bounded fixture воспроизводят тот же distribution digest. Это local quality evidence, а не external model benchmark и не заявление о general intelligence.

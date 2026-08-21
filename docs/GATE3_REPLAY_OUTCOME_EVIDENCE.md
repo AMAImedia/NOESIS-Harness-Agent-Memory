@@ -57,3 +57,7 @@ Each successful manifest-binding provenance run now persists a signed, read-only
 ### Simultaneous-active delegation leakage holdouts
 
 The local isolation corpus now includes `ActiveDelegationLeakageSuite`, a deterministic six-case concurrent holdout covering sibling read denial, sibling write/traversal denial, absolute-path denial, distinct workspace roots, and same-lane workspace containment. Six independent lanes execute concurrently under bounded `SafeParallelExecutor` scheduling; each result is evaluated by stable case ID and workspace identity. This expands local evidence for simultaneous active delegated work products without claiming operating-system process isolation. Native Windows/macOS and broader external lanes remain `NOT_RUN / ENVIRONMENT-GATED`.
+
+### Durable long-context reuse trajectories
+
+Gate 5 now includes `run_durable_long_context_stress()`, a stdlib-only deterministic runner that repeats bounded long-context baseline/next-generation evaluations, persists one trace trajectory per repetition in SQLite/WAL, and returns byte-stable baseline and next-generation distributions with a SHA-256 distribution digest. Reopening the same trace store and repeating the bounded fixture reproduces the same distribution digest. This is local quality evidence, not an external model benchmark or a claim of general intelligence.
