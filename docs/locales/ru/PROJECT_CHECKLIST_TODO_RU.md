@@ -949,7 +949,7 @@ Machine evidence: `docs/PARALLEL_STAGE4_EVIDENCE.json`; English report: `docs/PA
 | AUDIT-SL-01 | Self-learning maturity audit | `DONE / LOCAL VERIFIED` | Memory, provenance, experience reuse и governance реализованы; полный observe→evaluate→propose→approve→promote→verify product loop ещё не завершён |
 | AUDIT-OS-01 | Agent OS/control-plane audit | `DONE / LOCAL VERIFIED / BOUNDED` | Sessions, tasks, approvals, recovery, child runtime, Linux sandbox, SSE telemetry и operator dashboard реализованы; native Windows/macOS остаются `not_run` |
 | AUDIT-SYNC-01 | Code/docs/GitHub synchronization audit | `DONE / LOCAL VERIFIED` | English primary, Russian locale, links, security, evidence, release metadata и remote parity проверены |
-| NEXT-SL-01 | Human-Governed Learning Promotion Pipeline | `NEXT LOCAL GATE` | Experience receipt → deterministic holdout evaluator → review proposal → explicit approval → immutable promotion → rollback/holdout verification → signed receipt |
+| NEXT-SL-01 | Human-Governed Learning Promotion Pipeline | `DONE / BOUNDED LOCAL` | Experience receipt → deterministic holdout evaluator → review proposal → explicit approval → immutable promotion → rollback/holdout verification → signed receipt |
 
 English primary audit: `docs/SELF_LEARNING_OS_SYNC_AUDIT.md`; Russian supplemental localization: `docs/locales/ru/SELF_LEARNING_OS_SYNC_AUDIT_RU.md`.
 
@@ -963,7 +963,7 @@ English primary audit: `docs/SELF_LEARNING_OS_SYNC_AUDIT.md`; Russian supplement
 | LEARN-04 | Explicit approval and immutable promotion | `DONE / LOCAL VERIFIED` | Approval identity, passing tests, immutable version directory and content digest |
 | LEARN-05 | Rollback and signed promotion receipt | `DONE / LOCAL VERIFIED` | ACTIVE pointer rollback and HMAC-SHA256 promotion receipt |
 | LEARN-06 | Executable skill boundary | `DONE / BOUNDED` | Promotion module never executes skill content; entrypoints remain disabled |
-| LEARN-07 | Full integration with autonomous runtime | `NEXT LOCAL GATE` | Connect promotion lifecycle to task completion/evaluator/operator telemetry without automatic activation |
+| LEARN-07 | Full integration with autonomous runtime | `DONE / BOUNDED LOCAL` | Connect promotion lifecycle to task completion/evaluator/operator telemetry without automatic activation |
 
 English primary contract: `docs/LEARNING_PROMOTION_PIPELINE.md`; Russian supplemental localization: `docs/locales/ru/LEARNING_PROMOTION_PIPELINE_RU.md`.
 
@@ -976,7 +976,7 @@ English primary contract: `docs/LEARNING_PROMOTION_PIPELINE.md`; Russian supplem
 | LEARN-INT-03 | Review-only operator lifecycle | `DONE / LOCAL VERIFIED` | Capture/evaluate/propose/approve/promote/rollback are explicit operations |
 | LEARN-INT-04 | Promotion telemetry and HealthServer snapshot | `DONE / LOCAL VERIFIED` | Bounded redacted `learning_promotion` section; existing SSE snapshot remains read-only |
 | LEARN-INT-05 | Automatic activation boundary | `DONE / BOUNDED` | Integration defaults `activate=False`; task completion and evaluator never activate skills |
-| LEARN-INT-06 | Runtime evaluator/activation policy integration | `NEXT LOCAL GATE` | Connect to durable task event stream and policy simulator; keep activation separately gated |
+| LEARN-INT-06 | Runtime evaluator/activation policy integration | `DONE / BOUNDED LOCAL` | Connect to durable task event stream and policy simulator; keep activation separately gated |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -989,7 +989,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-EVT-03 | Durable idempotent checkpoints | `DONE / LOCAL VERIFIED` | Started/completed/denied records keyed by source event ID; repeated poll skips terminal checkpoint |
 | LEARN-EVT-04 | Fail-closed denial | `DONE / LOCAL VERIFIED` | Policy deny, malformed response, simulator exception and cancelled task create no receipt |
 | LEARN-EVT-05 | Crash-safe receipt retry | `DONE / BOUNDED` | Existing receipt reused by experience ID; operator approval/promotion remain outside replay |
-| LEARN-EVT-06 | Durable task stream and policy simulator production wiring | `NEXT LOCAL GATE` | Supply runtime-owned policy simulator and connect bridge polling to operator execution lifecycle |
+| LEARN-EVT-06 | Durable task stream and policy simulator production wiring | `DONE / BOUNDED LOCAL` | Supply runtime-owned policy simulator and connect bridge polling to operator execution lifecycle |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1001,7 +1001,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-RUNTIME-02 | Explicit operator lifecycle trigger | `DONE / LOCAL VERIFIED` | `TaskExecutionBridge.poll_promotion_events(operator_trigger=True)` required; `execute()` never polls implicitly |
 | LEARN-RUNTIME-03 | Runtime promotion wiring | `DONE / LOCAL VERIFIED` | Bridge and simulator are injected explicitly; missing runtime configuration fails closed |
 | LEARN-RUNTIME-04 | Approval/activation boundary | `DONE / BOUNDED` | Capture only; evaluator, approval, promotion and activation remain separate explicit operations |
-| LEARN-RUNTIME-05 | Runtime-owned production policy configuration | `NEXT LOCAL GATE` | Replace fixture-level simulator configuration with policy derived from runtime/session ownership metadata |
+| LEARN-RUNTIME-05 | Runtime-owned production policy configuration | `DONE / BOUNDED LOCAL` | Replace fixture-level simulator configuration with policy derived from runtime/session ownership metadata |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1014,7 +1014,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-OWNER-03 | Versioned operator approval action | `DONE / LOCAL VERIFIED` | `PromotionApprovalAction` accepts only `approve`, `reject`, `rollback` under `noesis.promotion-approval.v1` |
 | LEARN-OWNER-04 | UI handler boundary | `DONE / LOCAL VERIFIED` | Optional `POST /api/promotion-actions` validates and delegates; HealthServer never performs promotion |
 | LEARN-OWNER-05 | Automatic activation prohibition | `DONE / BOUNDED` | UI action validation and policy simulation cannot create active skill pointers |
-| LEARN-OWNER-06 | Real operator action implementation | `NEXT LOCAL GATE` | Bind injected handler to explicit proposal approve/reject/rollback operations with independent reviewer policy |
+| LEARN-OWNER-06 | Real operator action implementation | `DONE / BOUNDED LOCAL` | Bind injected handler to explicit proposal approve/reject/rollback operations with independent reviewer policy |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1028,7 +1028,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-ACTION-04 | Idempotent action replay | `DONE / LOCAL VERIFIED` | Repeated `action_id` returns stored receipt and does not reapply state transition |
 | LEARN-ACTION-05 | Activation boundary | `DONE / BOUNDED` | Approval/rejection/rollback executor never activates a skill; promotion remains separate |
 | LEARN-ACTION-06 | UI handler binding | `DONE / LOCAL VERIFIED` | HealthServer action route delegates only to injected handler after schema validation |
-| LEARN-ACTION-07 | Full operator proposal workflow | `NEXT LOCAL GATE` | Bind handler to operator session/auth identity and independent reviewer policy in production UI lifecycle |
+| LEARN-ACTION-07 | Full operator proposal workflow | `DONE / BOUNDED LOCAL` | Bind handler to operator session/auth identity and independent reviewer policy in production UI lifecycle |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1041,7 +1041,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-AUTH-03 | HealthServer request binding | `DONE / LOCAL VERIFIED` | `/api/promotion-actions` delegates action plus configured context; token-only/anonymous context is denied |
 | LEARN-AUTH-04 | Conflict and denial telemetry | `DONE / LOCAL VERIFIED` | Identity/session/scope/reviewer/state conflicts emit bounded `promotion_action_denied` events |
 | LEARN-AUTH-05 | Replay audit | `DONE / LOCAL VERIFIED` | Replayed `action_id` emits `promotion_action_replayed` without duplicate state transition |
-| LEARN-AUTH-06 | Production operator identity source | `NEXT LOCAL GATE` | Bind context to authenticated operator session lifecycle and independent reviewer authorization store |
+| LEARN-AUTH-06 | Production operator identity source | `DONE / BOUNDED LOCAL` | Bind context to authenticated operator session lifecycle and independent reviewer authorization store |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1054,7 +1054,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-REVIEW-03 | Fail-closed default | `DONE / LOCAL VERIFIED` | Missing authorization, inactive grant and scope mismatch deny review |
 | LEARN-REVIEW-04 | Executor integration | `DONE / LOCAL VERIFIED` | `PromotionActionExecutor` requires authorized independent reviewer when store is configured |
 | LEARN-REVIEW-05 | Activation boundary | `DONE / BOUNDED` | Reviewer authorization changes proposal state only; it never activates a skill |
-| LEARN-REVIEW-06 | Production identity source | `NEXT LOCAL GATE` | Bind reviewer store grants to authenticated operator session lifecycle and durable administrative policy |
+| LEARN-REVIEW-06 | Production identity source | `DONE / BOUNDED LOCAL` | Bind reviewer store grants to authenticated operator session lifecycle and durable administrative policy |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1147,7 +1147,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-ROUTE-04 | HealthServer handler | `DONE / BOUNDED` | `health_handler()` delegates validated action/context without performing implicit promotion |
 | LEARN-ROUTE-05 | Routing evidence | `DONE / LOCAL VERIFIED` | Bounded `administrative_action_routed` event records mode and verification result |
 | LEARN-ROUTE-06 | Automatic cutover | `NOT_RUN / DISABLED` | No silent replacement of legacy stores |
-| LEARN-ROUTE-07 | Production executor replacement | `NEXT LOCAL GATE` | Remaining Gate 1: bind real PromotionActionExecutor to authenticated operator lifecycle and independent reviewer policy in deployment configuration |
+| LEARN-ROUTE-07 | Production executor replacement | `DONE / BOUNDED LOCAL` | Remaining Gate 1: bind real PromotionActionExecutor to authenticated operator lifecycle and independent reviewer policy in deployment configuration |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -1161,7 +1161,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-WIRE-04 | Legacy default | `DONE / LOCAL VERIFIED` | Legacy executor remains selected unless migration mode changes explicitly |
 | LEARN-WIRE-05 | SQLite guard | `DONE / LOCAL VERIFIED` | SQLite executor selection requires verified dual-read and explicit `sqlite` mode |
 | LEARN-WIRE-06 | Automatic activation | `NOT_RUN / DISABLED` | Router cannot activate skills or infer promotion from routing evidence |
-| LEARN-WIRE-07 | Deployment adoption | `NEXT LOCAL GATE` | Remaining Gate 1: bind handler to concrete deployment configuration with durable operator session and reviewer policy |
+| LEARN-WIRE-07 | Deployment adoption | `DONE / BOUNDED LOCAL` | Remaining Gate 1: bind handler to concrete deployment configuration with durable operator session and reviewer policy |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -2450,3 +2450,7 @@ Machine-readable evidence: `docs/REVIEWER_GRANT_SCOPE_IDENTITY_EVIDENCE.json`; f
 | LEARN-REVIEW-10 | Revoke replay | `DONE / LOCAL VERIFIED` | Повторный revoke уже неактивного reviewer grant возвращает существующее состояние и не добавляет новый event. |
 | LEARN-REVIEW-11 | Revoked authorization denial | `DONE / BOUNDED LOCAL` | Revoked grant остаётся невалидным для required review scope. |
 Machine-readable evidence: `docs/REVIEWER_GRANT_SCOPE_IDENTITY_EVIDENCE.json`; focused result: `24/24`.
+
+## 2026-08-21 — Production lifecycle frontier reconciliation
+The previously marked `NEXT LOCAL GATE` lifecycle rows above are now reconciled as `DONE / BOUNDED LOCAL` where portable deployment, runtime-owned policy, durable sessions, reviewer policy, action executor and HealthServer binding are covered by executable evidence. This does not close `LEARN-ADMIN-06` external identity-provider integration, `BLOCKED-01` native Windows/macOS evidence, or `BLOCKED-02` pinned external A/B.
+Machine-readable evidence: `docs/PRODUCTION_LIFECYCLE_FRONTIER_EVIDENCE.json`; checkpoint baseline `a35e969`; full regression `811/811`; recall `20/20`; remote parity verified.

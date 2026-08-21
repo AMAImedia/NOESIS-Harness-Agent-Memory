@@ -1,0 +1,37 @@
+{
+  "schema_version": "noesis.production-lifecycle-frontier-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_portable_production_lifecycle",
+  "runtime": "CPython 3.14.7",
+  "closed_local_gates": [
+    "LEARN-07",
+    "LEARN-INT-06",
+    "LEARN-EVT-06",
+    "LEARN-RUNTIME-05",
+    "LEARN-OWNER-06",
+    "LEARN-ACTION-07",
+    "LEARN-AUTH-06",
+    "LEARN-REVIEW-06",
+    "LEARN-ROUTE-07",
+    "LEARN-WIRE-07"
+  ],
+  "acceptance": {
+    "task_event_bridge_is_runtime_owned": true,
+    "ownership_policy_uses_task_session_metadata": true,
+    "operator_action_executor_is_session_bound": true,
+    "reviewer_policy_is_durable_and_independent": true,
+    "portable_health_server_handlers_are_bound": true,
+    "automatic_activation": false
+  },
+  "validation": {
+    "full_suite_passed": 811,
+    "recall_cases": 20,
+    "recall_accuracy": 1.0,
+    "resource_warning_policy": "error",
+    "release_audit_clean": true,
+    "remote_parity": true
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "This closes bounded-local lifecycle wiring only. External identity-provider integration, native Windows/macOS evidence, and pinned external A/B remain environment-gated."
+}
