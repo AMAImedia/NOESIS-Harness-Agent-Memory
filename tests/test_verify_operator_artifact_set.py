@@ -64,6 +64,20 @@ class VerifyOperatorArtifactSetTests(unittest.TestCase):
             self.assertEqual(result["status"], "blocked")
             self.assertEqual(result["checks"]["readiness_matrix"]["reason"], "readiness_matrix_not_passed")
 
+    def test_passed_readiness_execution_claim_blocks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root, _ = self.build_set(Path(directory), with_report=False)
+            matrix_path = artifact_root / "external-evidence-readiness.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["native_or_external_execution_claim"] = True
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            original_manifest = json.loads((artifact_root / "artifact-manifest.json").read_text(encoding="utf-8"))
+            refreshed = build_inventory(artifact_root, [matrix_path, artifact_root / "signed-external-evidence-aggregate.json"], KEY, original_manifest["provenance"])
+            (artifact_root / "artifact-manifest.json").write_text(json.dumps(refreshed), encoding="utf-8")
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["checks"]["readiness_matrix"]["reason"], "readiness_matrix_not_passed")
+
     def test_tampering_inventory_listed_file_blocks(self):
         with tempfile.TemporaryDirectory() as directory:
             artifact_root, _ = self.build_set(Path(directory), with_report=False)

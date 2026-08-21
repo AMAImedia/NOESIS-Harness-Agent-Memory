@@ -149,3 +149,7 @@ The declarative metadata translator now defaults omitted `enabled` to false. Tra
 ### Operator artifact readiness-status binding
 
 Operator artifact-set verification now requires the external readiness artifact to have the expected schema, `overall_status=passed`, and `comparative_ready=true`. A schema-valid `not_run` or blocked matrix is denied before aggregate and signed-result acceptance, preventing readiness status drift from being treated as a successful transfer.
+
+### Execution-claim denial in operator readiness artifacts
+
+Operator artifact-set verification now requires `native_or_external_execution_claim=false` in addition to passed readiness status and comparative readiness. A tampered passed matrix that claims native or external execution is blocked before aggregate acceptance; evidence projection remains distinct from actual execution.

@@ -2291,3 +2291,10 @@ Focused metadata/adapter result: `16/16` tests; full suite: `799/799` passed wit
 | CHILD-373 | Readiness status acceptance | `DONE / BOUNDED LOCAL` | Operator artifact verifier принимает readiness только при schema + `overall_status=passed` + `comparative_ready=true`. |
 | CHILD-374 | External readiness execution | `NOT_RUN / ENVIRONMENT-GATED` | Status-binding denial не является pinned external A/B execution. |
 Focused operator artifact result: `12/12` tests; full suite: `800/800` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Operator execution-claim denial checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-375 | Readiness execution-claim boundary | `DONE / BOUNDED LOCAL` | Operator artifact verifier блокирует passed matrix с `native_or_external_execution_claim=true`. |
+| CHILD-376 | Native/external execution | `NOT_RUN / ENVIRONMENT-GATED` | Claim-denial fixture не является фактическим native Windows/macOS или external A/B execution. |
+Focused operator artifact result: `13/13` tests; full suite: `801/801` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

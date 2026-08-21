@@ -148,3 +148,7 @@ Declarative metadata translator теперь использует `false` по �
 ### Binding operator artifact readiness status
 
 Operator artifact-set verification теперь требует expected schema, `overall_status=passed` и `comparative_ready=true` для external readiness artifact. Schema-valid `not_run` или blocked matrix отклоняется до aggregate и signed-result acceptance, поэтому status drift не считается успешным transfer.
+
+### Denial execution claim в operator readiness artifacts
+
+Operator artifact-set verification теперь требует `native_or_external_execution_claim=false` вместе с passed readiness и comparative readiness. Tampered passed matrix с native/external execution claim блокируется до aggregate acceptance; evidence projection остаётся отдельной от фактического execution.

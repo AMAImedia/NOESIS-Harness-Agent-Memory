@@ -55,7 +55,7 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
             return {"schema_version": SCHEMA, "status": "blocked", "reason": "required_artifact_missing", "checks": checks, "automatic_execution": False}
         matrix = _read(matrix_path)
         aggregate = _read(aggregate_path)
-        readiness_valid = matrix.get("schema_version") == "noesis.external-evidence-readiness.v1" and matrix.get("overall_status") == "passed" and matrix.get("comparative_ready") is True
+        readiness_valid = (matrix.get("schema_version") == "noesis.external-evidence-readiness.v1" and matrix.get("overall_status") == "passed" and matrix.get("comparative_ready") is True and matrix.get("native_or_external_execution_claim") is False)
         checks["readiness_matrix"] = {"status": "passed" if readiness_valid else "blocked", "reason": None if readiness_valid else "readiness_matrix_not_passed"}
         checks["aggregate"] = verify_aggregate(aggregate, key)
         if checks["readiness_matrix"]["status"] != "passed" or checks["aggregate"].get("status") != "passed":
