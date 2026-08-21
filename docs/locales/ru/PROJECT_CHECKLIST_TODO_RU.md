@@ -2005,3 +2005,16 @@ Focused readiness result: `79/79` execution-recovery tests passed with Python 3.
 | CHILD-283 | Native/external signed telemetry | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external signed readiness lanes не запускались. |
 
 Focused signed-readiness result: `80/80` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 readiness cross-artifact binding checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-284 | Generation binding | `DONE / BOUNDED LOCAL` | Signed readiness связывает `generation_id` и `generation_digest` с current generation receipt. |
+| CHILD-285 | Unified chain root | `DONE / BOUNDED LOCAL` | `chain_root_digest` и `event_chain_digest` обязаны совпадать с generation receipt root. |
+| CHILD-286 | Cross-generation denial | `DONE / BOUNDED LOCAL` | Foreign generation/completeness/root substitution fail-closed как readiness drift. |
+| CHILD-287 | Fresh-process acceptance | `DONE / BOUNDED LOCAL` | Новый executor принимает bound snapshot без regeneration evidence. |
+| CHILD-288 | Native/external binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external generation-binding lanes не запускались. |
+
+Focused cross-binding result: `81/81` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

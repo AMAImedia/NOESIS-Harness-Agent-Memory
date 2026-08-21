@@ -1136,6 +1136,12 @@ class ExecutionRecoveryExecutor:
     def _persist_replay_chain_readiness_snapshot(self) -> Mapping[str, Any]:
         audit = self.audit_replay_chain_readiness()
         payload = {key: value for key, value in audit.items() if key not in {"readiness_snapshot", "signature"}}
+        generation = self.verify_replay_generation_receipt()["payload"]
+        payload["generation_id"] = generation["generation_id"]
+        payload["generation_digest"] = generation["generation_digest"]
+        payload["event_chain_digest"] = generation["event_chain_digest"]
+        payload["completeness_digest"] = generation["completeness_digest"]
+        payload["chain_root_digest"] = generation["event_chain_digest"]
         payload["finalization_sha256"] = self._sha256_file(self._replay_finalization_path())
         payload["readiness_digest"] = request_fingerprint({key: value for key, value in payload.items() if key != "readiness_digest"})
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
@@ -1154,6 +1160,12 @@ class ExecutionRecoveryExecutor:
         if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
             raise ExecutionRecoveryError("recovery_repair_readiness_snapshot_signature_invalid")
         expected = {key: value for key, value in current.items() if key not in {"readiness_snapshot", "signature"}}
+        generation = self.verify_replay_generation_receipt()["payload"]
+        expected["generation_id"] = generation["generation_id"]
+        expected["generation_digest"] = generation["generation_digest"]
+        expected["event_chain_digest"] = generation["event_chain_digest"]
+        expected["completeness_digest"] = generation["completeness_digest"]
+        expected["chain_root_digest"] = generation["event_chain_digest"]
         expected["finalization_sha256"] = self._sha256_file(self._replay_finalization_path())
         expected["readiness_digest"] = request_fingerprint(expected)
         if set(payload) != set(expected) or any(payload.get(key) != value for key, value in expected.items()) or payload.get("readiness_digest") != request_fingerprint({key: value for key, value in payload.items() if key != "readiness_digest"}) or not self._is_readonly(self._replay_repair_readiness_path()):

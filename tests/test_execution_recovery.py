@@ -318,6 +318,34 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_readiness_snapshot_drift"):
             executor.verify_replay_evidence_readiness(require_finalized=True)
 
+    def test_readiness_snapshot_binds_generation_and_fresh_process_accepts(self):
+        event_path = str(Path(self.tmp.name) / "readiness-generation-binding-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-generation-binding")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        snapshot = executor.audit_replay_chain_readiness()
+        payload = snapshot["readiness_snapshot"]["payload"]
+        generation = executor.verify_replay_generation_receipt()["payload"]
+        self.assertEqual(payload["generation_id"], generation["generation_id"])
+        self.assertEqual(payload["generation_digest"], generation["generation_digest"])
+        self.assertEqual(payload["event_chain_digest"], generation["event_chain_digest"])
+        self.assertEqual(payload["chain_root_digest"], generation["event_chain_digest"])
+        fresh = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        self.assertEqual(fresh.audit_replay_chain_readiness()["status"], "passed")
+        readiness_path = Path(executor._replay_repair_readiness_path())
+        tampered = json.loads(readiness_path.read_text(encoding="utf-8"))
+        tampered["payload"]["generation_digest"] = "foreign-generation"
+        tampered["payload"]["readiness_digest"] = request_fingerprint({key: value for key, value in tampered["payload"].items() if key != "readiness_digest"})
+        tampered["signature"] = _snapshot_signature(tampered["payload"], self.key)
+        os.chmod(readiness_path, os.stat(readiness_path).st_mode | 0o200)
+        readiness_path.write_text(json.dumps(tampered, sort_keys=True), encoding="utf-8")
+        os.chmod(readiness_path, os.stat(readiness_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_readiness_snapshot_drift"):
+            fresh.verify_replay_evidence_readiness(require_finalized=True)
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
