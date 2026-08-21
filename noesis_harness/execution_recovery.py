@@ -489,6 +489,9 @@ class ExecutionRecoveryExecutor:
     def _replay_manifest_binding_receipt_path(self) -> str:
         return str(self.events.path) + ".replay-manifest-readiness-binding.json"
 
+    def _replay_manifest_binding_chain_path(self) -> str:
+        return str(self.events.path) + ".replay-manifest-readiness-binding-chain.jsonl"
+
     def _assert_generation_mutable(self) -> None:
         if os.path.exists(self._replay_finalization_path()):
             raise ExecutionRecoveryError("recovery_replay_finalization_immutable")
@@ -987,7 +990,7 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path(), self._replay_repair_readiness_path(), self._replay_finalized_inventory_path(), self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path(), self._replay_inventory_verification_readiness_path(), self._replay_manifest_binding_receipt_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path(), self._replay_repair_readiness_path(), self._replay_finalized_inventory_path(), self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path(), self._replay_inventory_verification_readiness_path(), self._replay_manifest_binding_receipt_path(), self._replay_manifest_binding_chain_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
@@ -1235,7 +1238,62 @@ class ExecutionRecoveryExecutor:
         snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
         _atomic_write_json(self._replay_manifest_binding_receipt_path(), snapshot)
         self._make_readonly((self._replay_manifest_binding_receipt_path(),))
+        self._append_manifest_binding_run(snapshot)
         return snapshot
+
+    def _read_manifest_binding_chain(self) -> list[Mapping[str, Any]]:
+        path = self._replay_manifest_binding_chain_path()
+        if not os.path.exists(path):
+            return []
+        if os.path.islink(path) or not os.path.isfile(path) or os.stat(path).st_nlink != 1:
+            raise ExecutionRecoveryError("recovery_manifest_binding_chain_file_identity")
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                entries = [json.loads(line, object_pairs_hook=_reject_duplicate_json_keys) for line in handle if line.strip()]
+        except _DuplicateJSONKeyError as exc:
+            raise ExecutionRecoveryError("recovery_manifest_binding_chain_duplicate_record") from exc
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_manifest_binding_chain_partial_record") from exc
+        previous = "genesis"
+        for expected_id, entry in enumerate(entries, 1):
+            if not isinstance(entry, Mapping) or int(entry.get("binding_run_id", 0)) != expected_id or entry.get("previous_binding_digest") != previous:
+                raise ExecutionRecoveryError("recovery_manifest_binding_chain_reordered")
+            event_digest = request_fingerprint({key: value for key, value in entry.items() if key not in {"binding_event_digest", "binding_run_digest", "signature"}})
+            if entry.get("binding_event_digest") != event_digest or entry.get("binding_run_digest") != request_fingerprint({key: value for key, value in entry.items() if key not in {"binding_run_digest", "signature"}}):
+                raise ExecutionRecoveryError("recovery_manifest_binding_chain_digest_fork")
+            if not hmac.compare_digest(str(entry.get("signature", "")), _snapshot_signature({key: value for key, value in entry.items() if key != "signature"}, self.receipt_store.signing_key)):
+                raise ExecutionRecoveryError("recovery_manifest_binding_chain_signature_invalid")
+            previous = str(entry["binding_run_digest"])
+        return [dict(entry) for entry in entries]
+
+    def _append_manifest_binding_run(self, receipt_snapshot: Mapping[str, Any]) -> Mapping[str, Any]:
+        path = self._replay_manifest_binding_chain_path()
+        entries = self._read_manifest_binding_chain()
+        if os.path.exists(path) and self._is_readonly(path):
+            self._make_writable((path,))
+        payload = receipt_snapshot["payload"]
+        run = {"schema_version": "noesis.recovery-replay-manifest-readiness-binding-run.v1", "status": "passed", "event_path": str(self.events.path), "binding_run_id": len(entries) + 1, "previous_binding_digest": str(entries[-1]["binding_run_digest"]) if entries else "genesis", "binding_digest": payload["binding_digest"], "receipt_signature": receipt_snapshot["signature"], "inventory_digest": payload["inventory_digest"], "chain_root_digest": payload["chain_root_digest"], "binding_chain_path": path}
+        run["binding_event_digest"] = request_fingerprint(run)
+        run["binding_run_digest"] = request_fingerprint({key: value for key, value in run.items() if key != "binding_run_digest"})
+        run["signature"] = _snapshot_signature(run, self.receipt_store.signing_key)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(run, sort_keys=True, separators=(",", ":")) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        self._make_readonly((path,))
+        return run
+
+    def verify_manifest_binding_chain(self) -> Mapping[str, Any]:
+        entries = self._read_manifest_binding_chain()
+        if not entries:
+            raise ExecutionRecoveryError("recovery_manifest_binding_chain_missing")
+        if not self._is_readonly(self._replay_manifest_binding_chain_path()):
+            raise ExecutionRecoveryError("recovery_manifest_binding_chain_not_immutable")
+        receipt = self.verify_manifest_binding_receipt()
+        tip = entries[-1]
+        if tip.get("binding_digest") != receipt["payload"].get("binding_digest") or tip.get("receipt_signature") != receipt.get("signature"):
+            raise ExecutionRecoveryError("recovery_manifest_binding_chain_stale")
+        return {"status": "passed", "run_count": len(entries), "tip_digest": tip["binding_run_digest"], "entries": entries}
 
     def verify_manifest_binding_receipt(self) -> Mapping[str, Any]:
         try:
@@ -1496,7 +1554,10 @@ class ExecutionRecoveryExecutor:
         manifest_binding = None
         if os.path.exists(self._replay_manifest_binding_receipt_path()):
             manifest_binding = self.verify_manifest_binding_receipt()
-        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness, "verification_chain_readiness_snapshot": verification_chain_readiness_snapshot, "manifest_binding": manifest_binding}
+        manifest_binding_chain = None
+        if os.path.exists(self._replay_manifest_binding_chain_path()):
+            manifest_binding_chain = self.verify_manifest_binding_chain()
+        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness, "verification_chain_readiness_snapshot": verification_chain_readiness_snapshot, "manifest_binding": manifest_binding, "manifest_binding_chain": manifest_binding_chain}
 
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)

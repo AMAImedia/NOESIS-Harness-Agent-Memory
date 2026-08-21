@@ -2103,3 +2103,15 @@ Focused final-manifest binding result: `87/87` execution-recovery tests passed w
 | CHILD-317 | Native/external receipt lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external receipt verification lanes не запускались. |
 
 Focused manifest-binding receipt result: `88/88` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 monotonic manifest-binding provenance checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-318 | Binding-run chain | `DONE / BOUNDED LOCAL` | Canonical JSONL `noesis.recovery-replay-manifest-readiness-binding-run.v1` с monotonic run IDs. |
+| CHILD-319 | Chain binding | `DONE / BOUNDED LOCAL` | Runs связывают binding digest, receipt signature, inventory/root digests и previous run digest. |
+| CHILD-320 | Replay denial | `DONE / BOUNDED LOCAL` | Missing links, reorder, digest fork, invalid signature, writable/aliased chain и stale receipt fail-closed. |
+| CHILD-321 | Native/external provenance lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external binding-run lanes не запускались. |
+
+Focused manifest-binding chain result: `89/89` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

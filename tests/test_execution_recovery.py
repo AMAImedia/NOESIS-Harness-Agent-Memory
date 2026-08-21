@@ -514,6 +514,26 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_manifest_binding_receipt_drift"):
             executor.verify_manifest_binding_receipt()
 
+    def test_manifest_binding_chain_rejects_reorder_and_foreign_receipt(self):
+        event_path = str(Path(self.tmp.name) / "manifest-binding-chain-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-manifest-binding-chain")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        finalization_path = Path(executor._replay_finalization_path())
+        os.chmod(finalization_path, os.stat(finalization_path).st_mode | 0o200)
+        executor.repair_replay_evidence_finalization()
+        self.assertEqual(executor.verify_manifest_binding_chain()["run_count"], 2)
+        chain_path = Path(executor._replay_manifest_binding_chain_path())
+        lines = chain_path.read_text(encoding="utf-8").splitlines()
+        os.chmod(chain_path, os.stat(chain_path).st_mode | 0o200)
+        chain_path.write_text("\n".join(reversed(lines)) + "\n", encoding="utf-8")
+        os.chmod(chain_path, os.stat(chain_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_manifest_binding_chain_reordered"):
+            executor.verify_manifest_binding_chain()
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
