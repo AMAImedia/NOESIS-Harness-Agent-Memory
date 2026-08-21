@@ -1330,11 +1330,42 @@ class ExecutionRecoveryExecutor:
                 result["status"] = "corrupt"
                 result["error"] = str(exc)
         return result
+    def audit_inventory_verification_chain_readiness(self) -> Mapping[str, Any]:
+        path = self._replay_inventory_verification_chain_path()
+        if not os.path.exists(path):
+            return {"schema_version": "noesis.recovery-replay-inventory-verification-chain-readiness.v1", "status": "missing", "path": path, "run_count": 0, "readonly": False}
+        try:
+            entries = self._read_inventory_verification_chain()
+        except ExecutionRecoveryError as exc:
+            reason = str(exc)
+            if reason == "recovery_inventory_verification_chain_order_invalid":
+                status = "reordered"
+            elif reason == "recovery_inventory_verification_chain_partial_record":
+                status = "partial"
+            elif reason == "recovery_inventory_verification_chain_file_identity":
+                status = "corrupt"
+            else:
+                status = "corrupt"
+            return {"schema_version": "noesis.recovery-replay-inventory-verification-chain-readiness.v1", "status": status, "path": path, "run_count": 0, "readonly": self._is_readonly(path), "error": reason}
+        readonly = self._is_readonly(path)
+        status = "passed" if entries and readonly else "partial"
+        try:
+            receipt = self.verify_inventory_verification_receipt()["payload"]
+            if entries and (entries[-1].get("inventory_digest") != receipt.get("inventory_digest") or entries[-1].get("verification_digest") != receipt.get("verification_digest")):
+                raise ExecutionRecoveryError("recovery_inventory_verification_chain_drift")
+        except ExecutionRecoveryError as exc:
+            status = "corrupt"
+            return {"schema_version": "noesis.recovery-replay-inventory-verification-chain-readiness.v1", "status": status, "path": path, "run_count": len(entries), "readonly": readonly, "error": str(exc), "tip_digest": str(entries[-1].get("verification_run_digest", "")) if entries else ""}
+        return {"schema_version": "noesis.recovery-replay-inventory-verification-chain-readiness.v1", "status": status, "path": path, "run_count": len(entries), "readonly": readonly, "run_ids": [int(entry["run_id"]) for entry in entries], "tip_digest": str(entries[-1]["verification_run_digest"]) if entries else ""}
+
     def verify_replay_evidence_readiness(self, *, require_finalized: bool = False) -> Mapping[str, Any]:
         """Verify startup replay evidence and optionally require immutable finalization."""
         repair_chain = self.audit_replay_chain_readiness()
-        if repair_chain.get("status") == "corrupt" and os.path.exists(self._replay_repair_readiness_path()):
-            raise ExecutionRecoveryError(str(repair_chain.get("error", "recovery_replay_readiness_snapshot_drift")))
+        if repair_chain.get("status") in {"corrupt", "partial", "reordered"} and repair_chain.get("error"):
+            raise ExecutionRecoveryError(str(repair_chain["error"]))
+        verification_chain_readiness = self.audit_inventory_verification_chain_readiness()
+        if verification_chain_readiness.get("status") == "corrupt" and os.path.exists(self._replay_inventory_verification_chain_path()):
+            raise ExecutionRecoveryError(str(verification_chain_readiness.get("error", "recovery_inventory_verification_chain_drift")))
         completeness = self.audit_replay_evidence_completeness(require_durable_snapshot=True)
         finalization = None
         finalized = os.path.exists(self._replay_finalization_path())
@@ -1351,7 +1382,7 @@ class ExecutionRecoveryExecutor:
             verification = self.verify_inventory_verification_receipt()
         if os.path.exists(self._replay_inventory_verification_chain_path()):
             verification_chain = self.verify_inventory_verification_chain()
-        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain}
+        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness}
 
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)

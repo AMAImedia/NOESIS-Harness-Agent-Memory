@@ -2055,3 +2055,15 @@ Focused verification-receipt result: `83/83` execution-recovery tests passed wit
 | CHILD-301 | Native/external run history | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external verification-run lanes не запускались. |
 
 Focused verification-run result: `84/84` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 verification-run readiness checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-302 | Run-chain readiness | `DONE / BOUNDED LOCAL` | Audit `noesis.recovery-replay-inventory-verification-chain-readiness.v1` с observable states. |
+| CHILD-303 | State coverage | `DONE / BOUNDED LOCAL` | Поддержаны `missing`, `partial`, `reordered`, `corrupt`, `immutable` и `passed`. |
+| CHILD-304 | Fresh startup | `DONE / BOUNDED LOCAL` | Новый executor fail-closed на invalid chain и принимает только verified immutable chain. |
+| CHILD-305 | Native/external readiness audit | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external verification-run readiness lanes не запускались. |
+
+Focused verification-run readiness result: `85/85` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
