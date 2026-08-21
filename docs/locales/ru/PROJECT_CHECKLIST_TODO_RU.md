@@ -2018,3 +2018,16 @@ Focused signed-readiness result: `80/80` execution-recovery tests passed with Py
 | CHILD-288 | Native/external binding | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external generation-binding lanes не запускались. |
 
 Focused cross-binding result: `81/81` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 finalized-evidence inventory checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-289 | Immutable inventory | `DONE / BOUNDED LOCAL` | Signed `noesis.recovery-replay-finalized-inventory.v1` inventory для finalized bundle. |
+| CHILD-290 | Artifact coverage | `DONE / BOUNDED LOCAL` | Event chain, generation receipt, finalization, repair receipt, repair chain и readiness snapshot покрыты SHA-256 inventory. |
+| CHILD-291 | Inventory digest | `DONE / BOUNDED LOCAL` | `inventory_digest` связывает generation, completeness, chain root и repair tip. |
+| CHILD-292 | Orphan/substitution denial | `DONE / BOUNDED LOCAL` | Orphan sidecar и validly re-signed foreign inventory fail-closed. |
+| CHILD-293 | Native/external inventory | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external finalized-inventory lanes не запускались. |
+
+Focused finalized-inventory result: `82/82` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
