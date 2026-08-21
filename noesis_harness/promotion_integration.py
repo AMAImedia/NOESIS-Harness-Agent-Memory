@@ -317,8 +317,10 @@ class ReviewerAuthorizationStore:
     def grant(self, operator_id: str, session_id: str, scopes: Sequence[str] = ()) -> Mapping[str, Any]:
         if not operator_id or not session_id:
             raise ValueError("reviewer_identity_required")
-        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "scopes": sorted({str(item) for item in scopes}), "active": True}
-        self.events.append("reviewer_granted", payload, event_id="reviewer-grant:" + operator_id + ":" + session_id)
+        normalized_scopes = sorted({str(item) for item in scopes})
+        payload = {"operator_id": str(operator_id), "session_id": str(session_id), "scopes": normalized_scopes, "active": True}
+        scope_digest = hashlib.sha256(json.dumps(normalized_scopes, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
+        self.events.append("reviewer_granted", payload, event_id="reviewer-grant:" + operator_id + ":" + session_id + ":" + scope_digest)
         return payload
 
     def revoke(self, operator_id: str, session_id: str) -> Mapping[str, Any]:

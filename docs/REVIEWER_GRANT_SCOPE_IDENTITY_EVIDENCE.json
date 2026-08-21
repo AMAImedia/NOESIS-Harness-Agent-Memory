@@ -1,0 +1,22 @@
+{
+  "schema_version": "noesis.reviewer-grant-scope-identity-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_reviewer_authorization_store",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "normalized_duplicate_scope_replay_is_idempotent": true,
+    "scope_digest_binds_event_identity": true,
+    "deliberate_scope_update_persists": true,
+    "revoke_remains_append_only": true,
+    "missing_or_revoked_grant_denies": true
+  },
+  "focused_tests": {
+    "suite": "tests.test_promotion_integration",
+    "passed": 24,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "Reviewer grant scope identity is local-only and does not prove external identity-provider behavior."
+}

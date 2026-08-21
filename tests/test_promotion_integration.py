@@ -175,6 +175,15 @@ class PromotionIntegrationTests(unittest.TestCase):
         self.assertEqual(journal.status("mutation-2"), "aborted")
         self.assertEqual(journal.incomplete(), ())
 
+    def test_reviewer_grant_replay_binds_scope_identity(self):
+        store = ReviewerAuthorizationStore(tempfile.mktemp())
+        first = store.grant("reviewer-1", "session-1", ("promotion:review", "promotion:review"))
+        replay = store.grant("reviewer-1", "session-1", ("promotion:review",))
+        self.assertEqual(replay, first)
+        updated = store.grant("reviewer-1", "session-1", ("promotion:review", "admin:reviewers"))
+        self.assertNotEqual(updated["scopes"], first["scopes"])
+        self.assertEqual(store._records()[("reviewer-1", "session-1")]["scopes"], ["admin:reviewers", "promotion:review"])
+
     def test_administrative_policy_requires_reviewed_admin_context(self):
         now = [100.0]
         sessions = OperatorSessionRegistry(tempfile.mktemp(), clock=lambda: now[0])

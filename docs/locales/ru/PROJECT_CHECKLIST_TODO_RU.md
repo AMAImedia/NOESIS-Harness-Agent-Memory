@@ -2435,3 +2435,11 @@ Machine-readable evidence: `docs/SQLITE_MIGRATION_RECEIPT_REPLAY_EVIDENCE.json`;
 | LEARN-RUNTIME-06 | Ownership mismatch denial | `DONE / LOCAL VERIFIED` | Несовпадение event session, отсутствие authoritative owner и недопустимый derived scope отклоняются fail-closed. |
 | LEARN-RUNTIME-07 | External identity provider | `NOT_RUN / ENVIRONMENT-GATED` | Внешний identity provider не подключён и не имитируется локальным policy simulator. |
 Machine-readable evidence: `docs/RUNTIME_OWNED_POLICY_EVIDENCE.json`; focused result: `28/28`.
+
+## 2026-08-21 — Reviewer grant scope identity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-REVIEW-07 | Normalized grant replay | `DONE / LOCAL VERIFIED` | Повторный grant с теми же normalized scopes использует scope-bound event identity и не дублирует состояние. |
+| LEARN-REVIEW-08 | Deliberate scope update | `DONE / BOUNDED LOCAL` | Изменённый scope set получает отдельную durable grant event и становится текущим reviewer state. |
+| LEARN-REVIEW-09 | External identity provider | `NOT_RUN / ENVIRONMENT-GATED` | Локальный grant store не выдаётся за внешний identity integration. |
+Machine-readable evidence: `docs/REVIEWER_GRANT_SCOPE_IDENTITY_EVIDENCE.json`; focused result: `24/24`.
