@@ -129,6 +129,9 @@ class LearningPromotionTests(unittest.TestCase):
         self.assertEqual(len(versions), 1)
         self.assertTrue((versions[0] / "PROMOTION_RECEIPT.json").is_file())
         self.assertEqual(pipe.active_version("crash-safe-skill"), "")
+        self.assertEqual(pipe.durable_state.activation_journal(proposal.proposal_id)["status"], "prepared")
+        reopened = LearningPromotionPipeline(str(pipe.root), b"promotion-test-key-2026")
+        self.assertEqual(reopened.durable_state.activation_journal(proposal.proposal_id)["status"], "prepared")
 
     def test_immutable_promotion_signature_and_rollback(self):
         pipe = self.pipeline(); receipt = self.receipt(pipe)

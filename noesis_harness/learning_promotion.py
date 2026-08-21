@@ -133,6 +133,9 @@ class DurablePromotionState:
             CREATE TABLE IF NOT EXISTS promotion_previous_active (
                 skill_name TEXT PRIMARY KEY, version TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS promotion_activation_journal (
+                proposal_id TEXT PRIMARY KEY, record_json TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS evaluator_manifests (
                 version TEXT PRIMARY KEY, manifest_digest TEXT NOT NULL, registered_at REAL NOT NULL
             );
@@ -156,6 +159,18 @@ class DurablePromotionState:
             raise ValueError("invalid_promotion_state_table")
         with self._connect() as db:
             db.execute(f"INSERT INTO {table} ({columns[table]}, record_json) VALUES (?, ?) ON CONFLICT({columns[table]}) DO UPDATE SET record_json=excluded.record_json", (str(key), self._record(value)))
+
+    def put_activation(self, proposal_id: str, record: Mapping[str, Any]) -> None:
+        with self._connect() as db:
+            db.execute("INSERT INTO promotion_activation_journal(proposal_id, record_json) VALUES (?, ?) ON CONFLICT(proposal_id) DO UPDATE SET record_json=excluded.record_json", (str(proposal_id), self._record(record)))
+
+    def activation_journal(self, proposal_id: Optional[str] = None) -> dict[str, Any]:
+        with self._connect() as db:
+            if proposal_id is None:
+                rows = db.execute("SELECT proposal_id, record_json FROM promotion_activation_journal ORDER BY proposal_id").fetchall()
+                return {str(row["proposal_id"]): json.loads(str(row["record_json"])) for row in rows}
+            row = db.execute("SELECT record_json FROM promotion_activation_journal WHERE proposal_id=?", (str(proposal_id),)).fetchone()
+        return {} if row is None else dict(json.loads(str(row["record_json"])))
 
     def put_previous_active(self, skill_name: str, version: str) -> None:
         with self._connect() as db:
@@ -421,6 +436,7 @@ class LearningPromotionPipeline:
         receipt_path = skill_dir / "PROMOTION_RECEIPT.json"
         receipt_path.write_text(_canonical({"payload": signed_payload, "signature": signed}) + "\n", encoding="utf-8")
         previous = self.active_version(proposal.skill_name)
+        self._state.put_activation(proposal_id, {"schema_version": "noesis.promotion-activation-journal.v1", "proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "previous_version": previous or "", "receipt_path": str(receipt_path), "status": "prepared" if activate else "inactive", "updated_at": time.time()})
         updated = PromotionProposal(**{**asdict(proposal), "state": "promoted", "version": version})
         self._proposals[proposal_id] = updated
         self._state.put("promotion_proposals", proposal_id, updated)
@@ -432,6 +448,7 @@ class LearningPromotionPipeline:
             active_next = skill_root / "ACTIVE.next"
             active_next.write_text(version + "\n", encoding="utf-8")
             os.replace(str(active_next), str(active_path))
+            self._state.put_activation(proposal_id, {"schema_version": "noesis.promotion-activation-journal.v1", "proposal_id": proposal_id, "skill_name": proposal.skill_name, "version": version, "previous_version": previous or "", "receipt_path": str(receipt_path), "status": "activated", "updated_at": time.time()})
         return updated, signed
 
     def rollback(self, proposal_id: str) -> PromotionProposal:

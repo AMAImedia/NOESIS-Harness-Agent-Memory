@@ -2333,3 +2333,10 @@ Machine-readable evidence: `docs/MEMORY_LONG_CONTEXT_REOPEN_EVIDENCE.json`; focu
 | LEARN-ACT-09 | Activation crash recovery | `DONE / BOUNDED LOCAL` | При simulated `os.replace` failure receipt сохраняется, old active pointer не меняется, automatic activation отсутствует. |
 | LEARN-ACT-10 | Deployment/external activation | `NOT_RUN / ENVIRONMENT-GATED` | Production operator identity, native deployment and external activation evidence остаются environment-gated. |
 Machine-readable evidence: `docs/LEARNING_PROMOTION_ACTIVATION_EVIDENCE.json`; focused promotion result: `10/10`.
+## 2026-08-21 — Promotion activation journal checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-JOURNAL-07 | Durable activation journal | `DONE / BOUNDED LOCAL` | SQLite/WAL journal records `prepared`, `activated` or `inactive` with proposal/version/receipt binding. |
+| LEARN-JOURNAL-08 | Restart-visible interrupted activation | `DONE / BOUNDED LOCAL` | Simulated active-pointer crash leaves `prepared`; reopened pipeline reports the same status without automatic retry. |
+| LEARN-JOURNAL-09 | Production activation recovery | `NOT_RUN / ENVIRONMENT-GATED` | Authenticated operator action and deployment-backed activation recovery remain outside the local host. |
+Machine-readable evidence updated; focused promotion result: `10/10`.
