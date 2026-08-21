@@ -483,6 +483,9 @@ class ExecutionRecoveryExecutor:
     def _replay_inventory_verification_chain_path(self) -> str:
         return str(self.events.path) + ".replay-inventory-verification-chain.jsonl"
 
+    def _replay_inventory_verification_readiness_path(self) -> str:
+        return str(self.events.path) + ".replay-inventory-verification-readiness.json"
+
     def _assert_generation_mutable(self) -> None:
         if os.path.exists(self._replay_finalization_path()):
             raise ExecutionRecoveryError("recovery_replay_finalization_immutable")
@@ -975,7 +978,7 @@ class ExecutionRecoveryExecutor:
         unknown_manifest_names = set(candidates) - expected_manifest_names
         if unknown_manifest_names:
             raise ExecutionRecoveryError("recovery_replay_completeness_orphan_manifest")
-        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path(), self._replay_repair_readiness_path(), self._replay_finalized_inventory_path(), self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path()}
+        expected_sidecar_paths = {self._completion_snapshot_path(), self._status_snapshot_path(), self._replay_catalog_snapshot_path(), self._replay_completeness_snapshot_path(), self._replay_generation_receipt_path(), self._replay_finalization_path(), self._replay_repair_receipt_path(), self._replay_repair_chain_path(), self._replay_repair_readiness_path(), self._replay_finalized_inventory_path(), self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path(), self._replay_inventory_verification_readiness_path()}
         for action_id in expected:
             expected_sidecar_paths.update({self._status_snapshot_path(action_id), self._replay_snapshot_path(action_id), self._replay_inventory_snapshot_path(action_id), self._replay_commit_manifest_path(action_id)})
         sidecar_prefix = os.path.basename(str(self.events.path)) + "."
@@ -1165,7 +1168,38 @@ class ExecutionRecoveryExecutor:
         _atomic_write_json(self._replay_inventory_verification_path(), snapshot)
         self._make_readonly((self._replay_inventory_verification_path(),))
         self._append_inventory_verification_run(payload, snapshot["signature"])
+        self._persist_inventory_verification_chain_readiness_snapshot()
         return snapshot
+
+    def _persist_inventory_verification_chain_readiness_snapshot(self) -> Mapping[str, Any]:
+        chain = self.verify_inventory_verification_chain()
+        inventory = self.verify_finalized_evidence_inventory()["payload"]
+        receipt = self.verify_inventory_verification_receipt()["payload"]
+        payload = {"schema_version": "noesis.recovery-replay-inventory-verification-chain-readiness.v1", "status": "passed", "event_path": str(self.events.path), "chain_path": self._replay_inventory_verification_chain_path(), "inventory_path": self._replay_finalized_inventory_path(), "inventory_digest": inventory["inventory_digest"], "verification_digest": receipt["verification_digest"], "tip_digest": chain["tip_digest"], "run_count": chain["run_count"], "readiness_result": "passed", "verification_result": "passed", "readiness_path": self._replay_inventory_verification_readiness_path()}
+        payload["readiness_digest"] = request_fingerprint({key: value for key, value in payload.items() if key != "readiness_digest"})
+        snapshot = {"payload": payload, "signature": _snapshot_signature(payload, self.receipt_store.signing_key)}
+        _atomic_write_json(self._replay_inventory_verification_readiness_path(), snapshot)
+        self._make_readonly((self._replay_inventory_verification_path(), self._replay_inventory_verification_chain_path(), self._replay_inventory_verification_readiness_path()))
+        return snapshot
+
+    def verify_inventory_verification_chain_readiness_snapshot(self) -> Mapping[str, Any]:
+        try:
+            with open(self._replay_inventory_verification_readiness_path(), "r", encoding="utf-8") as handle:
+                snapshot = json.load(handle, object_pairs_hook=_reject_duplicate_json_keys)
+            payload = snapshot["payload"]
+            signature = str(snapshot["signature"])
+        except (_DuplicateJSONKeyError, OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ExecutionRecoveryError("recovery_inventory_verification_readiness_corrupt") from exc
+        if not isinstance(payload, Mapping) or not hmac.compare_digest(signature, _snapshot_signature(payload, self.receipt_store.signing_key)):
+            raise ExecutionRecoveryError("recovery_inventory_verification_readiness_signature_invalid")
+        chain = self.verify_inventory_verification_chain()
+        inventory = self.verify_finalized_evidence_inventory()["payload"]
+        receipt = self.verify_inventory_verification_receipt()["payload"]
+        expected = {"schema_version": "noesis.recovery-replay-inventory-verification-chain-readiness.v1", "status": "passed", "event_path": str(self.events.path), "chain_path": self._replay_inventory_verification_chain_path(), "inventory_path": self._replay_finalized_inventory_path(), "inventory_digest": inventory["inventory_digest"], "verification_digest": receipt["verification_digest"], "tip_digest": chain["tip_digest"], "run_count": chain["run_count"], "readiness_result": "passed", "verification_result": "passed", "readiness_path": self._replay_inventory_verification_readiness_path()}
+        expected["readiness_digest"] = request_fingerprint({key: value for key, value in expected.items() if key != "readiness_digest"})
+        if set(payload) != set(expected) or any(payload.get(key) != value for key, value in expected.items()) or not self._is_readonly(self._replay_inventory_verification_readiness_path()):
+            raise ExecutionRecoveryError("recovery_inventory_verification_readiness_drift")
+        return {"status": "passed", "payload": dict(payload), "signature": signature}
 
     def _read_inventory_verification_chain(self) -> list:
         path = self._replay_inventory_verification_chain_path()
@@ -1380,9 +1414,12 @@ class ExecutionRecoveryExecutor:
         verification_chain = None
         if os.path.exists(self._replay_inventory_verification_path()):
             verification = self.verify_inventory_verification_receipt()
+        verification_chain_readiness_snapshot = None
         if os.path.exists(self._replay_inventory_verification_chain_path()):
             verification_chain = self.verify_inventory_verification_chain()
-        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness}
+        if os.path.exists(self._replay_inventory_verification_readiness_path()):
+            verification_chain_readiness_snapshot = self.verify_inventory_verification_chain_readiness_snapshot()
+        return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness, "verification_chain_readiness_snapshot": verification_chain_readiness_snapshot}
 
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:
         self._authorize(context, action)

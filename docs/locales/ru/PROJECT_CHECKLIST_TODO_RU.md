@@ -2067,3 +2067,15 @@ Focused verification-run result: `84/84` execution-recovery tests passed with Py
 | CHILD-305 | Native/external readiness audit | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external verification-run readiness lanes не запускались. |
 
 Focused verification-run readiness result: `85/85` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 signed verification-run readiness snapshot checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-306 | Signed readiness snapshot | `DONE / BOUNDED LOCAL` | Snapshot `noesis.recovery-replay-inventory-verification-chain-readiness.v1` связан с run-chain tip и inventory. |
+| CHILD-307 | Snapshot integrity | `DONE / BOUNDED LOCAL` | `readiness_digest`, HMAC signature, canonical paths и read-only protection проверяются. |
+| CHILD-308 | Fresh-process binding | `DONE / BOUNDED LOCAL` | Fresh executor повторно проверяет chain, inventory и verification receipt перед acceptance. |
+| CHILD-309 | Native/external snapshot lanes | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external readiness snapshot lanes не запускались. |
+
+Focused signed-readiness-snapshot result: `86/86` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
