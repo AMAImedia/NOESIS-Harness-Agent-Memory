@@ -108,3 +108,7 @@ Adversarial coverage теперь принудительно делает opt-in
 ### Continuity recall benchmark
 
 Обязательный repository lane `benchmarks/recall20.py` повторно запущен после latest hardening и вернул `recall20 20/20 acc=1.00`. Это только local regression signal, а не external model-quality или superiority claim.
+
+### Continuity packaging и metadata
+
+Local packaging и release-contract lanes повторно запущены: release metadata coverage прошёл без missing files/findings, CI/packaging consistency прошёл, Windows и macOS manifests прошли static contract verification, а native builds остались явно unexecuted. Эти проверки подтверждают packaging honesty и structure, но не native build success.

@@ -2220,3 +2220,11 @@ Focused release-audit result: `9/9` tests and `793/793` full tests passed with P
 |---|---|---|---|
 | CHILD-352 | Local recall benchmark continuity | `DONE / BOUNDED LOCAL` | `benchmarks/recall20.py`: `20/20`, `acc=1.00` после latest hardening. |
 | CHILD-353 | External memory-quality comparison | `NOT_RUN / ENVIRONMENT-GATED` | Recall20 local regression signal не является external model-quality или superiority evidence. |
+
+## 2026-08-21 — Packaging and metadata continuity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-354 | Release metadata coverage | `DONE / BOUNDED LOCAL` | `check_release_metadata.py`: passed; no missing files/findings. |
+| CHILD-355 | CI/packaging static contracts | `DONE / BOUNDED LOCAL` | CI consistency и Windows/macOS manifest contract checks passed; native builds not executed. |
+| CHILD-356 | Native packaging execution | `NOT_RUN / ENVIRONMENT-GATED` | Static manifest pass не является native Windows/macOS build/signing evidence. |
+Packaging focused tests: `7/7` passed; recall benchmark remains `20/20 acc=1.00`; full suite remains `793/793` passed.

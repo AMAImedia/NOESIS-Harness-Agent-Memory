@@ -109,3 +109,7 @@ Adversarial coverage now forces the opt-in remote SHA lookup to fail. The releas
 ### Recall benchmark continuity
 
 The repository-required `benchmarks/recall20.py` lane was rerun after the latest hardening and returned `recall20 20/20 acc=1.00`. This is a local regression signal only; it is not an external model-quality or superiority claim.
+
+### Packaging and metadata continuity
+
+The local packaging and release-contract lanes were rerun: release metadata coverage passed with no missing files or findings, CI/packaging consistency passed, Windows and macOS manifests passed static contract verification, and native builds remained explicitly unexecuted. These checks validate packaging honesty and structure, not native build success.
