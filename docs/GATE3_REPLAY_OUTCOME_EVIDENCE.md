@@ -141,3 +141,7 @@ The cross-platform matrix now defaults absent `network_allowed` and `credentials
 ### Disposable-workspace metadata default
 
 External lane preflight now defaults an omitted `disposable_workspace` field to false. A manifest must explicitly declare a disposable workspace before becoming ready for operator approval; omission remains `not_run` and records `disposable_workspace_required`.
+
+### Foreign metadata activation default
+
+The declarative metadata translator now defaults omitted `enabled` to false. Translation remains metadata-only and cannot activate a Hermes or DeepSeek adapter unless the input explicitly opts in with `enabled=true`; the behavior is covered by regression tests.

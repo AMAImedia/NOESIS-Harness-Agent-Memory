@@ -46,7 +46,7 @@ def _base(metadata: Mapping[str, Any]) -> Mapping[str, Any]:
         "deployment": metadata.get("deployment", "local"),
         "auth_mode": metadata.get("auth_mode", "none"),
         "credential_ref": metadata.get("credential_ref"),
-        "enabled": bool(metadata.get("enabled", True)),
+        "enabled": bool(metadata.get("enabled", False)),
     }
 
 

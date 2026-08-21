@@ -140,3 +140,7 @@ Cross-platform matrix теперь использует `false` по умолч�
 ### Default disposable-workspace metadata
 
 External lane preflight теперь использует `false` по умолчанию при omitted `disposable_workspace`. Manifest должен явно объявить disposable workspace до перехода в `ready_for_operator_approval`; omission остаётся `not_run` и добавляет `disposable_workspace_required`.
+
+### Default activation foreign metadata
+
+Declarative metadata translator теперь использует `false` по умолчанию при omitted `enabled`. Translation остаётся metadata-only и не активирует Hermes или DeepSeek adapter без explicit `enabled=true`; behavior покрыт regression tests.

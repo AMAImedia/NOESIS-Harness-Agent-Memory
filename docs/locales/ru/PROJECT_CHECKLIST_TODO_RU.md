@@ -2277,3 +2277,10 @@ Focused cross-platform result: `7/7` tests; full suite: `797/797` passed with Py
 | CHILD-369 | External disposable workspace guard | `DONE / BOUNDED LOCAL` | Omitted `disposable_workspace` теперь fail-closed как `not_run` с `disposable_workspace_required`. |
 | CHILD-370 | External lane execution | `NOT_RUN / ENVIRONMENT-GATED` | Preflight default-denial не является pinned external A/B execution. |
 Focused external preflight result: `10/10` tests; full suite: `798/798` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Foreign metadata activation default checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-371 | Metadata adapter activation | `DONE / BOUNDED LOCAL` | Omitted `enabled` переводит adapter в disabled state; activation требует explicit opt-in `enabled=true`. |
+| CHILD-372 | External adapter execution | `NOT_RUN / ENVIRONMENT-GATED` | Translator regression не является external service execution или pinned A/B run. |
+Focused metadata/adapter result: `16/16` tests; full suite: `799/799` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

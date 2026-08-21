@@ -11,6 +11,12 @@ class MetadataTranslatorTests(unittest.TestCase):
         self.assertEqual(result.metadata["host"], "127.0.0.1")
         self.assertEqual(result.dropped_fields, ("ui_hint",))
 
+    def test_omitted_enabled_is_disabled_until_explicit_opt_in(self):
+        result = translate_metadata("hermes_webui", {"id": "hermes-local", "endpoint": "http://127.0.0.1:8765", "version": "2026.08.17"})
+        self.assertFalse(result.metadata["enabled"])
+        enabled = translate_metadata("hermes_webui", {"id": "hermes-local", "endpoint": "http://127.0.0.1:8765", "version": "2026.08.17", "enabled": True})
+        self.assertTrue(enabled.metadata["enabled"])
+
     def test_translates_deepseek_plugin_capabilities(self):
         result = translate_metadata("deepseek_harness", {"id": "dsh-local", "base_url": "http://localhost:9000", "pinned_version": "2026.08.17", "plugin_id": "memory", "plugin_version": "1.0.0", "plugin_capabilities": {"memory": ["long_context"]}})
         self.assertEqual(result.status, "translated")
