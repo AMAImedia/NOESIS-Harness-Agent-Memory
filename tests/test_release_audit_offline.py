@@ -138,6 +138,23 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
             self.assertIn("execution_claim_invalid", report["external_readiness"]["errors"])
             self.assertIn("comparative_status_contradiction", report["external_readiness"]["errors"])
 
+    def test_offline_audit_is_byte_stable_across_repeated_runs(self):
+        def fake_check_output(command, **kwargs):
+            if command[:2] == ["git", "rev-parse"]:
+                return "0123456789abcdef0123456789abcdef01234567\\n"
+            if command[:2] == ["git", "cat-file"]:
+                return ""
+            if command[:2] == ["git", "merge-base"]:
+                return ""
+            if command[:2] == ["git", "status"]:
+                return ""
+            raise AssertionError(command)
+
+        with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
+            first = audit(include_remote=False)
+            second = audit(include_remote=False)
+        self.assertEqual(json.dumps(first, sort_keys=True, separators=(",", ":")), json.dumps(second, sort_keys=True, separators=(",", ":")))
+
     def test_secret_like_content_is_audit_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

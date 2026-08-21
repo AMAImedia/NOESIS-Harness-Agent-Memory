@@ -92,3 +92,7 @@ Release audit теперь проверяет machine-readable NEXT-03 reconcili
 ### Denial contradictory readiness claim
 
 Adversarial coverage теперь проверяет readiness matrix, которая заявляет comparative success при `not_run` и одновременно содержит unsupported execution claim. Release audit отклоняет обе contradictions, сохраняя различие между local evidence ingestion и фактическим external execution.
+
+### Byte stability offline release audit
+
+Добавлен repeated-run adversarial test, сравнивающий normalized JSON bytes двух одинаковых offline release audits. Результат byte-identical, что подтверждает отсутствие зависимости local release evidence от timestamps, random identifiers или unstable ordering в проверенном contract.

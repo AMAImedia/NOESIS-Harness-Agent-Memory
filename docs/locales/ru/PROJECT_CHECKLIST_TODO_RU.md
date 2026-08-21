@@ -2193,3 +2193,10 @@ Focused release-audit result: `5/5` tests and `789/789` full tests passed with P
 | CHILD-344 | Contradictory readiness claims | `DONE / BOUNDED LOCAL` | Adversarial matrix `comparative_ready=true` + `overall_status=not_run` + invalid execution claim; both fail-closed errors verified. |
 | CHILD-345 | External claim boundary | `NOT_RUN / ENVIRONMENT-GATED` | Denial test не является external execution и не повышает comparative readiness. |
 Focused release-audit result: `6/6` tests and `790/790` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Offline release-audit byte-stability checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-346 | Release-audit deterministic repeat run | `DONE / BOUNDED LOCAL` | Два одинаковых offline audit reports сравниваются по normalized JSON bytes; результат идентичен. |
+| CHILD-347 | External reproducibility | `NOT_RUN / ENVIRONMENT-GATED` | Local byte stability не доказывает reproducibility внешних providers или native hosts. |
+Focused release-audit result: `7/7` tests and `791/791` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
