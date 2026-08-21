@@ -2477,3 +2477,12 @@ Machine-readable evidence: `docs/EVENT_STORE_REPLAY_CONFLICT_EVIDENCE.json`; foc
 | RECOVERY-TURN-REPLAY-04 | Native/external crash parity | `NOT_RUN / ENVIRONMENT-GATED` | Linux local WAL evidence не заменяет native Windows/macOS filesystem semantics или pinned external crash-consistency harness. |
 
 Machine-readable evidence: `docs/DURABLE_TURN_REPLAY_EVIDENCE.json`; focused recovery result: `104/104`; full regression: `816/816`; `ResourceWarning`: `0`.
+
+## 2026-08-22 — Lifecycle receipt sequence integrity checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LIFECYCLE-INGESTION-RECEIPT-SEQ-01 | Exact receipt sequence | `DONE / LOCAL VERIFIED` | Audit verifier принимает только `preflight` → `approve` → `import`; duplicate lifecycle action type с новым action ID отклоняется как `receipt_sequence_invalid`. |
+| LIFECYCLE-INGESTION-RECEIPT-SEQ-02 | Native/external execution boundary | `NOT_RUN / ENVIRONMENT-GATED` | Receipt verification остаётся audit-only и не доказывает child-runtime, native, external или comparative execution. |
+
+Machine-readable evidence: `docs/LIFECYCLE_RECEIPT_SEQUENCE_EVIDENCE.json`; focused result: `12/12`; full regression: `816/816`; `ResourceWarning`: `0`.

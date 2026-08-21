@@ -170,6 +170,8 @@ def verify_ingestion_receipt_audit(receipts: Any, *, signing_key: bytes, record_
         seen.add(action_id)
         previous = order[result["action"]]
         verified.append(result)
+    if tuple(item["action"] for item in verified) != ("preflight", "approve", "import"):
+        return {"status": "blocked", "reason": "receipt_sequence_invalid", "claim": False, "execution_claim": False, "comparative_claim": False}
     return {"status": "passed", "record_id": record_id, "receipt_count": len(verified), "actions": verified, "claim": False, "execution_claim": False, "comparative_claim": False, "claim_boundary": "lifecycle_audit_only"}
 
 

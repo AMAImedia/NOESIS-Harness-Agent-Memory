@@ -50,6 +50,12 @@ class LifecycleIngestionReceiptVerifierTests(unittest.TestCase):
         self.assertEqual(verify_ingestion_receipt(drift, signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_signature_invalid")
         self.assertEqual(verify_ingestion_receipt_audit(receipts + [receipts[-1]], signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_duplicate_action_id")
         self.assertEqual(verify_ingestion_receipt_audit([receipts[1], receipts[0], receipts[2]], signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_order_invalid")
+        fresh_preflight = copy.deepcopy(receipts[0])
+        fresh_preflight["action_id"] = "fresh-preflight"
+        unsigned = {key: value for key, value in fresh_preflight.items() if key != "signature"}
+        fresh_preflight["signature"] = hmac.new(self.key, json.dumps(unsigned, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(), hashlib.sha256).hexdigest()
+        sequence = verify_ingestion_receipt_audit([fresh_preflight, receipts[0], receipts[1]], signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)
+        self.assertEqual(sequence["reason"], "receipt_sequence_invalid")
         escalated = copy.deepcopy(receipts[0])
         escalated["claim"] = True
         self.assertEqual(verify_ingestion_receipt(escalated, signing_key=self.key, record_id=record, bundle_digest=bundle, audit_digest=audit)["reason"], "receipt_signature_invalid")
