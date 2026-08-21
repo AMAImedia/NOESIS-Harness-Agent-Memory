@@ -1,3 +1,4 @@
+import json
 import subprocess
 import tempfile
 import unittest
@@ -73,6 +74,35 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
                 report = audit(str(root), include_remote=False)
             self.assertFalse(report["clean"])
             self.assertEqual(report["roadmap_consistency"]["errors"], ["roadmap_checkpoint_not_ancestor"])
+
+    def test_tampered_readiness_digest_is_audit_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "noesis_harness").mkdir()
+            (root / "docs").mkdir()
+            readiness = {
+                "schema_version": "noesis.external-evidence-readiness.v1",
+                "comparative_ready": False,
+                "overall_status": "not_run",
+                "execution_claim": "not_run",
+                "native_or_external_execution_claim": False,
+                "global_checks": ["comparative_readiness_not_met"],
+                "lanes": {"hermes": {"status": "not_run"}},
+                "matrix_digest": "0" * 64,
+            }
+            (root / "docs" / "EXTERNAL_EVIDENCE_READINESS_MATRIX.json").write_text(json.dumps(readiness), encoding="utf-8")
+
+            def fake_check_output(command, **kwargs):
+                if command[:2] == ["git", "rev-parse"]:
+                    return "0123456789abcdef0123456789abcdef01234567\\n"
+                if command[:2] == ["git", "status"]:
+                    return ""
+                raise AssertionError(command)
+
+            with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
+                report = audit(str(root), include_remote=False)
+            self.assertFalse(report["clean"])
+            self.assertIn("readiness_digest_mismatch", report["external_readiness"]["errors"])
 
     def test_secret_like_content_is_audit_failure(self):
         with tempfile.TemporaryDirectory() as directory:

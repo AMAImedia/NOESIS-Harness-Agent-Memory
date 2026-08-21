@@ -80,3 +80,7 @@ Release audit теперь требует, чтобы recorded roadmap checkpoin
 ### Evidence denial divergent checkpoint
 
 Adversarial coverage теперь включает checkpoint с корректным форматом, который разрешается в commit object, но не является ancestor audited `HEAD`. Release audit отклоняет scope-divergence как `roadmap_checkpoint_not_ancestor`, показывая, что одной syntax/object validity недостаточно без проверки repository lineage.
+
+### Guard integrity external-readiness matrix
+
+Release audit теперь пересчитывает canonical SHA-256 для readiness matrix lanes и global checks, отклоняет digest drift и contradictory execution/comparative status combinations. Это защищает local `not_run` boundary от tampered или internally inconsistent readiness metadata без claims об external execution.

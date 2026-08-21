@@ -2170,3 +2170,11 @@ Focused release-audit result: `3/3` tests and `787/787` full tests passed with P
 | CHILD-336 | Divergent checkpoint denial | `DONE / BOUNDED LOCAL` | Adversarial test valid-format/non-ancestor checkpoint; release audit fail-closed с `roadmap_checkpoint_not_ancestor`. |
 | CHILD-337 | Native/external lineage denial | `NOT_RUN / ENVIRONMENT-GATED` | Local Git lineage не заменяет native Windows/macOS или external A/B evidence. |
 Focused release-audit result: `4/4` tests and `788/788` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — External-readiness matrix integrity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-338 | Readiness matrix digest integrity | `DONE / BOUNDED LOCAL` | Release audit recomputes canonical matrix digest and rejects `readiness_digest_mismatch`; tamper test passed. |
+| CHILD-339 | Readiness claim consistency | `DONE / BOUNDED LOCAL` | Invalid execution/comparative combinations fail-closed; external execution claim remains false. |
+| CHILD-340 | Native/external readiness integrity | `NOT_RUN / ENVIRONMENT-GATED` | Local matrix integrity не доказывает native Windows/macOS или external A/B execution. |
+Focused release-audit result: `5/5` tests and `789/789` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

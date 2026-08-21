@@ -81,3 +81,7 @@ The release audit now requires the recorded roadmap checkpoint commit to be an a
 ### Divergent checkpoint denial evidence
 
 Adversarial coverage now includes a valid-format checkpoint that resolves as a commit object but is not an ancestor of the audited `HEAD`. The release audit rejects this scope-divergence case with `roadmap_checkpoint_not_ancestor`, proving that syntactic and object-level validity are insufficient without repository-lineage validation.
+
+### External-readiness matrix integrity guard
+
+The release audit now recomputes the canonical SHA-256 over the readiness matrix lanes and global checks, rejects digest drift, and rejects contradictory execution/comparative status combinations. This protects the local `not_run` boundary from tampered or internally inconsistent readiness metadata without claiming external execution.

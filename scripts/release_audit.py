@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import re
 import subprocess
@@ -15,6 +16,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "noesis_harness"
+def _digest(value: Any) -> str:
+    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
 PATTERNS = [
     re.compile(r"hf_[A-Za-z0-9]{12,}"),
     re.compile(r"sk-[A-Za-z0-9]{12,}"),
@@ -64,6 +69,14 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
                 readiness_errors.append("readiness_status_invalid")
             if readiness.get("native_or_external_execution_claim") is not False:
                 readiness_errors.append("external_claim_guard_missing")
+            if readiness.get("execution_claim") not in {"not_run", "evidence_ingestion_only"}:
+                readiness_errors.append("execution_claim_invalid")
+            if readiness.get("comparative_ready") is not False and readiness.get("overall_status") != "passed":
+                readiness_errors.append("comparative_status_contradiction")
+            expected_digest = readiness.get("matrix_digest")
+            canonical_digest = _digest({"lanes": lanes, "global_checks": readiness.get("global_checks", [])})
+            if expected_digest != canonical_digest:
+                readiness_errors.append("readiness_digest_mismatch")
         except (OSError, json.JSONDecodeError, TypeError):
             readiness_errors.append("readiness_artifact_invalid")
     else:
