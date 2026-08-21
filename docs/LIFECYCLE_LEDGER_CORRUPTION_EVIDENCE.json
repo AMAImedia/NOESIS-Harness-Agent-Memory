@@ -1,0 +1,36 @@
+{
+  "schema_version": "noesis.lifecycle-ledger-corruption-evidence.v1",
+  "gate": "LIFECYCLE-INGESTION-INTEGRITY-02",
+  "status": "passed_bounded_local",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only": true,
+    "resource_warning_policy": "error"
+  },
+  "implementation": "noesis_harness/lifecycle_audit_ingestion.py",
+  "tests": "tests/test_lifecycle_audit_ingestion.py",
+  "verified_contracts": [
+    "malformed durable payload raises lifecycle_record_corrupt",
+    "payload record identity drift raises lifecycle_record_identity_corrupt",
+    "SQLite connections close on corruption and normal paths",
+    "receipt sequence and claim-conservative verification remain enforced"
+  ],
+  "focused_tests": {
+    "suite": "tests.test_lifecycle_audit_ingestion tests.test_lifecycle_ingestion_receipt_verifier tests.test_turn_checkpoint tests.test_delegated_bridge_integration",
+    "passed": 13,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "full_suite": {
+    "passed": 817,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "external_boundary": {
+    "status": "NOT_RUN",
+    "native_windows_macos": "NOT_RUN",
+    "external_harness": "NOT_RUN",
+    "reason": "Local ledger corruption handling does not establish native filesystem or external harness parity."
+  },
+  "claim_boundary": "This evidence proves local typed corruption denial only; it does not authorize execution or prove native, external, or comparative behavior."
+}

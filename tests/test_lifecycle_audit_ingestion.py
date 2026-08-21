@@ -1,4 +1,5 @@
 import hashlib
+import sqlite3
 import hmac
 import json
 import os
@@ -46,6 +47,21 @@ class LifecycleAuditIngestionTests(unittest.TestCase):
             duplicate = adapter.preflight(bundle, audit)
             self.assertEqual(duplicate["state"], "blocked")
             self.assertEqual(duplicate["reason"], "duplicate_bundle_digest")
+
+    def test_corrupt_durable_record_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bundle, audit = self.make_inputs(root)
+            adapter = LifecycleAuditIngestionAdapter(root / "ledger.sqlite", signing_key=self.key)
+            preflight = adapter.preflight(bundle, audit)
+            db = sqlite3.connect(root / "ledger.sqlite")
+            try:
+                with db:
+                    db.execute("UPDATE lifecycle_imports SET payload=? WHERE record_id=?", ("{bad", preflight["record_id"]))
+            finally:
+                db.close()
+            with self.assertRaisesRegex(LifecycleAuditIngestionError, "lifecycle_record_corrupt"):
+                adapter.status(preflight["record_id"])
 
     def test_stale_tamper_and_expired_approval_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:

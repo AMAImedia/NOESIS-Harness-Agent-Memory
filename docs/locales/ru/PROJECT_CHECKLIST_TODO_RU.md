@@ -2486,3 +2486,12 @@ Machine-readable evidence: `docs/DURABLE_TURN_REPLAY_EVIDENCE.json`; focused rec
 | LIFECYCLE-INGESTION-RECEIPT-SEQ-02 | Native/external execution boundary | `NOT_RUN / ENVIRONMENT-GATED` | Receipt verification остаётся audit-only и не доказывает child-runtime, native, external или comparative execution. |
 
 Machine-readable evidence: `docs/LIFECYCLE_RECEIPT_SEQUENCE_EVIDENCE.json`; focused result: `12/12`; full regression: `816/816`; `ResourceWarning`: `0`.
+
+## 2026-08-22 — Lifecycle ledger corruption checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LIFECYCLE-INGESTION-INTEGRITY-02 | Corrupt durable payload | `DONE / LOCAL VERIFIED` | Malformed ledger payload отклоняется как `lifecycle_record_corrupt`; payload с несовпадающим `record_id` отклоняется как `lifecycle_record_identity_corrupt`. |
+| LIFECYCLE-INGESTION-INTEGRITY-03 | Native/external corruption parity | `NOT_RUN / ENVIRONMENT-GATED` | Local SQLite corruption lane не заменяет native filesystem semantics или pinned external harness. |
+
+Machine-readable evidence: `docs/LIFECYCLE_LEDGER_CORRUPTION_EVIDENCE.json`; focused result: `13/13`; full regression: `817/817`; `ResourceWarning`: `0`.

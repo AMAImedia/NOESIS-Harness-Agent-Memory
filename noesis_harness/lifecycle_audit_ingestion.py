@@ -67,7 +67,15 @@ class LifecycleAuditIngestionAdapter:
     def _latest(self, record_id: str) -> tuple[str, dict[str, Any]] | None:
         with closing(sqlite3.connect(self.path)) as db:
             row = db.execute("SELECT state,payload FROM lifecycle_imports WHERE record_id=? ORDER BY sequence DESC LIMIT 1", (record_id,)).fetchone()
-        return (str(row[0]), json.loads(row[1])) if row else None
+        if row is None:
+            return None
+        try:
+            payload = json.loads(str(row[1]))
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise LifecycleAuditIngestionError("lifecycle_record_corrupt") from exc
+        if not isinstance(payload, dict) or str(payload.get("record_id", "")) != str(record_id):
+            raise LifecycleAuditIngestionError("lifecycle_record_identity_corrupt")
+        return (str(row[0]), payload)
 
     def _record_exists_for_digest(self, bundle_digest: str) -> bool:
         with closing(sqlite3.connect(self.path)) as db:
