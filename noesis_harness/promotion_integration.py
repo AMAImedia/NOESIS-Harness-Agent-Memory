@@ -625,15 +625,38 @@ class CoordinatedMutationJournal:
         self.events = EventStore(path)
 
     def prepare(self, action_id: str, operation: str, target_id: str, receipt: Mapping[str, Any]) -> None:
-        if not action_id or not operation or not target_id:
+        if not action_id or not operation or not target_id or not isinstance(receipt, Mapping):
             raise ValueError("mutation_journal_identity_required")
-        self.events.append("mutation_prepared", {"action_id": action_id, "operation": operation, "target_id": target_id, "receipt": dict(receipt)}, event_id="mutation-prepare:" + action_id)
+        existing = self._prepared_record(action_id)
+        requested = {"action_id": str(action_id), "operation": str(operation), "target_id": str(target_id), "receipt": dict(receipt)}
+        if existing is not None:
+            if json.dumps(existing, sort_keys=True, ensure_ascii=False, separators=(",", ":")) == json.dumps(requested, sort_keys=True, ensure_ascii=False, separators=(",", ":")):
+                return
+            raise ValueError("mutation_prepare_conflict")
+        if self.status(action_id) in {"committed", "aborted"}:
+            raise ValueError("mutation_terminal_conflict")
+        self.events.append("mutation_prepared", requested, event_id="mutation-prepare:" + action_id)
 
     def commit(self, action_id: str) -> None:
+        if self.status(action_id) == "committed":
+            return
+        if self.status(action_id) != "incomplete":
+            raise ValueError("mutation_commit_requires_prepare")
         self.events.append("mutation_committed", {"action_id": action_id}, event_id="mutation-commit:" + action_id)
 
     def abort(self, action_id: str, reason: str) -> None:
+        if self.status(action_id) == "aborted":
+            return
+        if self.status(action_id) != "incomplete":
+            raise ValueError("mutation_abort_requires_prepare")
         self.events.append("mutation_aborted", {"action_id": action_id, "reason": str(reason)[:128]}, event_id="mutation-abort:" + action_id)
+
+    def _prepared_record(self, action_id: str) -> Mapping[str, Any] | None:
+        for event in self.events.iter_events():
+            payload = event.get("payload") or {}
+            if event.get("type") == "mutation_prepared" and payload.get("action_id") == action_id:
+                return dict(payload)
+        return None
 
     def status(self, action_id: str) -> str:
         prepared = committed = aborted = False

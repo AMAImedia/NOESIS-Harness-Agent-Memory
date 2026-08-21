@@ -157,12 +157,21 @@ class PromotionIntegrationTests(unittest.TestCase):
         journal = CoordinatedMutationJournal(tempfile.mktemp())
         receipt = {"schema_version": "noesis.signed-mutation-receipt.v1", "signature": "sig"}
         journal.prepare("mutation-1", "grant_reviewer", "reviewer-1:session-1", receipt)
+        journal.prepare("mutation-1", "grant_reviewer", "reviewer-1:session-1", receipt)
+        with self.assertRaisesRegex(ValueError, "mutation_prepare_conflict"):
+            journal.prepare("mutation-1", "grant_reviewer", "reviewer-1:session-1", {"schema_version": "different"})
         self.assertEqual(journal.status("mutation-1"), "incomplete")
         self.assertEqual(len(journal.incomplete()), 1)
         journal.commit("mutation-1")
+        journal.commit("mutation-1")
+        with self.assertRaisesRegex(ValueError, "mutation_abort_requires_prepare"):
+            journal.abort("mutation-1", "late abort")
         self.assertEqual(journal.status("mutation-1"), "committed")
         journal.prepare("mutation-2", "close_session", "session-2", receipt)
         journal.abort("mutation-2", "simulated_interrupted_write")
+        journal.abort("mutation-2", "duplicate abort")
+        with self.assertRaisesRegex(ValueError, "mutation_commit_requires_prepare"):
+            journal.commit("mutation-2")
         self.assertEqual(journal.status("mutation-2"), "aborted")
         self.assertEqual(journal.incomplete(), ())
 

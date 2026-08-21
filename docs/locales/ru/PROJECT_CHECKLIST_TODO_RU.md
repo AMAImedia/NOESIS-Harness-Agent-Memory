@@ -1093,7 +1093,7 @@ English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental:
 | LEARN-EVIDENCE-03 | Conflict detection | `DONE / LOCAL VERIFIED` | Repeated grant/revoke/open/close state is rejected before unsafe duplicate mutation |
 | LEARN-EVIDENCE-04 | Interrupted-tail recovery | `DONE / LOCAL VERIFIED` | EventStore repairs only malformed final JSONL tail; non-tail corruption remains hard failure |
 | LEARN-EVIDENCE-05 | Audit boundary | `DONE / BOUNDED` | Mutation receipts attest policy/session changes only; they do not attest promotion or skill activation |
-| LEARN-EVIDENCE-06 | Atomic multi-log commit | `NEXT LOCAL GATE` | Replace sequential cross-store mutation/audit append with a transaction-coordinated journal when needed |
+| LEARN-EVIDENCE-06 | Atomic multi-log commit | `DONE / BOUNDED LOCAL` | Coordinated journal provides explicit prepare/commit/abort states, exact replay idempotency and fail-closed terminal conflicts; cross-file atomicity is not claimed. |
 
 English primary: `docs/LEARNING_PROMOTION_INTEGRATION.md`; Russian supplemental: `docs/locales/ru/LEARNING_PROMOTION_INTEGRATION_RU.md`.
 
@@ -2389,3 +2389,10 @@ Machine-readable evidence: `docs/SKILL_RUNTIME_PROMOTION_RECEIPT_EVIDENCE.json`,
 | LEARN-SESSION-08 | Session identity conflict | `DONE / BOUNDED LOCAL` | Другой operator или другой scope для существующего session ID отклоняется как `operator_session_conflict`. |
 | LEARN-SESSION-09 | External identity provider | `NOT_RUN / ENVIRONMENT-GATED` | Внешний identity provider и UI lifecycle не подключены в local-only lane. |
 Machine-readable evidence: `docs/ADMIN_SESSION_IDEMPOTENCY_EVIDENCE.json`; focused session result: `23/23`.
+## 2026-08-21 — Coordinated mutation journal checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-EVIDENCE-07 | Exact prepare replay | `DONE / BOUNDED LOCAL` | Identical prepare is a no-op; changed receipt/operation/target for the same action ID is rejected. |
+| LEARN-EVIDENCE-08 | Terminal transition guard | `DONE / BOUNDED LOCAL` | Duplicate terminal events are idempotent; commit-after-abort and abort-after-commit fail closed. |
+| LEARN-EVIDENCE-09 | Cross-file atomicity | `NOT_RUN / NOT CLAIMED` | Journal exposes incomplete state but does not claim transaction-coordinated atomicity across independent files. |
+Machine-readable evidence: `docs/COORDINATED_MUTATION_JOURNAL_EVIDENCE.json`; focused journal result: `1/1`.
