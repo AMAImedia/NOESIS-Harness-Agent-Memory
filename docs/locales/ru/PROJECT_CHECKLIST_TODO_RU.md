@@ -2200,3 +2200,10 @@ Focused release-audit result: `6/6` tests and `790/790` full tests passed with P
 | CHILD-346 | Release-audit deterministic repeat run | `DONE / BOUNDED LOCAL` | Два одинаковых offline audit reports сравниваются по normalized JSON bytes; результат идентичен. |
 | CHILD-347 | External reproducibility | `NOT_RUN / ENVIRONMENT-GATED` | Local byte stability не доказывает reproducibility внешних providers или native hosts. |
 Focused release-audit result: `7/7` tests and `791/791` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Remote-parity mismatch denial checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-348 | Remote SHA parity denial | `DONE / BOUNDED LOCAL` | Adversarial remote mismatch returns `clean=false` and `remote_matches_local=false`; offline mode remains network-free. |
+| CHILD-349 | External release parity | `NOT_RUN / ENVIRONMENT-GATED` | GitHub SHA parity не является native Windows/macOS или external A/B execution evidence. |
+Focused release-audit result: `8/8` tests and `792/792` full tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.

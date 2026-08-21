@@ -9,6 +9,25 @@ from scripts.release_audit import audit
 
 
 class ReleaseAuditOfflineTests(unittest.TestCase):
+    def test_remote_parity_mismatch_is_audit_failure(self):
+        def fake_check_output(command, **kwargs):
+            if command[:2] == ["git", "rev-parse"]:
+                return "0123456789abcdef0123456789abcdef01234567\\n"
+            if command[:2] == ["git", "cat-file"]:
+                return ""
+            if command[:2] == ["git", "merge-base"]:
+                return ""
+            if command[:2] == ["git", "status"]:
+                return ""
+            if command[:2] == ["git", "ls-remote"]:
+                return "fedcba9876543210fedcba9876543210fedcba98\\trefs/heads/main\\n"
+            raise AssertionError(command)
+
+        with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
+            report = audit(include_remote=True)
+        self.assertFalse(report["clean"])
+        self.assertFalse(report["remote_matches_local"])
+
     def test_offline_mode_never_calls_ls_remote(self):
         def fake_check_output(command, **kwargs):
             if command[:2] == ["git", "ls-remote"]:

@@ -96,3 +96,7 @@ Adversarial coverage теперь проверяет readiness matrix, кото�
 ### Byte stability offline release audit
 
 Добавлен repeated-run adversarial test, сравнивающий normalized JSON bytes двух одинаковых offline release audits. Результат byte-identical, что подтверждает отсутствие зависимости local release evidence от timestamps, random identifiers или unstable ordering в проверенном contract.
+
+### Denial remote-parity mismatch
+
+Adversarial coverage теперь передаёт opt-in remote-parity audit divergent `origin/main` SHA. Audit возвращает `clean: false` и `remote_matches_local: false`, доказывая, что remote checkpoint mismatch не может считаться verified release, а offline mode по-прежнему не использует network по умолчанию.
