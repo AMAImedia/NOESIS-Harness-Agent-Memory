@@ -1,7 +1,7 @@
 {
   "schema_version": "noesis.roadmap-reconciliation.v1",
-  "checkpoint_commit": "pending-child-326",
-  "status": "local_reconciliation_and_gate1_bounded_verified",
+  "checkpoint_commit": "d8951a5645e0547f021f98266ccb5003c49d8b3e",
+  "status": "local_reconciliation_and_next03_bounded_verified",
   "runtime": {
     "python": "3.14.7",
     "stdlib_only_core": true

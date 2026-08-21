@@ -802,7 +802,7 @@ Summary: `docs/locales/ru/PARALLEL_METADATA_EVIDENCE_RU.md`. Metadata/provenance
 
 ## Progress snapshot после metadata/provenance audit — 2026-08-18
 
-Progress snapshot: historical checklist coverage is retained below, but the normative remaining work is now defined by `docs/PLAN_NOESIS_1.0_MASTER.md`. The current next local gate is `NEXT-01` production learning lifecycle binding. Native Windows/macOS evidence and Hermes/OpenCode/DeepSeek Harness A/B remain `not_run` or `blocked`; no percentage is treated as proof of superiority.
+Progress snapshot: historical checklist coverage is retained below, but the normative remaining work is now defined by `docs/PLAN_NOESIS_1.0_MASTER.md`. The current next local gate is `NEXT-03` governed executable child runtime; local Gate 3/4/5 evidence is bounded-verified. Native Windows/macOS evidence and Hermes/OpenCode/DeepSeek Harness A/B remain `not_run` or `blocked`; no percentage is treated as proof of superiority.
 
 
 ## 2026-08-18 — Documentation security и link/schema audit
