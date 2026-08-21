@@ -1,4 +1,6 @@
 import dataclasses
+import json
+import sqlite3
 import tempfile
 import unittest
 from unittest import mock
@@ -132,6 +134,22 @@ class LearningPromotionTests(unittest.TestCase):
         self.assertEqual(pipe.durable_state.activation_journal(proposal.proposal_id)["status"], "prepared")
         reopened = LearningPromotionPipeline(str(pipe.root), b"promotion-test-key-2026")
         self.assertEqual(reopened.durable_state.activation_journal(proposal.proposal_id)["status"], "prepared")
+
+    def test_activation_journal_tamper_is_rejected(self):
+        pipe = self.pipeline(); receipt = self.receipt(pipe)
+        evaluation = pipe.evaluate(receipt.receipt_id, [{"case_id": "a", "passed": True}], evaluator_version="eval-1")
+        proposal = pipe.propose(receipt.receipt_id, evaluation.evaluation_id, skill_name="journal-skill", content="# safe\n")
+        pipe.approve(proposal.proposal_id, approved_by="owner", tests=lambda: True)
+        pipe.promote(proposal.proposal_id, content="# safe\n", verify=lambda path: True)
+        db = sqlite3.connect(pipe.durable_state.path)
+        try:
+            row = db.execute("SELECT record_json FROM promotion_activation_journal WHERE proposal_id=?", (proposal.proposal_id,)).fetchone()
+            tampered = json.loads(row[0]); tampered["status"] = "prepared"
+            db.execute("UPDATE promotion_activation_journal SET record_json=? WHERE proposal_id=?", (json.dumps(tampered, sort_keys=True), proposal.proposal_id)); db.commit()
+        finally:
+            db.close()
+        with self.assertRaisesRegex(LearningPromotionError, "activation_journal_integrity_failure"):
+            pipe.durable_state.activation_journal(proposal.proposal_id)
 
     def test_immutable_promotion_signature_and_rollback(self):
         pipe = self.pipeline(); receipt = self.receipt(pipe)

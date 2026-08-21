@@ -13,7 +13,9 @@
     "schema_version": "noesis.promotion-activation-journal.v1",
     "states": ["prepared", "activated", "inactive"],
     "restart_visible": true,
-    "interrupted_activation_is_distinguishable": true
+    "interrupted_activation_is_distinguishable": true,
+    "content_addressed_record": true,
+    "tamper_detection": true
   },
   "activation_safety": {
     "receipt_precedes_activation": true,
@@ -25,7 +27,7 @@
   },
   "focused_tests": {
     "suite": "tests.test_learning_promotion",
-    "passed": 10,
+    "passed": 11,
     "failed": 0,
     "resource_warning_policy": "error"
   },

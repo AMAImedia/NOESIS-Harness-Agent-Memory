@@ -161,16 +161,30 @@ class DurablePromotionState:
             db.execute(f"INSERT INTO {table} ({columns[table]}, record_json) VALUES (?, ?) ON CONFLICT({columns[table]}) DO UPDATE SET record_json=excluded.record_json", (str(key), self._record(value)))
 
     def put_activation(self, proposal_id: str, record: Mapping[str, Any]) -> None:
+        payload = dict(record)
+        payload["record_digest"] = _digest(payload)
         with self._connect() as db:
-            db.execute("INSERT INTO promotion_activation_journal(proposal_id, record_json) VALUES (?, ?) ON CONFLICT(proposal_id) DO UPDATE SET record_json=excluded.record_json", (str(proposal_id), self._record(record)))
+            db.execute("INSERT INTO promotion_activation_journal(proposal_id, record_json) VALUES (?, ?) ON CONFLICT(proposal_id) DO UPDATE SET record_json=excluded.record_json", (str(proposal_id), self._record(payload)))
+
+    @staticmethod
+    def _verify_activation_record(record: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(record, Mapping) or record.get("schema_version") != "noesis.promotion-activation-journal.v1":
+            raise LearningPromotionError("activation_journal_schema_invalid")
+        supplied = str(record.get("record_digest", ""))
+        unsigned = {key: value for key, value in record.items() if key != "record_digest"}
+        if not supplied or not hmac.compare_digest(supplied, _digest(unsigned)):
+            raise LearningPromotionError("activation_journal_integrity_failure")
+        if record.get("status") not in {"prepared", "activated", "inactive"}:
+            raise LearningPromotionError("activation_journal_status_invalid")
+        return dict(record)
 
     def activation_journal(self, proposal_id: Optional[str] = None) -> dict[str, Any]:
         with self._connect() as db:
             if proposal_id is None:
                 rows = db.execute("SELECT proposal_id, record_json FROM promotion_activation_journal ORDER BY proposal_id").fetchall()
-                return {str(row["proposal_id"]): json.loads(str(row["record_json"])) for row in rows}
+                return {str(row["proposal_id"]): self._verify_activation_record(json.loads(str(row["record_json"]))) for row in rows}
             row = db.execute("SELECT record_json FROM promotion_activation_journal WHERE proposal_id=?", (str(proposal_id),)).fetchone()
-        return {} if row is None else dict(json.loads(str(row["record_json"])))
+        return {} if row is None else self._verify_activation_record(json.loads(str(row["record_json"])))
 
     def put_previous_active(self, skill_name: str, version: str) -> None:
         with self._connect() as db:

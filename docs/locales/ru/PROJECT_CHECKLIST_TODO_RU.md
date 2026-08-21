@@ -2340,3 +2340,10 @@ Machine-readable evidence: `docs/LEARNING_PROMOTION_ACTIVATION_EVIDENCE.json`; f
 | LEARN-JOURNAL-08 | Restart-visible interrupted activation | `DONE / BOUNDED LOCAL` | Simulated active-pointer crash leaves `prepared`; reopened pipeline reports the same status without automatic retry. |
 | LEARN-JOURNAL-09 | Production activation recovery | `NOT_RUN / ENVIRONMENT-GATED` | Authenticated operator action and deployment-backed activation recovery remain outside the local host. |
 Machine-readable evidence updated; focused promotion result: `10/10`.
+## 2026-08-21 — Activation journal integrity checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| LEARN-JOURNAL-10 | Content-addressed journal record | `DONE / BOUNDED LOCAL` | Activation journal stores `record_digest` over the unsigned canonical record. |
+| LEARN-JOURNAL-11 | Journal tamper denial | `DONE / BOUNDED LOCAL` | SQLite status tampering without digest recomputation raises `activation_journal_integrity_failure`; strict test passes. |
+| LEARN-JOURNAL-12 | External activation integrity | `NOT_RUN / ENVIRONMENT-GATED` | Deployment-backed operator activation and native/external recovery remain unexecuted. |
+Machine-readable evidence updated; focused promotion result: `11/11`.
