@@ -393,6 +393,39 @@ class ExecutionRecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_inventory_verification_drift"):
             executor.verify_replay_evidence_readiness(require_finalized=True)
 
+    def test_verification_run_chain_rejects_reorder_and_foreign_inventory(self):
+        event_path = str(Path(self.tmp.name) / "verification-run-chain-events.jsonl")
+        executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)
+        executor.handle(self.action, self.context)
+        with patch.object(executor, "_make_readonly", side_effect=OSError("simulated-verification-run-chain")):
+            with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_finalization_partial"):
+                executor.promote_replay_evidence_finalization()
+        executor.repair_replay_evidence_finalization()
+        self.assertEqual(executor.verify_inventory_verification_chain()["run_count"], 1)
+        receipt_payload = executor.verify_inventory_verification_receipt()["payload"]
+        executor._append_inventory_verification_run(receipt_payload, json.loads(Path(executor._replay_inventory_verification_path()).read_text(encoding="utf-8"))["signature"])
+        self.assertEqual(executor.verify_inventory_verification_chain()["run_count"], 2)
+        chain_path = Path(executor._replay_inventory_verification_chain_path())
+        lines = chain_path.read_text(encoding="utf-8").splitlines(True)
+        os.chmod(chain_path, os.stat(chain_path).st_mode | 0o200)
+        chain_path.write_text(lines[1] + lines[0], encoding="utf-8")
+        os.chmod(chain_path, os.stat(chain_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_inventory_verification_chain_order_invalid"):
+            executor.verify_inventory_verification_chain()
+        os.chmod(chain_path, os.stat(chain_path).st_mode | 0o200)
+        chain_path.write_text(lines[0] + lines[1], encoding="utf-8")
+        os.chmod(chain_path, os.stat(chain_path).st_mode & ~0o222)
+        entries = [json.loads(line) for line in lines]
+        entries[-1]["inventory_digest"] = "foreign-inventory"
+        entries[-1]["verification_event_digest"] = request_fingerprint({key: value for key, value in entries[-1].items() if key not in {"verification_event_digest", "verification_run_digest", "signature"}})
+        entries[-1]["verification_run_digest"] = request_fingerprint({key: value for key, value in entries[-1].items() if key not in {"verification_run_digest", "signature"}})
+        entries[-1]["signature"] = _snapshot_signature({key: value for key, value in entries[-1].items() if key != "signature"}, self.key)
+        os.chmod(chain_path, os.stat(chain_path).st_mode | 0o200)
+        chain_path.write_text("\n".join(json.dumps(entry, sort_keys=True, separators=(",", ":")) for entry in entries) + "\n", encoding="utf-8")
+        os.chmod(chain_path, os.stat(chain_path).st_mode & ~0o222)
+        with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_inventory_verification_chain_drift"):
+            executor.verify_inventory_verification_chain()
+
     def test_completion_event_chain_audit_rejects_reorder_and_corruption(self):
         event_path = str(Path(self.tmp.name) / "completion-chain-events.jsonl")
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=event_path, rollback_handler=lambda _: True)

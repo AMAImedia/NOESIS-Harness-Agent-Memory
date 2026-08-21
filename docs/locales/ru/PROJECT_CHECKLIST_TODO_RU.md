@@ -2043,3 +2043,15 @@ Focused finalized-inventory result: `82/82` execution-recovery tests passed with
 | CHILD-297 | Native/external verification | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external verification-receipt lanes не запускались. |
 
 Focused verification-receipt result: `83/83` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+
+## 2026-08-21 — Gate 3 monotonic verification-run checkpoint
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-298 | Verification-run chain | `DONE / BOUNDED LOCAL` | Signed append-only `noesis.recovery-replay-inventory-verification-run.v1` JSONL chain. |
+| CHILD-299 | Monotonic provenance | `DONE / BOUNDED LOCAL` | Positive run IDs, previous digest и event/run digests проверяются строго. |
+| CHILD-300 | Replay/reorder denial | `DONE / BOUNDED LOCAL` | Reordered records и foreign inventory substitution fail-closed. |
+| CHILD-301 | Native/external run history | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS и external verification-run lanes не запускались. |
+
+Focused verification-run result: `84/84` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
