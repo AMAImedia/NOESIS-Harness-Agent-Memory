@@ -2354,3 +2354,10 @@ Machine-readable evidence updated; focused promotion result: `11/11`.
 | LEARN-RECOVERY-08 | Automatic retry denial | `DONE / BOUNDED LOCAL` | `automatic_retry=false`; restart не повторяет activation без explicit operator action. |
 | LEARN-RECOVERY-09 | Production operator recovery | `NOT_RUN / ENVIRONMENT-GATED` | Authenticated reviewer and deployment-specific recovery action не подключены в local-only runtime. |
 Machine-readable evidence updated; focused promotion result: `11/11`.
+## 2026-08-21 — Hardened skill-runtime receipt checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| SKILL-RUNTIME-08 | Promotion receipt requirement | `DONE / BOUNDED LOCAL` | Hardened `ExecutableSkillRuntime` отказывает active skill без `PROMOTION_RECEIPT.json`. |
+| SKILL-RUNTIME-09 | Receipt path isolation | `DONE / BOUNDED LOCAL` | Receipt symlink или отсутствующий receipt fail-closed; non-hardened dev mode остаётся explicit и не является release evidence. |
+| SKILL-RUNTIME-10 | Native sandbox execution | `NOT_RUN / ENVIRONMENT-GATED` | Native Windows/macOS backend parity и external deployment execution не запускались. |
+Machine-readable evidence: `docs/SKILL_RUNTIME_PROMOTION_RECEIPT_EVIDENCE.json`; focused runtime result: `5/5`.

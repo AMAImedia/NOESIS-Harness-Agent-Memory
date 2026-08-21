@@ -58,6 +58,10 @@ class ExecutableSkillRuntime:
             raise SkillRuntimeError("entrypoint_escape") from exc
         if entrypoint.is_symlink() or not entrypoint.is_file():
             raise SkillRuntimeError("entrypoint_missing_or_symlink")
+        if self.require_hardened_sandbox:
+            promotion_receipt = root / "PROMOTION_RECEIPT.json"
+            if promotion_receipt.is_symlink() or not promotion_receipt.is_file():
+                raise SkillRuntimeError("promotion_receipt_required")
         return root, manifest
 
     @staticmethod
@@ -81,6 +85,8 @@ class ExecutableSkillRuntime:
             return ExecutionResult("denied", request_id, None, "", "", 0.0, "skill_capability_target_mismatch")
         if len(arguments) > 32 or any(not isinstance(item, str) or len(item) > 1024 for item in arguments):
             return ExecutionResult("denied", request_id, None, "", "", 0.0, "skill_arguments_out_of_bounds")
+        if self.require_hardened_sandbox and self.child_runtime.sandbox_backend is None:
+            return ExecutionResult("denied", request_id, None, "", "", 0.0, "skill_requires_hardened_sandbox")
         try:
             installed, manifest = self._installed_root(skill_id)
         except (SkillRuntimeError, SkillStoreError) as exc:
@@ -90,8 +96,6 @@ class ExecutableSkillRuntime:
                 workspace = Path(temp)
                 bundle = workspace / ".skill"
                 self._copy_bundle(installed, bundle)
-                if self.require_hardened_sandbox and self.child_runtime.sandbox_backend is None:
-                    return ExecutionResult("denied", request_id, None, "", "", 0.0, "skill_requires_hardened_sandbox")
                 request = ExecutionRequest(request_id, (self.python_executable, ".skill/" + manifest.entrypoint, *tuple(arguments)), str(workspace), (Path(self.python_executable).name,), timeout_seconds=30.0, network=False, skill_id=skill_id, manifest=manifest if self.require_hardened_sandbox else None, granted_capabilities=("skill.execute",) if self.require_hardened_sandbox else ())
                 return self.child_runtime.run(request)
         except (OSError, SkillRuntimeError) as exc:

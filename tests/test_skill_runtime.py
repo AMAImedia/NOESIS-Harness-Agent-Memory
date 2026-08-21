@@ -39,6 +39,11 @@ class SkillRuntimeTests(unittest.TestCase):
         self.gate.commit(decision.request_id)
         return decision.request_id
 
+    def test_hardened_runtime_requires_promotion_receipt(self):
+        strict = ExecutableSkillRuntime(self.store, self.child, self.gate)
+        with self.assertRaisesRegex(ValueError, "promotion_receipt_required"):
+            strict._installed_root("demo-skill")
+
     def test_strict_manifest_execution_requires_hardened_backend(self):
         strict = ExecutableSkillRuntime(self.store, self.child, self.gate)
         result = strict.run("demo-skill", self._gate())
