@@ -124,3 +124,7 @@ Adversarial coverage отмечает все external lanes как `passed`, н�
 ### Denial invalid comparative-readiness claim
 
 Cross-platform builder теперь отклоняет `comparative_ready=true`, если все три external lanes не имеют `passed`. Claimed comparative result с missing или `not_run` lanes получает `comparative_readiness_claim_invalid`, `comparative_ready=false` и `blocked` matrix.
+
+### Guard CLI exit comparative claim
+
+Cross-platform matrix CLI теперь возвращает nonzero при наличии `claim_errors`, даже если все lane status strings syntactically valid. Adversarial CLI fixture возвращает exit code 2 для invalid comparative-readiness claim, поэтому automation fail-closed и на process boundary, и в JSON report.

@@ -2249,3 +2249,10 @@ Focused cross-platform result: `5/5` tests; full suite: `795/795` passed with Py
 | CHILD-361 | Comparative claim lane completeness | `DONE / BOUNDED LOCAL` | `comparative_ready=true` при missing/not_run external lane fail-closed как `comparative_readiness_claim_invalid`. |
 | CHILD-362 | External A/B execution | `NOT_RUN / ENVIRONMENT-GATED` | Claim-denial fixture не является pinned external A/B execution. |
 Focused cross-platform result: `6/6` tests; full suite: `796/796` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
+
+## 2026-08-21 — Comparative-claim CLI exit guard checkpoint
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| CHILD-363 | Comparative claim process boundary | `DONE / BOUNDED LOCAL` | Invalid comparative claim CLI returns exit code `2` and writes `claim_errors`; valid statuses alone не маскируют failure. |
+| CHILD-364 | External A/B process execution | `NOT_RUN / ENVIRONMENT-GATED` | CLI denial fixture не является pinned external A/B execution. |
+Focused cross-platform result: `6/6` tests плюс CLI exit=2; full suite: `796/796` passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
