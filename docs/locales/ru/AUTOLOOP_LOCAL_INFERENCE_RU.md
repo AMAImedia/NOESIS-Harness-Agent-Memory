@@ -62,3 +62,7 @@ Capability probe теперь возвращает `boundary_version: protected-
 Recovery marker доказывает обнаружение прерванного worker cycle; он не утверждает, что прерванный child process завершился или что proposal был опубликован.
 
 Recovery evidence также содержит детерминированный `recovery_digest`, рассчитанный только по номеру предыдущего cycle и его статусу `running`. Command text, endpoint, prompt path и credentials намеренно исключены. У нормально завершённого cycle recovery digest отсутствует, поэтому факт recovery нельзя заявить ошибочно.
+
+## Durable log writes
+
+Worker сначала записывает evidence lines `BEGIN` и `END`, затем выполняет `flush` и `fsync`, и только после этого продолжает цикл. Это уменьшает crash window: для сохранённого `running` state существует durable `BEGIN`, а для завершённого результата — durable `END` до публикации финального state. Гарантии filesystem и power-loss остаются host boundary; worker не заявляет транзакционную durability сверх контракта файловой системы хоста.

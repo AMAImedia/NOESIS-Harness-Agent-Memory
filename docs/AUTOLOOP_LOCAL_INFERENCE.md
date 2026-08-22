@@ -62,3 +62,7 @@ If the process terminates after persisting a `running` state but before writing 
 The recovery marker proves that an interrupted worker cycle was detected; it does not claim that the interrupted child process completed or that any generated proposal was promoted.
 
 The recovery evidence also includes a deterministic `recovery_digest` over only the prior cycle number and its `running` status. This digest deliberately excludes command text, endpoint, prompt path, and credentials. A normal completed cycle has no recovery digest, preventing false claims that recovery occurred.
+
+## Durable log writes
+
+Worker `BEGIN` and `END` evidence lines are flushed and `fsync`-ed before the cycle proceeds. This narrows the crash window: a persisted `running` state has a durable corresponding `BEGIN` line, and a completed result has a durable `END` line before final state publication. The worker still treats filesystem and host power-loss guarantees as environment boundaries; it does not claim transactional durability beyond the host filesystem contract.

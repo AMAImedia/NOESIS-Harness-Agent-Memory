@@ -128,6 +128,13 @@ def release_lock(path: Path) -> None:
         pass
 
 
+def _durable_log_line(log: Any, value: str) -> None:
+    """Append one evidence line and force it to the host before continuing."""
+    log.write(value + "\n")
+    log.flush()
+    os.fsync(log.fileno())
+
+
 def _atomic_text(path: Path, value: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=str(path.parent))
@@ -159,8 +166,7 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
     except (OSError, UnicodeError) as exc:
         final = {"schema_version": SCHEMA, "cycle": cycle, "status": "failed", "mode": "review_only_proposal", "reason": type(exc).__name__, "request_digest": backend.request_digest, "started_at": started, "finished_at": now(), "pid": os.getpid()}
     with log_path.open("a", encoding="utf-8", newline="\n") as log:
-        log.write("END " + canonical(final) + "\n")
-        log.flush()
+        _durable_log_line(log, "END " + canonical(final))
     atomic_write(state_path, dict(final, heartbeat_at=now()))
     return final
 
@@ -187,8 +193,7 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
     atomic_write(state_path, record)
     root.joinpath(".noesis_autoloop").mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8", newline="\n") as log:
-        log.write("BEGIN " + canonical(record) + "\n")
-        log.flush()
+        _durable_log_line(log, "BEGIN " + canonical(record))
         try:
             completed = subprocess.run(selected, cwd=str(root), shell=True, stdout=log, stderr=subprocess.STDOUT, timeout=timeout, check=False)
             status = "passed" if completed.returncode == 0 else "failed"
@@ -206,8 +211,7 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
             if recovered_previous_cycle is not None:
                 result["recovered_previous_cycle"] = recovered_previous_cycle
                 result["recovery_digest"] = recovery_digest
-        log.write("END " + canonical(result) + "\n")
-        log.flush()
+        _durable_log_line(log, "END " + canonical(result))
     atomic_write(state_path, dict(result, heartbeat_at=now()))
     return result
 
