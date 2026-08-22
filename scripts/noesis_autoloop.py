@@ -117,11 +117,11 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
         try:
             completed = subprocess.run(selected, cwd=str(root), shell=True, stdout=log, stderr=subprocess.STDOUT, timeout=timeout, check=False)
             status = "passed" if completed.returncode == 0 else "failed"
-            result = {"schema_version": SCHEMA, "cycle": cycle, "status": status, "returncode": completed.returncode, "started_at": started, "finished_at": now(), "command_digest": digest(selected)}
+            result = {"schema_version": SCHEMA, "cycle": cycle, "status": status, "returncode": completed.returncode, "started_at": started, "finished_at": now(), "command_digest": digest(selected), "pid": os.getpid()}
         except subprocess.TimeoutExpired:
-            result = {"schema_version": SCHEMA, "cycle": cycle, "status": "timeout", "started_at": started, "finished_at": now(), "command_digest": digest(selected)}
+            result = {"schema_version": SCHEMA, "cycle": cycle, "status": "timeout", "started_at": started, "finished_at": now(), "command_digest": digest(selected), "pid": os.getpid()}
         except OSError as exc:
-            result = {"schema_version": SCHEMA, "cycle": cycle, "status": "spawn_error", "error": type(exc).__name__, "started_at": started, "finished_at": now(), "command_digest": digest(selected)}
+            result = {"schema_version": SCHEMA, "cycle": cycle, "status": "spawn_error", "error": type(exc).__name__, "started_at": started, "finished_at": now(), "command_digest": digest(selected), "pid": os.getpid()}
         log.write("END " + canonical(result) + "\n")
         log.flush()
     atomic_write(state_path, dict(result, heartbeat_at=now()))
