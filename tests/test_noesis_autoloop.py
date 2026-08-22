@@ -87,6 +87,20 @@ class NoesisAutoloopTests(unittest.TestCase):
             self.assertEqual(persisted["recovered_previous_cycle"], 7)
             self.assertIn('"recovered_previous_cycle":7', log_path.read_text(encoding="utf-8"))
 
+    def test_custom_command_text_is_not_persisted(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo = Path(root)
+            state_path = repo / ".noesis_autoloop" / "state.json"
+            log_path = repo / ".noesis_autoloop" / "worker.log"
+            secret_command = '"' + sys.executable.replace('"', '') + '" -c pass --token SUPER_SECRET'
+            result = run_cycle(repo, secret_command, 30.0, state_path, log_path)
+            self.assertEqual(result["status"], "passed")
+            state_text = state_path.read_text(encoding="utf-8")
+            log_text = log_path.read_text(encoding="utf-8")
+            self.assertNotIn("SUPER_SECRET", state_text)
+            self.assertNotIn("SUPER_SECRET", log_text)
+            self.assertIn("command_digest", state_text)
+
     def test_once_cycle_persists_passed_result(self):
         with tempfile.TemporaryDirectory() as root:
             repo = Path(root)

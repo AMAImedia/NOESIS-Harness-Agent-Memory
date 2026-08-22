@@ -66,3 +66,7 @@ Recovery evidence также содержит детерминированный
 ## Durable log writes
 
 Worker сначала записывает evidence lines `BEGIN` и `END`, затем выполняет `flush` и `fsync`, и только после этого продолжает цикл. Это уменьшает crash window: для сохранённого `running` state существует durable `BEGIN`, а для завершённого результата — durable `END` до публикации финального state. Гарантии filesystem и power-loss остаются host boundary; worker не заявляет транзакционную durability сверх контракта файловой системы хоста.
+
+## Redaction command evidence
+
+Для validation cycles durable state и evidence `BEGIN` больше не содержат текст настроенной command. Сохраняются только `command_digest` и `command_configured`. Это не допускает попадания token или других секретов командной строки в state и logs, сохраняя детерминированную идентичность выбранной command.

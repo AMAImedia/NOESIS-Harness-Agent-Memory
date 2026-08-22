@@ -186,7 +186,7 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
         selected = interpreter + " -X tracemalloc=10 -W error::ResourceWarning -m unittest " + smoke + " -q"
     else:
         selected = interpreter + " -X tracemalloc=10 -W error::ResourceWarning -m unittest discover -s tests -p test_*.py -q"
-    record = {"schema_version": SCHEMA, "cycle": cycle, "status": "running", "started_at": started, "command": selected, "pid": os.getpid()}
+    record = {"schema_version": SCHEMA, "cycle": cycle, "status": "running", "started_at": started, "command_digest": digest(selected), "command_configured": bool(command), "pid": os.getpid()}
     if recovered_previous_cycle is not None:
         record["recovered_previous_cycle"] = recovered_previous_cycle
         record["recovery_digest"] = recovery_digest

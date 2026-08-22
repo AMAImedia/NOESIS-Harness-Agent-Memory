@@ -66,3 +66,7 @@ The recovery evidence also includes a deterministic `recovery_digest` over only 
 ## Durable log writes
 
 Worker `BEGIN` and `END` evidence lines are flushed and `fsync`-ed before the cycle proceeds. This narrows the crash window: a persisted `running` state has a durable corresponding `BEGIN` line, and a completed result has a durable `END` line before final state publication. The worker still treats filesystem and host power-loss guarantees as environment boundaries; it does not claim transactional durability beyond the host filesystem contract.
+
+## Command evidence redaction
+
+For validation cycles, durable state and `BEGIN` evidence no longer contain the configured command text. They contain only `command_digest` and `command_configured`. This prevents tokens or other command-line secrets from being copied into state and logs while preserving deterministic identity of the selected command.

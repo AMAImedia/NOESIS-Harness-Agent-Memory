@@ -33,6 +33,7 @@
 | DONE-25 | Crash-safe interrupted-cycle recovery | `DONE / LOCAL VERIFIED` | Previous `running` state is linked through `recovered_previous_cycle` in BEGIN, END and final state; recovery/coding tests **15/15 passed** |
 | DONE-26 | Deterministic recovery evidence digest | `DONE / LOCAL VERIFIED` | `recovery_digest` хэширует только prior cycle/status, исключает command/endpoint/prompt/credentials; recovery/coding tests **15/15 passed** |
 | DONE-27 | Durable BEGIN/END worker evidence | `DONE / LOCAL VERIFIED` | Evidence lines `BEGIN`/`END` flush+fsync-ируются до продолжения цикла; recovery/coding/checkpoint/admin-state smoke **26/26 passed**, `ResourceWarning=0` |
+| DONE-28 | Secret-free command evidence | `DONE / LOCAL VERIFIED` | Durable state/log сохраняют только `command_digest` и `command_configured`, command text redacted; security regression **16/16 passed**, `ResourceWarning=0` |
 | BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
 
 
