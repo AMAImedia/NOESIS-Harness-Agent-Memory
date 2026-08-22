@@ -1,16 +1,16 @@
 # NOESIS — совместный checklist и TODO
 
-Дата контрольного состояния: **2026-08-18**
+Дата контрольного состояния: **2026-08-22**
 
 Репозиторий: `AMAImedia/NOESIS-Harness-Agent-Memory`
 
 Режим публикации: **Private**
 
-Текущая ветка: `main`
+Текущая ветка: `windows-autoloop`
 
 Последний подтверждённый remote commit: `3555f4d` — `Bind governed learning lifecycle in portable runtime`
 
-Текущий рабочий этап: **Gate 3 child runtime в работе; manifest/grant contract и Linux/Bubblewrap filesystem/network adversarial isolation локально verified; native/external gates остаются blocked/not_run**
+Текущий рабочий этап: **Windows unattended loop локально verified; local HTTP coding proposal path реализован в review-only режиме; реальный SYSTEM-account model turn остаётся environment-gated; native/external gates остаются blocked/not_run**
 
 ## Как мы используем этот документ
 
@@ -21,6 +21,15 @@
 Каждая новая функция NOESIS должна проходить одинаковый мини-цикл: **план → реализация → focused tests → benchmark → fail-soft/security check → full regression → documentation → local commit → private remote verification**. Публичный релиз, изменение visibility, подключение внешнего сервиса с учётной записью, публикация секретов или необратительное действие требуют отдельного подтверждения владельца.
 
 ## 1. Уже завершено и проверено
+
+| ID | Область | Статус | Доказательство |
+|---|---|---|---|
+| DONE-19 | Windows unattended recovery loop | `DONE / LOCAL VERIFIED` | `NOESIS-Harness-AutoLoop` работает как `SYSTEM`; cycle `10` завершён со статусом `passed`; lock age recovery и atomic state сохранены |
+| DONE-20 | Local HTTP coding proposal adapter | `DONE / LOCAL VERIFIED` | Stdlib `LocalHTTPCodingBackend`, bounded JSON parsing, timeout/error fail-closed, 10/10 focused tests с `ResourceWarning=0`; promotion/execution запрещены |
+| DONE-21 | Bilingual proposal-loop runbook | `DONE / LOCAL VERIFIED` | `docs/AUTOLOOP_LOCAL_INFERENCE.md` и `docs/locales/ru/AUTOLOOP_LOCAL_INFERENCE_RU.md` |
+| DONE-22 | Windows replay containment portability | `DONE / LOCAL VERIFIED` | Исправлено сравнение real paths при 8.3 alias (`DJBION~1` versus long username); execution-recovery regression уменьшен с 88 containment errors до 3 remaining host-capability errors |
+| BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
+
 
 | ID | Область | Статус | Доказательство |
 |---|---|---|---|
@@ -50,7 +59,7 @@
 | Полный regression suite после coding/leakage layers | **118/118 passed in 3.097 s** |
 | Pinned coding static pass rate, n=100 | **1.000000** |
 | Cross-agent isolation pass rate, n=100 | **1.000000** |
-| Dynamic coding execution | **`unavailable` намеренно** |
+| Dynamic coding execution | **`NOT_RUN / ENVIRONMENT-GATED` для SYSTEM model turn; proposal adapter локально verified** |
 | Hardened OS-level sandbox | **`unavailable`, не заявляется** |
 | Secret-pattern scan | **clean** |
 | Actual AST `eval`/`exec` calls in core | **0** |

@@ -1037,9 +1037,15 @@ class ExecutionRecoveryExecutor:
                     raise ExecutionRecoveryError("recovery_replay_completeness_path_mismatch")
                 expected_abs = os.path.abspath(expected_path)
                 expected_real = os.path.realpath(expected_path)
+                # Windows may expose the same directory through an 8.3 alias.
+                # Resolve both comparison forms before containment checking; the
+                # original path is still retained for exact evidence matching.
+                expected_abs_real = os.path.realpath(expected_abs)
+                containment_parent = os.path.normcase(parent_real)
                 try:
-                    if os.path.commonpath((parent_real, expected_abs)) != parent_real or os.path.commonpath((parent_real, expected_real)) != parent_real:
+                    if os.path.commonpath((containment_parent, os.path.normcase(expected_abs_real))) != containment_parent or os.path.commonpath((containment_parent, os.path.normcase(expected_real))) != containment_parent:
                         raise ExecutionRecoveryError("recovery_replay_completeness_path_containment")
+
                 except ValueError as exc:
                     raise ExecutionRecoveryError("recovery_replay_completeness_path_containment") from exc
                 if os.path.islink(expected_path):

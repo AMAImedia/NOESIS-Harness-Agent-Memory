@@ -18,6 +18,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from noesis_harness.coding_backend import LocalHTTPCodingBackend
+
 SCHEMA = "noesis.windows-autoloop.v1"
 DEFAULT_INTERVAL = 3600.0
 DEFAULT_TIMEOUT = 900.0
@@ -97,6 +99,43 @@ def release_lock(path: Path) -> None:
         pass
 
 
+def _atomic_text(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(value)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_name, path)
+    finally:
+        if os.path.exists(temp_name):
+            os.unlink(temp_name)
+
+
+def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeout: float, state_path: Path, log_path: Path) -> Dict[str, Any]:
+    state = read_state(state_path)
+    cycle = int(state.get("cycle", 0)) + 1
+    started = now()
+    prompt = prompt_path.read_text(encoding="utf-8")
+    backend = LocalHTTPCodingBackend(endpoint, prompt, timeout_seconds=timeout)
+    running = {"schema_version": SCHEMA, "cycle": cycle, "status": "running", "mode": "review_only_proposal", "started_at": started, "request_digest": backend.request_digest, "pid": os.getpid()}
+    atomic_write(state_path, running)
+    try:
+        result = backend.run()
+        artifact = root / ".noesis_autoloop" / "artifacts" / ("cycle-%06d.response.txt" % cycle)
+        if result.status == "passed":
+            _atomic_text(artifact, result.stdout)
+        final = {"schema_version": SCHEMA, "cycle": cycle, "status": result.status, "mode": "review_only_proposal", "reason": result.reason, "request_digest": result.command_digest, "artifact": str(artifact.relative_to(root)) if result.status == "passed" else None, "started_at": started, "finished_at": now(), "pid": os.getpid()}
+    except (OSError, UnicodeError) as exc:
+        final = {"schema_version": SCHEMA, "cycle": cycle, "status": "failed", "mode": "review_only_proposal", "reason": type(exc).__name__, "request_digest": backend.request_digest, "started_at": started, "finished_at": now(), "pid": os.getpid()}
+    with log_path.open("a", encoding="utf-8", newline="\n") as log:
+        log.write("END " + canonical(final) + "\n")
+        log.flush()
+    atomic_write(state_path, dict(final, heartbeat_at=now()))
+    return final
+
+
 def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Path, log_path: Path) -> Dict[str, Any]:
     state = read_state(state_path)
     cycle = int(state.get("cycle", 0)) + 1
@@ -136,6 +175,8 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--command", default=os.environ.get("NOESIS_AUTOLOOP_COMMAND"))
+    parser.add_argument("--local-endpoint", default=os.environ.get("NOESIS_AUTOLOOP_LOCAL_ENDPOINT"))
+    parser.add_argument("--prompt-file", default=os.environ.get("NOESIS_AUTOLOOP_PROMPT_FILE"))
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
     state_path = root / ".noesis_autoloop" / "state.json"
@@ -148,7 +189,10 @@ def main(argv: Optional[list] = None) -> int:
         return 2
     try:
         while True:
-            result = run_cycle(root, args.command, max(1.0, args.timeout), state_path, log_path)
+            if args.local_endpoint and args.prompt_file:
+                result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path)
+            else:
+                result = run_cycle(root, args.command, max(1.0, args.timeout), state_path, log_path)
             print(canonical(result), flush=True)
             if args.once:
                 return 0 if result.get("status") == "passed" else 1
