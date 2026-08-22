@@ -5,10 +5,28 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, read_state, release_lock, run_cycle
+from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, read_state, release_lock, run_cycle
 
 
 class NoesisAutoloopTests(unittest.TestCase):
+    def test_capability_status_is_explicitly_validation_only(self):
+        status = capability_status()
+        self.assertEqual(status["schema_version"], "noesis.autoloop-capabilities.v1")
+        self.assertTrue(status["worker_persistent"])
+        self.assertEqual(status["status"], "validation_only")
+        self.assertFalse(status["agent_session_continuity"])
+        self.assertFalse(status["autonomous_code_promotion"])
+        self.assertFalse(status["autonomous_protected_admin_mutation"])
+        self.assertFalse(status["local_inference_configured"])
+
+    def test_capability_status_marks_local_inference_review_only(self):
+        status = capability_status("http://127.0.0.1:8810", "prompt.txt")
+        self.assertEqual(status["status"], "review_only")
+        self.assertEqual(status["worker_modes"], ["validation_recovery", "review_only_proposal"])
+        self.assertTrue(status["local_inference_configured"])
+        self.assertFalse(status["agent_session_continuity"])
+        self.assertFalse(status["autonomous_protected_admin_mutation"])
+
     def test_atomic_state_round_trip(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / ".noesis_autoloop" / "state.json"

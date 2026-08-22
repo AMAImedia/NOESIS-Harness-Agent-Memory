@@ -18,6 +18,10 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from noesis_harness.coding_backend import LocalHTTPCodingBackend
 
 SCHEMA = "noesis.windows-autoloop.v1"
@@ -39,6 +43,22 @@ def digest(value: Any) -> str:
 
 def now() -> float:
     return time.time()
+
+
+def capability_status(local_endpoint: Optional[str] = None, prompt_file: Optional[str] = None, command: Optional[str] = None) -> Dict[str, Any]:
+    """Return the honest boundary between the persistent worker and an agent session."""
+    proposal_ready = bool(local_endpoint and prompt_file)
+    return {
+        "schema_version": "noesis.autoloop-capabilities.v1",
+        "worker_persistent": True,
+        "worker_modes": ["validation_recovery", "review_only_proposal"] if proposal_ready else ["validation_recovery"],
+        "agent_session_continuity": False,
+        "autonomous_code_promotion": False,
+        "autonomous_protected_admin_mutation": False,
+        "arbitrary_command_configured": bool(command),
+        "local_inference_configured": proposal_ready,
+        "status": "review_only" if proposal_ready else "validation_only",
+    }
 
 
 def atomic_write(path: Path, payload: Dict[str, Any]) -> None:
@@ -170,14 +190,18 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
 
 def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(description="Run bounded unattended NOESIS Harness validation cycles on Windows.")
-    parser.add_argument("--root", default=str(Path(__file__).resolve().parents[1]))
+    parser.add_argument("--root", default=str(PROJECT_ROOT))
     parser.add_argument("--interval", type=float, default=DEFAULT_INTERVAL)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--status", action="store_true", help="Print the persistent-worker capability boundary and exit.")
     parser.add_argument("--command", default=os.environ.get("NOESIS_AUTOLOOP_COMMAND"))
     parser.add_argument("--local-endpoint", default=os.environ.get("NOESIS_AUTOLOOP_LOCAL_ENDPOINT"))
     parser.add_argument("--prompt-file", default=os.environ.get("NOESIS_AUTOLOOP_PROMPT_FILE"))
     args = parser.parse_args(argv)
+    if args.status:
+        print(canonical(capability_status(args.local_endpoint, args.prompt_file, args.command)))
+        return 0
     root = Path(args.root).resolve()
     state_path = root / ".noesis_autoloop" / "state.json"
     lock_path = root / ".noesis_autoloop" / "worker.lock"

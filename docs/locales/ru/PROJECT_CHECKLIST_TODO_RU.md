@@ -28,6 +28,7 @@
 | DONE-20 | Local HTTP coding proposal adapter | `DONE / LOCAL VERIFIED` | Stdlib `LocalHTTPCodingBackend`, bounded JSON parsing, timeout/error fail-closed, 10/10 focused tests с `ResourceWarning=0`; promotion/execution запрещены |
 | DONE-21 | Bilingual proposal-loop runbook | `DONE / LOCAL VERIFIED` | `docs/AUTOLOOP_LOCAL_INFERENCE.md` и `docs/locales/ru/AUTOLOOP_LOCAL_INFERENCE_RU.md` |
 | DONE-22 | Windows replay containment portability | `DONE / LOCAL VERIFIED` | Исправлено сравнение real paths при 8.3 alias (`DJBION~1` versus long username); execution-recovery regression уменьшен с 88 containment errors до 3 remaining host-capability errors |
+| DONE-23 | Explicit worker capability status | `DONE / LOCAL VERIFIED` | `scripts/noesis_autoloop.py --status` возвращает `noesis.autoloop-capabilities.v1`; persistent worker отделён от agent session; promotion и protected admin mutation явно запрещены |
 | BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
 
 

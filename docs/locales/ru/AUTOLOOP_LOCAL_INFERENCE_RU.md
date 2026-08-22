@@ -34,3 +34,17 @@ Endpoint должен быть loopback либо явно доверенным �
 ## Проверенная граница
 
 Adapter и proposal path реализованы локально и покрыты детерминированными Windows-compatible tests. Реальный unattended coding run остаётся **environment-gated**, пока endpoint не подтверждён под SYSTEM account: модель должна загрузиться, вернуть bounded response и создать reviewable artifact. До этого worker должен оставаться на validation-only cycles, без заявления о готовности автономного coding.
+
+## Постоянный worker и агентская сессия
+
+Windows Scheduled Task является постоянно работающим **worker**, но не постоянно работающей сессией Manus-агента. После завершения чата worker может выполнять заранее настроенный bounded validation/recovery loop, однако он не получает новый план, не пишет новый код по собственной инициативе и не выполняет интерактивную синхронизацию GitHub между сессиями агента. Поэтому эта граница должна сообщаться явно.
+
+Проверка capability не захватывает worker lock:
+
+```powershell
+py -3.11 scripts\noesis_autoloop.py --status
+```
+
+Команда возвращает `noesis.autoloop-capabilities.v1`. Инвариантные поля: `agent_session_continuity: false`, `autonomous_code_promotion: false`, `autonomous_protected_admin_mutation: false`. Без явно заданных endpoint и prompt-файла статус равен `validation_only`; при наличии обоих параметров он становится `review_only`, но promotion и выполнение сгенерированного кода всё равно запрещены.
+
+Зелёный heartbeat worker доказывает только завершение настроенного worker cycle. Он не доказывает, что агентская сессия продолжала писать код, обновлять документацию или синхронизировать GitHub после завершения чата.

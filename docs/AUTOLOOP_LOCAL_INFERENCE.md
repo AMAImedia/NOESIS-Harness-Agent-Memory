@@ -34,3 +34,17 @@ The endpoint must be loopback or otherwise explicitly trusted by the operator. A
 ## Verified boundary
 
 The adapter and proposal path are locally implemented and covered by deterministic Windows-compatible tests. A real unattended coding run remains **environment-gated** until the configured endpoint is verified to load a model, return a bounded response, and produce a reviewable artifact under the SYSTEM account. Until then, the worker should remain on validation-only cycles rather than claiming autonomous coding readiness.
+
+## Persistent worker versus agent session
+
+The Windows Scheduled Task is a persistent **worker**, not a persistent Manus agent session. It can execute its bounded validation/recovery loop after the chat session ends, but it cannot receive new planning context, invent a new implementation plan, or perform interactive GitHub development between agent sessions. The worker therefore reports this boundary explicitly rather than implying that an agent remains active.
+
+Run the capability probe without acquiring the worker lock:
+
+```powershell
+py -3.11 scripts\noesis_autoloop.py --status
+```
+
+The probe returns `noesis.autoloop-capabilities.v1`. Its invariant fields are `agent_session_continuity: false`, `autonomous_code_promotion: false`, and `autonomous_protected_admin_mutation: false`. With no explicit local endpoint and prompt file, the status is `validation_only`; with both configured, it becomes `review_only` and still cannot promote or execute generated code.
+
+This distinction is operationally important: a green worker heartbeat proves only that the configured worker cycle completed. It does not prove that an agent session continued writing code, updating documentation, or synchronizing GitHub after the session ended.
