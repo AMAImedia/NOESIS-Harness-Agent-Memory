@@ -18,6 +18,23 @@ class NoesisAutoloopTests(unittest.TestCase):
         self.assertFalse(status["autonomous_code_promotion"])
         self.assertFalse(status["autonomous_protected_admin_mutation"])
         self.assertFalse(status["local_inference_configured"])
+        self.assertEqual(status["boundary_version"], "protected-actions.v1")
+        self.assertEqual(status["evidence_digest"], capability_status()["evidence_digest"])
+
+    def test_capability_status_rejects_blank_configuration(self):
+        status = capability_status("  ", "\t", "  ")
+        self.assertEqual(status["status"], "validation_only")
+        self.assertFalse(status["local_endpoint_configured"])
+        self.assertFalse(status["prompt_file_configured"])
+        self.assertFalse(status["arbitrary_command_configured"])
+        self.assertNotIn("127.0.0.1", json.dumps(status, sort_keys=True))
+
+    def test_capability_status_digest_is_deterministic_and_secret_free(self):
+        first = capability_status("http://127.0.0.1:8810/api/chat", "C:\\secret\\prompt.txt", "python worker.py")
+        second = capability_status("http://127.0.0.1:8810/api/chat", "C:\\secret\\prompt.txt", "python worker.py")
+        self.assertEqual(first, second)
+        self.assertNotIn("8810", json.dumps(first, sort_keys=True))
+        self.assertNotIn("secret", json.dumps(first, sort_keys=True))
 
     def test_capability_status_marks_local_inference_review_only(self):
         status = capability_status("http://127.0.0.1:8810", "prompt.txt")

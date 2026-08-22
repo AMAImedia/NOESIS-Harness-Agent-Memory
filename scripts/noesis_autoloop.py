@@ -47,18 +47,27 @@ def now() -> float:
 
 def capability_status(local_endpoint: Optional[str] = None, prompt_file: Optional[str] = None, command: Optional[str] = None) -> Dict[str, Any]:
     """Return the honest boundary between the persistent worker and an agent session."""
-    proposal_ready = bool(local_endpoint and prompt_file)
-    return {
+    endpoint_configured = isinstance(local_endpoint, str) and bool(local_endpoint.strip())
+    prompt_configured = isinstance(prompt_file, str) and bool(prompt_file.strip())
+    command_configured = isinstance(command, str) and bool(command.strip())
+    proposal_ready = endpoint_configured and prompt_configured
+    payload = {
         "schema_version": "noesis.autoloop-capabilities.v1",
+        "boundary_version": "protected-actions.v1",
         "worker_persistent": True,
         "worker_modes": ["validation_recovery", "review_only_proposal"] if proposal_ready else ["validation_recovery"],
         "agent_session_continuity": False,
         "autonomous_code_promotion": False,
         "autonomous_protected_admin_mutation": False,
-        "arbitrary_command_configured": bool(command),
+        "arbitrary_command_configured": command_configured,
+        "local_endpoint_configured": endpoint_configured,
+        "prompt_file_configured": prompt_configured,
         "local_inference_configured": proposal_ready,
         "status": "review_only" if proposal_ready else "validation_only",
+        "evidence_claims": ["worker_heartbeat_only", "no_agent_session_continuity", "no_protected_admin_mutation"],
     }
+    payload["evidence_digest"] = digest(payload)
+    return payload
 
 
 def atomic_write(path: Path, payload: Dict[str, Any]) -> None:

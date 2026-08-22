@@ -48,3 +48,9 @@ py -3.11 scripts\noesis_autoloop.py --status
 Команда возвращает `noesis.autoloop-capabilities.v1`. Инвариантные поля: `agent_session_continuity: false`, `autonomous_code_promotion: false`, `autonomous_protected_admin_mutation: false`. Без явно заданных endpoint и prompt-файла статус равен `validation_only`; при наличии обоих параметров он становится `review_only`, но promotion и выполнение сгенерированного кода всё равно запрещены.
 
 Зелёный heartbeat worker доказывает только завершение настроенного worker cycle. Он не доказывает, что агентская сессия продолжала писать код, обновлять документацию или синхронизировать GitHub после завершения чата.
+
+## Evidence contract
+
+Capability probe теперь возвращает `boundary_version: protected-actions.v1`, явные флаги `local_endpoint_configured`, `prompt_file_configured` и `arbitrary_command_configured`, а также детерминированный `evidence_digest` по публичной capability payload. URL endpoint, пути prompt, текст command и credentials намеренно не попадают в payload и digest. Пустая или состоящая только из пробелов конфигурация считается незаданной и не включает proposal mode.
+
+Стабильные claims: `worker_heartbeat_only`, `no_agent_session_continuity` и `no_protected_admin_mutation`. Это capability claims, а не доказательство загрузки модели или безопасности promotion сгенерированного кода.
