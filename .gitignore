@@ -33,3 +33,4 @@ node_modules/
 # Local downloaded/build runtimes and generated benchmark outputs
 runtime/
 benchmark_contracts.json
+.noesis_autoloop/
