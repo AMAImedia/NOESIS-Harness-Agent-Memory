@@ -70,3 +70,9 @@ Worker сначала записывает evidence lines `BEGIN` и `END`, за
 ## Redaction command evidence
 
 Для validation cycles durable state и evidence `BEGIN` больше не содержат текст настроенной command. Сохраняются только `command_digest` и `command_configured`. Это не допускает попадания token или других секретов командной строки в state и logs, сохраняя детерминированную идентичность выбранной command.
+
+## Durable proposal queue
+
+Опциональный `NOESIS_AUTOLOOP_STEPS_FILE` может содержать JSON-массив ограниченных review-only steps. Worker детерминированно выбирает `proposal_step_index`, повторяет тот же step после failed proposal и увеличивает индекс только после passed response, атомарно сохранённого как artifact. Исчерпанная очередь даёт явный результат `idle`: worker не выдумывает работу и не запускает скрытую fallback command. Повреждённая очередь или неверный индекс приводят к fail-closed.
+
+Queue влияет только на выбор proposal. Она не применяет patch, не исполняет сгенерированный код, не публикует skill, не объединяет branch и не меняет защищённую администраторскую задачу.

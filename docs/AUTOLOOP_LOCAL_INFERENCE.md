@@ -70,3 +70,9 @@ Worker `BEGIN` and `END` evidence lines are flushed and `fsync`-ed before the cy
 ## Command evidence redaction
 
 For validation cycles, durable state and `BEGIN` evidence no longer contain the configured command text. They contain only `command_digest` and `command_configured`. This prevents tokens or other command-line secrets from being copied into state and logs while preserving deterministic identity of the selected command.
+
+## Durable proposal queue
+
+An optional `NOESIS_AUTOLOOP_STEPS_FILE` may contain a JSON array of bounded review-only steps. The worker selects `proposal_step_index` deterministically, retries the same step after a failed proposal, and advances the index only after a passed response has been atomically stored as an artifact. An exhausted queue becomes an explicit `idle` result; it does not invent work or execute a hidden fallback command. Queue corruption or an invalid index fails closed.
+
+The queue changes proposal selection only. It cannot apply patches, execute generated code, promote a skill, merge a branch, or alter a protected administrator task.

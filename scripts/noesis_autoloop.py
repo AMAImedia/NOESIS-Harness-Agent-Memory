@@ -149,11 +149,31 @@ def _atomic_text(path: Path, value: str) -> None:
             os.unlink(temp_name)
 
 
-def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeout: float, state_path: Path, log_path: Path) -> Dict[str, Any]:
+def read_proposal_queue(path: Path) -> list:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            value = json.load(handle)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise WorkerError("proposal_queue_corrupt") from exc
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+        raise WorkerError("proposal_queue_invalid")
+    return value
+
+
+def select_proposal_step(queue: list, state: Dict[str, Any]) -> Any:
+    index = int(state.get("proposal_step_index", 0))
+    if index < 0 or index > len(queue):
+        raise WorkerError("proposal_queue_index_invalid")
+    return queue[index] if index < len(queue) else None
+
+
+def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeout: float, state_path: Path, log_path: Path, proposal_step: Optional[str] = None, proposal_step_index: Optional[int] = None) -> Dict[str, Any]:
     state = read_state(state_path)
     cycle = int(state.get("cycle", 0)) + 1
     started = now()
     prompt = prompt_path.read_text(encoding="utf-8")
+    if proposal_step is not None:
+        prompt += "\n\nNext bounded review-only step:\n" + proposal_step
     backend = LocalHTTPCodingBackend(endpoint, prompt, timeout_seconds=timeout)
     running = {"schema_version": SCHEMA, "cycle": cycle, "status": "running", "mode": "review_only_proposal", "started_at": started, "request_digest": backend.request_digest, "pid": os.getpid()}
     atomic_write(state_path, running)
@@ -163,6 +183,8 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
         if result.status == "passed":
             _atomic_text(artifact, result.stdout)
         final = {"schema_version": SCHEMA, "cycle": cycle, "status": result.status, "mode": "review_only_proposal", "reason": result.reason, "request_digest": result.command_digest, "artifact": str(artifact.relative_to(root)) if result.status == "passed" else None, "started_at": started, "finished_at": now(), "pid": os.getpid()}
+        if proposal_step_index is not None:
+            final["proposal_step_index"] = proposal_step_index + (1 if result.status == "passed" else 0)
     except (OSError, UnicodeError) as exc:
         final = {"schema_version": SCHEMA, "cycle": cycle, "status": "failed", "mode": "review_only_proposal", "reason": type(exc).__name__, "request_digest": backend.request_digest, "started_at": started, "finished_at": now(), "pid": os.getpid()}
     with log_path.open("a", encoding="utf-8", newline="\n") as log:
@@ -226,6 +248,7 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--command", default=os.environ.get("NOESIS_AUTOLOOP_COMMAND"))
     parser.add_argument("--local-endpoint", default=os.environ.get("NOESIS_AUTOLOOP_LOCAL_ENDPOINT"))
     parser.add_argument("--prompt-file", default=os.environ.get("NOESIS_AUTOLOOP_PROMPT_FILE"))
+    parser.add_argument("--steps-file", default=os.environ.get("NOESIS_AUTOLOOP_STEPS_FILE"), help="Optional JSON array of bounded review-only proposal steps.")
     args = parser.parse_args(argv)
     if args.status:
         print(canonical(capability_status(args.local_endpoint, args.prompt_file, args.command)))
@@ -242,7 +265,20 @@ def main(argv: Optional[list] = None) -> int:
     try:
         while True:
             if args.local_endpoint and args.prompt_file:
-                result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path)
+                proposal_step = None
+                proposal_step_index = None
+                if args.steps_file:
+                    queue = read_proposal_queue(Path(args.steps_file).resolve())
+                    current_state = read_state(state_path)
+                    proposal_step_index = int(current_state.get("proposal_step_index", 0))
+                    proposal_step = select_proposal_step(queue, current_state)
+                    if proposal_step is None:
+                        result = {"schema_version": SCHEMA, "cycle": int(current_state.get("cycle", 0)), "status": "idle", "mode": "review_only_proposal", "reason": "proposal_queue_exhausted", "proposal_step_index": proposal_step_index}
+                        atomic_write(state_path, dict(result, heartbeat_at=now()))
+                    else:
+                        result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path, proposal_step, proposal_step_index)
+                else:
+                    result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path)
             else:
                 result = run_cycle(root, args.command, max(1.0, args.timeout), state_path, log_path)
             print(canonical(result), flush=True)

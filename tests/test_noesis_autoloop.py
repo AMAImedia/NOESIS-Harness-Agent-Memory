@@ -5,10 +5,39 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, read_state, release_lock, run_cycle
+from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step
 
 
 class NoesisAutoloopTests(unittest.TestCase):
+    def test_proposal_queue_selection_is_deterministic_and_bounded(self):
+        queue = ["first", "second"]
+        path = self._write_json_file(queue)
+        try:
+            self.assertEqual(read_proposal_queue(path), queue)
+            self.assertEqual(select_proposal_step(queue, {"proposal_step_index": 0}), "first")
+            self.assertEqual(select_proposal_step(queue, {"proposal_step_index": 1}), "second")
+            self.assertIsNone(select_proposal_step(queue, {"proposal_step_index": 2}))
+            with self.assertRaisesRegex(WorkerError, "proposal_queue_index_invalid"):
+                select_proposal_step(queue, {"proposal_step_index": 3})
+        finally:
+            os.unlink(path)
+
+    def _write_json_file(self, value):
+        handle = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".json", delete=False)
+        try:
+            json.dump(value, handle)
+            return Path(handle.name)
+        finally:
+            handle.close()
+
+    def test_proposal_queue_rejects_malformed_entries(self):
+        path = self._write_json_file(["ok", ""])
+        try:
+            with self.assertRaisesRegex(WorkerError, "proposal_queue_invalid"):
+                read_proposal_queue(path)
+        finally:
+            os.unlink(path)
+
     def test_capability_status_is_explicitly_validation_only(self):
         status = capability_status()
         self.assertEqual(status["schema_version"], "noesis.autoloop-capabilities.v1")
