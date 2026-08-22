@@ -60,7 +60,21 @@ class SQLiteAdministrativeBackendTests(unittest.TestCase):
         with self.assertRaisesRegex(SQLiteAdminStateError, "migration_receipt_replay_conflict"):
             backend.record_mode_change_receipt(tampered)
 
+    def test_mutation_receipt_replay_is_idempotent_but_altered_action_conflicts(self):
+        backend = self.backend()
+        self.provision_admin(backend)
+        opened = backend.open_session(actor_id="admin-1", actor_session_id="admin-session", target_operator_id="reviewer-1", target_session_id="reviewer-session", ttl_seconds=300, scopes=("promotion:review",), action_id="replay-open-1")
+        receipt = dict(opened["audit_receipt"])
+        with backend._connect() as db:
+            backend._audit(db, receipt)
+        altered = dict(receipt)
+        altered["target_id"] = "other-session"
+        with self.assertRaisesRegex(SQLiteAdminStateError, "mutation_action_conflict"):
+            with backend._connect() as db:
+                backend._audit(db, altered)
+
     def test_failed_transaction_does_not_leave_audit_without_state(self):
+
         backend = self.backend()
         self.provision_admin(backend)
         with self.assertRaisesRegex(SQLiteAdminStateError, "operator_session_inactive_or_expired"):

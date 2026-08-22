@@ -144,6 +144,13 @@ class SQLiteAdministrativeBackend:
         return {**unsigned, "signature": _sign(self.signing_key, unsigned)}
 
     def _audit(self, db: sqlite3.Connection, receipt: Mapping[str, Any]) -> None:
+        existing = db.execute("SELECT operation, actor_id, target_id, previous_state, new_state, payload_digest, signature FROM mutation_audit WHERE action_id=?", (receipt["action_id"],)).fetchone()
+        if existing is not None:
+            expected = tuple(str(receipt[key]) for key in ("operation", "actor_id", "target_id", "previous_state", "new_state", "payload_digest", "signature"))
+            actual = tuple(str(existing[key]) for key in ("operation", "actor_id", "target_id", "previous_state", "new_state", "payload_digest", "signature"))
+            if actual != expected:
+                raise SQLiteAdminStateError("mutation_action_conflict")
+            return
         db.execute("INSERT INTO mutation_audit(action_id, operation, actor_id, target_id, previous_state, new_state, payload_digest, signature, created_at) VALUES(?,?,?,?,?,?,?,?,?)", (receipt["action_id"], receipt["operation"], receipt["actor_id"], receipt["target_id"], receipt["previous_state"], receipt["new_state"], receipt["payload_digest"], receipt["signature"], float(self.clock())))
 
     def verify_receipt(self, receipt: Mapping[str, Any]) -> bool:
