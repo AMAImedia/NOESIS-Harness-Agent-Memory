@@ -72,6 +72,21 @@ class NoesisAutoloopTests(unittest.TestCase):
             finally:
                 release_lock(lock)
 
+    def test_crashed_running_cycle_is_explicitly_recovered(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo = Path(root)
+            state_path = repo / ".noesis_autoloop" / "state.json"
+            log_path = repo / ".noesis_autoloop" / "worker.log"
+            atomic_write(state_path, {"schema_version": "noesis.windows-autoloop.v1", "cycle": 7, "status": "running", "pid": 999999})
+            command = '"' + sys.executable.replace('"', '') + '" -c pass'
+            result = run_cycle(repo, command, 30.0, state_path, log_path)
+            self.assertEqual(result["status"], "passed")
+            self.assertEqual(result["cycle"], 8)
+            self.assertEqual(result["recovered_previous_cycle"], 7)
+            persisted = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(persisted["recovered_previous_cycle"], 7)
+            self.assertIn('"recovered_previous_cycle":7', log_path.read_text(encoding="utf-8"))
+
     def test_once_cycle_persists_passed_result(self):
         with tempfile.TemporaryDirectory() as root:
             repo = Path(root)

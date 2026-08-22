@@ -168,6 +168,8 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
 def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Path, log_path: Path) -> Dict[str, Any]:
     state = read_state(state_path)
     cycle = int(state.get("cycle", 0)) + 1
+    previous_cycle = int(state.get("cycle", 0))
+    recovered_previous_cycle = previous_cycle if state.get("status") == "running" else None
     started = now()
     interpreter = '"' + sys.executable.replace('"', '') + '"'
     if command:
@@ -178,6 +180,8 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
     else:
         selected = interpreter + " -X tracemalloc=10 -W error::ResourceWarning -m unittest discover -s tests -p test_*.py -q"
     record = {"schema_version": SCHEMA, "cycle": cycle, "status": "running", "started_at": started, "command": selected, "pid": os.getpid()}
+    if recovered_previous_cycle is not None:
+        record["recovered_previous_cycle"] = recovered_previous_cycle
     atomic_write(state_path, record)
     root.joinpath(".noesis_autoloop").mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8", newline="\n") as log:
@@ -187,10 +191,16 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
             completed = subprocess.run(selected, cwd=str(root), shell=True, stdout=log, stderr=subprocess.STDOUT, timeout=timeout, check=False)
             status = "passed" if completed.returncode == 0 else "failed"
             result = {"schema_version": SCHEMA, "cycle": cycle, "status": status, "returncode": completed.returncode, "started_at": started, "finished_at": now(), "command_digest": digest(selected), "pid": os.getpid()}
+            if recovered_previous_cycle is not None:
+                result["recovered_previous_cycle"] = recovered_previous_cycle
         except subprocess.TimeoutExpired:
             result = {"schema_version": SCHEMA, "cycle": cycle, "status": "timeout", "started_at": started, "finished_at": now(), "command_digest": digest(selected), "pid": os.getpid()}
+            if recovered_previous_cycle is not None:
+                result["recovered_previous_cycle"] = recovered_previous_cycle
         except OSError as exc:
             result = {"schema_version": SCHEMA, "cycle": cycle, "status": "spawn_error", "error": type(exc).__name__, "started_at": started, "finished_at": now(), "command_digest": digest(selected), "pid": os.getpid()}
+            if recovered_previous_cycle is not None:
+                result["recovered_previous_cycle"] = recovered_previous_cycle
         log.write("END " + canonical(result) + "\n")
         log.flush()
     atomic_write(state_path, dict(result, heartbeat_at=now()))

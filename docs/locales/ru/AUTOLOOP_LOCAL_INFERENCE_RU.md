@@ -54,3 +54,9 @@ py -3.11 scripts\noesis_autoloop.py --status
 Capability probe теперь возвращает `boundary_version: protected-actions.v1`, явные флаги `local_endpoint_configured`, `prompt_file_configured` и `arbitrary_command_configured`, а также детерминированный `evidence_digest` по публичной capability payload. URL endpoint, пути prompt, текст command и credentials намеренно не попадают в payload и digest. Пустая или состоящая только из пробелов конфигурация считается незаданной и не включает proposal mode.
 
 Стабильные claims: `worker_heartbeat_only`, `no_agent_session_continuity` и `no_protected_admin_mutation`. Это capability claims, а не доказательство загрузки модели или безопасности promotion сгенерированного кода.
+
+## Crash-safe recovery cycle
+
+Если процесс завершился после атомарной записи состояния `running`, но до записи `END`, следующий cycle не перезаписывает это evidence молча. Он увеличивает номер cycle и записывает `recovered_previous_cycle` в `BEGIN`, финальное state и `END`. Так сохраняется детерминированная связь между прерванным turn и recovery attempt, а event log остаётся append-only.
+
+Recovery marker доказывает обнаружение прерванного worker cycle; он не утверждает, что прерванный child process завершился или что proposal был опубликован.
