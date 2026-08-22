@@ -191,6 +191,7 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
     running = {"schema_version": SCHEMA, "cycle": cycle, "status": "running", "mode": "review_only_proposal", "started_at": started, "request_digest": backend.request_digest, "pid": os.getpid()}
     if lease:
         running.update(lease)
+        running["proposal_lease_state"] = "claimed"
     atomic_write(state_path, running)
     try:
         result = backend.run()
@@ -202,6 +203,7 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
             final["proposal_step_index"] = proposal_step_index + (1 if result.status == "passed" else 0)
         if lease:
             final["proposal_lease_id"] = lease["proposal_lease_id"]
+            final["proposal_lease_state"] = "released"
     except (OSError, UnicodeError) as exc:
         final = {"schema_version": SCHEMA, "cycle": cycle, "status": "failed", "mode": "review_only_proposal", "reason": type(exc).__name__, "request_digest": backend.request_digest, "started_at": started, "finished_at": now(), "pid": os.getpid()}
     with log_path.open("a", encoding="utf-8", newline="\n") as log:
@@ -291,7 +293,7 @@ def main(argv: Optional[list] = None) -> int:
                     proposal_step = select_proposal_step(queue, current_state)
                     lease = claim_proposal_step(current_state, max(1.0, args.timeout)) if proposal_step is not None else {}
                     if proposal_step is None:
-                        result = {"schema_version": SCHEMA, "cycle": int(current_state.get("cycle", 0)), "status": "idle", "mode": "review_only_proposal", "reason": "proposal_queue_exhausted", "proposal_step_index": proposal_step_index}
+                        result = {"schema_version": SCHEMA, "cycle": int(current_state.get("cycle", 0)), "status": "idle", "mode": "review_only_proposal", "reason": "proposal_queue_exhausted", "proposal_step_index": proposal_step_index, "proposal_lease_state": "exhausted"}
                         atomic_write(state_path, dict(result, heartbeat_at=now()))
                     else:
                         result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path, proposal_step, proposal_step_index, lease)

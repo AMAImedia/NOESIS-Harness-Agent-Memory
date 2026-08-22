@@ -80,3 +80,5 @@ Queue влияет только на выбор proposal. Она не приме
 ## Capability-scoped proposal lease
 
 Каждый queued proposal step получает короткоживущий lease, ограниченный queue index и worker cycle. Активный lease запрещает duplicate claim; истёкший lease можно reclaim после crash recovery. Identity lease содержит случайный stdlib nonce и хранится только как digest. Lease управляет лишь dispatch proposal и никогда не даёт права изменять защищённые задачи, публиковать code или исполнять model output.
+
+Lease state transitions явно сохраняются в durable state: `claimed` до dispatch, `released` после backend result и `exhausted`, если queue step больше нет. Это audit markers, а не authorization grants. Lease никогда не включает применение patch, выполнение generated code, promotion, merge branch или protected administrator mutation.
