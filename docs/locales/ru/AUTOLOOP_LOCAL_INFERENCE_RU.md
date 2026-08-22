@@ -60,3 +60,5 @@ Capability probe теперь возвращает `boundary_version: protected-
 Если процесс завершился после атомарной записи состояния `running`, но до записи `END`, следующий cycle не перезаписывает это evidence молча. Он увеличивает номер cycle и записывает `recovered_previous_cycle` в `BEGIN`, финальное state и `END`. Так сохраняется детерминированная связь между прерванным turn и recovery attempt, а event log остаётся append-only.
 
 Recovery marker доказывает обнаружение прерванного worker cycle; он не утверждает, что прерванный child process завершился или что proposal был опубликован.
+
+Recovery evidence также содержит детерминированный `recovery_digest`, рассчитанный только по номеру предыдущего cycle и его статусу `running`. Command text, endpoint, prompt path и credentials намеренно исключены. У нормально завершённого cycle recovery digest отсутствует, поэтому факт recovery нельзя заявить ошибочно.

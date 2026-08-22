@@ -60,3 +60,5 @@ The stable claims are `worker_heartbeat_only`, `no_agent_session_continuity`, an
 If the process terminates after persisting a `running` state but before writing `END`, the next cycle does not silently overwrite that evidence. It increments the cycle and records `recovered_previous_cycle` in the `BEGIN` record, final state, and `END` record. This preserves a deterministic link from the interrupted turn to its recovery attempt while keeping the event log append-only.
 
 The recovery marker proves that an interrupted worker cycle was detected; it does not claim that the interrupted child process completed or that any generated proposal was promoted.
+
+The recovery evidence also includes a deterministic `recovery_digest` over only the prior cycle number and its `running` status. This digest deliberately excludes command text, endpoint, prompt path, and credentials. A normal completed cycle has no recovery digest, preventing false claims that recovery occurred.

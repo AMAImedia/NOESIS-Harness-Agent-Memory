@@ -31,6 +31,7 @@
 | DONE-23 | Explicit worker capability status | `DONE / LOCAL VERIFIED` | `scripts/noesis_autoloop.py --status` возвращает `noesis.autoloop-capabilities.v1`; persistent worker отделён от agent session; promotion и protected admin mutation явно запрещены |
 | DONE-24 | Capability evidence digest | `DONE / LOCAL VERIFIED` | `boundary_version: protected-actions.v1`, secret-free deterministic `evidence_digest`, whitespace config fail-closed; capability/coding tests **14/14 passed** |
 | DONE-25 | Crash-safe interrupted-cycle recovery | `DONE / LOCAL VERIFIED` | Previous `running` state is linked through `recovered_previous_cycle` in BEGIN, END and final state; recovery/coding tests **15/15 passed** |
+| DONE-26 | Deterministic recovery evidence digest | `DONE / LOCAL VERIFIED` | `recovery_digest` хэширует только prior cycle/status, исключает command/endpoint/prompt/credentials; recovery/coding tests **15/15 passed** |
 | BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
 
 
