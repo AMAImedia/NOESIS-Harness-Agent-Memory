@@ -5,5 +5,5 @@ set "PY=C:\Users\djbionicl\AppData\Local\Programs\Python\Python311\python.exe"
 if not exist "%ROOT%\scripts\noesis_autoloop.py" exit /b 20
 if not exist "%PY%" exit /b 21
 cd /d "%ROOT%"
-"%PY%" scripts\noesis_autoloop.py --interval 3600 --timeout 900
+"%PY%" scripts\noesis_autoloop.py --interval 900 --timeout 900
 exit /b %errorlevel%
