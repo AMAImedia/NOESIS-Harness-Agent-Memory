@@ -74,16 +74,17 @@ def acquire_lock(path: Path) -> int:
     except FileExistsError:
         try:
             raw = path.read_text(encoding="ascii").strip().split(" ", 1)
-            pid = int(raw[0])
-            os.kill(pid, 0)
-        except (OSError, ValueError, IndexError):
-            try:
-                path.unlink()
-            except OSError as exc:
-                raise WorkerError("lock_stale_but_unremovable") from exc
-            handle = open(path, "x", encoding="ascii")
-        else:
+            int(raw[0])
+            created_at = int(raw[1])
+        except (OSError, ValueError, IndexError) as exc:
+            raise WorkerError("lock_invalid") from exc
+        if now() - created_at < 6 * 60 * 60:
             raise WorkerError("worker_already_running")
+        try:
+            path.unlink()
+        except OSError as exc:
+            raise WorkerError("lock_stale_but_unremovable") from exc
+        handle = open(path, "x", encoding="ascii")
     with handle:
         handle.write(str(os.getpid()) + " " + str(int(now())) + "\n")
     return os.getpid()
