@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -167,7 +168,19 @@ def select_proposal_step(queue: list, state: Dict[str, Any]) -> Any:
     return queue[index] if index < len(queue) else None
 
 
-def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeout: float, state_path: Path, log_path: Path, proposal_step: Optional[str] = None, proposal_step_index: Optional[int] = None) -> Dict[str, Any]:
+def claim_proposal_step(state: Dict[str, Any], timeout: float) -> Dict[str, Any]:
+    """Claim one proposal step without allowing a live duplicate claim."""
+    expires_at = float(state.get("proposal_lease_expires_at", 0.0) or 0.0)
+    if state.get("status") == "running" and expires_at > now():
+        raise WorkerError("proposal_step_lease_active")
+    index = int(state.get("proposal_step_index", 0))
+    cycle = int(state.get("cycle", 0))
+    started = now()
+    lease = {"proposal_step_index": index, "proposal_lease_id": digest({"cycle": cycle, "index": index, "lease_nonce": uuid.uuid4().hex}), "proposal_lease_expires_at": started + max(1.0, float(timeout))}
+    return lease
+
+
+def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeout: float, state_path: Path, log_path: Path, proposal_step: Optional[str] = None, proposal_step_index: Optional[int] = None, lease: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     state = read_state(state_path)
     cycle = int(state.get("cycle", 0)) + 1
     started = now()
@@ -176,6 +189,8 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
         prompt += "\n\nNext bounded review-only step:\n" + proposal_step
     backend = LocalHTTPCodingBackend(endpoint, prompt, timeout_seconds=timeout)
     running = {"schema_version": SCHEMA, "cycle": cycle, "status": "running", "mode": "review_only_proposal", "started_at": started, "request_digest": backend.request_digest, "pid": os.getpid()}
+    if lease:
+        running.update(lease)
     atomic_write(state_path, running)
     try:
         result = backend.run()
@@ -185,6 +200,8 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
         final = {"schema_version": SCHEMA, "cycle": cycle, "status": result.status, "mode": "review_only_proposal", "reason": result.reason, "request_digest": result.command_digest, "artifact": str(artifact.relative_to(root)) if result.status == "passed" else None, "started_at": started, "finished_at": now(), "pid": os.getpid()}
         if proposal_step_index is not None:
             final["proposal_step_index"] = proposal_step_index + (1 if result.status == "passed" else 0)
+        if lease:
+            final["proposal_lease_id"] = lease["proposal_lease_id"]
     except (OSError, UnicodeError) as exc:
         final = {"schema_version": SCHEMA, "cycle": cycle, "status": "failed", "mode": "review_only_proposal", "reason": type(exc).__name__, "request_digest": backend.request_digest, "started_at": started, "finished_at": now(), "pid": os.getpid()}
     with log_path.open("a", encoding="utf-8", newline="\n") as log:
@@ -272,11 +289,12 @@ def main(argv: Optional[list] = None) -> int:
                     current_state = read_state(state_path)
                     proposal_step_index = int(current_state.get("proposal_step_index", 0))
                     proposal_step = select_proposal_step(queue, current_state)
+                    lease = claim_proposal_step(current_state, max(1.0, args.timeout)) if proposal_step is not None else {}
                     if proposal_step is None:
                         result = {"schema_version": SCHEMA, "cycle": int(current_state.get("cycle", 0)), "status": "idle", "mode": "review_only_proposal", "reason": "proposal_queue_exhausted", "proposal_step_index": proposal_step_index}
                         atomic_write(state_path, dict(result, heartbeat_at=now()))
                     else:
-                        result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path, proposal_step, proposal_step_index)
+                        result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path, proposal_step, proposal_step_index, lease)
                 else:
                     result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path)
             else:

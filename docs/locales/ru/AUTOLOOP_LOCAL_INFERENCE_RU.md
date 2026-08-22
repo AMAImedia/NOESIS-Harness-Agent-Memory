@@ -76,3 +76,7 @@ Worker сначала записывает evidence lines `BEGIN` и `END`, за
 Опциональный `NOESIS_AUTOLOOP_STEPS_FILE` может содержать JSON-массив ограниченных review-only steps. Worker детерминированно выбирает `proposal_step_index`, повторяет тот же step после failed proposal и увеличивает индекс только после passed response, атомарно сохранённого как artifact. Исчерпанная очередь даёт явный результат `idle`: worker не выдумывает работу и не запускает скрытую fallback command. Повреждённая очередь или неверный индекс приводят к fail-closed.
 
 Queue влияет только на выбор proposal. Она не применяет patch, не исполняет сгенерированный код, не публикует skill, не объединяет branch и не меняет защищённую администраторскую задачу.
+
+## Capability-scoped proposal lease
+
+Каждый queued proposal step получает короткоживущий lease, ограниченный queue index и worker cycle. Активный lease запрещает duplicate claim; истёкший lease можно reclaim после crash recovery. Identity lease содержит случайный stdlib nonce и хранится только как digest. Lease управляет лишь dispatch proposal и никогда не даёт права изменять защищённые задачи, публиковать code или исполнять model output.

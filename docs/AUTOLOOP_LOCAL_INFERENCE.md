@@ -76,3 +76,7 @@ For validation cycles, durable state and `BEGIN` evidence no longer contain the 
 An optional `NOESIS_AUTOLOOP_STEPS_FILE` may contain a JSON array of bounded review-only steps. The worker selects `proposal_step_index` deterministically, retries the same step after a failed proposal, and advances the index only after a passed response has been atomically stored as an artifact. An exhausted queue becomes an explicit `idle` result; it does not invent work or execute a hidden fallback command. Queue corruption or an invalid index fails closed.
 
 The queue changes proposal selection only. It cannot apply patches, execute generated code, promote a skill, merge a branch, or alter a protected administrator task.
+
+## Capability-scoped proposal lease
+
+Each queued proposal step receives a short-lived lease scoped to its queue index and worker cycle. A live lease denies a duplicate claim; an expired lease may be reclaimed after crash recovery. Lease identity includes a random stdlib nonce and is stored only as a digest. The lease controls proposal dispatch only and never grants permission to modify protected tasks, promote code, or execute model output.

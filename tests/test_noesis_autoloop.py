@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step
+from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, claim_proposal_step, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step
 
 
 class NoesisAutoloopTests(unittest.TestCase):
@@ -29,6 +29,18 @@ class NoesisAutoloopTests(unittest.TestCase):
             return Path(handle.name)
         finally:
             handle.close()
+
+    def test_proposal_lease_denies_live_duplicate_and_reclaims_expired(self):
+        live = {"cycle": 4, "status": "running", "proposal_step_index": 2, "proposal_lease_expires_at": 9999999999}
+        with self.assertRaisesRegex(WorkerError, "proposal_step_lease_active"):
+            claim_proposal_step(live, 30.0)
+        expired = {"cycle": 4, "status": "running", "proposal_step_index": 2, "proposal_lease_expires_at": 1}
+        first = claim_proposal_step(expired, 30.0)
+        second = claim_proposal_step(expired, 30.0)
+        self.assertEqual(first["proposal_step_index"], 2)
+        self.assertEqual(second["proposal_step_index"], 2)
+        self.assertNotEqual(first["proposal_lease_id"], second["proposal_lease_id"])
+        self.assertGreater(first["proposal_lease_expires_at"], 0)
 
     def test_proposal_queue_rejects_malformed_entries(self):
         path = self._write_json_file(["ok", ""])
