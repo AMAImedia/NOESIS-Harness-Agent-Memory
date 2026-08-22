@@ -37,6 +37,7 @@
 | DONE-29 | Durable review-only proposal queue | `DONE / LOCAL VERIFIED` | JSON steps queue выбирается по `proposal_step_index`, failed step retry, passed artifact advance, exhausted queue `idle`, invalid queue fail-closed; smoke **29/29 passed** |
 | DONE-30 | Capability-scoped proposal lease | `DONE / LOCAL VERIFIED` | Live duplicate claim deny, expired lease reclaim, UUID nonce digest и queue index scope; recovery/coding/checkpoint/admin-state smoke **30/30 passed**, `ResourceWarning=0` |
 | DONE-31 | Durable lease state transitions | `DONE / LOCAL VERIFIED` | State transitions `claimed` → `released`, exhausted queue → `exhausted`; audit markers не дают authorization; smoke **30/30 passed**, `ResourceWarning=0` |
+| DONE-32 | Fresh-session handoff manifest | `DONE / LOCAL VERIFIED` | Каждый cycle атомарно публикует `.noesis_autoloop/handoff.json` с result digest, safe allowlist и protected denylist; smoke **31/31 passed**, `ResourceWarning=0` |
 | BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
 
 

@@ -257,6 +257,21 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
     return result
 
 
+def write_handoff(root: Path, result: Dict[str, Any]) -> None:
+    """Publish a secret-free handoff for the next bounded agent session."""
+    payload = {
+        "schema_version": "noesis.autoloop-handoff.v1",
+        "source_cycle": result.get("cycle"),
+        "source_status": result.get("status"),
+        "source_result_digest": digest(result),
+        "next_action": "inspect_state_then_take_one_bounded_safe_increment",
+        "allowed": ["stdlib_code", "tests", "en_ru_docs", "private_github_sync"],
+        "forbidden": ["protected_admin_mutation", "promotion", "generated_code_execution", "credential_changes"],
+        "created_at": now(),
+    }
+    atomic_write(root / ".noesis_autoloop" / "handoff.json", payload)
+
+
 def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(description="Run bounded unattended NOESIS Harness validation cycles on Windows.")
     parser.add_argument("--root", default=str(PROJECT_ROOT))
@@ -301,6 +316,7 @@ def main(argv: Optional[list] = None) -> int:
                     result = run_local_proposal_cycle(root, args.local_endpoint, Path(args.prompt_file).resolve(), max(1.0, args.timeout), state_path, log_path)
             else:
                 result = run_cycle(root, args.command, max(1.0, args.timeout), state_path, log_path)
+            write_handoff(root, result)
             print(canonical(result), flush=True)
             if args.once:
                 return 0 if result.get("status") == "passed" else 1

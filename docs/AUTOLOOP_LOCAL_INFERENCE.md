@@ -82,3 +82,7 @@ The queue changes proposal selection only. It cannot apply patches, execute gene
 Each queued proposal step receives a short-lived lease scoped to its queue index and worker cycle. A live lease denies a duplicate claim; an expired lease may be reclaimed after crash recovery. Lease identity includes a random stdlib nonce and is stored only as a digest. The lease controls proposal dispatch only and never grants permission to modify protected tasks, promote code, or execute model output.
 
 Lease state transitions are explicit in durable state: `claimed` before dispatch, `released` after a backend result, and `exhausted` when no queue step remains. These states are audit markers, not authorization grants. A lease never enables patch application, generated-code execution, promotion, branch merge, or protected administrator mutation.
+
+## Fresh-session handoff
+
+After every bounded cycle, the worker atomically writes `.noesis_autoloop/handoff.json`. The manifest records the source cycle, result digest, one safe next action, an allowlist for code/tests/docs/private GitHub work, and a denylist for protected mutations, promotion, generated-code execution, and credential changes. It contains no command, endpoint, prompt, or secret text. A fresh scheduled task can read this manifest before selecting its next increment; it is a handoff contract, not proof of continuous agent-session execution.

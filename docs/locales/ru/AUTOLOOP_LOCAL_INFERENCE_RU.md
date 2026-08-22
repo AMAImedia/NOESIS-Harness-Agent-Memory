@@ -82,3 +82,7 @@ Queue влияет только на выбор proposal. Она не приме
 Каждый queued proposal step получает короткоживущий lease, ограниченный queue index и worker cycle. Активный lease запрещает duplicate claim; истёкший lease можно reclaim после crash recovery. Identity lease содержит случайный stdlib nonce и хранится только как digest. Lease управляет лишь dispatch proposal и никогда не даёт права изменять защищённые задачи, публиковать code или исполнять model output.
 
 Lease state transitions явно сохраняются в durable state: `claimed` до dispatch, `released` после backend result и `exhausted`, если queue step больше нет. Это audit markers, а не authorization grants. Lease никогда не включает применение patch, выполнение generated code, promotion, merge branch или protected administrator mutation.
+
+## Fresh-session handoff
+
+После каждого bounded cycle worker атомарно записывает `.noesis_autoloop/handoff.json`. Manifest содержит source cycle, digest результата, один безопасный next action, allowlist для code/tests/docs/private GitHub и denylist для protected mutation, promotion, выполнения generated code и credential changes. В нём нет command, endpoint, prompt или secret text. Свежая scheduled task может прочитать manifest перед выбором следующего increment; это handoff contract, а не доказательство непрерывной agent-сессии.
