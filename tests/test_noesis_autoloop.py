@@ -69,6 +69,10 @@ class NoesisAutoloopTests(unittest.TestCase):
             with self.assertRaisesRegex(WorkerError, "handoff_schema_invalid"):
                 read_handoff(handoff_path)
 
+    def test_handoff_cli_missing_manifest_returns_controlled_failure(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.assertEqual(main(["--root", root, "--handoff"]), 3)
+
     def test_handoff_corruption_fails_closed(self):
         with tempfile.TemporaryDirectory() as root:
             handoff_path = Path(root) / "handoff.json"

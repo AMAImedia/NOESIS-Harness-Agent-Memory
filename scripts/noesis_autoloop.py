@@ -311,7 +311,11 @@ def main(argv: Optional[list] = None) -> int:
         return 0
     if args.handoff:
         handoff_path = Path(args.root).resolve() / ".noesis_autoloop" / "handoff.json"
-        print(canonical(read_handoff(handoff_path)))
+        try:
+            print(canonical(read_handoff(handoff_path)))
+        except WorkerError as exc:
+            print("NOESIS handoff blocked: " + str(exc), file=sys.stderr)
+            return 3
         return 0
     root = Path(args.root).resolve()
     state_path = root / ".noesis_autoloop" / "state.json"
