@@ -81,7 +81,10 @@ class ReleaseGateTests(unittest.TestCase):
             self.assertEqual(blocked["failed_stage"], "post_transfer_audit")
 
     def test_posix_wrapper_returns_json(self):
+        if os.name == "nt":
+            self.skipTest("POSIX shell wrapper is host-gated on Windows")
         with tempfile.TemporaryDirectory() as directory:
+
             artifact_root, snapshot = self.build_set(Path(directory))
             process = subprocess.run(["sh", str(ROOT / "scripts/release_gate.sh"), "--root", str(artifact_root), "--key", KEY, "--snapshot", str(snapshot)], cwd=str(ROOT), env={**os.environ, "PYTHONPATH": str(ROOT)}, capture_output=True, text=True)
             self.assertEqual(process.returncode, 0)

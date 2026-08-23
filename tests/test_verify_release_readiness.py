@@ -26,7 +26,10 @@ class VerifyReleaseReadinessTests(unittest.TestCase):
             self.assertEqual(verify_file(path)["reason"], "readiness_snapshot_digest_mismatch")
 
     def test_missing_snapshot_and_wrapper(self):
+        if os.name == "nt":
+            self.skipTest("POSIX shell wrapper is host-gated on Windows")
         with tempfile.TemporaryDirectory() as directory:
+
             missing = Path(directory) / "missing.json"
             self.assertEqual(verify_file(missing)["reason"], "readiness_snapshot_missing")
             path = Path(directory) / "release-readiness.json"
