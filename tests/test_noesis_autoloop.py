@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, claim_proposal_step, read_handoff, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step, write_handoff
+from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, claim_proposal_step, digest, main, read_handoff, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step, write_handoff
 
 
 class NoesisAutoloopTests(unittest.TestCase):
@@ -68,6 +68,55 @@ class NoesisAutoloopTests(unittest.TestCase):
             handoff_path.write_text(json.dumps(value), encoding="utf-8")
             with self.assertRaisesRegex(WorkerError, "handoff_schema_invalid"):
                 read_handoff(handoff_path)
+
+    def test_handoff_corruption_fails_closed(self):
+        with tempfile.TemporaryDirectory() as root:
+            handoff_path = Path(root) / "handoff.json"
+            handoff_path.write_text("{not-json", encoding="utf-8")
+            with self.assertRaisesRegex(WorkerError, "handoff_corrupt"):
+                read_handoff(handoff_path)
+
+    def test_handoff_schema_and_type_mismatches_fail_closed(self):
+        with tempfile.TemporaryDirectory() as root:
+            handoff_path = Path(root) / "handoff.json"
+            valid = {
+                "schema_version": "noesis.autoloop-handoff.v1",
+                "source_cycle": 1,
+                "source_status": "passed",
+                "source_result_digest": "a" * 64,
+                "next_action": "inspect_state_then_take_one_bounded_safe_increment",
+                "allowed": ["stdlib_code"],
+                "forbidden": ["protected_admin_mutation"],
+                "created_at": 1.0,
+            }
+            for field, expected in (("schema_version", "handoff_schema_invalid"), ("source_cycle", "handoff_cycle_invalid"), ("source_result_digest", "handoff_digest_invalid"), ("allowed", "handoff_policy_invalid")):
+                value = dict(valid)
+                value[field] = {"bad": True} if field != "source_cycle" else -1
+                if field == "schema_version":
+                    value[field] = "noesis.autoloop-handoff.v0"
+                if field == "source_result_digest":
+                    value[field] = "short"
+                if field == "allowed":
+                    value[field] = "stdlib_code"
+                handoff_path.write_text(json.dumps(value), encoding="utf-8")
+                with self.assertRaisesRegex(WorkerError, expected):
+                    read_handoff(handoff_path)
+
+    def test_stale_handoff_is_replaced_by_next_successful_cycle(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo = Path(root)
+            handoff_path = repo / ".noesis_autoloop" / "handoff.json"
+            write_handoff(repo, {"cycle": 1, "status": "passed", "old": "stale"})
+            command = '"' + sys.executable.replace('"', '') + '" -c pass'
+            state_path = repo / ".noesis_autoloop" / "state.json"
+            log_path = repo / ".noesis_autoloop" / "worker.log"
+            atomic_write(state_path, {"schema_version": "noesis.windows-autoloop.v1", "cycle": 1, "status": "passed"})
+            self.assertEqual(main(["--root", str(repo), "--once", "--command", command, "--timeout", "30"]), 0)
+            result = read_state(state_path)
+            self.assertEqual(result["cycle"], 2)
+            refreshed = read_handoff(handoff_path)
+            self.assertEqual(refreshed["source_cycle"], 2)
+            self.assertNotEqual(refreshed["source_result_digest"], digest({"cycle": 1, "status": "passed", "old": "stale"}))
 
     def test_capability_status_is_explicitly_validation_only(self):
         status = capability_status()
