@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, claim_proposal_step, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step, write_handoff
+from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, claim_proposal_step, read_handoff, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step, write_handoff
 
 
 class NoesisAutoloopTests(unittest.TestCase):
@@ -60,7 +60,14 @@ class NoesisAutoloopTests(unittest.TestCase):
             self.assertEqual(handoff["source_cycle"], 8)
             self.assertIn("stdlib_code", handoff["allowed"])
             self.assertIn("protected_admin_mutation", handoff["forbidden"])
-            self.assertNotIn("SUPER_SECRET", (repo / ".noesis_autoloop" / "handoff.json").read_text(encoding="utf-8"))
+            handoff_path = repo / ".noesis_autoloop" / "handoff.json"
+            self.assertNotIn("SUPER_SECRET", handoff_path.read_text(encoding="utf-8"))
+            self.assertEqual(read_handoff(handoff_path)["source_cycle"], 8)
+            value = json.loads(handoff_path.read_text(encoding="utf-8"))
+            value["unexpected"] = "deny"
+            handoff_path.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(WorkerError, "handoff_schema_invalid"):
+                read_handoff(handoff_path)
 
     def test_capability_status_is_explicitly_validation_only(self):
         status = capability_status()

@@ -257,6 +257,27 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
     return result
 
 
+def read_handoff(path: Path) -> Dict[str, Any]:
+    """Read a strict, secret-free handoff manifest for a fresh session."""
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            value = json.load(handle)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise WorkerError("handoff_corrupt") from exc
+    required = {"schema_version", "source_cycle", "source_status", "source_result_digest", "next_action", "allowed", "forbidden", "created_at"}
+    if not isinstance(value, dict) or set(value) != required:
+        raise WorkerError("handoff_schema_invalid")
+    if value["schema_version"] != "noesis.autoloop-handoff.v1":
+        raise WorkerError("handoff_schema_invalid")
+    if not isinstance(value["source_cycle"], int) or value["source_cycle"] < 0:
+        raise WorkerError("handoff_cycle_invalid")
+    if not isinstance(value["source_result_digest"], str) or len(value["source_result_digest"]) != 64:
+        raise WorkerError("handoff_digest_invalid")
+    if not isinstance(value["allowed"], list) or not isinstance(value["forbidden"], list):
+        raise WorkerError("handoff_policy_invalid")
+    return value
+
+
 def write_handoff(root: Path, result: Dict[str, Any]) -> None:
     """Publish a secret-free handoff for the next bounded agent session."""
     payload = {

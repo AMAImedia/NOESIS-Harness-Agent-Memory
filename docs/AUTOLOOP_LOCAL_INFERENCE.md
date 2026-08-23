@@ -86,3 +86,5 @@ Lease state transitions are explicit in durable state: `claimed` before dispatch
 ## Fresh-session handoff
 
 After every bounded cycle, the worker atomically writes `.noesis_autoloop/handoff.json`. The manifest records the source cycle, result digest, one safe next action, an allowlist for code/tests/docs/private GitHub work, and a denylist for protected mutations, promotion, generated-code execution, and credential changes. It contains no command, endpoint, prompt, or secret text. A fresh scheduled task can read this manifest before selecting its next increment; it is a handoff contract, not proof of continuous agent-session execution.
+
+Fresh sessions must validate `.noesis_autoloop/handoff.json` against the exact `noesis.autoloop-handoff.v1` schema before consuming it. Unknown fields, invalid cycle numbers, malformed result digests, or non-list policy fields fail closed as `handoff_*` errors; no inferred fallback action is permitted.

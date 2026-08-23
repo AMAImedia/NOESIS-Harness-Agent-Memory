@@ -38,6 +38,7 @@
 | DONE-30 | Capability-scoped proposal lease | `DONE / LOCAL VERIFIED` | Live duplicate claim deny, expired lease reclaim, UUID nonce digest и queue index scope; recovery/coding/checkpoint/admin-state smoke **30/30 passed**, `ResourceWarning=0` |
 | DONE-31 | Durable lease state transitions | `DONE / LOCAL VERIFIED` | State transitions `claimed` → `released`, exhausted queue → `exhausted`; audit markers не дают authorization; smoke **30/30 passed**, `ResourceWarning=0` |
 | DONE-32 | Fresh-session handoff manifest | `DONE / LOCAL VERIFIED` | Каждый cycle атомарно публикует `.noesis_autoloop/handoff.json` с result digest, safe allowlist и protected denylist; smoke **31/31 passed**, `ResourceWarning=0` |
+| DONE-33 | Strict handoff reader | `DONE / LOCAL VERIFIED` | Exact schema validation, unknown-field deny, invalid digest/cycle fail-closed; smoke **31/31 passed**, `ResourceWarning=0` |
 | BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
 
 
