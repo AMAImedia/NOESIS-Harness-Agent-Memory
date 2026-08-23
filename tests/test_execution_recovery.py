@@ -1138,9 +1138,17 @@ print(executor.verify_completion_event_snapshot()['status'])
         status_path = Path(executor._status_snapshot_path(self.action.action_id))
         alias_path = status_path.with_name(status_path.name + ".alias-target")
         status_path.rename(alias_path)
-        status_path.symlink_to(alias_path.name)
+
+        try:
+            status_path.symlink_to(alias_path.name)
+        except OSError as exc:
+            if status_path.exists() or status_path.is_symlink():
+                status_path.unlink()
+            alias_path.rename(status_path)
+            self.skipTest("symlink capability is host-gated on Windows: " + type(exc).__name__)
         with self.assertRaisesRegex(ExecutionRecoveryError, "recovery_replay_completeness_sidecar_alias"):
             executor.audit_replay_evidence_completeness(require_durable_snapshot=True)
+
         status_path.unlink()
         alias_path.rename(status_path)
         self.assertEqual(executor.audit_replay_evidence_completeness(require_durable_snapshot=True)["manifest_count"], 1)
