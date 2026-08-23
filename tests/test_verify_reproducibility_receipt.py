@@ -53,7 +53,10 @@ class VerifyReproducibilityReceiptTests(unittest.TestCase):
             self.assertEqual(verify_reproducibility_set(artifact_root, KEY)["reason"], "reproducibility_digest_mismatch")
 
     def test_wrong_key_and_posix_wrapper(self):
+        if os.name == "nt":
+            self.skipTest("POSIX shell wrapper is host-gated on Windows")
         with tempfile.TemporaryDirectory() as directory:
+
             root = Path(directory)
             artifact_root = self.build_set(root)
             self.assertEqual(verify_reproducibility_set(artifact_root, "wrong-reproducibility-key")["reason"], "reproducibility_signature_invalid")

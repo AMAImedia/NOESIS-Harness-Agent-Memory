@@ -55,7 +55,10 @@ class PostTransferAuditTests(unittest.TestCase):
             self.assertEqual(result["failed_stage"], "composition")
 
     def test_posix_wrapper_outputs_one_json_object(self):
+        if os.name == "nt":
+            self.skipTest("POSIX shell wrapper is host-gated on Windows")
         with tempfile.TemporaryDirectory() as directory:
+
             artifact_root = self.build_set(Path(directory))
             process = subprocess.run(["sh", str(ROOT / "scripts/post_transfer_audit.sh"), "--root", str(artifact_root), "--key", KEY], cwd=str(ROOT), env={**os.environ, "PYTHONPATH": str(ROOT)}, capture_output=True, text=True)
             self.assertEqual(process.returncode, 0)

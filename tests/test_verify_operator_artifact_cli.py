@@ -66,7 +66,10 @@ class VerifyOperatorArtifactCliTests(unittest.TestCase):
             self.assertEqual(payload["status"], "blocked")
 
     def test_posix_wrapper_exposes_same_contract(self):
+        if os.name == "nt":
+            self.skipTest("POSIX shell wrapper is host-gated on Windows")
         with tempfile.TemporaryDirectory() as directory:
+
             artifact_root, _ = self.build_set(Path(directory))
             process = subprocess.run(["sh", str(ROOT / "scripts/verify_operator_artifacts.sh"), "--root", str(artifact_root), "--key", KEY], cwd=str(ROOT), capture_output=True, text=True)
             self.assertEqual(process.returncode, 0)
