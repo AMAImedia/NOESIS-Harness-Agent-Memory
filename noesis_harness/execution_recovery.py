@@ -1041,9 +1041,17 @@ class ExecutionRecoveryExecutor:
                 # Resolve both comparison forms before containment checking; the
                 # original path is still retained for exact evidence matching.
                 expected_abs_real = os.path.realpath(expected_abs)
-                containment_parent = os.path.normcase(parent_real)
+                containment_roots = {
+                    os.path.normcase(parent_real),
+                    os.path.normcase(os.path.abspath(parent)),
+                    os.path.normcase(os.path.realpath(os.path.abspath(parent))),
+                }
                 try:
-                    if os.path.commonpath((containment_parent, os.path.normcase(expected_abs_real))) != containment_parent or os.path.commonpath((containment_parent, os.path.normcase(expected_real))) != containment_parent:
+                    expected_forms = (os.path.normcase(expected_abs_real), os.path.normcase(expected_real))
+                    if not any(
+                        all(os.path.commonpath((root, expected)) == root for expected in expected_forms)
+                        for root in containment_roots
+                    ):
                         raise ExecutionRecoveryError("recovery_replay_completeness_path_containment")
 
                 except ValueError as exc:
