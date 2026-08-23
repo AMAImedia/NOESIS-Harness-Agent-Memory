@@ -34,7 +34,9 @@ class ChaosRecoveryTests(unittest.TestCase):
             ready = multiprocessing.Event()
             process = multiprocessing.Process(target=_write_candidates, args=(db_path, ready))
             process.start()
-            self.assertTrue(ready.wait(5), "writer did not initialize")
+            startup_timeout = 30 if os.name == "nt" else 5
+            self.assertTrue(ready.wait(startup_timeout), "writer did not initialize")
+
             time.sleep(0.08)
             process.terminate()
             process.join(5)
