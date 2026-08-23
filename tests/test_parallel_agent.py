@@ -184,7 +184,12 @@ class SafeParallelExecutorTests(unittest.TestCase):
 
     def test_deadline_cancellation_is_reported(self):
         executor = SafeParallelExecutor(self.root)
-        result = executor.execute([AgentLane("a", "deadline-task", "deadline")], lambda ctx: ctx.check_cancelled(), max_duration_seconds=0.000001)[0]
+        def callback(ctx):
+            time.sleep(0.01)
+            ctx.check_cancelled()
+
+        result = executor.execute([AgentLane("a", "deadline-task", "deadline")], callback, max_duration_seconds=0.000001)[0]
+
         self.assertEqual(result.status, "cancelled")
         self.assertIn("deadline_exceeded", result.error)
 
