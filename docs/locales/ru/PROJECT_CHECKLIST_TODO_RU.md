@@ -2084,6 +2084,8 @@ Focused verification-receipt result: `83/83` execution-recovery tests passed wit
 
 Focused verification-run result: `84/84` execution-recovery tests passed with Python 3.14.7, tracemalloc и `-W error::ResourceWarning`.
 
+Current Windows verification correction: compact cross-cluster smoke `84/84` прошёл на CPython 3.11 с `ResourceWarning=0`; exact Python 3.14.7/native evidence остаётся `NOT_RUN / ENVIRONMENT-GATED` и не подменяется этим локальным результатом.
+
 
 ## 2026-08-21 — Gate 3 verification-run readiness checkpoint
 
