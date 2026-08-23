@@ -42,13 +42,14 @@ class BubblewrapBackend:
         return self.executable is not None and os.name == "posix"
 
     def command(self, argv: Sequence[str], workspace: Path) -> list[str]:
-        if not self.available:
-            raise SandboxUnavailable("bubblewrap_unavailable")
         if not argv or any(not isinstance(part, str) or not part for part in argv):
             raise ValueError("argv_required")
         workspace = workspace.resolve()
         if not workspace.is_dir():
             raise ValueError("workspace_required")
+        if not self.available:
+            raise SandboxUnavailable("bubblewrap_unavailable")
+
         return [
             self.executable,
             "--die-with-parent",
