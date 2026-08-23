@@ -38,7 +38,8 @@ class SafeParallelExecutorTests(unittest.TestCase):
         self.assertEqual([r.status for r in results], ["passed", "passed"])
         self.assertEqual({r.agent_id for r in results}, {"agent-a", "agent-b"})
         self.assertEqual({r.task_id for r in results}, {"task-a", "task-b"})
-        self.assertEqual({r.workspace for r in results}, {str(Path(self.root) / "agent-a"), str(Path(self.root) / "agent-b")})
+        self.assertEqual({Path(r.workspace).resolve() for r in results}, {(Path(self.root) / "agent-a").resolve(), (Path(self.root) / "agent-b").resolve()})
+
         self.assertTrue(all(row[2] == "session-1" for row in seen))
         self.assertNotEqual(seen[0][3], seen[1][3])
 
