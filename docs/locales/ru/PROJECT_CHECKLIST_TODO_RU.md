@@ -40,6 +40,7 @@
 | DONE-32 | Fresh-session handoff manifest | `DONE / LOCAL VERIFIED` | Каждый cycle атомарно публикует `.noesis_autoloop/handoff.json` с result digest, safe allowlist и protected denylist; smoke **31/31 passed**, `ResourceWarning=0` |
 | DONE-33 | Strict handoff reader | `DONE / LOCAL VERIFIED` | Exact schema validation, unknown-field deny, invalid digest/cycle fail-closed; smoke **31/31 passed**, `ResourceWarning=0` |
 | DONE-34 | Read-only handoff CLI and adversarial recovery tests | `DONE / LOCAL VERIFIED` | `--handoff` печатает canonical validated manifest без lock/cycle/inference; corruption, schema/type mismatch и stale replacement покрыты; focused autoloop **17/17**, combined smoke **34/34**, `ResourceWarning=0` |
+| DONE-35 | Windows portability and host-boundary regression hardening | `DONE / LOCAL VERIFIED` | Canonical path assertions, Windows spawn readiness budget, symlink/Linux/POSIX wrapper host guards; broad local smoke **122/122**, recovery/chaos **23/23**, native/parity **23/23**, release wrappers **9/9**, `ResourceWarning=0`; `recall20 20/20 acc=1.00` |
 | BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
 
 
