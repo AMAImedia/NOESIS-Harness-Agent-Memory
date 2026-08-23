@@ -116,8 +116,9 @@
 | P0-03 | Добавить read-only `/models` endpoint | Агент | `DONE / REMOTE VERIFIED` | `ProviderRegistry`, five fixtures, `/models` HTTP tests, no-secret scan, benchmark, commit `a6ad64a` |
 | P0-04 | Сделать stdlib HTTP adapter без обязательного Node/npm | Агент | `DONE / REMOTE VERIFIED` | `HealthServer` + `/health` + `/models` use stdlib only; commit `a6ad64a` |
 | P0-05 | Contract fixtures и no-secret response scan | Агент | `DONE / REMOTE VERIFIED` | 6 provider tests, metadata-only assertions, explicit unavailable state, commit `a6ad64a` |
-| P0-06 | Документация запуска и пример curl/PowerShell | Агент | `DONE / LOCAL VERIFIED` | `examples/run_control_plane.py`, curl/PowerShell examples, Windows launcher smoke test: `/health` and `/models` returned contract `1.0`; commit/remote verification pending |
-| P0-07 | Capability-aware Hermes/DeepSeek bridge discovery | Агент | `DONE / LOCAL VERIFIED` | Read-only `/health` + `/models` probes; ready, unavailable, degraded and unreachable cases: 4/4 focused tests passed; commit/remote verification pending |
+| P0-06 | Документация запуска и пример curl/PowerShell | Агент | `DONE / REMOTE VERIFIED` | `examples/run_control_plane.py`, curl/PowerShell examples, Windows launcher smoke test: `/health` and `/models` returned contract `1.0`; commit `e6569db` присутствует в remote history |
+
+| P0-07 | Capability-aware Hermes/DeepSeek bridge discovery | Агент | `DONE / REMOTE VERIFIED` | Read-only `/health` + `/models` probes; ready, unavailable, degraded and unreachable cases: 4/4 focused tests passed; commit `e6569db` присутствует в remote history |
 
 ### P1 — Browser UI и runtime supervisor
 
