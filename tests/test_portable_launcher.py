@@ -12,8 +12,8 @@ class PortableLauncherTests(unittest.TestCase):
             install = Path(root, "install")
             layout = resolve_layout(str(install), env={})
             self.assertNotEqual(layout.install_root, layout.data_root)
-            self.assertEqual(layout.data_root, install / "data")
-            self.assertEqual(layout.runtime_root, install / "data" / "runtime")
+            self.assertEqual(layout.data_root, (install / "data").resolve())
+            self.assertEqual(layout.runtime_root, (install / "data" / "runtime").resolve())
 
     def test_explicit_noesis_home_and_windows_style_override(self):
         with tempfile.TemporaryDirectory() as root:
