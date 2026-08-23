@@ -260,7 +260,7 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
 def read_handoff(path: Path) -> Dict[str, Any]:
     """Read a strict, secret-free handoff manifest for a fresh session."""
     try:
-        with path.open("r", encoding="utf-8") as handle:
+        with path.open("r", encoding="utf-8-sig") as handle:
             value = json.load(handle)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         raise WorkerError("handoff_corrupt") from exc
@@ -300,6 +300,7 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--status", action="store_true", help="Print the persistent-worker capability boundary and exit.")
+    parser.add_argument("--handoff", action="store_true", help="Print and validate the latest secret-free fresh-session handoff and exit.")
     parser.add_argument("--command", default=os.environ.get("NOESIS_AUTOLOOP_COMMAND"))
     parser.add_argument("--local-endpoint", default=os.environ.get("NOESIS_AUTOLOOP_LOCAL_ENDPOINT"))
     parser.add_argument("--prompt-file", default=os.environ.get("NOESIS_AUTOLOOP_PROMPT_FILE"))
@@ -307,6 +308,10 @@ def main(argv: Optional[list] = None) -> int:
     args = parser.parse_args(argv)
     if args.status:
         print(canonical(capability_status(args.local_endpoint, args.prompt_file, args.command)))
+        return 0
+    if args.handoff:
+        handoff_path = Path(args.root).resolve() / ".noesis_autoloop" / "handoff.json"
+        print(canonical(read_handoff(handoff_path)))
         return 0
     root = Path(args.root).resolve()
     state_path = root / ".noesis_autoloop" / "state.json"
