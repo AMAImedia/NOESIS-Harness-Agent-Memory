@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
+
 from pathlib import Path
 
 from scripts.verify_native_artifact import artifact_digest, verify
@@ -9,7 +11,10 @@ from scripts.verify_native_artifact import artifact_digest, verify
 
 class NativeArtifactEvidenceTests(unittest.TestCase):
     def test_linux_host_never_claims_windows_native_evidence(self):
+        if os.name != "posix":
+            self.skipTest("Linux host evidence case is not applicable on Windows")
         with tempfile.TemporaryDirectory() as directory:
+
             artifact = Path(directory) / "noesis-harness.exe"
             artifact.write_bytes(b"not-a-real-native-build")
             report = verify("windows", str(artifact))
