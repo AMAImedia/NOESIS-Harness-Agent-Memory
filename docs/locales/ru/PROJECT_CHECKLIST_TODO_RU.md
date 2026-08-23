@@ -42,6 +42,7 @@
 | DONE-34 | Read-only handoff CLI and adversarial recovery tests | `DONE / LOCAL VERIFIED` | `--handoff` печатает canonical validated manifest без lock/cycle/inference; corruption, schema/type mismatch и stale replacement покрыты; focused autoloop **17/17**, combined smoke **34/34**, `ResourceWarning=0` |
 | DONE-35 | Windows portability and host-boundary regression hardening | `DONE / LOCAL VERIFIED` | Canonical path assertions, Windows spawn readiness budget, symlink/Linux/POSIX wrapper host guards; broad local smoke **122/122**, recovery/chaos **23/23**, native/parity **23/23**, release wrappers **9/9**, `ResourceWarning=0`; `recall20 20/20 acc=1.00` |
 | DONE-36 | Controlled handoff CLI failure contract | `DONE / LOCAL VERIFIED` | Missing/corrupt `.noesis_autoloop/handoff.json` returns controlled exit code `3` and fail-closed stderr instead of traceback; autoloop tests **18/18**, `ResourceWarning=0` |
+| DONE-37 | Execution recovery Windows alias containment | `DONE / LOCAL VERIFIED` | Containment checks compare equivalent lexical/real path views for Windows 8.3 aliases without widening the root; targeted replay tests and compact regression smoke **58/58**, `ResourceWarning=0` |
 | BOUNDARY-01 | Protected administrator confirmation | `BLOCKED / PRESERVED` | Worker и агент не обходят требование подтверждения администратора для защищённой задачи; такие исправления не выполняются автоматически |
 
 
