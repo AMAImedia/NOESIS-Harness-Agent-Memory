@@ -27,7 +27,10 @@ class ReleaseGateArtifactTests(unittest.TestCase):
             self.assertEqual(verify_file(path)["reason"], "release_gate_artifact_digest_mismatch")
 
     def test_missing_and_wrapper(self):
+        if os.name == "nt":
+            self.skipTest("POSIX shell wrapper is host-gated on Windows")
         with tempfile.TemporaryDirectory() as directory:
+
             root = Path(directory)
             missing = root / "missing.json"
             self.assertEqual(verify_file(missing)["reason"], "release_gate_artifact_missing")
