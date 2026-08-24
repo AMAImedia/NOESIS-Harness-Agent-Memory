@@ -96,3 +96,20 @@ py -3.11 scripts\noesis_autoloop.py --root B:\path\to\repo --handoff
 ```
 
 Команда печатает canonical validated manifest и завершается без захвата worker lock, запуска cycle, обращения к inference или изменения repository state. Если manifest отсутствует или невалиден, CLI fail-closed печатает diagnostic в stderr и возвращает exit code `3`; fallback action не выводится. Manus scheduler настроен запускать новую coding-сессию каждые **20 минут**; сессия должна прочитать `--handoff`, проверить текущий repository, выполнить один bounded safe increment, запустить относящиеся к нему tests, при необходимости синхронно обновить EN/RU documentation и отправить только verified work в private branch.
+
+## Внешний Windows supervisor
+
+`scripts/noesis_worker_supervisor.ps1` — внешний restart loop для bounded worker. Он запускает `noesis_autoloop.py --once`, ждёт не дольше worker timeout, завершает зависший process, атомарно сохраняет `.noesis_autoloop/supervisor_state.json`, пишет structured events в `supervisor.log` и применяет bounded exponential backoff после failures. `-MaxCycles 0` означает бесконечный режим; `-MaxCycles 1 -WhatIf` проверяет state path без запуска worker. Supervisor не создаёт, не заменяет и не изменяет Windows Scheduled Tasks.
+
+Пример запуска:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\noesis_worker_supervisor.ps1 `
+  -RepositoryRoot B:\path\to\NOESIS-Harness-Agent-Memory `
+  -Python py -PythonVersion -3.11 `
+  -WorkerTimeoutSeconds 300 `
+  -RestartDelaySeconds 15 `
+  -MaxBackoffSeconds 300
+```
+
+Это обеспечивает persistent worker execution, но не persistent Manus agent session. Supervisor не придумывает новый код или план: он повторно запускает настроенный bounded worker и сохраняет evidence для следующей agent session.
