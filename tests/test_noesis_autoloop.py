@@ -106,6 +106,31 @@ class NoesisAutoloopTests(unittest.TestCase):
                 with self.assertRaisesRegex(WorkerError, expected):
                     read_handoff(handoff_path)
 
+    def test_handoff_extended_integrity_fields_fail_closed(self):
+        with tempfile.TemporaryDirectory() as root:
+            handoff_path = Path(root) / "handoff.json"
+            valid = {
+                "schema_version": "noesis.autoloop-handoff.v1",
+                "source_cycle": 1,
+                "source_status": "passed",
+                "source_result_digest": "a" * 64,
+                "next_action": "inspect_state_then_take_one_bounded_safe_increment",
+                "allowed": ["stdlib_code"],
+                "forbidden": ["protected_admin_mutation"],
+                "created_at": 1.0,
+            }
+            for field, value, expected in (
+                ("source_status", "unknown", "handoff_status_invalid"),
+                ("next_action", "run_unapproved_code", "handoff_action_invalid"),
+                ("created_at", -1.0, "handoff_timestamp_invalid"),
+                ("forbidden", [""], "handoff_policy_invalid"),
+            ):
+                candidate = dict(valid)
+                candidate[field] = value
+                handoff_path.write_text(json.dumps(candidate), encoding="utf-8")
+                with self.assertRaisesRegex(WorkerError, expected):
+                    read_handoff(handoff_path)
+
     def test_stale_handoff_is_replaced_by_next_successful_cycle(self):
         with tempfile.TemporaryDirectory() as root:
             repo = Path(root)
