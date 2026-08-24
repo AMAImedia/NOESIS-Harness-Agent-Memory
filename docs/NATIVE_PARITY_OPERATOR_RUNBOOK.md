@@ -20,3 +20,5 @@ The recovery JSON writer now preserves atomic replacement while handling a read-
 The complete `tests.test_execution_recovery` discovery remains a bounded diagnostic concern on this Windows lane; individual repair/finalization cases pass, and a timeout is reported as incomplete evidence rather than success.
 
 The read-only release audit accepts `--remote --remote-branch windows-autoloop` for branch-specific parity. Omitting `--remote-branch` retains the historical `main` default; a mismatch is reported as audit failure rather than silently treating another branch as equivalent. Empty, option-like, or whitespace-containing branch names fail closed with a structured `remote_error`.
+
+The bounded discovery runner `scripts/run_recovery_discovery.py` now executes each recovery test in an isolated subprocess with a 30-second limit and writes `docs/RECOVERY_DISCOVERY_EVIDENCE.json`. On the current Windows CPython 3.11 lane, the full module completed with 91/91 passed, 0 failed, and 0 timed out. A timeout remains classified as `incomplete`, never as success.
