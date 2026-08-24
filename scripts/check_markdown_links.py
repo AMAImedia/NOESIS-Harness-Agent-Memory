@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import unquote
 
 LINK_RE = re.compile(r"(?<!!)(?:\[[^\]]*\]\(([^)]+)\))")
-SKIP_DIRS = {".git", "__pycache__", "runtime", "node_modules", "dist", "build"}
+SKIP_DIRS = {".git", "__pycache__", "runtime", "node_modules", "dist", "build", "_archive"}
 
 
 def audit(root: str) -> dict[str, Any]:

@@ -27,6 +27,11 @@ class ActiveDelegationLeakageSuite:
 
     def evaluate(self) -> Tuple[IsolationHoldoutResult, ...]:
         with tempfile.TemporaryDirectory(prefix="noesis-active-leakage-") as root:
+            # The executor canonicalizes lane workspaces via Path.resolve(), which on
+            # Windows expands 8.3 short names (DJBION~1 -> djbionicl) and normalizes
+            # drive-letter casing. Compare containment against the equally resolved
+            # boundary, never against the raw TemporaryDirectory string.
+            boundary = Path(root).resolve()
             executor = SafeParallelExecutor(root, max_concurrency=6)
             lanes = [AgentLane("agent-%d" % index, "task-%d" % index, "agent-%d" % index) for index in range(len(self.CASE_IDS))]
             probes = {"sibling_read_denied": "../agent-1/secret.txt", "sibling_write_denied": "../agent-2/write.txt", "absolute_path_denied": str(Path(root).parent / "outside.txt"), "traversal_denied": "../../escape.txt"}
@@ -46,8 +51,14 @@ class ActiveDelegationLeakageSuite:
                 elif case_id == "distinct_workspace_roots":
                     observed[case_id] = str(ctx.workspace)
                 else:
-                    own = ctx.path("own-artifact.txt")
-                    observed[case_id] = "contained" if own.parent == ctx.workspace and str(ctx.workspace).startswith(str(Path(root))) else "escaped"
+                    try:
+                        own = ctx.path("own-artifact.txt")
+                        Path(own).relative_to(boundary)
+                        observed[case_id] = "contained" if own.parent == ctx.workspace else "escaped"
+                    except Exception:
+                        # Fail closed: any error resolving or containing the artifact
+                        # is classified as escaped, never silently passed.
+                        observed[case_id] = "escaped"
                 return case_id
 
             results = executor.execute(lanes, callback, session_id="active-leakage", max_duration_seconds=5)

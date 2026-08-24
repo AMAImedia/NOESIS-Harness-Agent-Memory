@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed `same_lane_workspace_only` isolation holdout false `escaped` classification on Windows hosts where the temp root resolves through 8.3 short names; the holdout now canonicalizes the boundary via `Path.resolve()` and classifies fail-closed on any containment exception.
+- Fixed `scripts/build_native.py` dry-run and mismatch paths crashing when `platform.machine()` internally invoked subprocess while tests patched it; architecture probing is now env-based on Windows with no policy change.
+- Fixed host-version-dependent native verifier test; it now asserts detected interpreter/platform behavior deterministically while keeping the Python 3.14 fail-closed gate.
+- Synced stale pinned-lane orchestrator test with the hardened preflight contract: discovered executables report `ready_for_operator_approval`, absent ones `not_run`; both remain non-executing.
+- Excluded `_archive` historical snapshots from the Markdown link audit; live documentation links still fail closed.
+- Made deadline cancellation test deterministic under full-suite load by bounded cooperative checking instead of a single sleep race.
+
 ### Added
 - Added optional receipt-audit input to `scripts/export_operator_report.py` and cross-platform wrappers; no input keeps v1, while verified receipts emit v2 with `lifecycle_receipt_audit`.
 - Added malformed/tampered receipt input rejection tests and operator runbook examples for offline receipt-enabled export.

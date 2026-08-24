@@ -17,6 +17,19 @@ class DocumentationAuditTests(unittest.TestCase):
         report = audit_links(".")
         self.assertTrue(report["clean"], report["findings"])
         self.assertNotIn("runtime", " ".join(item["source"] for item in report["findings"]))
+        self.assertNotIn("_archive", " ".join(item["source"] for item in report["findings"]))
+
+    def test_archive_snapshots_are_excluded_from_link_audit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / "_archive" / "snapshot-1"
+            archive.mkdir(parents=True)
+            (archive / "stale.md").write_text("[missing](missing-target.md)\n", encoding="utf-8")
+            (root / "README.md").write_text("[docs](docs/guide.md)\n", encoding="utf-8")
+            (root / "docs").mkdir()
+            (root / "docs" / "guide.md").write_text("ok\n", encoding="utf-8")
+            report = audit_links(str(root))
+            self.assertTrue(report["clean"], report["findings"])
 
     def test_missing_local_link_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:

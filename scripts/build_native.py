@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -11,10 +12,15 @@ import sys
 from pathlib import Path
 
 
+def architecture() -> str:
+    arch = os.environ.get("PROCESSOR_ARCHITEW6432") or os.environ.get("PROCESSOR_ARCHITECTURE")
+    return arch if arch else platform.machine()
+
+
 def verify_target(target: str) -> dict:
     actual = sys.platform
     normalized = "windows" if actual.startswith("win") else "macos" if actual == "darwin" else "linux"
-    return {"python_ok": sys.version_info[:2] == (3, 14), "platform_ok": target == normalized, "actual_python": "%d.%d.%d" % sys.version_info[:3], "actual_platform": normalized, "architecture": platform.machine(), "target": target}
+    return {"python_ok": sys.version_info[:2] == (3, 14), "platform_ok": target == normalized, "actual_python": "%d.%d.%d" % sys.version_info[:3], "actual_platform": normalized, "architecture": architecture(), "target": target}
 
 
 def command_for(backend: str, target: str) -> list[str]:
