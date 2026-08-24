@@ -11,12 +11,31 @@ import hashlib
 import json
 import re
 import subprocess
+
 from pathlib import Path
+
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+_REMOTE_BRANCH_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*[A-Za-z0-9]$")
+
+
+def _valid_remote_branch(value: str) -> bool:
+    return bool(
+        value
+        and not value.startswith("-")
+        and not value.endswith((".", "/"))
+        and ".." not in value
+        and "//" not in value
+        and not any(character in value for character in " ~^:?*[\\\\")
+        and _REMOTE_BRANCH_PATTERN.fullmatch(value) is not None
+    )
+
+
 PACKAGE = ROOT / "noesis_harness"
+
 def _digest(value: Any) -> str:
+
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
@@ -143,7 +162,7 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False, remote_branch:
     if include_remote:
         try:
 
-            if not remote_branch or remote_branch.startswith("-") or any(character.isspace() for character in remote_branch):
+            if not _valid_remote_branch(remote_branch):
                 raise ValueError("invalid remote branch")
             remote = subprocess.check_output(["git", "ls-remote", "origin", "refs/heads/" + remote_branch], cwd=str(project), text=True).split()[0]
 
