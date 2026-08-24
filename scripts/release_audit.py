@@ -147,8 +147,9 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False, remote_branch:
                 raise ValueError("invalid remote branch")
             remote = subprocess.check_output(["git", "ls-remote", "origin", "refs/heads/" + remote_branch], cwd=str(project), text=True).split()[0]
 
-        except (OSError, subprocess.CalledProcessError, IndexError) as exc:
+        except (OSError, subprocess.CalledProcessError, IndexError, ValueError) as exc:
             remote_error = type(exc).__name__ + ": " + str(exc)
+
     remote_matches_local = None if not include_remote else remote == local
     clean = not actual_eval_exec and not syntax_errors and not secret_hits and not status and not readiness_errors and not roadmap_errors and (not include_remote or remote_matches_local is True)
     return {

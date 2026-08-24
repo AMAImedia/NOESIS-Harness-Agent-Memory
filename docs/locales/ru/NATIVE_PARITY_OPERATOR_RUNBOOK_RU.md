@@ -19,4 +19,4 @@ Recovery JSON writer сохраняет atomic replacement и обрабатыв
 
 Полный discovery `tests.test_execution_recovery` на этом Windows lane остаётся bounded diagnostic concern; отдельные repair/finalization cases проходят, а timeout считается incomplete evidence, не успехом.
 
-Read-only release audit поддерживает `--remote --remote-branch windows-autoloop` для branch-specific parity. Если `--remote-branch` не указан, сохраняется исторический default `main`; mismatch выдаётся как audit failure и не маскируется под эквивалентность веток.
+Read-only release audit поддерживает `--remote --remote-branch windows-autoloop` для branch-specific parity. Если `--remote-branch` не указан, сохраняется исторический default `main`; mismatch выдаётся как audit failure и не маскируется под эквивалентность веток. Пустое, option-like или содержащее whitespace имя ветки fail-closed фиксируется в structured `remote_error`.

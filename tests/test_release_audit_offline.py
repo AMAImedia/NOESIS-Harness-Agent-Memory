@@ -69,6 +69,24 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
         self.assertEqual(report["remote_branch"], "windows-autoloop")
         self.assertTrue(report["remote_matches_local"])
 
+    def test_invalid_remote_branch_is_audit_failure(self):
+        def fake_check_output(command, **kwargs):
+            if command[:2] == ["git", "rev-parse"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if command[:2] == ["git", "cat-file"]:
+                return ""
+            if command[:2] == ["git", "merge-base"]:
+                return ""
+            if command[:2] == ["git", "status"]:
+                return ""
+            raise AssertionError(command)
+
+        with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
+            report = audit(include_remote=True, remote_branch="bad branch")
+        self.assertFalse(report["clean"])
+        self.assertFalse(report["remote_matches_local"])
+        self.assertIn("ValueError", report["remote_error"])
+
     def test_offline_mode_never_calls_ls_remote(self):
 
         def fake_check_output(command, **kwargs):

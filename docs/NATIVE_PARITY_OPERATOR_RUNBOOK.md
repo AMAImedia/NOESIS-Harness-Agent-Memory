@@ -19,4 +19,4 @@ The recovery JSON writer now preserves atomic replacement while handling a read-
 
 The complete `tests.test_execution_recovery` discovery remains a bounded diagnostic concern on this Windows lane; individual repair/finalization cases pass, and a timeout is reported as incomplete evidence rather than success.
 
-The read-only release audit accepts `--remote --remote-branch windows-autoloop` for branch-specific parity. Omitting `--remote-branch` retains the historical `main` default; a mismatch is reported as audit failure rather than silently treating another branch as equivalent.
+The read-only release audit accepts `--remote --remote-branch windows-autoloop` for branch-specific parity. Omitting `--remote-branch` retains the historical `main` default; a mismatch is reported as audit failure rather than silently treating another branch as equivalent. Empty, option-like, or whitespace-containing branch names fail closed with a structured `remote_error`.
