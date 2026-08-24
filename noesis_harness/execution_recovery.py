@@ -56,6 +56,13 @@ def _snapshot_signature(payload: Mapping[str, Any], key: bytes) -> str:
 
 def _atomic_write_json(path: str, value: Mapping[str, Any]) -> None:
     parent = os.path.dirname(os.path.abspath(path)) or "."
+    existing_mode = None
+    if os.path.lexists(path) and os.path.islink(path):
+        raise OSError("refusing to replace symlink target")
+    if os.path.isfile(path):
+        existing_mode = stat.S_IMODE(os.stat(path).st_mode)
+        if os.name == "nt" and not (existing_mode & stat.S_IWRITE):
+            os.chmod(path, existing_mode | stat.S_IWRITE)
     fd, temporary = tempfile.mkstemp(prefix=".recovery-chain-", suffix=".tmp", dir=parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
@@ -64,6 +71,8 @@ def _atomic_write_json(path: str, value: Mapping[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
+        if existing_mode is not None:
+            os.chmod(path, existing_mode)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)

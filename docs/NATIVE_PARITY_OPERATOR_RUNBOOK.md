@@ -12,3 +12,9 @@ The bundle runs the existing Python 3.14 test suite, records an environment mani
 After the bundle completes, the operator must run `python3.14 scripts/validate_native_parity.py --target windows --evidence-dir artifacts/native/windows` (or replace `windows` with `macos`). The CLI calls `validate_native_artifacts(target, evidence_dir)`. The validator rejects missing or malformed artifacts, failed environment guards, non-passed parity results, missing SBOM entries, empty SHA-256 manifests, and SHA-256 mismatches. A `passed` result from this validator means that the matching host produced internally consistent operator artifacts; it does not establish external benchmark superiority.
 
 A Linux dry-run or static inspection remains `not_run`; it is never converted into native success. The current machine-readable contract is [`CROSS_PLATFORM_RELEASE_GATE_MATRIX.json`](CROSS_PLATFORM_RELEASE_GATE_MATRIX.json), and the preparation API is `noesis_harness.native_parity`.
+
+## Windows recovery write-path note
+
+The recovery JSON writer now preserves atomic replacement while handling a read-only regular destination on Windows: it temporarily restores write permission only when required, performs `os.replace`, and restores the prior mode. Symlink targets are rejected. The focused rotation regression `test_repair_chain_rotates_monotonically_and_rejects_reorder` passed on CPython 3.11 with `ResourceWarning=0`. Full native Python 3.14 parity and signed package validation remain host-gated and are not claimed here.
+
+The complete `tests.test_execution_recovery` discovery remains a bounded diagnostic concern on this Windows lane; individual repair/finalization cases pass, and a timeout is reported as incomplete evidence rather than success.
