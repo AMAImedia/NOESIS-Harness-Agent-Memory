@@ -273,8 +273,16 @@ def read_handoff(path: Path) -> Dict[str, Any]:
         raise WorkerError("handoff_cycle_invalid")
     if not isinstance(value["source_result_digest"], str) or len(value["source_result_digest"]) != 64:
         raise WorkerError("handoff_digest_invalid")
+    if value["source_status"] not in {"passed", "failed", "blocked", "idle", "timed_out"}:
+        raise WorkerError("handoff_status_invalid")
+    if value["next_action"] != "inspect_state_then_take_one_bounded_safe_increment":
+        raise WorkerError("handoff_action_invalid")
     if not isinstance(value["allowed"], list) or not isinstance(value["forbidden"], list):
         raise WorkerError("handoff_policy_invalid")
+    if any(not isinstance(item, str) or not item for item in value["allowed"] + value["forbidden"]):
+        raise WorkerError("handoff_policy_invalid")
+    if not isinstance(value["created_at"], (int, float)) or isinstance(value["created_at"], bool) or value["created_at"] < 0:
+        raise WorkerError("handoff_timestamp_invalid")
     return value
 
 

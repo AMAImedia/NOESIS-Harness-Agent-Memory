@@ -87,7 +87,7 @@ Lease state transitions явно сохраняются в durable state: `claim
 
 После каждого bounded cycle worker атомарно записывает `.noesis_autoloop/handoff.json`. Manifest содержит source cycle, digest результата, один безопасный next action, allowlist для code/tests/docs/private GitHub и denylist для protected mutation, promotion, выполнения generated code и credential changes. В нём нет command, endpoint, prompt или secret text. Свежая scheduled task может прочитать manifest перед выбором следующего increment; это handoff contract, а не доказательство непрерывной agent-сессии.
 
-Свежая сессия обязана проверить `.noesis_autoloop/handoff.json` по точной схеме `noesis.autoloop-handoff.v1` до его использования. Неизвестные поля, неверный номер cycle, повреждённый result digest или policy-поля не-списки дают fail-closed ошибку `handoff_*`; fallback action не выводится.
+Свежая сессия обязана проверить `.noesis_autoloop/handoff.json` по точной схеме `noesis.autoloop-handoff.v1` до его использования. Неизвестные поля, неверный номер cycle, повреждённый result digest, недопустимые source status/next action/timestamp или policy-поля не-списки/не-строки дают fail-closed ошибку `handoff_*`; fallback action не выводится.
 
 Для инициализации сессии используется неразрушающий read-only CLI mode:
 
