@@ -45,8 +45,18 @@ class TestLeases(_Tmp):
         L = Leases(os.path.join(self.dir, "l.db"), ttl=10_000)
         self.assertEqual(L.ttl, L.MAX_TTL)  # 3600 cap
 
+    def test_strict_mode_allows_one_active_lease_per_holder(self):
+        L = Leases(os.path.join(self.dir, "strict.db"), ttl=60, one_lease_per_holder=True)
+        self.assertTrue(L.acquire("task-1", "agent-a")["ok"])
+        blocked = L.acquire("task-2", "agent-a")
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(blocked["reason"], "holder_lease_active")
+        self.assertTrue(L.acquire("task-2", "agent-b")["ok"])
+        self.assertTrue(L.acquire("task-1", "agent-a")["ok"])
+
 
 class TestSignals(_Tmp):
+
     def test_thread_via_reply_to(self):
         S = Signals(os.path.join(self.dir, "s.db"))
         first = S.send("a", "start", to_agent="w")

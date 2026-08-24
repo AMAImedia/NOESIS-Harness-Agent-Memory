@@ -44,9 +44,10 @@ class Leases:
     DEFAULT_TTL = 10 * 60        # 10 min (agentmemory default)
     MAX_TTL = 60 * 60            # 1 hour cap
 
-    def __init__(self, db_path: str, ttl: int = DEFAULT_TTL):
+    def __init__(self, db_path: str, ttl: int = DEFAULT_TTL, *, one_lease_per_holder: bool = False):
         self.db_path = db_path
         self.ttl = min(int(ttl), self.MAX_TTL)
+        self.one_lease_per_holder = bool(one_lease_per_holder)
         self._lock = threading.Lock()
         self._init()
 
@@ -71,8 +72,16 @@ class Leases:
         """Try to claim a task. Returns {ok, holder, expires_at}."""
         now = time.time()
         with self._lock, self._conn() as c:
+            if self.one_lease_per_holder:
+                active = c.execute(
+                    "SELECT task_key, expires_at FROM leases WHERE holder=? AND status='active' AND expires_at > ?",
+                    (holder, now),
+                ).fetchone()
+                if active is not None and active[0] != task_key:
+                    return {"ok": False, "holder": holder, "expires_at": active[1], "reason": "holder_lease_active"}
             row = c.execute("SELECT * FROM leases WHERE task_key=?", (task_key,)).fetchone()
             if row:
+
                 if row["status"] == "active" and row["expires_at"] > now:
                     if row["holder"] == holder:
                         return {"ok": True, "holder": holder,
