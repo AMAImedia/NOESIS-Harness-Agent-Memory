@@ -45,7 +45,8 @@ def _commit_is_ancestor(project: Path, checkpoint: str, head: str) -> bool:
         return False
 
 
-def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, Any]:
+def audit(root: str = str(ROOT), *, include_remote: bool = False, remote_branch: str = "main") -> dict[str, Any]:
+
     project = Path(root).resolve()
     package = project / "noesis_harness"
     actual_eval_exec: list[dict[str, Any]] = []
@@ -137,10 +138,15 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
             roadmap_errors.append("roadmap_artifact_invalid")
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=str(project), text=True)
     remote = None
+
     remote_error = None
     if include_remote:
         try:
-            remote = subprocess.check_output(["git", "ls-remote", "origin", "refs/heads/main"], cwd=str(project), text=True).split()[0]
+
+            if not remote_branch or remote_branch.startswith("-") or any(character.isspace() for character in remote_branch):
+                raise ValueError("invalid remote branch")
+            remote = subprocess.check_output(["git", "ls-remote", "origin", "refs/heads/" + remote_branch], cwd=str(project), text=True).split()[0]
+
         except (OSError, subprocess.CalledProcessError, IndexError) as exc:
             remote_error = type(exc).__name__ + ": " + str(exc)
     remote_matches_local = None if not include_remote else remote == local
@@ -149,7 +155,11 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
         "schema_version": "noesis.local-release-audit.v1",
         "mode": "remote-parity" if include_remote else "offline",
         "local_sha": local,
+
+        "remote_branch": remote_branch if include_remote else None,
+
         "remote_sha": remote,
+
         "remote_error": remote_error,
         "remote_matches_local": remote_matches_local,
         "working_tree_clean": not bool(status),
@@ -172,10 +182,15 @@ def audit(root: str = str(ROOT), *, include_remote: bool = False) -> dict[str, A
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Run read-only NOESIS release audit")
     parser.add_argument("--root", default=str(ROOT))
+
     parser.add_argument("--remote", action="store_true", help="opt in to git ls-remote parity check")
+
+    parser.add_argument("--remote-branch", default="main", help="remote branch for parity check (default: main)")
+
     parser.add_argument("--output")
     args = parser.parse_args(argv)
-    report = audit(args.root, include_remote=args.remote)
+    report = audit(args.root, include_remote=args.remote, remote_branch=args.remote_branch)
+
     rendered = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if args.output:
         output = Path(args.output)

@@ -48,7 +48,29 @@ class ReleaseAuditOfflineTests(unittest.TestCase):
         self.assertFalse(report["clean"])
         self.assertFalse(report["remote_matches_local"])
 
+    def test_explicit_remote_branch_parity_uses_requested_ref(self):
+        def fake_check_output(command, **kwargs):
+            if command[:2] == ["git", "rev-parse"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if command[:2] == ["git", "cat-file"]:
+                return ""
+            if command[:2] == ["git", "merge-base"]:
+                return ""
+            if command[:2] == ["git", "status"]:
+                return ""
+            if command[:2] == ["git", "ls-remote"]:
+                self.assertEqual(command[-1], "refs/heads/windows-autoloop")
+                return "0123456789abcdef0123456789abcdef01234567\trefs/heads/windows-autoloop\n"
+            raise AssertionError(command)
+
+        with patch("scripts.release_audit.subprocess.check_output", side_effect=fake_check_output):
+            report = audit(include_remote=True, remote_branch="windows-autoloop")
+        self.assertTrue(report["clean"])
+        self.assertEqual(report["remote_branch"], "windows-autoloop")
+        self.assertTrue(report["remote_matches_local"])
+
     def test_offline_mode_never_calls_ls_remote(self):
+
         def fake_check_output(command, **kwargs):
             if command[:2] == ["git", "ls-remote"]:
                 raise AssertionError("offline audit attempted network parity")

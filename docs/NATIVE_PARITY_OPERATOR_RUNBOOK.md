@@ -18,3 +18,5 @@ A Linux dry-run or static inspection remains `not_run`; it is never converted in
 The recovery JSON writer now preserves atomic replacement while handling a read-only regular destination on Windows: it temporarily restores write permission only when required, performs `os.replace`, and restores the prior mode even on failure cleanup. Symlink targets are rejected. The focused regressions `test_atomic_json_replace_preserves_read_only_mode` and `test_repair_chain_rotates_monotonically_and_rejects_reorder` passed on CPython 3.11 with `ResourceWarning=0`. Full native Python 3.14 parity and signed package validation remain host-gated and are not claimed here.
 
 The complete `tests.test_execution_recovery` discovery remains a bounded diagnostic concern on this Windows lane; individual repair/finalization cases pass, and a timeout is reported as incomplete evidence rather than success.
+
+The read-only release audit accepts `--remote --remote-branch windows-autoloop` for branch-specific parity. Omitting `--remote-branch` retains the historical `main` default; a mismatch is reported as audit failure rather than silently treating another branch as equivalent.
