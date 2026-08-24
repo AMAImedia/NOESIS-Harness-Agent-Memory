@@ -2550,3 +2550,7 @@ Machine-readable evidence: `docs/P12_PY314_PACKAGING_EVIDENCE.json`.
 | P13-02 | External comparative A/B | `NOT_RUN / PINNED ENVIRONMENT REQUIRED` | Hermes, OpenCode и DeepSeek Harness exact revisions и disposable operator-approved environments отсутствуют; ranking и superiority claim не строятся. |
 
 Machine-readable evidence: `docs/P13_LOCAL_BENCHMARK_PARITY_PY314_EVIDENCE.json`.
+
+## 2026-08-24 — Autonomous Agent OS target
+
+Исходная цель сохраняется: полноценная local-first Agent OS для самостоятельной bounded работы с durable checkpoint/recovery, governed learning, capability-scoped delegation, artifact isolation, fail-closed child execution и persistent Windows heartbeat. Claim о превосходстве над Cloudflare OS и другими системами является отдельным evidence gate: нужны одинаковые manifests, pinned revisions, фиксированные budgets, независимое scoring и signed receipts. Local fixtures не доказывают external superiority. Порядок: local contracts → adversarial holdouts → portable Track E → native evidence → connector-neutral Track F package → comparative review; отсутствующие среды остаются `not_run`/`blocked`.

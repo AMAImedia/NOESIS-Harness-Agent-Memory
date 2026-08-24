@@ -75,3 +75,11 @@ The immediate sequence is: freeze the claims/evidence baseline; execute Tracks A
 [5]: https://arxiv.org/abs/2608.13417 "arXiv:2608.13417"
 
 The upstream projects and paper are design references and benchmark targets, not evidence that NOESIS has executed or surpassed them.
+
+## 7. Autonomous Agent OS acceptance criteria
+
+The original target remains a complete local-first Agent OS for independent bounded work, followed by a defensible comparative claim. Local Agent OS completion requires reproducible evidence for durable checkpoint after every turn, restart-visible recovery without duplicate side effects, capability-scoped delegation with artifact isolation, human-governed learning promotion with immutable versions, fail-closed child execution, credential and network boundaries, deterministic benchmark replay, zero `ResourceWarning`, and a persistent Windows worker that records heartbeat, bounded cycle outcome, and handoff state.
+
+The claim that NOESIS is better than Cloudflare OS or other leading agent systems is a separate evidence gate. It requires identical task manifests, pinned revisions, fixed model/provider and budgets, independent scoring, signed result receipts, and no regression in safety, provenance, recovery, or human control. Local fixtures and synthetic holdouts can validate NOESIS behavior, but cannot prove external superiority.
+
+The execution order is: (1) finish local autonomous-loop and recovery contracts; (2) repeat adversarial local holdouts and durable-memory trajectories; (3) verify the portable Track E release; (4) prepare native packaging evidence; (5) prepare the connector-neutral Track F runner and evidence importer; and (6) perform comparative claim review only after matching external executables and pinned environments are available. Missing native or external environments remain `not_run` or `blocked`.
