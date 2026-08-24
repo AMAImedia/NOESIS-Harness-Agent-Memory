@@ -8,7 +8,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, request_fingerprint
-from noesis_harness.execution_recovery import ExecutionRecoveryAction, ExecutionRecoveryError, ExecutionRecoveryExecutor, _snapshot_signature
+from noesis_harness.execution_recovery import ExecutionRecoveryAction, ExecutionRecoveryError, ExecutionRecoveryExecutor, _atomic_write_json, _snapshot_signature
+
 from noesis_harness.workspaces import PatchProposal, PatchReviewStore
 
 
@@ -32,7 +33,16 @@ class ExecutionRecoveryTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def test_atomic_json_replace_preserves_read_only_mode(self):
+        path = Path(self.tmp.name) / "readonly.json"
+        path.write_text('{"before":true}\n', encoding="utf-8")
+        os.chmod(path, 0o444)
+        _atomic_write_json(str(path), {"after": True})
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"after": True})
+        self.assertEqual(os.stat(path).st_mode & 0o222, 0)
+
     def test_authenticated_rollback_requires_handler_and_confirms_actual_transition(self):
+
         with self.assertRaisesRegex(ExecutionRecoveryError, "rollback_handler_required"):
             ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=str(Path(self.tmp.name) / "events.jsonl")).handle(self.action, self.context)
         executor = ExecutionRecoveryExecutor(receipt_store=self.receipts, recovery_store=self.recovery, patch_store=self.patches, event_path=str(Path(self.tmp.name) / "events.jsonl"), rollback_handler=lambda _: True)

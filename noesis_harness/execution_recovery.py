@@ -71,9 +71,9 @@ def _atomic_write_json(path: str, value: Mapping[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
-        if existing_mode is not None:
-            os.chmod(path, existing_mode)
     finally:
+        if existing_mode is not None and os.path.isfile(path):
+            os.chmod(path, existing_mode)
         if os.path.exists(temporary):
             os.unlink(temporary)
 
