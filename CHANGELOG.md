@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - End-to-end surface tests prove the operator snapshot's `evidence_projection` survives the HTTP redaction pass and the UI-contract envelope against real committed artifacts, including tampered-copy fail-closed visibility.
 
 ### Fixed
+- Hermes external runner repaired and its comparative lane re-executed to `passed`: 4113 missing stdlib files restored into the corrupted embedded CPython 3.11.16 generation from a clean uv 3.11.14 tree (missing-only copy), plus in-place venv reinstalls (`pywin32`, `rich`); baseline now records `task_success=1.0` for all three executed competitors.
 - `build_native` backend availability probe now maps backend names to their import modules (`PyInstaller`/`briefcase`), so reports reflect a pip-installed backend instead of a false negative.
 - Simulated home roots in user-data/macOS-portable tests now anchor outside the source tree when the ambient temp directory is repository-internal scratch, keeping the data-root guard intact under the repo-local TEMP layout.
 - Persistent worker supports an operator stop sentinel: creating `.noesis_autoloop/worker.stop` makes the next loop iteration record `stopped_by_operator`, append a durable log line, remove the sentinel and exit 0 — clean retirement without process signals.

@@ -1,9 +1,9 @@
 {
-  "aggregate_digest": "1e7d6efdbb707a5494e1fd7f9bd441ac688bc59f11e2ce255e836ba9ca76aa6d",
+  "aggregate_digest": "20acb066926527be2ffe0de7cba613d4dcef2ed96529da7f82b4c8bd9f542424",
   "claim_boundary": "signed_evidence_aggregation_only",
   "comparative_ready": true,
   "evidence_count": 3,
-  "evidence_digest": "c6d14a46a340e050dc76f1d35d5fcde4646597f56bb5372028195b254fb0a3e9",
+  "evidence_digest": "b7f70f266759319826f8bbcc1951641d0df6c3b6ec25f4af2137144f3f9a4efb",
   "execution_claim": "evidence_ingestion_only",
   "global_checks": [],
   "lanes": {
@@ -17,7 +17,7 @@
     "hermes": {
       "checks": [],
       "reason": "accepted_signed_evidence",
-      "receipt_id": "8149eb191f25d0543fd66dc37a0f69db6a043f89ac3ca70341c228b7eb26a917",
+      "receipt_id": "b5ffba74a02bf1de04cdcbf70f935537dd39d3e92618e897d3e639c5dc1f0e66",
       "revision": "62b2d78025c349996e753c6f7c748de035eb8048",
       "status": "passed"
     },
@@ -30,7 +30,7 @@
     }
   },
   "manifest_digest": "6a1f4a5fbd506f4a32b081fcd1c18082e59e52dd4643803cd50614e05b4fa686",
-  "matrix_digest": "4d9d909681ff6afb06daae6406e84f0493771b2dd1be5820e9540cee6293230c",
+  "matrix_digest": "ebfe5b65cbdab24603cdeb8d23bfe391ad47c293600e469bded99bd72e4d2169",
   "matrix_schema_version": "noesis.external-evidence-readiness.v1",
   "native_or_external_execution_claim": false,
   "overall_status": "passed",
@@ -40,5 +40,5 @@
     "deepseek_harness"
   ],
   "schema_version": "noesis.signed-external-evidence-aggregate.v1",
-  "signature": "3d193b04c5ec3ec138ef11dfa0f225fcfb2f70b9983ba948dc1dd060cb4cc545"
+  "signature": "450b5d2fe61741ded990c379b5c58a042c8fda53d3c12235f125b66eb8893377"
 }
