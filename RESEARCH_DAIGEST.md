@@ -29,3 +29,24 @@ Provenance digest for ported research patterns, per `AGENTS.md` discipline. Each
 - Source patterns: agentmemory governance audit lineage — tamper-evident canonical-JSON + sha256 integrity envelope with fail-closed verification (`hmac.compare_digest`) as already ported in learning_promotion/promotion_integration; deepseek-harness adversarial fail-closed discipline mirrored in `memory_quality_corpora.verify_case_provenance`. Deterministic-core rule preserved: no wall clock unless a caller injects one; default bindings are byte-stable.
 - Contract doc: none yet; behavior documented in the module docstring and enforced by tests (telemetry key `corpus_binding`, schema `noesis.learning-corpus-binding.v1`).
 - Tests: [`tests/test_learning_corpus_binding.py`](tests/test_learning_corpus_binding.py).
+
+## 2026-08-25 — Learning corpus binding contract doc
+
+- Module: [`noesis_harness/learning_corpus_binding.py`](noesis_harness/learning_corpus_binding.py), integrated keyword-only into `PromotionIntegration.propose` in [`noesis_harness/promotion_integration.py`](noesis_harness/promotion_integration.py).
+- Source patterns: agentmemory governance receipt patterns — tamper-evident canonical JSON + sha256 integrity envelope with fail-closed verification; deepseek-harness fail-closed verification discipline.
+- Contract doc: [`docs/LEARNING_CORPUS_BINDING.md`](docs/LEARNING_CORPUS_BINDING.md) (RU: [`docs/locales/ru/LEARNING_CORPUS_BINDING_RU.md`](docs/locales/ru/LEARNING_CORPUS_BINDING_RU.md)). Supersedes the "none yet" note in the entry above; recorded append-only.
+- Tests: [`tests/test_learning_corpus_binding.py`](tests/test_learning_corpus_binding.py).
+
+## 2026-08-25 — Multi-agent workload evidence generator
+
+- Module: [`scripts/run_workload_evidence.py`](scripts/run_workload_evidence.py) (Gate 4 deterministic local evidence; schema `noesis.workload-evidence.v1`; artifact path `docs/MULTI_AGENT_WORKLOAD_EVIDENCE.json` via `--output`).
+- Source patterns: deepseek-harness deterministic rubric workloads (bounded no-hidden-reward scoring via [`noesis_harness/work_product_benchmark.py`](noesis_harness/work_product_benchmark.py)) + LoopX idempotent append-only aggregation ([`noesis_harness/work_product_ma07.py`](noesis_harness/work_product_ma07.py)).
+- Contract doc: [`docs/MULTI_AGENT_WORKLOAD_EVIDENCE.md`](docs/MULTI_AGENT_WORKLOAD_EVIDENCE.md) (RU: [`docs/locales/ru/MULTI_AGENT_WORKLOAD_EVIDENCE_RU.md`](docs/locales/ru/MULTI_AGENT_WORKLOAD_EVIDENCE_RU.md)).
+- Tests: [`tests/test_workload_evidence.py`](tests/test_workload_evidence.py).
+
+## 2026-08-25 — Memory quality corpora v3
+
+- Module: [`noesis_harness/memory_quality_corpora_v3.py`](noesis_harness/memory_quality_corpora_v3.py) (Gate 1 broader independent corpora, seeded generated adversarial fixtures), wired into [`scripts/run_memory_quality_evidence.py`](scripts/run_memory_quality_evidence.py) as evidence key `adversarial_corpus_v3`.
+- Source patterns: evalscope seeded-fixture generation (explicit LCG over finite tables, seed-sensitivity probes, stable digests) + agentmemory decay-floor model (strength decay clamped at `Memory.DECAY_FLOOR`); LCG stream ported from [`noesis_harness/work_product_ma08_ma09.py`](noesis_harness/work_product_ma08_ma09.py).
+- Contract doc: [`docs/MEMORY_QUALITY_CORPUS_V3.md`](docs/MEMORY_QUALITY_CORPUS_V3.md) (RU: [`docs/locales/ru/MEMORY_QUALITY_CORPUS_V3_RU.md`](docs/locales/ru/MEMORY_QUALITY_CORPUS_V3_RU.md)).
+- Tests: [`tests/test_memory_quality_corpora_v3.py`](tests/test_memory_quality_corpora_v3.py).

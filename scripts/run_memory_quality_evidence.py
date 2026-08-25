@@ -16,6 +16,7 @@ from noesis_harness.memory_quality import (
     compare_baseline_nextgen,
 )
 from noesis_harness.memory_quality_corpora import evaluate_corpus_v2
+from noesis_harness.memory_quality_corpora_v3 import evaluate_corpus_v3
 
 
 def provenance(text: str) -> str:
@@ -155,13 +156,23 @@ def run_multi_session_trajectory() -> dict:
         }
 
 
+def durable_adapter_factory(tmp: str):
+    """Single durable adapter factory reused by both adversarial corpus families."""
+    def factory():
+        memory = Memory(str(Path(tmp) / "memory.db"))
+        trace_store = DurableMemoryQualityTraceStore(str(Path(tmp) / "quality.db"))
+        return DurableMemoryQualityAdapter(memory, trace_store)
+    return factory
+
+
 def run_adversarial_corpus_v2() -> dict:
     with tempfile.TemporaryDirectory(prefix="noesis-memory-quality-corpus-v2-") as tmp:
-        def adapter_factory():
-            memory = Memory(str(Path(tmp) / "memory.db"))
-            trace_store = DurableMemoryQualityTraceStore(str(Path(tmp) / "quality.db"))
-            return DurableMemoryQualityAdapter(memory, trace_store)
-        return evaluate_corpus_v2(adapter_factory)
+        return evaluate_corpus_v2(durable_adapter_factory(tmp))
+
+
+def run_adversarial_corpus_v3() -> dict:
+    with tempfile.TemporaryDirectory(prefix="noesis-memory-quality-corpus-v3-") as tmp:
+        return evaluate_corpus_v3(durable_adapter_factory(tmp))
 
 
 def main() -> None:
@@ -169,6 +180,7 @@ def main() -> None:
     trajectory = run_durable_trajectory()
     multi_session = run_multi_session_trajectory()
     adversarial_corpus_v2 = run_adversarial_corpus_v2()
+    adversarial_corpus_v3 = run_adversarial_corpus_v3()
     out = {
         "schema_version": "noesis.memory-quality-evidence.v3",
         "claim_boundary": "deterministic_local_fixture_and_real_stdlib_memory_trajectory_and_multi_session_distribution_not_external_model_benchmark",
@@ -183,6 +195,7 @@ def main() -> None:
         "durable_context_reuse_trajectory": trajectory,
         "multi_session_context_reuse_distribution": multi_session,
         "adversarial_corpus_v2": adversarial_corpus_v2,
+        "adversarial_corpus_v3": adversarial_corpus_v3,
     }
     path = Path(__file__).resolve().parents[1] / "docs" / "MEMORY_QUALITY_EVIDENCE.json"
     path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -193,4 +206,4 @@ if __name__ == "__main__":
     main()
 
 
-__all__ = ["main", "run_adversarial_corpus_v2", "run_durable_trajectory", "run_multi_session_trajectory"]
+__all__ = ["main", "durable_adapter_factory", "run_adversarial_corpus_v2", "run_adversarial_corpus_v3", "run_durable_trajectory", "run_multi_session_trajectory"]
