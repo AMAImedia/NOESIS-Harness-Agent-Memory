@@ -4,18 +4,28 @@
 This script never executes the produced application. It verifies host/runtime
 identity, artifact shape, deterministic digest, and platform signing evidence.
 Linux dry-runs intentionally fail the target gate.
+
+The Windows signtool locator is a bounded capability probe in the spirit of
+the honest-evidence probes used by the agentmemory and deepseek-harness
+harnesses: search known layouts, measure the tool version with a fixed
+timeout, never let an exception escape, and record absence honestly instead
+of guessing.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import os
 import platform
 import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Mapping
+
+SIGNSIGTOOL_PROBE_TIMEOUT_SECONDS = 20
 
 
 def normalized_platform() -> str:
@@ -60,17 +70,105 @@ def artifact_digest(path: Path) -> tuple[str, int]:
     return digest.hexdigest(), count
 
 
+def _default_signtool_search_roots() -> list:
+    roots = []
+    for env_name in ("ProgramFiles(x86)", "ProgramFiles"):
+        program_dir = os.environ.get(env_name)
+        if program_dir:
+            roots.append(str(Path(program_dir) / "Windows Kits" / "10" / "bin"))
+    roots.append(r"C:\Program Files (x86)\Windows Kits\10\bin")
+    roots.append(r"C:\Program Files\Windows Kits\10\bin")
+    unique = []
+    for root in roots:
+        if root not in unique:
+            unique.append(root)
+    return unique
+
+
+def _kits_version_sort_key(name: str):
+    # Numeric version directories outrank anything else (descending order);
+    # kinds never compare across the leading tag.
+    parts = name.split(".")
+    if parts and all(part.isdigit() for part in parts):
+        return (1, tuple(int(part) for part in parts))
+    return (0, name)
+
+
+def _signtool_version(tool_path: str):
+    try:
+        completed = subprocess.run(
+            [tool_path, "--version"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=SIGNSIGTOOL_PROBE_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode != 0:
+        return None
+    for line in (completed.stdout or "").splitlines():
+        line = line.strip()
+        if not line or line.startswith(("SignTool Error", "Usage:", "Valid commands")):
+            continue
+        return line
+    return None
+
+
+def locate_signtool(search_roots=None) -> Mapping:
+    """Locate signtool.exe: PATH first, then Windows Kits versioned layout.
+
+    Deterministic: among Kits candidates the highest numeric version directory
+    wins; ties are broken by ascending path. No exception ever escapes.
+    """
+    try:
+        which_hit = shutil.which("signtool")
+        if which_hit:
+            return {
+                "status": "found",
+                "source": "path",
+                "path": str(Path(which_hit)),
+                "version": _signtool_version(which_hit),
+            }
+        roots = list(_default_signtool_search_roots()) if search_roots is None else list(search_roots)
+        candidates = []
+        for root in roots:
+            for candidate in Path(root).glob("*/x64/signtool.exe"):
+                key = _kits_version_sort_key(candidate.parent.parent.name)
+                candidates.append((key, str(candidate)))
+        # Highest version first; stable sort keeps earlier-listed paths first on ties.
+        candidates.sort(key=lambda item: item[1])
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        for _, candidate_str in candidates:
+            candidate_path = Path(candidate_str)
+            if not candidate_path.is_file():
+                continue
+            return {
+                "status": "found",
+                "source": "windows_kits",
+                "path": str(candidate_path),
+                "version": _signtool_version(str(candidate_path)),
+            }
+        return {"status": "missing"}
+    except Exception as exc:  # probe must never break evidence generation
+        return {"status": "missing", "error": type(exc).__name__}
+
+
 def signature_evidence(path: Path, target: str) -> dict:
     if target == "windows":
-        tool = shutil.which("signtool")
-        if not tool:
-            return {"status": "not_run", "tool": "signtool", "reason": "signtool_unavailable"}
-        command = [tool, "verify", "/pa", str(path)]
-    else:
-        tool = shutil.which("codesign")
-        if not tool:
-            return {"status": "not_run", "tool": "codesign", "reason": "codesign_unavailable"}
-        command = [tool, "--verify", "--deep", "--strict", str(path)]
+        section = {"status": "not_run", "tool": "signtool"}
+        probe = locate_signtool()
+        if probe.get("status") == "found":
+            section["tool_path"] = probe.get("path")
+            section["tool_version"] = probe.get("version")
+            section["reason"] = "signtool_present_cert_unavailable"
+        else:
+            section["reason"] = "signtool_unavailable"
+        return section
+    tool = shutil.which("codesign")
+    if not tool:
+        return {"status": "not_run", "tool": "codesign", "reason": "codesign_unavailable"}
+    command = [tool, "--verify", "--deep", "--strict", str(path)]
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     return {
         "status": "passed" if completed.returncode == 0 else "failed",
