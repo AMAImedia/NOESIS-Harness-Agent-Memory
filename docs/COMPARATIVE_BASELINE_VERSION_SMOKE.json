@@ -1,0 +1,44 @@
+{
+  "aggregate_digest": "1e7d6efdbb707a5494e1fd7f9bd441ac688bc59f11e2ce255e836ba9ca76aa6d",
+  "claim_boundary": "signed_evidence_aggregation_only",
+  "comparative_ready": true,
+  "evidence_count": 3,
+  "evidence_digest": "c6d14a46a340e050dc76f1d35d5fcde4646597f56bb5372028195b254fb0a3e9",
+  "execution_claim": "evidence_ingestion_only",
+  "global_checks": [],
+  "lanes": {
+    "deepseek_harness": {
+      "checks": [],
+      "reason": "accepted_signed_evidence",
+      "receipt_id": "8679ab804bb9d0067e018309930dedfdd54be7f103fe28538c86eeb4a2f8a338",
+      "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+      "status": "passed"
+    },
+    "hermes": {
+      "checks": [],
+      "reason": "accepted_signed_evidence",
+      "receipt_id": "8149eb191f25d0543fd66dc37a0f69db6a043f89ac3ca70341c228b7eb26a917",
+      "revision": "62b2d78025c349996e753c6f7c748de035eb8048",
+      "status": "passed"
+    },
+    "opencode": {
+      "checks": [],
+      "reason": "accepted_signed_evidence",
+      "receipt_id": "b095f6899878503d5e9c713ac4cda86edf73f99feb62dddb2be0566aa9905446",
+      "revision": "b72b50006b24666da9f2088dbce907d6b24b6901",
+      "status": "passed"
+    }
+  },
+  "manifest_digest": "6a1f4a5fbd506f4a32b081fcd1c18082e59e52dd4643803cd50614e05b4fa686",
+  "matrix_digest": "4d9d909681ff6afb06daae6406e84f0493771b2dd1be5820e9540cee6293230c",
+  "matrix_schema_version": "noesis.external-evidence-readiness.v1",
+  "native_or_external_execution_claim": false,
+  "overall_status": "passed",
+  "required_lanes": [
+    "hermes",
+    "opencode",
+    "deepseek_harness"
+  ],
+  "schema_version": "noesis.signed-external-evidence-aggregate.v1",
+  "signature": "3d193b04c5ec3ec138ef11dfa0f225fcfb2f70b9983ba948dc1dd060cb4cc545"
+}

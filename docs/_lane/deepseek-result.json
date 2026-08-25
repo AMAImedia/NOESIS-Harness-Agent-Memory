@@ -1,9 +1,9 @@
 {
-  "approval_id": "17ba286c6114790a3456c1f7043927f9f398b9cb5972c54ec20e70d0e5432a24",
+  "approval_id": "a2b658e8fc3a4f0d78edaa79b868bc62b7ee079239343e985325359d056057a6",
   "approval_required": true,
   "approval_schema": "noesis.external-approval.v1",
-  "argv_length": 2,
-  "command_sha256": "82291fdda60a25e81b9b589b6bdf7c44764497353a28f7b6a9a34e852c76f8af",
+  "argv_length": 3,
+  "command_sha256": "0e67f40b886009d11e5b859ba08d88d4999acdd5c611e17b2742d6bd93237d00",
   "environment_keys": [
     "COMSPEC",
     "NOESIS_EXTERNAL_RUNNER",
@@ -19,13 +19,13 @@
   "protocol_fingerprint": "2e6c37baf8f4ff7854bc25ed9fed31281d0be1013f640fd22876eabbc1f294e8",
   "reason": "dry_run_only",
   "returncode": 0,
-  "revision": "b72b50006b24666da9f2088dbce907d6b24b6901",
+  "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
   "schema_version": "noesis.external-lane-plan.v1",
   "status": "passed",
   "stderr": "",
-  "stdout": "1.18.15\n",
-  "system": "opencode",
+  "stdout": "0.1.1-rc.2\n",
+  "system": "deepseek_harness",
   "task_manifest_sha256": "f128786d04a701a266d02a8a84531156bbee1db2edcbac6de4db351d2fe816b4",
   "timed_out": false,
-  "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\lane-ws-opencode"
+  "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\lane-ws-deepseek"
 }

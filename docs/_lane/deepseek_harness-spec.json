@@ -1,6 +1,7 @@
 {
   "argv": [
-    "C:\\Users\\djbionicl\\AppData\\Local\\hermes\\hermes-agent\\bin\\hermes.exe",
+    "C:\\Program Files\\nodejs\\node.exe",
+    "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\..\\deepseek-harness\\apps\\cli\\lib\\bin.js",
     "--version"
   ],
   "environment": {
@@ -10,9 +11,9 @@
   "execution": "not_started",
   "model_provider": "pinned-by-run-manifest",
   "protocol_fingerprint": "2e6c37baf8f4ff7854bc25ed9fed31281d0be1013f640fd22876eabbc1f294e8",
-  "revision": "62b2d78025c349996e753c6f7c748de035eb8048",
+  "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
   "schema_version": "noesis.external-runner.v1",
-  "system": "hermes",
+  "system": "deepseek_harness",
   "task_manifest_sha256": "f128786d04a701a266d02a8a84531156bbee1db2edcbac6de4db351d2fe816b4",
   "workspace": {
     "credentials": "absent",

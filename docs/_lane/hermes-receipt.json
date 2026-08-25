@@ -1,16 +1,16 @@
 {
-  "approval_id": "7e17e79e060c5ab5ec6f9d24d2146c8fab074d6b1794ef38171a4defb49d50b2",
-  "expires_at": 1787695679.5601866,
-  "issued_at": 1787693879.5601866,
-  "nonce": "07a770d3c9a74809a1a2396a92d7dc63",
+  "approval_id": "60b0307124ebf5772f413c3202c9c03bf15dc4a739d82f5e625ab8da7737c778",
+  "expires_at": 1787699753.743224,
+  "issued_at": 1787697953.743224,
+  "nonce": "1c3f5c109b9c400c42e953a383309fe5",
   "plan_identity": {
     "command_sha256": "98511b119e0b7a8e2d48cf72200419435bffed915a676e29c3cffb62980c9108",
-    "protocol_fingerprint": "c7de180b106ac0a7e5f601f8a7c15c611ac22a3fb3b7aeb5d8aea3f3f6de1504",
-    "revision": "pinned-local-dev",
+    "protocol_fingerprint": "2e6c37baf8f4ff7854bc25ed9fed31281d0be1013f640fd22876eabbc1f294e8",
+    "revision": "62b2d78025c349996e753c6f7c748de035eb8048",
     "system": "hermes",
     "task_manifest_sha256": "f128786d04a701a266d02a8a84531156bbee1db2edcbac6de4db351d2fe816b4",
     "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\lane-ws-hermes"
   },
   "schema_version": "noesis.external-approval.v1",
-  "signature": "hmac-sha256:68a31939e08fada8b82b012b153a33085867a074704332608daab81ee126193e"
+  "signature": "hmac-sha256:582ed50e5b2d4d083dc5b9654602dd297993102329a86efe3fa536f058bb7a59"
 }

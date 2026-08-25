@@ -14,9 +14,9 @@
     "TMP"
   ],
   "execution": "not_started",
-  "protocol_fingerprint": "c7de180b106ac0a7e5f601f8a7c15c611ac22a3fb3b7aeb5d8aea3f3f6de1504",
+  "protocol_fingerprint": "2e6c37baf8f4ff7854bc25ed9fed31281d0be1013f640fd22876eabbc1f294e8",
   "reason": "dry_run_only",
-  "revision": "pinned-local-dev",
+  "revision": "62b2d78025c349996e753c6f7c748de035eb8048",
   "schema_version": "noesis.external-lane-plan.v1",
   "system": "hermes",
   "task_manifest_sha256": "f128786d04a701a266d02a8a84531156bbee1db2edcbac6de4db351d2fe816b4",

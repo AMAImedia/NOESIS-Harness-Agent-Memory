@@ -29,15 +29,15 @@
       },
       "hermes": {
         "host": "any",
-        "ok": false,
-        "reason": "git_ls_remote_timeout:exceeded_60s",
+        "ok": true,
+        "reason": "",
         "repository": "https://github.com/NousResearch/hermes-agent",
         "required_capabilities": [
           "network_denied",
           "disposable_workspace",
           "credential_free"
         ],
-        "revision": ""
+        "revision": "62b2d78025c349996e753c6f7c748de035eb8048"
       },
       "opencode": {
         "host": "any",
@@ -78,11 +78,11 @@
   "revision_policy": "pin_exact_commit_before_run",
   "revisions": {
     "deepseek_harness": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
-    "hermes": "",
+    "hermes": "62b2d78025c349996e753c6f7c748de035eb8048",
     "opencode": "b72b50006b24666da9f2088dbce907d6b24b6901"
   },
   "schema_version": "noesis.external-ab.v1",
-  "seed_sha256": "e2302f6bdfb43f15cb1a0d84ca55a03e5bfa46c91563bb00be7457873997afeb",
+  "seed_sha256": "c393bbc993ee58a99ffcf99a6db99e78c333d367e52f280df32099cc2e0f2e03",
   "status_rules": {
     "missing_revision_is_blocked": true,
     "missing_seed_digest_is_blocked": true,
