@@ -9,6 +9,7 @@ from typing import Any, Mapping
 
 from .event_store import EventStore
 from .multi_agent_runtime import MultiAgentCoordinator, MultiAgentError
+from .work_product_benchmark import WorkProductBenchmarkError, WorkProductCommitMarker, WorkProductCommitMarkerLedger
 from .workspaces import MergeAuthorization, WorkspaceError
 
 WORK_PRODUCT_SCHEMA = "noesis.multi-agent-work-product.v1"
@@ -50,9 +51,10 @@ class WorkProductEnvelope:
 
 class MultiAgentWorkProductLoop:
     """Coordinate delegated products without implicit merge or cross-agent access."""
-    def __init__(self, coordinator: MultiAgentCoordinator, event_path: str):
+    def __init__(self, coordinator: MultiAgentCoordinator, event_path: str, marker_ledger: WorkProductCommitMarkerLedger | None = None):
         self.coordinator = coordinator
         self.events = EventStore(event_path)
+        self.marker_ledger = marker_ledger
 
     def _existing(self, product_id: str, event_type: str | None = None) -> Mapping[str, Any] | None:
         for event in self.events.iter_events():
@@ -172,6 +174,12 @@ class MultiAgentWorkProductLoop:
         task = self.coordinator.tasks.task(envelope.task_id)
         if task.state != "review":
             raise WorkProductError("task_not_in_review")
+        if self.marker_ledger is not None:
+            marker = WorkProductCommitMarker(envelope.product_id, envelope.task_id, envelope.agent_id, envelope.workspace_id, envelope.base_snapshot_id, envelope.head_snapshot_id, envelope.artifact_digest, authorization.authorization_digest)
+            try:
+                self.marker_ledger.record(marker)
+            except WorkProductBenchmarkError as exc:
+                raise WorkProductError(str(exc)) from exc
         self.coordinator.tasks.transition_task(envelope.task_id, "committed", reason="work_product_committed")
         payload = {"schema_version": WORK_PRODUCT_SCHEMA, "product_id": envelope.product_id, "task_id": envelope.task_id, "authorization_digest": authorization.authorization_digest, "status": "committed", "files_applied": False}
         self.events.append("work_product_committed", payload, event_id="work-product-commit:" + envelope.product_id)
@@ -180,7 +188,11 @@ class MultiAgentWorkProductLoop:
     def resume(self, session_id: str) -> Mapping[str, Any]:
         view = self.coordinator.resume(session_id)
         products = tuple(event.get("payload") or {} for event in self.events.iter_events() if (event.get("payload") or {}).get("task_id") in {task.task_id for task in view["tasks"]})
-        return {**view, "work_products": products}
+        result: dict[str, Any] = {**view, "work_products": products}
+        if self.marker_ledger is not None:
+            markers = self.marker_ledger.markers()
+            result["commit_markers"] = {"count": len(markers), "last_marker_id": markers[-1].marker_id if markers else None}
+        return result
 
 
 __all__ = ["WORK_PRODUCT_SCHEMA", "WorkProductEnvelope", "WorkProductError", "MultiAgentWorkProductLoop"]

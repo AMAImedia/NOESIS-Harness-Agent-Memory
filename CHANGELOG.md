@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Bound the durable commit-marker ledger into `MultiAgentWorkProductLoop.commit`: every authorized commit records an explicit typed marker idempotently; ledger conflicts fail closed before task transition; `resume()` exposes a marker projection; loops without a ledger keep prior behavior.
+- Added `noesis.protocol-leakage.v1` suite: four deterministic protocol-level leakage holdouts (event-sink redaction, audit error isolation, result envelope typing, cross-session scoping) with reusable fail-closed detectors and negative injection tests.
+- Added adversarial memory-quality corpus v2 (`noesis.memory-quality-corpus.v2`): 12 pinned cases across 8 categories (temporal inversion, duplicate attribution, near-duplicate queries, budget edge, cross-session decoy reuse, provenance conflict, decay floor boundary, leakage decoy) with byte-identical deterministic reports.
 - Added Gate 3 `ExecutionRecoveryExecutor` with authenticated operator context, signed receipt/run identity, approved patch, fresh-base format gate and injected mutation confirmation; tamper-evident rollback chains now bind a durable completion receipt to the rolled-back run.
 - Added `ExecutionBackend`/`verify_backend_or_block` contract: unconfigured or unverifiable backends report `not_run`/`blocked`/`unavailable`, never `passed`.
 - Added MA-07 `WorkProductWorkloadRunner`: deterministic multi-lane workload with injected first-attempt crash, bounded retry/reclaim via the durable action ledger, idempotent SQLite/WAL aggregation with conflict rejection and completed-run replay.
