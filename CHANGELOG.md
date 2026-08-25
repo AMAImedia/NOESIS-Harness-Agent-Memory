@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added Gate 3 `ExecutionRecoveryExecutor` with authenticated operator context, signed receipt/run identity, approved patch, fresh-base format gate and injected mutation confirmation; tamper-evident rollback chains now bind a durable completion receipt to the rolled-back run.
+- Added `ExecutionBackend`/`verify_backend_or_block` contract: unconfigured or unverifiable backends report `not_run`/`blocked`/`unavailable`, never `passed`.
+- Added MA-07 `WorkProductWorkloadRunner`: deterministic multi-lane workload with injected first-attempt crash, bounded retry/reclaim via the durable action ledger, idempotent SQLite/WAL aggregation with conflict rejection and completed-run replay.
+- Added MA-08 `CrashInjectionProber` (pre/post write/read crash phases plus workspace-escape probe) with seed-deterministic injection distributions and cost-model mean/p50/p95 reporting over bounded repetitions.
+- Added MA-09 `ActiveDelegationProber`: four simultaneous active-delegation denial probes (sibling read/write, absolute path, traversal) through real parallel lanes.
+
 ### Fixed
+- Fixed recovery receipt-chain verification ordering (content-addressed ids are not chronological); chain evidence now combines full-store audit digest with per-receipt signature checks.
 - Fixed `same_lane_workspace_only` isolation holdout false `escaped` classification on Windows hosts where the temp root resolves through 8.3 short names; the holdout now canonicalizes the boundary via `Path.resolve()` and classifies fail-closed on any containment exception.
 - Fixed `scripts/build_native.py` dry-run and mismatch paths crashing when `platform.machine()` internally invoked subprocess while tests patched it; architecture probing is now env-based on Windows with no policy change.
 - Fixed host-version-dependent native verifier test; it now asserts detected interpreter/platform behavior deterministically while keeping the Python 3.14 fail-closed gate.
