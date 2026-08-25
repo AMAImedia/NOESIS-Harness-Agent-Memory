@@ -336,6 +336,17 @@ def main(argv: Optional[list] = None) -> int:
         return 2
     try:
         while True:
+            stop_path = root / ".noesis_autoloop" / "worker.stop"
+            if stop_path.exists():
+                stop_result = {"schema_version": SCHEMA, "status": "stopped_by_operator", "reason": "worker_stop_sentinel", "heartbeat_at": now()}
+                atomic_write(state_path, stop_result)
+                with log_path.open("a", encoding="utf-8", newline="\n") as log:
+                    _durable_log_line(log, canonical(stop_result))
+                try:
+                    stop_path.unlink()
+                except OSError:
+                    pass
+                return 0
             if args.local_endpoint and args.prompt_file:
                 proposal_step = None
                 proposal_step_index = None

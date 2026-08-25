@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Persistent worker supports an operator stop sentinel: creating `.noesis_autoloop/worker.stop` makes the next loop iteration record `stopped_by_operator`, append a durable log line, remove the sentinel and exit 0 — clean retirement without process signals.
 - Added `scripts/committed_evidence_registry.py`: canonical auditable-chain registration of the committed workload-evidence (recomputed digest) and release-audit (structural) artifacts with a fail-closed verifier; transfer audit accepts them as optional members and operator artifact-set verification blocks drifted copies.
 - Execution-conformance report gained an additive `backend_verification` section exercising the `verify_backend_or_block` honesty contract (unconfigured/failing/unavailable stubs); any unexpected `passed` raises fail-closed and the section digest rides the existing conformance chain.
 - Added a 19-test PromotionTelemetry redaction contract suite pinning the three-layer masking rules, the redaction-safe binding vocabulary and exact-set expectations so future over-masking of verification-relevant digests fails loudly.
