@@ -1,0 +1,46 @@
+{
+  "aggregate_digest": "2ecbb9ba0b1cc038dcd9a6137025b15937410927e4c4c5e2794ec897850887f1",
+  "claim_boundary": "signed_evidence_aggregation_only",
+  "comparative_ready": false,
+  "evidence_count": 3,
+  "evidence_digest": "af3086c731d296b589e7c095989e49490dd95c9992d58b5d8ba90026d89d8993",
+  "execution_claim": "evidence_ingestion_only",
+  "global_checks": [
+    "comparative_readiness_not_met"
+  ],
+  "lanes": {
+    "deepseek_harness": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "hermes": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "opencode": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    }
+  },
+  "manifest_digest": "afa6cb3eecf4bcb485c26b5b3f95a1e5a81a67c26e831950529c4d94df8a3392",
+  "matrix_digest": "56c9d39d3cbc9ed3192c75cad787f7c98c64ba5db59efbdd05d2239535770c92",
+  "matrix_schema_version": "noesis.external-evidence-readiness.v1",
+  "native_or_external_execution_claim": false,
+  "overall_status": "not_run",
+  "required_lanes": [
+    "hermes",
+    "opencode",
+    "deepseek_harness"
+  ],
+  "schema_version": "noesis.signed-external-evidence-aggregate.v1",
+  "signature": "2020b994673905084e350668378f492225486dff5cdd1b52ca329050e951aa63"
+}

@@ -1,0 +1,30 @@
+{
+  "automatic_execution": false,
+  "file_count": 2,
+  "files": [
+    {
+      "path": "external-evidence-readiness.json",
+      "sha256": "8a4fdb51864ea3e9755fabe843aa52fc5fe2a1bcfedfb8ac40bde92485041d63",
+      "size": 1143
+    },
+    {
+      "path": "signed-external-evidence-aggregate.json",
+      "sha256": "a35fe01fd7fb4c1dfc636971ce124d2ee176f30876424a045d2fea94e0e11d08",
+      "size": 1448
+    }
+  ],
+  "inventory_digest": "eb467d283869ea89bbbcfdd1ff91d8cd71cf906f527b7b7a97abf99c1599c33c",
+  "provenance": {
+    "comparative_ready": false,
+    "pipeline_schema": "noesis.operator-evidence-pipeline.v1",
+    "required_lanes": [
+      "hermes",
+      "opencode",
+      "deepseek_harness"
+    ],
+    "status": "not_run"
+  },
+  "root": ".",
+  "schema_version": "noesis.operator-artifact-inventory.v1",
+  "signature": "605518b0ee432ab1b5539f364be6a1be883996ef90d7aa8dd51e50a5ee8b2926"
+}

@@ -1,0 +1,17 @@
+{
+  "artifact_digest": "2118dca79296b8bfab14d3203e5a980b4b7f963608e63cf1095f11a7d6800ac8",
+  "automatic_execution": false,
+  "claim_boundary": "release_gate_integrity_summary_only",
+  "external_execution_claim": false,
+  "failed_stage": null,
+  "schema_version": "noesis.release-gate-artifact.v1",
+  "stages": {
+    "post_transfer_audit": {
+      "status": "not_run"
+    },
+    "release_readiness_snapshot": {
+      "status": "blocked"
+    }
+  },
+  "status": "not_run"
+}

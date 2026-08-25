@@ -1,0 +1,23 @@
+{
+  "aggregate_digest": "49812e352cc95636bd2699f64c4bdd7506434903c4e8632ee1e3d16302f7d95c",
+  "automatic_execution": false,
+  "chain_digest": "905f10ad496b8d1de88c2707669548772ce90d546d95316d74950ebd36cea08b",
+  "claim_boundary": "reproducibility_metadata_only",
+  "contract_versions": {
+    "aggregate": "noesis.signed-external-evidence-aggregate.v1",
+    "chain": "noesis.signed-evidence-chain-summary.v1",
+    "inventory": "noesis.operator-artifact-inventory.v1"
+  },
+  "external_execution_claim": false,
+  "inventory_digest": "eb467d283869ea89bbbcfdd1ff91d8cd71cf906f527b7b7a97abf99c1599c33c",
+  "receipt_digest": "348a07fa2fc56bbad5397401006abc0093fdc840daa4cb25f13a94c6b5c5f4c6",
+  "runtime_fingerprint": {
+    "platform_machine": "AMD64",
+    "platform_system": "Windows",
+    "python_implementation": "CPython",
+    "python_version": "3.14.7"
+  },
+  "schema_version": "noesis.signed-reproducibility-receipt.v1",
+  "signature": "7e4f7ab455e58b6c4186ba5a911f5098137aa38f3afabaff6841961af6ac6e2c",
+  "timestamp_policy": "excluded_from_signed_payload"
+}

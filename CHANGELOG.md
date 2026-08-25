@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Full signed operator evidence pipeline executed under CPython 3.14.7 binding the native Windows artifact: byte-deterministic ten-file bundle in `reports/evidence-pipeline/` with reproducibility receipt verified (fingerprint CPython/3.14.7/Windows/AMD64), release-readiness snapshot and post-transfer audit honestly `blocked` with machine-readable blockers (`matching_native_windows_macos_hosts_required`, `pinned_external_lane_receipts_required`).
+- Non-secret pipeline mirrors committed to `docs/pipeline-314/` after key-absence scanning; clean-room replay regenerates the bundle byte-identically while the strict chain correctly refuses a non-passed readiness matrix.
 - First executed native Windows lane evidence (`noesis.native-artifact-evidence.v1`): PyInstaller 6.22.2 built `dist/noesis-harness.exe` under CPython 3.14.7 / Windows AMD64; artifact verifier records shape, sha256 and honest signing status (`signtool: not_run`, development-unsigned).
 - Full test suite now verified green on BOTH CPython 3.11.9 (host) and CPython 3.14.7 (plan-authoritative runtime): 1057 tests.
 - Claims matrix and 25-to-100 roadmap now carry dated 2026-08-25 entries for all nine local landings (markers binding, leakage suite, corpora v2/v3, workload evidence, recovery governance, Windows scaffold `not_run`, evidence projection, evidence registry, backend gate) with conservative percentage bands unchanged.
