@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Runner contract gained `task_execution_class` (`version_smoke` | `model_task`) in the protocol fingerprint: executed lanes are honestly classified as network-free smoke probes, while model-backed comparative tasks require a verified network-restricted sandbox backend before they may run under the deny-by-default policy.
+- External runner defect discovered during lane bring-up and recorded: local hermes install fails `--help` with a broken `cryptography` dependency (import error), so model-task lanes for hermes are blocked by the runner itself.
 - Second executed pinned external lane: hermes `--version` under the same governance chain returned `status=passed` (`Hermes Agent v0.20.1`, rc=0); both discovered competitors now have signed single-use execution evidence in `docs/_lane/`.
 - First executed pinned external lane: opencode `--version` ran under the full governance chain (single-use signed approval consumed → journal started/completed, disposable workspace, sanitized environment) and returned `status=passed` (`opencode 1.18.15`, rc=0); artifacts in `docs/_lane/`.
 - Pinned runner adapter now passes Windows system invariants (`SystemRoot`, `TEMP`, `COMSPEC`, `PATHEXT`, `SystemDrive`) to children so native runners stop crashing on a bare environment; regression test added.

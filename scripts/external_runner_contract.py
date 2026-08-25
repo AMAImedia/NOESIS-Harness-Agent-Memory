@@ -34,7 +34,7 @@ def file_sha256(path: str) -> str:
     return digest.hexdigest()
 
 
-def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha256: str, model_provider: str = "pinned-by-run-manifest", workspace_mode: str = "disposable") -> dict:
+def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha256: str, model_provider: str = "pinned-by-run-manifest", workspace_mode: str = "disposable", task_execution_class: str = "version_smoke") -> dict:
     if system not in REQUIRED_SYSTEMS:
         raise ValueError("unsupported system")
     if not revision or not task_manifest_sha256:
@@ -43,8 +43,11 @@ def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha
         raise ValueError("argv must be a non-empty list of strings")
     if workspace_mode != "disposable":
         raise ValueError("workspace must be disposable")
+    if task_execution_class not in {"version_smoke", "model_task"}:
+        raise ValueError("unsupported task_execution_class")
     protocol = {
         "task_manifest_sha256": task_manifest_sha256,
+        "task_execution_class": task_execution_class,
         "model_provider": model_provider,
         "workspace_mode": workspace_mode,
         "outside_access": "deny",
