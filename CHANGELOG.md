@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Sanitized cancellation observability in `SafeParallelExecutor`: `lane_cancelled` audit/event payloads carry a bounded, control-stripped, credential-redacted reason marker; the owning lane's result keeps the full error.
+- Wired adversarial memory-quality corpus v2 into `scripts/run_memory_quality_evidence.py` additively as the top-level evidence key `adversarial_corpus_v2` (evidence schema stays v3); regenerated evidence JSON is byte-stable across runs.
+- Added English primary and Russian supplemental contracts for commit markers, protocol-leakage holdouts and corpus v2, plus root `RESEARCH_DAIGEST.md` provenance entries per repo discipline.
 - Bound the durable commit-marker ledger into `MultiAgentWorkProductLoop.commit`: every authorized commit records an explicit typed marker idempotently; ledger conflicts fail closed before task transition; `resume()` exposes a marker projection; loops without a ledger keep prior behavior.
 - Added `noesis.protocol-leakage.v1` suite: four deterministic protocol-level leakage holdouts (event-sink redaction, audit error isolation, result envelope typing, cross-session scoping) with reusable fail-closed detectors and negative injection tests.
 - Added adversarial memory-quality corpus v2 (`noesis.memory-quality-corpus.v2`): 12 pinned cases across 8 categories (temporal inversion, duplicate attribution, near-duplicate queries, budget edge, cross-session decoy reuse, provenance conflict, decay floor boundary, leakage decoy) with byte-identical deterministic reports.

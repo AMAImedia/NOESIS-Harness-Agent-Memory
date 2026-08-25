@@ -15,6 +15,7 @@ from noesis_harness.memory_quality import (
     build_long_context_cases,
     compare_baseline_nextgen,
 )
+from noesis_harness.memory_quality_corpora import evaluate_corpus_v2
 
 
 def provenance(text: str) -> str:
@@ -154,10 +155,20 @@ def run_multi_session_trajectory() -> dict:
         }
 
 
+def run_adversarial_corpus_v2() -> dict:
+    with tempfile.TemporaryDirectory(prefix="noesis-memory-quality-corpus-v2-") as tmp:
+        def adapter_factory():
+            memory = Memory(str(Path(tmp) / "memory.db"))
+            trace_store = DurableMemoryQualityTraceStore(str(Path(tmp) / "quality.db"))
+            return DurableMemoryQualityAdapter(memory, trace_store)
+        return evaluate_corpus_v2(adapter_factory)
+
+
 def main() -> None:
     comparison = compare_baseline_nextgen(build_long_context_cases((32, 128, 512, 1024), budget_tokens=64), repetitions=5)
     trajectory = run_durable_trajectory()
     multi_session = run_multi_session_trajectory()
+    adversarial_corpus_v2 = run_adversarial_corpus_v2()
     out = {
         "schema_version": "noesis.memory-quality-evidence.v3",
         "claim_boundary": "deterministic_local_fixture_and_real_stdlib_memory_trajectory_and_multi_session_distribution_not_external_model_benchmark",
@@ -171,6 +182,7 @@ def main() -> None:
         "budget_tokens": 64,
         "durable_context_reuse_trajectory": trajectory,
         "multi_session_context_reuse_distribution": multi_session,
+        "adversarial_corpus_v2": adversarial_corpus_v2,
     }
     path = Path(__file__).resolve().parents[1] / "docs" / "MEMORY_QUALITY_EVIDENCE.json"
     path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -181,4 +193,4 @@ if __name__ == "__main__":
     main()
 
 
-__all__ = ["main", "run_durable_trajectory", "run_multi_session_trajectory"]
+__all__ = ["main", "run_adversarial_corpus_v2", "run_durable_trajectory", "run_multi_session_trajectory"]

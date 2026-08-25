@@ -12,6 +12,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event, Lock, Timer
+import re
 import time
 from typing import Callable, Iterable, Mapping, Optional, Sequence
 from uuid import uuid4
@@ -19,6 +20,37 @@ from uuid import uuid4
 
 class ParallelExecutionError(ValueError):
     """Raised when a multi-agent plan violates the local safety contract."""
+
+
+# Credential-shaped output redaction, mirrored from child_execution's
+# _CREDENTIAL_OUTPUT_PATTERNS. Duplicated locally (not imported) so this module
+# never depends on the child execution boundary (avoids an import cycle and
+# keeps orchestration decoupled from process execution).
+_CREDENTIAL_REASON_PATTERNS = (
+    re.compile(r"(?i)\b(?:api[_-]?key|token|password|secret)\s*[:=]\s*[^\s,;]+"),
+    re.compile(r"\b(?:hf|sk|ghp|github_pat)_[A-Za-z0-9_-]{12,}\b"),
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._-]{12,}"),
+)
+_CANCELLED_PREFIX = "lane_cancelled:"
+_MAX_CANCEL_REASON_CHARS = 64
+_CONTROL_CHARS_PATTERN = re.compile(r"[\x00-\x1f\x7f]+")
+
+
+def _safe_cancel_marker(message: str) -> str:
+    """Bounded observability marker for a lane_cancelled exception.
+
+    Observability channels (audit log, event sink) must never carry arbitrary
+    exception text: reasons are operator-supplied strings today and may become
+    data-derived tomorrow. Only the cancellation reason passes through, after
+    control-character stripping, credential redaction, and truncation. The
+    owning caller still receives the full message via AgentLaneResult.error.
+    """
+    if not isinstance(message, str) or not message.startswith(_CANCELLED_PREFIX):
+        return _CANCELLED_PREFIX
+    reason = _CONTROL_CHARS_PATTERN.sub(" ", message[len(_CANCELLED_PREFIX):])
+    for pattern in _CREDENTIAL_REASON_PATTERNS:
+        reason = pattern.sub("[REDACTED_CREDENTIAL]", reason)
+    return _CANCELLED_PREFIX + reason[:_MAX_CANCEL_REASON_CHARS]
 
 
 class CancellationToken:
@@ -290,7 +322,9 @@ class SafeParallelExecutor:
                         return AgentLaneResult(sid, context.task_id, context.agent_id, str(context.workspace), "passed", output=output, attempts=attempts, recovered=attempts > 1)
                     except Exception as exc:  # fail one lane without cancelling unrelated lanes
                         if isinstance(exc, ParallelExecutionError) and str(exc).startswith("lane_cancelled:"):
-                            emit("lane_cancelled", context, str(exc))
+                            # Observability gets the sanitized marker only; the full
+                            # exception text stays scoped to AgentLaneResult.error.
+                            emit("lane_cancelled", context, _safe_cancel_marker(str(exc)))
                             if action_claimed:
                                 action_store.requeue(context.task_id, context.agent_id)
                                 action_claimed = False

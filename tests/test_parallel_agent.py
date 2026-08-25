@@ -194,6 +194,66 @@ class SafeParallelExecutorTests(unittest.TestCase):
         self.assertEqual(result.status, "cancelled")
         self.assertIn("deadline_exceeded", result.error)
 
+    def test_cancellation_reason_sanitized_in_observability_preserved_in_result(self):
+        from noesis_harness.parallel_agent import CancellationToken
+        token = CancellationToken()
+        executor = SafeParallelExecutor(self.root)
+        events = []
+        dirty_reason = (
+            "operator_stop\n\tsecret=hunter2-token-value "
+            "sk_live_abcdefghijklmnop api_key=abcd1234efgh5678"
+        )
+
+        def callback(ctx):
+            token.cancel(dirty_reason)
+            ctx.check_cancelled()
+
+        result = executor.execute(
+            [AgentLane("a", "sanitize-task", "sanitize")],
+            callback,
+            cancellation=token,
+            event_sink=events.append,
+        )[0]
+
+        self.assertEqual(result.status, "cancelled")
+        # Owning caller keeps the full reason.
+        self.assertIn("operator_stop", result.error)
+        self.assertIn("hunter2-token-value", result.error)
+        # Audit log and event sink only ever see the sanitized marker.
+        cancelled_audit = [e for e in executor.audit if e.get("event") == "lane_cancelled"]
+        cancelled_events = [e for e in events if e.get("kind") == "lane_cancelled"]
+        self.assertEqual(len(cancelled_audit), 1)
+        self.assertEqual(len(cancelled_events), 1)
+        for payload in (cancelled_audit[0], cancelled_events[0]):
+            text = payload.get("error", "")
+            self.assertTrue(text.startswith("lane_cancelled:"))
+            self.assertLessEqual(len(text), len("lane_cancelled:") + 64)
+            for forbidden in ("\n", "\t", "\r", "hunter2-token-value", "api_key=", "sk_live_", "abcd1234efgh5678"):
+                self.assertNotIn(forbidden, text)
+
+    def test_deadline_exceeded_reports_clean_marker_to_observability(self):
+        executor = SafeParallelExecutor(self.root)
+        events = []
+
+        def callback(ctx):
+            for _ in range(10000):
+                ctx.check_cancelled()
+                time.sleep(0.001)
+
+        result = executor.execute(
+            [AgentLane("a", "deadline-audit", "deadline")],
+            callback,
+            max_duration_seconds=0.000001,
+            event_sink=events.append,
+        )[0]
+
+        self.assertEqual(result.status, "cancelled")
+        self.assertIn("deadline_exceeded", result.error)
+        cancelled_audit = [e.get("error") for e in executor.audit if e.get("event") == "lane_cancelled"]
+        cancelled_events = [e.get("error") for e in events if e.get("kind") == "lane_cancelled"]
+        self.assertEqual(cancelled_audit, ["lane_cancelled:deadline_exceeded"])
+        self.assertEqual(cancelled_events, ["lane_cancelled:deadline_exceeded"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
