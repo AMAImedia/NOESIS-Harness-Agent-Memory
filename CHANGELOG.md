@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Pinned external lane preflight matrix captured under CPython 3.14.7 (`docs/PINNED_LANE_MATRIX_314.json`): hermes and opencode discovered on this host and report `ready_for_operator_approval`; deepseek harness absent stays `not_run`; execution and ranking remain `not_run` pending operator approval.
+- Revision pinning generator `scripts/pin_external_revisions.py`: git ls-remote probes pinned opencode `b72b5000…` and deepseek harness `b150a551…` (hermes probe timed out honestly), emitting a validator-passing `noesis.external-ab.v1` draft with deterministic seed digest.
 - Full signed operator evidence pipeline executed under CPython 3.14.7 binding the native Windows artifact: byte-deterministic ten-file bundle in `reports/evidence-pipeline/` with reproducibility receipt verified (fingerprint CPython/3.14.7/Windows/AMD64), release-readiness snapshot and post-transfer audit honestly `blocked` with machine-readable blockers (`matching_native_windows_macos_hosts_required`, `pinned_external_lane_receipts_required`).
 - Non-secret pipeline mirrors committed to `docs/pipeline-314/` after key-absence scanning; clean-room replay regenerates the bundle byte-identically while the strict chain correctly refuses a non-passed readiness matrix.
 - First executed native Windows lane evidence (`noesis.native-artifact-evidence.v1`): PyInstaller 6.22.2 built `dist/noesis-harness.exe` under CPython 3.14.7 / Windows AMD64; artifact verifier records shape, sha256 and honest signing status (`signtool: not_run`, development-unsigned).
