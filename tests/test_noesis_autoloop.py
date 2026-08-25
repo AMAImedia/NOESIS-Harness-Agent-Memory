@@ -5,7 +5,37 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.noesis_autoloop import WorkerError, acquire_lock, atomic_write, capability_status, claim_proposal_step, digest, main, read_handoff, read_proposal_queue, read_state, release_lock, run_cycle, select_proposal_step, write_handoff
+from scripts.noesis_autoloop import DEFAULT_SMOKE, WorkerError, acquire_lock, atomic_write, capability_status, claim_proposal_step, digest, main, read_handoff, read_proposal_queue, read_state, release_lock, resolve_smoke, run_cycle, select_proposal_step, write_handoff
+
+
+class ResolveSmokeTests(unittest.TestCase):
+    def _root(self):
+        return Path(tempfile.mkdtemp(prefix="noesis-smoke-"))
+
+    def test_missing_file_falls_back_to_default(self):
+        self.assertEqual(resolve_smoke(self._root()), DEFAULT_SMOKE)
+
+    def test_operator_file_overrides_default_with_comments_and_duplicates(self):
+        root = self._root()
+        auto = root / ".noesis_autoloop"
+        auto.mkdir(parents=True)
+        (auto / "smoke_modules.txt").write_text("# operator list\ntests.test_core\n\n  tests.test_core  \ntests.test_workload_evidence\n", encoding="utf-8")
+        resolved = resolve_smoke(root)
+        self.assertEqual(resolved, "tests.test_core tests.test_workload_evidence")
+
+    def test_invalid_token_fails_closed_to_default(self):
+        root = self._root()
+        auto = root / ".noesis_autoloop"
+        auto.mkdir(parents=True)
+        (auto / "smoke_modules.txt").write_text("tests.test_core; rm -rf /\n", encoding="utf-8")
+        self.assertEqual(resolve_smoke(root), DEFAULT_SMOKE)
+
+    def test_empty_file_falls_back_to_default(self):
+        root = self._root()
+        auto = root / ".noesis_autoloop"
+        auto.mkdir(parents=True)
+        (auto / "smoke_modules.txt").write_text("\n \n# only comments\n", encoding="utf-8")
+        self.assertEqual(resolve_smoke(root), DEFAULT_SMOKE)
 
 
 class NoesisAutoloopTests(unittest.TestCase):

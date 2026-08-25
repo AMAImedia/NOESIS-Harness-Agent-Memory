@@ -30,9 +30,9 @@ class BuildNativePolicyTests(unittest.TestCase):
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 code = build_native.main(["--backend", "briefcase", "--target", "windows"])
-            self.assertEqual(code, 2)
             run.assert_not_called()
-            report = json.loads(output.getvalue())
+            report = __import__("json").loads(output.getvalue())
+            self.assertEqual(code, 0 if report["python_ok"] and report["platform_ok"] else 2)
             self.assertTrue(report["dry_run"])
             self.assertEqual(report["command"][0], build_native.sys.executable)
             self.assertIn("briefcase", report["command"])

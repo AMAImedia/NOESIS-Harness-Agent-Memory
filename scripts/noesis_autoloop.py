@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -212,6 +213,34 @@ def run_local_proposal_cycle(root: Path, endpoint: str, prompt_path: Path, timeo
     return final
 
 
+DEFAULT_SMOKE = "tests.test_agent_loop tests.test_core tests.test_task_session_api tests.test_turn_checkpoint tests.test_external_identity tests.test_skill_manifest tests.test_skill_runtime tests.test_noesis_autoloop tests.test_admin_state_sqlite tests.test_work_product_ma07 tests.test_work_product_ma08_ma09 tests.test_multi_agent_workflow tests.test_protocol_leakage_holdouts tests.test_memory_quality_corpora_v2 tests.test_memory_quality_corpora_v3 tests.test_learning_corpus_binding tests.test_evidence_projection tests.test_sandbox_windows tests.test_execution_assurance_gate3 tests.test_workload_evidence"
+_SMOKE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_.]+$")
+
+
+def resolve_smoke(root: Path) -> str:
+    """Resolve the per-cycle smoke module list; operator file wins when valid.
+
+    Reading on every call lets long-lived workers adopt coverage updates
+    without a restart. Invalid tokens or unreadable files fall back to the
+    embedded default fail-closed.
+    """
+    path = root / ".noesis_autoloop" / "smoke_modules.txt"
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return DEFAULT_SMOKE
+    modules: list = []
+    for raw in lines:
+        token = raw.strip()
+        if not token or token.startswith("#"):
+            continue
+        if not _SMOKE_TOKEN_RE.fullmatch(token):
+            return DEFAULT_SMOKE
+        if token not in modules:
+            modules.append(token)
+    return " ".join(modules) if modules else DEFAULT_SMOKE
+
+
 def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Path, log_path: Path) -> Dict[str, Any]:
     state = read_state(state_path)
     cycle = int(state.get("cycle", 0)) + 1
@@ -223,7 +252,7 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
     if command:
         selected = command
     elif os.name == "nt":
-        smoke = "tests.test_agent_loop tests.test_core tests.test_task_session_api tests.test_turn_checkpoint tests.test_external_identity tests.test_skill_manifest tests.test_skill_runtime tests.test_noesis_autoloop tests.test_admin_state_sqlite tests.test_work_product_ma07 tests.test_work_product_ma08_ma09 tests.test_multi_agent_workflow tests.test_protocol_leakage_holdouts tests.test_memory_quality_corpora_v2 tests.test_memory_quality_corpora_v3 tests.test_learning_corpus_binding tests.test_evidence_projection tests.test_sandbox_windows tests.test_execution_assurance_gate3 tests.test_workload_evidence"
+        smoke = resolve_smoke(root)
         selected = interpreter + " -X tracemalloc=10 -W error::ResourceWarning -m unittest " + smoke + " -q"
     else:
         selected = interpreter + " -X tracemalloc=10 -W error::ResourceWarning -m unittest discover -s tests -p test_*.py -q"
