@@ -1,0 +1,31 @@
+{
+  "approval_id": "7e17e79e060c5ab5ec6f9d24d2146c8fab074d6b1794ef38171a4defb49d50b2",
+  "approval_required": true,
+  "approval_schema": "noesis.external-approval.v1",
+  "argv_length": 2,
+  "command_sha256": "98511b119e0b7a8e2d48cf72200419435bffed915a676e29c3cffb62980c9108",
+  "environment_keys": [
+    "COMSPEC",
+    "NOESIS_EXTERNAL_RUNNER",
+    "PATH",
+    "PATHEXT",
+    "SystemDrive",
+    "SystemRoot",
+    "TEMP",
+    "TMP"
+  ],
+  "execution": "started",
+  "journal_state": "completed",
+  "protocol_fingerprint": "c7de180b106ac0a7e5f601f8a7c15c611ac22a3fb3b7aeb5d8aea3f3f6de1504",
+  "reason": "dry_run_only",
+  "returncode": 0,
+  "revision": "pinned-local-dev",
+  "schema_version": "noesis.external-lane-plan.v1",
+  "status": "passed",
+  "stderr": "",
+  "stdout": "Hermes Agent v0.20.1 (2026.8.13)\nInstall directory: C:\\Users\\djbionicl\\AppData\\Local\\hermes\\hermes-agent\nPython: 3.11.16\nOpenAI SDK: 2.24.0\nRun 'hermes version' for update status.\n",
+  "system": "hermes",
+  "task_manifest_sha256": "f128786d04a701a266d02a8a84531156bbee1db2edcbac6de4db351d2fe816b4",
+  "timed_out": false,
+  "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\lane-ws-hermes"
+}
