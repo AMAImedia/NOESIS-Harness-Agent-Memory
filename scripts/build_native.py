@@ -38,7 +38,8 @@ def main(argv=None) -> int:
     parser.add_argument("--run", action="store_true", help="run the native builder after all gates pass; default is dry-run")
     args = parser.parse_args(argv)
     report = verify_target(args.target)
-    report["backend_available"] = shutil.which(args.backend) is not None or bool(importlib_available(args.backend))
+    backend_module = {"pyinstaller": "PyInstaller", "briefcase": "briefcase"}[args.backend]
+    report["backend_available"] = shutil.which(args.backend) is not None or bool(importlib_available(backend_module))
     report["command"] = command_for(args.backend, args.target)
     report["dry_run"] = not args.run
     print(json.dumps(report, sort_keys=True))

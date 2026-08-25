@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Claims matrix and 25→100 roadmap now carry dated 2026-08-25 entries for all nine local landings (markers binding, leakage suite, corpora v2/v3, workload evidence, recovery governance, Windows scaffold `not_run`, evidence projection, evidence registry, backend gate) with conservative percentage bands unchanged.
+- First executed native Windows lane evidence (`noesis.native-artifact-evidence.v1`): PyInstaller 6.22.2 built `dist/noesis-harness.exe` under CPython 3.14.7 / Windows AMD64; artifact verifier records shape, sha256 and honest signing status (`signtool: not_run`, development-unsigned).
+- Full test suite now verified green on BOTH CPython 3.11.9 (host) and CPython 3.14.7 (plan-authoritative runtime): 1057 tests.
+- Claims matrix and 25-to-100 roadmap now carry dated 2026-08-25 entries for all nine local landings (markers binding, leakage suite, corpora v2/v3, workload evidence, recovery governance, Windows scaffold `not_run`, evidence projection, evidence registry, backend gate) with conservative percentage bands unchanged.
 - End-to-end surface tests prove the operator snapshot's `evidence_projection` survives the HTTP redaction pass and the UI-contract envelope against real committed artifacts, including tampered-copy fail-closed visibility.
 
 ### Fixed
+- `build_native` backend availability probe now maps backend names to their import modules (`PyInstaller`/`briefcase`), so reports reflect a pip-installed backend instead of a false negative.
 - Simulated home roots in user-data/macOS-portable tests now anchor outside the source tree when the ambient temp directory is repository-internal scratch, keeping the data-root guard intact under the repo-local TEMP layout.
 - Persistent worker supports an operator stop sentinel: creating `.noesis_autoloop/worker.stop` makes the next loop iteration record `stopped_by_operator`, append a durable log line, remove the sentinel and exit 0 — clean retirement without process signals.
 - Added `scripts/committed_evidence_registry.py`: canonical auditable-chain registration of the committed workload-evidence (recomputed digest) and release-audit (structural) artifacts with a fail-closed verifier; transfer audit accepts them as optional members and operator artifact-set verification blocks drifted copies.

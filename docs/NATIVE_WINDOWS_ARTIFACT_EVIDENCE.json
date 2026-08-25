@@ -1,0 +1,29 @@
+{
+  "artifact": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\dist\\noesis-harness.exe",
+  "artifact_exists": true,
+  "artifact_shape_ok": true,
+  "artifact_shape_reason": "windows_exe_required",
+  "development_unsigned": true,
+  "evidence_status": "development_unsigned",
+  "file_count": 1,
+  "generated_at": "2026-08-25T20:23:54.242815+00:00",
+  "host": {
+    "actual_platform": "windows",
+    "actual_python": "3.14.7",
+    "architecture": "AMD64",
+    "platform_ok": true,
+    "python_ok": true,
+    "target": "windows"
+  },
+  "notarization": {
+    "status": "not_applicable"
+  },
+  "reason": "unsigned development evidence explicitly allowed",
+  "schema_version": "noesis.native-artifact-evidence.v1",
+  "sha256": "558ddfe906a5bb1ad98686597d5927a3944191ac03c29e667af57527a4579a48",
+  "signature": {
+    "reason": "signtool_unavailable",
+    "status": "not_run",
+    "tool": "signtool"
+  }
+}
