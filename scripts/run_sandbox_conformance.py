@@ -12,21 +12,14 @@ from pathlib import Path
 from noesis_harness.sandbox_backend import run_conformance
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
 from noesis_harness.sandbox_macos import MacOSSandboxBackend
+from noesis_harness.sandbox_windows import WindowsSandboxBackend
 
 
 def build_report() -> dict[str, object]:
     with tempfile.TemporaryDirectory(prefix="noesis-sandbox-conformance-") as temp:
         workspace = Path(temp)
-        backends = (BubblewrapBackend(), MacOSSandboxBackend())
+        backends = (BubblewrapBackend(), MacOSSandboxBackend(), WindowsSandboxBackend())
         records = [run_conformance(backend, workspace=workspace).as_dict() for backend in backends]
-    records.append({
-        "backend_id": "windows-native",
-        "host_platform": "windows",
-        "available": False,
-        "checks": [],
-        "reason": "matching_windows_host_required",
-        "status": "not_run",
-    })
     return {
         "schema_version": "noesis.sandbox-conformance.v2",
         "runtime": {"python": platform.python_version(), "platform": platform.platform(), "system": platform.system()},
