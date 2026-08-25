@@ -323,10 +323,10 @@ class HealthServer:
         except Exception as exc:
             return {"available": False, "session_id": context.session_id, "reason": "session_snapshot_error:" + type(exc).__name__}
 
-    def operator_snapshot(self, *, task_id: str = "", receipt_id: str = "") -> Mapping[str, Any]:
+    def operator_snapshot(self, *, task_id: str = "", receipt_id: str = "", evidence_projection: Optional[Mapping[str, Any]] = None) -> Mapping[str, Any]:
         """Return a bounded, read-only operator view with no execution side effects."""
         context = self.operator_auth_context
-        return {
+        snapshot = {
             "schema_version": "noesis.operator-snapshot.v1",
             "health": self.envelope().to_dict(),
             "models": self.models_envelope().to_dict(),
@@ -346,6 +346,9 @@ class HealthServer:
             },
             "execution_claim": "read_only_snapshot",
         }
+        if evidence_projection is not None:
+            snapshot["evidence_projection"] = evidence_projection
+        return snapshot
 
     def publish_session_event(self, session_id: str, kind: str, data: Mapping[str, Any], task_id: Optional[str] = None) -> StreamEvent:
         if not session_id:

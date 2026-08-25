@@ -9,9 +9,12 @@ from typing import Any
 
 from noesis_harness.parallel_agent import AgentLane, AgentLaneContext, SafeParallelExecutor
 from scripts.release_audit import audit
+from scripts.run_workload_evidence import canonical_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPORTS = ("AuditChain", "ContextManager", "IsolationBroker", "Gatekeeper", "DAGPlanner", "VaultProjector", "SkillGate", "ExecutionLadder")
+WORKLOAD_EVIDENCE_SCHEMA = "noesis.workload-evidence.v1"
+WORKLOAD_EVIDENCE_PATH = ROOT / "docs" / "MULTI_AGENT_WORKLOAD_EVIDENCE.json"
 
 
 def lane(ctx: AgentLaneContext) -> dict[str, Any]:
@@ -36,12 +39,29 @@ def lane(ctx: AgentLaneContext) -> dict[str, Any]:
         return {"check": "git_integrity", "status": "passed", "diff_check": True, "working_tree_clean": not bool(status), "changed_entries": len([line for line in status.splitlines() if line])}
 
     if ctx.task_id == "ru-checklist":
-        checklist = (ROOT / "docs" / "PROJECT_CHECKLIST_TODO_RU.md").read_text(encoding="utf-8")
+        checklist = (ROOT / "docs" / "locales" / "ru" / "PROJECT_CHECKLIST_TODO_RU.md").read_text(encoding="utf-8")
         markers = ("NAT-", "CI-", "REL-", "EXEC-", "API-", "MA-")
         missing = [marker for marker in markers if marker not in checklist]
         if missing:
             raise AssertionError("checklist_markers_missing:" + ",".join(missing))
         return {"check": "ru_checklist", "status": "passed", "markers": list(markers), "line_count": len(checklist.splitlines())}
+
+    if ctx.task_id == "workload-evidence-audit":
+        if not WORKLOAD_EVIDENCE_PATH.is_file():
+            raise AssertionError("workload_evidence_missing")
+        try:
+            document = json.loads(WORKLOAD_EVIDENCE_PATH.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            raise AssertionError("workload_evidence_invalid_json") from exc
+        schema_version = document.get("schema_version")
+        if schema_version != WORKLOAD_EVIDENCE_SCHEMA:
+            raise AssertionError("workload_schema_mismatch:" + str(schema_version))
+        claimed_digest = document.get("output_digest")
+        payload = {key: value for key, value in document.items() if key != "output_digest"}
+        recomputed = canonical_digest(payload)
+        if not isinstance(claimed_digest, str) or claimed_digest != recomputed:
+            raise AssertionError("workload_digest_mismatch")
+        return {"check": "workload_evidence_audit", "status": "passed", "schema_version": schema_version, "output_digest": claimed_digest}
 
     raise AssertionError("unknown_release_audit_lane:" + ctx.task_id)
 
@@ -57,6 +77,7 @@ def main(argv=None) -> int:
         AgentLane("audit-exports", "package-exports", "package-exports"),
         AgentLane("audit-git", "git-integrity", "git-integrity"),
         AgentLane("audit-checklist", "ru-checklist", "ru-checklist"),
+        AgentLane("audit-workload-evidence", "workload-evidence-audit", "workload-evidence-audit"),
     ]
     events: list[dict[str, object]] = []
     results = executor.execute(lanes, lane, session_id="release-audit-session", approval=True, event_sink=events.append)

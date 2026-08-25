@@ -35,7 +35,7 @@ def lane(ctx: AgentLaneContext) -> dict[str, Any]:
         return {"check": "json_evidence", "status": "passed", "files_checked": len(report["records"]), "findings": len(report["findings"])}
 
     if ctx.task_id == "ru-checklist":
-        checklist = (ROOT / "docs" / "PROJECT_CHECKLIST_TODO_RU.md").read_text(encoding="utf-8")
+        checklist = (ROOT / "docs" / "locales" / "ru" / "PROJECT_CHECKLIST_TODO_RU.md").read_text(encoding="utf-8")
         required = ("AUD-", "META-", "CI-", "NAT-", "REL-", "PARALLEL_METADATA_EVIDENCE.json", "PARALLEL_RELEASE_AUDIT_EVIDENCE.json")
         missing = [marker for marker in required if marker not in checklist]
         if missing:

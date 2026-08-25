@@ -11,10 +11,10 @@ assert report["network_allowed"] is False
 assert report["credentials_available"] is False
 assert report["model_generated_code_executed"] is False
 assert report["remote_parity_checked"] is False
-assert report["workspace_count"] == 4
-assert len(report["results"]) == 4
+assert report["workspace_count"] == 5
+assert len(report["results"]) == 5
 assert all(item["status"] == "passed" for item in report["results"])
-assert len({item["workspace"] for item in report["results"]}) == 4
+assert len({item["workspace"] for item in report["results"]}) == 5
 security = next(item for item in report["results"] if item["task_id"] == "secret-ast-audit")["output"]
 assert security["secret_hits"] == 0
 assert security["syntax_errors"] == 0
@@ -24,6 +24,10 @@ assert git_lane["diff_check"] is True
 assert git_lane["working_tree_clean"] is True
 exports = next(item for item in report["results"] if item["task_id"] == "package-exports")["output"]
 assert exports["export_count"] >= 8
+workload = next(item for item in report["results"] if item["task_id"] == "workload-evidence-audit")["output"]
+assert workload["status"] == "passed"
+assert workload["schema_version"] == "noesis.workload-evidence.v1"
+assert workload["output_digest"].startswith("sha256:")
 encoded = json.dumps(report, ensure_ascii=False).casefold()
 for marker in ("api_key=", "bearer ", "password=", "secret=", "token="):
     assert marker not in encoded

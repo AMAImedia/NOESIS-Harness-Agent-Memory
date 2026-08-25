@@ -13,15 +13,15 @@
       "agent_id": "audit-git",
       "error": "",
       "output": {
-        "changed_entries": 0,
+        "changed_entries": 10,
         "check": "git_integrity",
         "diff_check": true,
         "status": "passed",
-        "working_tree_clean": true
+        "working_tree_clean": false
       },
       "status": "passed",
       "task_id": "git-integrity",
-      "workspace": "/tmp/parallel_release_audit_workspaces/git-integrity"
+      "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\docs\\parallel_release_audit_workspaces\\git-integrity"
     },
     {
       "agent_id": "audit-exports",
@@ -33,14 +33,14 @@
       },
       "status": "passed",
       "task_id": "package-exports",
-      "workspace": "/tmp/parallel_release_audit_workspaces/package-exports"
+      "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\docs\\parallel_release_audit_workspaces\\package-exports"
     },
     {
       "agent_id": "audit-checklist",
       "error": "",
       "output": {
         "check": "ru_checklist",
-        "line_count": 785,
+        "line_count": 2556,
         "markers": [
           "NAT-",
           "CI-",
@@ -53,7 +53,7 @@
       },
       "status": "passed",
       "task_id": "ru-checklist",
-      "workspace": "/tmp/parallel_release_audit_workspaces/ru-checklist"
+      "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\docs\\parallel_release_audit_workspaces\\ru-checklist"
     },
     {
       "agent_id": "audit-security",
@@ -64,13 +64,26 @@
         "secret_hits": 0,
         "status": "passed",
         "syntax_errors": 0,
-        "working_tree_clean": true
+        "working_tree_clean": false
       },
       "status": "passed",
       "task_id": "secret-ast-audit",
-      "workspace": "/tmp/parallel_release_audit_workspaces/secret-ast-audit"
+      "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\docs\\parallel_release_audit_workspaces\\secret-ast-audit"
+    },
+    {
+      "agent_id": "audit-workload-evidence",
+      "error": "",
+      "output": {
+        "check": "workload_evidence_audit",
+        "output_digest": "sha256:03292a7c3dc40906ae198df9eea7fff44c65a5c65d012ba64337750fb4676909",
+        "schema_version": "noesis.workload-evidence.v1",
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "workload-evidence-audit",
+      "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\docs\\parallel_release_audit_workspaces\\workload-evidence-audit"
     }
   ],
   "schema_version": "noesis.parallel-release-audit.v1",
-  "workspace_count": 4
+  "workspace_count": 5
 }

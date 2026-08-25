@@ -3,14 +3,17 @@
 Borrowed patterns: the fixed-corpus negative/positive holdout discipline of
 noesis_harness/isolation_holdouts.py (agentmemory-style deterministic
 leakage cases), the fail-closed evidence handling of agentmemory governance
-writes as reused by work_product_benchmark.py, and the deepseek-harness
-bounded deterministic rubric. Every probe runs through a real
-SafeParallelExecutor lane fan-out; storage/recall/coordination never call an
-LLM, and any unexpected exception classifies the case as failed, never passed.
+writes as reused by work_product_benchmark.py (including its commit-marker
+ledger conflict discipline), and the deepseek-harness bounded deterministic
+rubric. Every probe runs through a real SafeParallelExecutor lane fan-out;
+storage/recall/coordination never call an LLM, and any unexpected exception
+classifies the case as failed, never passed.
 """
 from __future__ import annotations
 
 import dataclasses
+import hashlib
+import json
 import os
 import tempfile
 from dataclasses import dataclass
@@ -18,6 +21,12 @@ from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence, Tuple
 
 from .parallel_agent import AgentLane, AgentLaneResult, SafeParallelExecutor
+from .work_product_benchmark import (
+    MARKER_STATUS_COMMITTED,
+    WorkProductBenchmarkError,
+    WorkProductCommitMarker,
+    WorkProductCommitMarkerLedger,
+)
 
 
 PROTOCOL_LEAKAGE_SCHEMA = "noesis.protocol-leakage.v1"
@@ -123,6 +132,67 @@ def scoping_violation(
     return ""
 
 
+def _aggregate_digests(results: Sequence[AgentLaneResult]) -> list:
+    """Collect the private aggregate digests a session kept in its outputs."""
+    digests = []
+    for result in results:
+        output = result.output
+        if isinstance(output, Mapping) and isinstance(output.get("aggregate_digest"), str):
+            digests.append(str(output["aggregate_digest"]))
+    return digests
+
+
+def digest_isolation_violation(
+    events: Sequence[Mapping[str, object]],
+    results: Sequence[AgentLaneResult],
+    audit_entries: Sequence[Mapping[str, object]],
+    own_digests: Sequence[str],
+    foreign_digests: Sequence[str],
+) -> str:
+    """Return "" when each own aggregate digest survives only inside this
+    session's result outputs (never in events or audit) and no foreign
+    session's digest appears anywhere in events, results, or audit;
+    otherwise describe the first violation."""
+    result_dicts = [dataclasses.asdict(result) for result in results]
+    for index, digest_value in enumerate(own_digests):
+        if not any(_contains_needle(result_dict, digest_value) for result_dict in result_dicts):
+            return "own_digest[%d].missing_from_results" % index
+        if _contains_needle(list(events), digest_value):
+            return "own_digest[%d].leaked_to_events" % index
+        if _contains_needle(list(audit_entries), digest_value):
+            return "own_digest[%d].leaked_to_audit" % index
+    for index, digest_value in enumerate(foreign_digests):
+        for surface_name, surface in (("events", events), ("results", result_dicts), ("audit", audit_entries)):
+            if _contains_needle(list(surface), digest_value):
+                return "foreign_digest[%d].%s" % (index, surface_name)
+    return ""
+
+
+MARKER_ERROR_MAX_CHARS = 160
+
+
+def marker_scope_violation(
+    error_text: str,
+    authorization_digest: str,
+    marker_payload: Mapping[str, object],
+) -> str:
+    """Return "" when a commit-marker conflict surfaced a short bare error code
+    that embeds no marker payload value (including the authorization digest
+    the caller passed as an argument); otherwise describe the first violation.
+    The caller legitimately holds the authorization digest, so its presence in
+    the raised text would still mean the exception echoed private binding
+    material instead of failing closed with a bare code."""
+    if not error_text:
+        return "empty_error_text"
+    for field in sorted(str(key) for key in marker_payload.keys()):
+        value = marker_payload[field]
+        if isinstance(value, str) and value and value in error_text:
+            return "payload_embedded=%s" % field
+    if len(error_text) > MARKER_ERROR_MAX_CHARS:
+        return "error_too_long=%d" % len(error_text)
+    return ""
+
+
 class ProtocolLeakageSuite:
     """Run protocol-boundary leakage holdouts against live parallel lanes."""
 
@@ -131,6 +201,8 @@ class ProtocolLeakageSuite:
         "audit_error_isolation",
         "result_envelope_typing",
         "cross_session_event_scoping",
+        "aggregate_digest_isolation",
+        "marker_binding_scope",
     )
 
     def __init__(
@@ -318,6 +390,127 @@ class ProtocolLeakageSuite:
             )
 
     # ------------------------------------------------------------------
+    # Case 5: aggregate_digest_isolation
+    # ------------------------------------------------------------------
+
+    def _case_aggregate_digest_isolation(self) -> ProtocolLeakageResult:
+        sid_alpha = "proto-digest-alpha-7d31"
+        sid_beta = "proto-digest-beta-9e02"
+        with tempfile.TemporaryDirectory(prefix="noesis-proto-digest-") as root:
+            # One shared executor, two sequential runs in one process; each
+            # session's callback computes a private aggregate digest kept only
+            # inside its own returned outputs.
+            executor = self._build_executor(root)
+            captured_alpha: list[dict] = []
+            captured_beta: list[dict] = []
+
+            def make_callback(sid):
+                def callback(ctx):
+                    payload = {"session": sid, "task": ctx.task_id}
+                    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                    return {"aggregate": payload, "aggregate_digest": hashlib.sha256(encoded).hexdigest()}
+
+                return callback
+
+            lanes_alpha = [
+                AgentLane("digest-a-agent-%d" % i, "digest-a-task-%d" % i, "digest-ws-a%d" % i) for i in range(2)
+            ]
+            run_alpha = executor.execute(
+                lanes_alpha,
+                make_callback(sid_alpha),
+                session_id=sid_alpha,
+                event_sink=lambda event: captured_alpha.append(dict(event)),
+            )
+            lanes_beta = [
+                AgentLane("digest-b-agent-%d" % i, "digest-b-task-%d" % i, "digest-ws-b%d" % i) for i in range(2)
+            ]
+            run_beta = executor.execute(
+                lanes_beta,
+                make_callback(sid_beta),
+                session_id=sid_beta,
+                event_sink=lambda event: captured_beta.append(dict(event)),
+            )
+            if not all(result.status == "passed" for result in run_alpha + run_beta):
+                return ProtocolLeakageResult("aggregate_digest_isolation", False, "lanes_did_not_pass")
+            digests_alpha = _aggregate_digests(run_alpha)
+            digests_beta = _aggregate_digests(run_beta)
+            if not digests_alpha or not digests_beta:
+                return ProtocolLeakageResult("aggregate_digest_isolation", False, "aggregate_digest_missing")
+            if set(digests_alpha) & set(digests_beta):
+                return ProtocolLeakageResult("aggregate_digest_isolation", False, "digest_collision_across_runs")
+            violation_alpha = digest_isolation_violation(captured_alpha, run_alpha, executor.audit, digests_alpha, digests_beta)
+            if violation_alpha:
+                return ProtocolLeakageResult("aggregate_digest_isolation", False, "run_alpha:" + violation_alpha)
+            violation_beta = digest_isolation_violation(captured_beta, run_beta, executor.audit, digests_beta, digests_alpha)
+            if violation_beta:
+                return ProtocolLeakageResult("aggregate_digest_isolation", False, "run_beta:" + violation_beta)
+            return ProtocolLeakageResult(
+                "aggregate_digest_isolation",
+                True,
+                "isolated:%d_%d_digests" % (len(digests_alpha), len(digests_beta)),
+            )
+
+    # ------------------------------------------------------------------
+    # Case 6: marker_binding_scope
+    # ------------------------------------------------------------------
+
+    def _case_marker_binding_scope(self) -> ProtocolLeakageResult:
+        auth_one = "AUTH-DIGEST-P1-3f5a"
+        auth_two = "AUTH-DIGEST-P2-b8c7"
+        with tempfile.TemporaryDirectory(prefix="noesis-proto-marker-") as root:
+            path = str(Path(root) / "commit-markers.jsonl")
+            ledger = WorkProductCommitMarkerLedger(path)
+            marker_p1 = WorkProductCommitMarker(
+                "marker-product-p1",
+                "marker-task-p1",
+                "marker-agent-p1",
+                "marker-ws-p1",
+                "marker-base-p1",
+                "marker-head-p1",
+                "marker-artifact-p1",
+                auth_one,
+            )
+            first_record = ledger.record(marker_p1)
+            marker_p2 = WorkProductCommitMarker(
+                "marker-product-p2",
+                "marker-task-p2",
+                "marker-agent-p2",
+                "marker-ws-p2",
+                "marker-base-p2",
+                "marker-head-p2",
+                "marker-artifact-p2",
+                auth_two,
+            )
+            second_record = ledger.record(marker_p2)
+            if first_record.status != MARKER_STATUS_COMMITTED or second_record.status != MARKER_STATUS_COMMITTED:
+                return ProtocolLeakageResult("marker_binding_scope", False, "clean_products_not_committed")
+            # P2 attempt reusing the authorization digest bound to P1 while
+            # carrying different product fields: identity divergence must be
+            # denied fail-closed, never rewritten.
+            attack = dataclasses.replace(marker_p2, authorization_digest=auth_one)
+            conflict_text = ""
+            raised = False
+            try:
+                ledger.record(attack)
+            except WorkProductBenchmarkError as exc:
+                raised = True
+                conflict_text = str(exc)
+            if not raised:
+                return ProtocolLeakageResult("marker_binding_scope", False, "auth_reuse_not_rejected")
+            integrity = ledger.verify_integrity()
+            if not integrity.get("ok") or integrity.get("markers") != 2:
+                return ProtocolLeakageResult("marker_binding_scope", False, "integrity_degraded_after_conflict")
+            if ledger.count() != 2 or ledger.get("marker-product-p1") != marker_p1 or ledger.get("marker-product-p2") != marker_p2:
+                return ProtocolLeakageResult("marker_binding_scope", False, "ledger_state_mutated_by_conflict")
+            violation = marker_scope_violation(conflict_text, auth_one, attack.to_mapping())
+            if violation:
+                return ProtocolLeakageResult("marker_binding_scope", False, violation)
+            reopened = WorkProductCommitMarkerLedger(path)
+            if reopened.count() != 2 or not reopened.verify_integrity().get("ok"):
+                return ProtocolLeakageResult("marker_binding_scope", False, "reopen_integrity_failed")
+            return ProtocolLeakageResult("marker_binding_scope", True, "conflict_closed:%s" % conflict_text)
+
+    # ------------------------------------------------------------------
     # Suite driver
     # ------------------------------------------------------------------
 
@@ -327,6 +520,8 @@ class ProtocolLeakageSuite:
             ("audit_error_isolation", self._case_audit_error_isolation),
             ("result_envelope_typing", self._case_result_envelope_typing),
             ("cross_session_event_scoping", self._case_cross_session_event_scoping),
+            ("aggregate_digest_isolation", self._case_aggregate_digest_isolation),
+            ("marker_binding_scope", self._case_marker_binding_scope),
         )
         outcomes: list[ProtocolLeakageResult] = []
         for case_id, runner in runners:
@@ -361,9 +556,12 @@ __all__ = [
     "SINK_ALLOWED_KEYS",
     "RESULT_REQUIRED_KEYS",
     "LANE_RESULT_STATUSES",
+    "MARKER_ERROR_MAX_CHARS",
     "ProtocolLeakageResult",
     "ProtocolLeakageSuite",
     "redaction_violation",
     "envelope_violation",
     "scoping_violation",
+    "digest_isolation_violation",
+    "marker_scope_violation",
 ]
