@@ -87,6 +87,16 @@ class ProtocolLeakageSuiteTests(unittest.TestCase):
         clean = AgentLaneResult("s", "t", "a", "w", "passed")
         self.assertEqual(envelope_violation([clean]), "")
 
+    def test_event_sink_failed_is_declared_envelope_field(self):
+        names = {field.name for field in dataclasses.fields(AgentLaneResult)}
+        self.assertIn("event_sink_failed", names)
+        field = next(f for f in dataclasses.fields(AgentLaneResult) if f.name == "event_sink_failed")
+        self.assertEqual(field.default, False)
+        self.assertEqual(field.type, "bool")
+        flagged = AgentLaneResult("s", "t", "a", "w", "passed", event_sink_failed=True)
+        self.assertTrue(flagged.event_sink_failed)
+        self.assertEqual(envelope_violation([flagged]), "")
+
 
 class ProtocolLeakageNegativeInjectionTests(unittest.TestCase):
     def test_detector_catches_leaky_event_sink_executor(self):
@@ -128,6 +138,12 @@ class ProtocolLeakageNegativeInjectionTests(unittest.TestCase):
         self.assertIn("extra_fields=credentials", observed)
         missing = AgentLaneResult("s", "", "a", "w", "passed")
         self.assertIn("task_id_untyped", envelope_violation([missing]))
+
+    def test_envelope_detector_still_rejects_unknown_keys_with_new_field_declared(self):
+        tampered = AgentLaneResult("s", "t", "a", "w", "passed", event_sink_failed=True)
+        object.__setattr__(tampered, "sink_error_detail", "internal sink stack trace")
+        observed = envelope_violation([tampered])
+        self.assertIn("extra_fields=sink_error_detail", observed)
 
     def test_scoping_detector_flags_foreign_session(self):
         mismatched = [{"kind": "lane_started", "session_id": "other-session", "task_id": "t", "agent_id": "a"}]

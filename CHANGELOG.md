@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `noesis.learning-corpus-binding.v1`: verifiable evidence-corpus provenance bindings for review proposals, attached to promotion telemetry (keyword-only `corpus_binding` in `PromotionIntegration.propose`, verified before any pipeline side effect); deterministic byte-stable output with optional injected clock.
+- Added `event_sink_failed` typed flag to `AgentLaneResult`: caller sink failures are now visible on lane results instead of audit-only.
+- Refreshed plan checkpoints to 2026-08-25 across the English master plan, its Russian locale and ROADMAP, stating commit-marker binding, protocol-leakage holdouts v1 and adversarial corpus v2 as locally verified while native/external lanes remain `not_run`.
 - Sanitized cancellation observability in `SafeParallelExecutor`: `lane_cancelled` audit/event payloads carry a bounded, control-stripped, credential-redacted reason marker; the owning lane's result keeps the full error.
 - Wired adversarial memory-quality corpus v2 into `scripts/run_memory_quality_evidence.py` additively as the top-level evidence key `adversarial_corpus_v2` (evidence schema stays v3); regenerated evidence JSON is byte-stable across runs.
 - Added English primary and Russian supplemental contracts for commit markers, protocol-leakage holdouts and corpus v2, plus root `RESEARCH_DAIGEST.md` provenance entries per repo discipline.

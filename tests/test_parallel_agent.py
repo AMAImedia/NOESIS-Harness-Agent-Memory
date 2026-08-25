@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from noesis_harness.coordination import Actions, Leases
-from noesis_harness.parallel_agent import AgentLane, ParallelExecutionError, SafeParallelExecutor
+from noesis_harness.parallel_agent import AgentLane, AgentLaneResult, ParallelExecutionError, SafeParallelExecutor
 
 
 class SafeParallelExecutorTests(unittest.TestCase):
@@ -253,6 +253,36 @@ class SafeParallelExecutorTests(unittest.TestCase):
         cancelled_events = [e.get("error") for e in events if e.get("kind") == "lane_cancelled"]
         self.assertEqual(cancelled_audit, ["lane_cancelled:deadline_exceeded"])
         self.assertEqual(cancelled_events, ["lane_cancelled:deadline_exceeded"])
+
+    def test_raising_event_sink_marks_lane_result_and_lanes_still_pass(self):
+        executor = SafeParallelExecutor(self.root)
+
+        def raising_sink(event):
+            raise RuntimeError("sink unavailable")
+
+        def callback(ctx):
+            return "ok"
+
+        results = executor.execute([AgentLane("a", "sink-fail-task", "a")], callback, event_sink=raising_sink)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].status, "passed")
+        self.assertTrue(results[0].event_sink_failed)
+        sink_failures = [e for e in executor.audit if e.get("event") == "lane_event_sink_failed"]
+        self.assertGreaterEqual(len(sink_failures), 2)
+        self.assertTrue(all(e.get("task_id") == "sink-fail-task" for e in sink_failures))
+
+    def test_healthy_event_sink_keeps_result_flag_false(self):
+        executor = SafeParallelExecutor(self.root)
+        events = []
+        results = executor.execute(
+            [AgentLane("a", "sink-ok-task", "a")],
+            lambda ctx: "done",
+            event_sink=events.append,
+        )
+        self.assertEqual(results[0].status, "passed")
+        self.assertFalse(results[0].event_sink_failed)
+        self.assertFalse(any(e.get("event") == "lane_event_sink_failed" for e in executor.audit))
+        self.assertEqual(AgentLaneResult("s", "t", "a", "w", "passed").event_sink_failed, False)
 
 
 if __name__ == "__main__":

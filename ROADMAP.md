@@ -4,11 +4,11 @@
 >
 > The versioned milestones below are historical context. They are not a substitute for the status-driven 1.0 plan.
 
-## Current verified position — 2026-08-18
+## Current verified position — 2026-08-25
 
 NOESIS is a **local-first, provenance-aware and human-governed agent OS kernel with a verified Linux control plane**. The local Python 3.14-only suite, durable sessions/tasks, bounded multi-agent coordination, memory/provenance layer, human-governed learning promotion, SQLite/WAL administrative state, signed evidence and Cloudflare-style operator telemetry are locally implemented and tested.
 
-The project does not yet claim a finished native Windows/macOS distribution, fully autonomous executable-skill activation, or superiority over Hermes, OpenCode, DeepSeek Harness or other systems. Those claims require matching native hosts, exact pinned external revisions, disposable environments, signed evidence and comparable A/B metrics.
+The project does not yet claim a finished native Windows/macOS distribution, fully autonomous executable-skill activation, or superiority over Hermes, OpenCode, DeepSeek Harness or other systems. Those claims require matching native hosts, exact pinned external revisions, disposable environments, signed evidence and comparable A/B metrics. Added at this checkpoint: the durable commit-marker ledger bound into `MultiAgentWorkProductLoop.commit/resume`, the protocol-leakage holdout suite v1 with negative injection tests, and the adversarial memory-quality corpus v2 wired into the memory quality evidence generator; native/external lanes remain `not_run`.
 
 ## Next gate
 

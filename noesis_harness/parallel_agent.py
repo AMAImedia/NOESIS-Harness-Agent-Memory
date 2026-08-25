@@ -9,7 +9,7 @@ identity, and fail-isolated result collection.
 from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from threading import Event, Lock, Timer
 import re
@@ -159,6 +159,7 @@ class AgentLaneResult:
     error: str = ""
     attempts: int = 1
     recovered: bool = False
+    event_sink_failed: bool = False
 
 
 class SafeParallelExecutor:
@@ -271,6 +272,7 @@ class SafeParallelExecutor:
         contexts = self._validate_lanes(lane_list, approval)
         contexts = [AgentLaneContext(sid, c.task_id, c.agent_id, c.workspace, c.capabilities, token, deadline) for c in contexts]
         results: list[AgentLaneResult] = []
+        sink_failed_tasks: set[str] = set()
 
         def emit(kind: str, context: AgentLaneContext, error: str = "") -> None:
             event = {"kind": kind, "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id}
@@ -284,6 +286,7 @@ class SafeParallelExecutor:
                 except Exception:
                     with self._audit_lock:
                         self.audit.append({"event": "lane_event_sink_failed", "session_id": sid, "task_id": context.task_id, "agent_id": context.agent_id})
+                    sink_failed_tasks.add(context.task_id)
 
         def run_one(context: AgentLaneContext) -> AgentLaneResult:
             claimed = False
@@ -347,8 +350,14 @@ class SafeParallelExecutor:
                 if claimed:
                     lease_store.release(context.task_id, context.agent_id)
 
+        def run_one_marked(context: AgentLaneContext) -> AgentLaneResult:
+            result = run_one(context)
+            if context.task_id in sink_failed_tasks:
+                result = replace(result, event_sink_failed=True)
+            return result
+
         with ThreadPoolExecutor(max_workers=self.max_concurrency, thread_name_prefix="noesis-agent") as pool:
-            futures: dict[Future[AgentLaneResult], AgentLaneContext] = {pool.submit(run_one, context): context for context in contexts}
+            futures: dict[Future[AgentLaneResult], AgentLaneContext] = {pool.submit(run_one_marked, context): context for context in contexts}
             for future in as_completed(futures):
                 results.append(future.result())
         return sorted(results, key=lambda result: result.task_id)

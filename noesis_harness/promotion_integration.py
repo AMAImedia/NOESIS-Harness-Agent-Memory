@@ -9,6 +9,7 @@ import time
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from .event_store import EventStore
+from .learning_corpus_binding import LearningCorpusBindingError, attach_to_telemetry, verify_corpus_binding
 from .learning_promotion import DurablePromotionState, ExperienceReceipt, HoldoutEvaluation, LearningPromotionPipeline, PromotionProposal, _digest
 
 
@@ -523,9 +524,17 @@ class PromotionIntegration:
         self.telemetry.record("holdout_evaluated", receipt_id=receipt_id, evaluation_id=result.evaluation_id, status=result.status, total_cases=result.total_cases, leaked_cases=result.leaked_cases)
         return result
 
-    def propose(self, receipt_id: str, evaluation_id: str, *, skill_name: str, content: str) -> PromotionProposal:
+    def propose(self, receipt_id: str, evaluation_id: str, *, skill_name: str, content: str, corpus_binding: Mapping[str, Any] | None = None) -> PromotionProposal:
+        # Gate 1: optional evidence-corpus provenance binding. Verified
+        # fail-closed BEFORE the pipeline side effect; attached additively to
+        # the promotion_proposed telemetry payload; existing key would raise.
+        if corpus_binding is not None and not verify_corpus_binding(corpus_binding):
+            raise LearningCorpusBindingError("binding_verification_failed")
         proposal = self.pipeline.propose(receipt_id, evaluation_id, skill_name=skill_name, content=content)
-        self.telemetry.record("promotion_proposed", proposal_id=proposal.proposal_id, state=proposal.state, skill_name=skill_name)
+        fields: dict[str, Any] = {"proposal_id": proposal.proposal_id, "state": proposal.state, "skill_name": skill_name}
+        if corpus_binding is not None:
+            attach_to_telemetry(fields, corpus_binding)
+        self.telemetry.record("promotion_proposed", **fields)
         return proposal
 
     def approve(self, proposal_id: str, *, approved_by: str, tests: Callable[[], bool]) -> PromotionProposal:

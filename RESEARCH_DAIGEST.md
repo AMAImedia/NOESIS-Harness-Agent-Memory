@@ -22,3 +22,10 @@ Provenance digest for ported research patterns, per `AGENTS.md` discipline. Each
 - Source patterns: evalscope-style pinned adversarial fixtures — versioned corpus with a closed expectation table and byte-stable report digest; agentmemory decay-floor model — exponential strength decay clamped at `Memory.DECAY_FLOOR`; deepseek-harness fail-closed expectation checks; trajectory-record format follows the agentmemory quality-trace lineage of [`scripts/run_memory_quality_evidence.py`](scripts/run_memory_quality_evidence.py).
 - Contract doc: [`docs/MEMORY_QUALITY_CORPUS_V2.md`](docs/MEMORY_QUALITY_CORPUS_V2.md) (RU: [`docs/locales/ru/MEMORY_QUALITY_CORPUS_V2_RU.md`](docs/locales/ru/MEMORY_QUALITY_CORPUS_V2_RU.md)).
 - Tests: [`tests/test_memory_quality_corpora_v2.py`](tests/test_memory_quality_corpora_v2.py).
+
+## 2026-08-25 — Learning corpus binding (Gate 1 evidence provenance)
+
+- Module: [`noesis_harness/learning_corpus_binding.py`](noesis_harness/learning_corpus_binding.py), integrated additively into `PromotionIntegration.propose` in [`noesis_harness/promotion_integration.py`](noesis_harness/promotion_integration.py) (optional keyword-only `corpus_binding`).
+- Source patterns: agentmemory governance audit lineage — tamper-evident canonical-JSON + sha256 integrity envelope with fail-closed verification (`hmac.compare_digest`) as already ported in learning_promotion/promotion_integration; deepseek-harness adversarial fail-closed discipline mirrored in `memory_quality_corpora.verify_case_provenance`. Deterministic-core rule preserved: no wall clock unless a caller injects one; default bindings are byte-stable.
+- Contract doc: none yet; behavior documented in the module docstring and enforced by tests (telemetry key `corpus_binding`, schema `noesis.learning-corpus-binding.v1`).
+- Tests: [`tests/test_learning_corpus_binding.py`](tests/test_learning_corpus_binding.py).
