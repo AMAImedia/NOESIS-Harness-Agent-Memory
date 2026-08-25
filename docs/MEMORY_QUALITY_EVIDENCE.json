@@ -11,7 +11,7 @@
       "procedural": 0,
       "semantic": 4,
       "summaries": 0,
-      "vector_backend": "none",
+      "vector_backend": "numpy",
       "vector_embedded": 0
     },
     "metrics": {
