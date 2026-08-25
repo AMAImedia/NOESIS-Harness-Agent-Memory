@@ -1,18 +1,89 @@
 """Patterns adapted from NOESIS readiness matrices, signed receipts, and host-boundary gates.
 
 This module projects existing evidence into separate execution classes. It never
-executes a provider, host sandbox, network request, or child runtime.
+executes a provider, host sandbox, network request, or child runtime. The
+backend_verification section additionally projects the ExecutionBackend /
+verify_backend_or_block honesty contract (Gate 3, parity with
+run_sandbox_conformance) using local stub backends only.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from noesis_harness.execution_assurance import ExecutionBackend, verify_backend_or_block  # noqa: E402
 
 SCHEMA = "noesis.execution-conformance.v1"
 STATUSES = ("passed", "not_run", "blocked", "unsupported")
+
+
+class BackendVerificationHonestyError(ValueError):
+    """Raised fail-closed when a backend verification entry claims passed."""
+
+
+class _ConformanceFailingBackend(ExecutionBackend):
+    """Local stub whose isolation verification fails; never executes anything."""
+
+    def verify_isolation(self) -> Mapping[str, Any]:
+        return {"status": "blocked", "reason": "isolation_verification_refused"}
+
+    def execute(self, request: Mapping[str, Any], policy: Mapping[str, Any]) -> Mapping[str, Any]:
+        raise NotImplementedError("execution_forbidden_in_conformance_projection")
+
+
+class _ConformanceUnavailableBackend(ExecutionBackend):
+    """Local stub standing in for a missing platform runtime; never executes."""
+
+    def verify_isolation(self) -> Mapping[str, Any]:
+        return {"status": "unavailable", "reason": "backend_runtime_unavailable"}
+
+    def execute(self, request: Mapping[str, Any], policy: Mapping[str, Any]) -> Mapping[str, Any]:
+        raise NotImplementedError("execution_forbidden_in_conformance_projection")
+
+
+def _default_backend_plan() -> tuple:
+    return (
+        ("unconfigured_none", None, "not_run", "backend_not_configured"),
+        ("failing_stub", _ConformanceFailingBackend("conformance-failing-stub"), "blocked", "isolation_verification_refused"),
+        ("unavailable_stub", _ConformanceUnavailableBackend("conformance-unavailable-stub"), "unavailable", "backend_runtime_unavailable"),
+    )
+
+
+def build_backend_verification_section(plan: Optional[Any] = None) -> dict[str, Any]:
+    """Project the ExecutionBackend/verify_backend_or_block contract honestly.
+
+    Each plan entry is (backend_name, backend_or_None, expected_status,
+    expected_reason). A passed result from any backend raises fail-closed;
+    the section is passed only when every entry matches its expected honest
+    non-passed status and reason.
+    """
+    entries: list[dict[str, str]] = []
+    reasons: list[str] = []
+    resolved = _default_backend_plan() if plan is None else tuple(plan)
+    for name, backend, expected_status, expected_reason in resolved:
+        result = verify_backend_or_block(backend)
+        status = str(result.get("status"))
+        reason = str(result.get("reason", ""))
+        if status == "passed":
+            raise BackendVerificationHonestyError("backend_verification_unexpected_passed:" + str(name))
+        entries.append({"backend": str(name), "status": status, "reason": reason})
+        if status != str(expected_status) or reason != str(expected_reason):
+            reasons.append(str(name) + "_honest_status_mismatch")
+    section = {
+        "status": "blocked" if reasons else "passed",
+        "entries": entries,
+        "reasons": reasons,
+        "evidence_basis": "local_verify_backend_or_block_contract_projection",
+    }
+    return section
 
 
 def _canonical(value: Mapping[str, Any]) -> bytes:
@@ -55,6 +126,7 @@ def build_conformance(snapshot: Mapping[str, Any], matrix: Mapping[str, Any], re
             "native_host": {"status": native_status, "evidence_basis": "host_bound_readiness_receipt_required"},
             "external_lanes": {"status": external_status, "evidence_basis": "signed_lane_matrix_and_comparative_receipt_required"},
         },
+        "backend_verification": build_backend_verification_section(),
         "reasons": reasons,
         "claims": {"local_replay": local_status == "passed", "native_execution": native_status == "passed", "external_execution": external_status == "passed", "worldwide_superiority": False},
         "automatic_execution": False,

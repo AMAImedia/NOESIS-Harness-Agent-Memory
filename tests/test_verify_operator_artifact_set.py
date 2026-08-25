@@ -1,4 +1,5 @@
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +12,8 @@ from scripts.artifact_inventory import build_inventory
 from tests.test_external_evidence_readiness import evidence_for, manifest
 
 KEY = "readiness-test-key-2026"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+COMMITTED_EVIDENCE_FILES = ("MULTI_AGENT_WORKLOAD_EVIDENCE.json", "PARALLEL_RELEASE_AUDIT_EVIDENCE.json")
 
 
 class VerifyOperatorArtifactSetTests(unittest.TestCase):
@@ -156,6 +159,52 @@ class VerifyOperatorArtifactSetTests(unittest.TestCase):
             outside.write_bytes(b"not-a-bundle")
             result = verify_artifact_set(artifact_root, KEY, str(outside))
             self.assertEqual(result["reason"], "report_path_invalid")
+
+    def test_absent_committed_evidence_does_not_block(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root, _ = self.build_set(Path(directory), with_report=False)
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["status"], "passed")
+            self.assertEqual(result["checks"]["committed_evidence"]["status"], "absent")
+
+    def copy_committed_evidence(self, artifact_root):
+        for name in COMMITTED_EVIDENCE_FILES:
+            shutil.copyfile(REPO_ROOT / "docs" / name, artifact_root / name)
+
+    def test_real_committed_evidence_copies_pass_in_set(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root, _ = self.build_set(Path(directory), with_report=False)
+            self.copy_committed_evidence(artifact_root)
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["status"], "passed")
+            committed = result["checks"]["committed_evidence"]
+            self.assertEqual(committed["status"], "passed")
+            self.assertEqual(committed["artifacts"]["workload-evidence"]["status"], "passed")
+            self.assertEqual(committed["artifacts"]["release-audit-evidence"]["reason"], "structural_only_no_self_digest")
+
+    def test_tampered_committed_workload_copy_blocks_set(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root, _ = self.build_set(Path(directory), with_report=False)
+            self.copy_committed_evidence(artifact_root)
+            workload_path = artifact_root / "MULTI_AGENT_WORKLOAD_EVIDENCE.json"
+            document = json.loads(workload_path.read_text(encoding="utf-8"))
+            document["evaluator_metrics"] = dict(document["evaluator_metrics"], cases=7)
+            workload_path.write_text(json.dumps(document), encoding="utf-8")
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["checks"]["committed_evidence"]["artifacts"]["workload-evidence"]["reason"], "workload_output_digest_mismatch")
+
+    def test_structurally_drifted_release_audit_copy_blocks_set(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_root, _ = self.build_set(Path(directory), with_report=False)
+            self.copy_committed_evidence(artifact_root)
+            audit_path = artifact_root / "PARALLEL_RELEASE_AUDIT_EVIDENCE.json"
+            document = json.loads(audit_path.read_text(encoding="utf-8"))
+            document["workspace_count"] = 4
+            audit_path.write_text(json.dumps(document), encoding="utf-8")
+            result = verify_artifact_set(artifact_root, KEY)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["checks"]["committed_evidence"]["artifacts"]["release-audit-evidence"]["reason"], "workspace_count_mismatch")
 
 
 if __name__ == "__main__":

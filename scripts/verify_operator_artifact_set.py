@@ -1,9 +1,10 @@
 """Verify a transferred NOESIS operator artifact set without executing contents.
 
 Patterns are adapted from signed report bundle verification, external readiness
-verification, signed aggregate verification, and artifact inventory checks. The
-verifier reads JSON and ZIP metadata only; it never executes, imports, launches,
-or contacts anything described by the artifacts.
+verification, signed aggregate verification, artifact inventory checks, and the
+committed evidence registry. The verifier reads JSON and ZIP metadata only; it
+never executes, imports, launches, or contacts anything described by the
+artifacts.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from scripts.aggregate_external_evidence import verify_aggregate
 from scripts.signed_verification_result import sign_verification_result, verify_signed_verification_result
 from scripts.chain_summary import verify_chain_summary
 from scripts.transfer_audit import audit_transfer_set
+from scripts.committed_evidence_registry import verify_committed_evidence
 from scripts.reproducibility_receipt import verify_reproducibility_receipt
 from scripts.release_gate_artifact import verify_gate_artifact
 from scripts.signed_readiness_receipt import verify_readiness_receipt
@@ -48,6 +50,10 @@ def verify_artifact_set(root: str | Path, key: str, report_path: str | None = No
         inventory_result = verify_inventory(inventory, base, key)
         checks: dict[str, Any] = {"transfer_composition": composition, "inventory": inventory_result}
         if inventory_result.get("status") != "passed":
+            return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
+        committed_check = verify_committed_evidence(base, require_all=False, flat_layout=True)
+        checks["committed_evidence"] = committed_check
+        if committed_check.get("status") == "blocked":
             return {"schema_version": SCHEMA, "status": "blocked", "checks": checks, "automatic_execution": False}
         matrix_path = base / "external-evidence-readiness.json"
         aggregate_path = base / "signed-external-evidence-aggregate.json"

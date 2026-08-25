@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `scripts/committed_evidence_registry.py`: canonical auditable-chain registration of the committed workload-evidence (recomputed digest) and release-audit (structural) artifacts with a fail-closed verifier; transfer audit accepts them as optional members and operator artifact-set verification blocks drifted copies.
+- Execution-conformance report gained an additive `backend_verification` section exercising the `verify_backend_or_block` honesty contract (unconfigured/failing/unavailable stubs); any unexpected `passed` raises fail-closed and the section digest rides the existing conformance chain.
+- Added a 19-test PromotionTelemetry redaction contract suite pinning the three-layer masking rules, the redaction-safe binding vocabulary and exact-set expectations so future over-masking of verification-relevant digests fails loudly.
+
+### Fixed
+- Made the stale-vs-fresh lifecycle-ingestion scenario use separate ledgers: re-preflighting identical evidence on a ledger holding its blocked record is now exercised as an explicit blocked replay instead of racing the fresh case under disk pressure.
 - Persistent Windows autoloop default validation set grew from 9 to 20 test modules, covering all landed Gate 3/4/5 suites per cycle (~61s wall, 235 tests).
 - Makefile gained deterministic local gates: `benchmark-recall20`, `benchmark-workload20`, `evidence-local`, `sandbox-conformance`; README documents them with explicit honesty notes and INSTALL_FOR_AGENTS.md lists the coding-agent verification loop.
 - Added English primary and Russian supplemental contract for evidence projection (`noesis.evidence-projection.v1`) plus a provenance entry in `RESEARCH_DAIGEST.md`.

@@ -70,9 +70,10 @@ class LifecycleAuditIngestionTests(unittest.TestCase):
             old = time.time() - 1000
             os.utime(bundle, (old, old))
             os.utime(audit, (old, old))
-            adapter = LifecycleAuditIngestionAdapter(root / "ledger.sqlite", signing_key=self.key, max_age_seconds=10)
-            stale = adapter.preflight(bundle, audit)
+            stale_adapter = LifecycleAuditIngestionAdapter(root / "ledger-stale.sqlite", signing_key=self.key, max_age_seconds=10)
+            stale = stale_adapter.preflight(bundle, audit)
             self.assertEqual(stale["reason"], "evidence_stale")
+            adapter = LifecycleAuditIngestionAdapter(root / "ledger-fresh.sqlite", signing_key=self.key, max_age_seconds=10)
             bundle, audit = self.make_inputs(root)
             fresh = adapter.preflight(bundle, audit)
             self.assertEqual(fresh["state"], "awaiting_approval")

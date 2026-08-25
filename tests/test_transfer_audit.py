@@ -14,6 +14,11 @@ REQUIRED = (
     "reproducibility-receipt.json",
 )
 
+COMMITTED_EVIDENCE = (
+    "MULTI_AGENT_WORKLOAD_EVIDENCE.json",
+    "PARALLEL_RELEASE_AUDIT_EVIDENCE.json",
+)
+
 
 class TransferAuditTests(unittest.TestCase):
     def populate(self, root):
@@ -29,6 +34,18 @@ class TransferAuditTests(unittest.TestCase):
             result = audit_transfer_set(root, str(report))
             self.assertEqual(result["status"], "passed")
             self.assertFalse(result["automatic_execution"])
+
+    def test_registered_committed_evidence_names_are_optional_members(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.populate(root)
+            for name in COMMITTED_EVIDENCE:
+                (root / name).write_text("{}\n", encoding="utf-8")
+            result = audit_transfer_set(root)
+            self.assertEqual(result["status"], "passed")
+            for name in COMMITTED_EVIDENCE:
+                self.assertIn(name, result["present"])
+                self.assertIn(name, result["optional"])
 
     def test_missing_and_unexpected_files_block(self):
         with tempfile.TemporaryDirectory() as directory:

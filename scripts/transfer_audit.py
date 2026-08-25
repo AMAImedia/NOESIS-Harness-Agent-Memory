@@ -18,7 +18,16 @@ REQUIRED = frozenset({
     "chain-summary.json",
     "reproducibility-receipt.json",
 })
-OPTIONAL = frozenset({"operator-report.zip", "release-gate.json", "release-readiness.json", "signed-readiness-receipt.json", "execution-conformance.json"})
+OPTIONAL = frozenset({
+    "operator-report.zip",
+    "release-gate.json",
+    "release-readiness.json",
+    "signed-readiness-receipt.json",
+    "execution-conformance.json",
+    # Committed evidence documents registered in scripts/committed_evidence_registry.py.
+    "MULTI_AGENT_WORKLOAD_EVIDENCE.json",
+    "PARALLEL_RELEASE_AUDIT_EVIDENCE.json",
+})
 
 
 def audit_transfer_set(root: str | Path, report_path: str | None = None, require_readiness_receipt: bool = False) -> dict[str, Any]:
