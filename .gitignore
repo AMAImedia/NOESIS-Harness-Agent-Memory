@@ -34,3 +34,4 @@ node_modules/
 runtime/
 benchmark_contracts.json
 .noesis_autoloop/
+_temp/
