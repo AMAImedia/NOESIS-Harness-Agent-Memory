@@ -12,7 +12,7 @@ from pathlib import Path
 from noesis_harness.sandbox_backend import run_conformance
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
 from noesis_harness.sandbox_macos import MacOSSandboxBackend
-from noesis_harness.sandbox_windows import WindowsSandboxBackend
+from noesis_harness.sandbox_windows import WindowsSandboxBackend, hardening_inventory
 
 
 def build_report() -> dict[str, object]:
@@ -24,6 +24,7 @@ def build_report() -> dict[str, object]:
         "schema_version": "noesis.sandbox-conformance.v2",
         "runtime": {"python": platform.python_version(), "platform": platform.platform(), "system": platform.system()},
         "records": records,
+        "windows_hardening_inventory": hardening_inventory(),
         "external_boundary": "macOS/Windows execution evidence requires matching native host; Linux does not simulate it; command inspection and Linux execution probes are not native parity proof",
     }
 

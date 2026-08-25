@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `noesis.workload-evidence.v1` generator (`scripts/run_workload_evidence.py`): deterministic MA-07 clean/crash-recovery runs, MA-08 seeded crash-injection summaries, MA-09 delegation denials and fixed evaluator metrics in one timestamp-free, byte-stable JSON with an aggregate digest and fail-closed recovery assertion.
+- Sandbox conformance report now carries `windows_hardening_inventory` (boundary unverified, execution claim `not_run`) so operators see what is missing rather than a bare unavailable record.
+- Added independent memory-quality corpus v3 family: LCG-generated 16-case corpus across the eight adversarial categories with self-consistent expectation tables, corpus/report digests and same-seed replay equality.
 - Added `noesis.learning-corpus-binding.v1`: verifiable evidence-corpus provenance bindings for review proposals, attached to promotion telemetry (keyword-only `corpus_binding` in `PromotionIntegration.propose`, verified before any pipeline side effect); deterministic byte-stable output with optional injected clock.
 - Added `event_sink_failed` typed flag to `AgentLaneResult`: caller sink failures are now visible on lane results instead of audit-only.
 - Refreshed plan checkpoints to 2026-08-25 across the English master plan, its Russian locale and ROADMAP, stating commit-marker binding, protocol-leakage holdouts v1 and adversarial corpus v2 as locally verified while native/external lanes remain `not_run`.

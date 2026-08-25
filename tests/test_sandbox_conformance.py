@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,6 +9,9 @@ from pathlib import Path
 from noesis_harness.sandbox_backend import inspect_backend, run_conformance
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
 from noesis_harness.sandbox_macos import MacOSSandboxBackend
+from noesis_harness import sandbox_windows
+from noesis_harness.sandbox_windows import hardening_inventory
+from scripts.run_sandbox_conformance import build_report
 
 
 class SandboxConformanceTests(unittest.TestCase):
@@ -67,6 +72,37 @@ class SandboxConformanceTests(unittest.TestCase):
         self.assertEqual(record["backend_id"], "linux-bubblewrap")
         self.assertIn(record["status"], {"passed", "not_run", "failed"})
         self.assertIn("checks", record)
+
+
+class SandboxConformanceReportTests(unittest.TestCase):
+    def test_report_carries_windows_hardening_inventory(self):
+        report = build_report()
+        self.assertEqual(report["schema_version"], "noesis.sandbox-conformance.v2")
+        inventory = report["windows_hardening_inventory"]
+        self.assertEqual(inventory, hardening_inventory())
+        self.assertEqual(inventory["schema_version"], "noesis.windows-hardening-inventory.v1")
+        self.assertFalse(inventory["boundary_verified"])
+        self.assertEqual(inventory["execution_claim"], "not_run")
+        self.assertFalse(inventory["command_builder_present"])
+        self.assertIn("appcontainer_or_restricted_token", inventory["boundary_required"])
+
+    def test_hardening_inventory_is_subprocess_free_and_deterministic(self):
+        self.assertEqual(hardening_inventory(), hardening_inventory())
+        self.assertNotIn("subprocess", vars(sandbox_windows))
+
+    def test_report_rendering_is_deterministic_across_calls(self):
+        tempdir_pattern = re.compile(r"[^\"]*noesis-sandbox-conformance-[^\"]*")
+
+        def render():
+            return json.dumps(build_report(), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+        first = render()
+        second = render()
+        normalized_first = tempdir_pattern.sub("<TMPDIR>", first)
+        normalized_second = tempdir_pattern.sub("<TMPDIR>", second)
+        self.assertEqual(normalized_first, normalized_second)
+        self.assertNotIn("noesis-sandbox-conformance-", first)
+        self.assertNotIn("<TMPDIR>", first)
 
 
 if __name__ == "__main__":
