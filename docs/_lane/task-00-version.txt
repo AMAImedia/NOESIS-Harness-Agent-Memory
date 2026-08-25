@@ -1,0 +1,2 @@
+﻿Report the pinned runner CLI version string and exit 0.
+

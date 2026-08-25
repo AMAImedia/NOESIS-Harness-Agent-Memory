@@ -23,6 +23,15 @@ class PinnedRunnerAdapterTests(unittest.TestCase):
             outcome = execute(self.spec([sys.executable, "-c", "import os; print(os.getenv('NOESIS_EXTERNAL_RUNNER'))"]), directory, approval=True)
             self.assertEqual(outcome.status, "passed")
             self.assertEqual(outcome.returncode, 0)
+
+    def test_windows_system_invariants_are_passed_to_child(self):
+        if sys.platform != "win32":
+            self.skipTest("windows-only invariants")
+        with tempfile.TemporaryDirectory() as directory:
+            argv = [sys.executable, "-c", "import os; print(int(all(k in os.environ for k in ('SystemRoot','TEMP'))))"]
+            outcome = execute(self.spec(argv), directory, approval=True)
+            self.assertEqual(outcome.status, "passed")
+            self.assertEqual(outcome.stdout.strip(), "1")
             self.assertEqual(outcome.stdout.strip(), "1")
             self.assertFalse(outcome.timed_out)
 

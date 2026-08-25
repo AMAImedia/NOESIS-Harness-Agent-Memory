@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- First executed pinned external lane: opencode `--version` ran under the full governance chain (single-use signed approval consumed → journal started/completed, disposable workspace, sanitized environment) and returned `status=passed` (`opencode 1.18.15`, rc=0); artifacts in `docs/_lane/`.
+- Pinned runner adapter now passes Windows system invariants (`SystemRoot`, `TEMP`, `COMSPEC`, `PATHEXT`, `SystemDrive`) to children so native runners stop crashing on a bare environment; regression test added.
 - Pinned external lane preflight matrix captured under CPython 3.14.7 (`docs/PINNED_LANE_MATRIX_314.json`): hermes and opencode discovered on this host and report `ready_for_operator_approval`; deepseek harness absent stays `not_run`; execution and ranking remain `not_run` pending operator approval.
 - Revision pinning generator `scripts/pin_external_revisions.py`: git ls-remote probes pinned opencode `b72b5000…` and deepseek harness `b150a551…` (hermes probe timed out honestly), emitting a validator-passing `noesis.external-ab.v1` draft with deterministic seed digest.
 - Full signed operator evidence pipeline executed under CPython 3.14.7 binding the native Windows artifact: byte-deterministic ten-file bundle in `reports/evidence-pipeline/` with reproducibility receipt verified (fingerprint CPython/3.14.7/Windows/AMD64), release-readiness snapshot and post-transfer audit honestly `blocked` with machine-readable blockers (`matching_native_windows_macos_hosts_required`, `pinned_external_lane_receipts_required`).

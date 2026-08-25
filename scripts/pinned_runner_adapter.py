@@ -48,7 +48,8 @@ def _validate_spec(spec: Mapping[str, object], workspace: str) -> tuple[list[str
     argv = spec.get("argv")
     if isinstance(argv, str) or not isinstance(argv, Sequence) or not argv or any(not isinstance(item, str) or not item for item in argv):
         raise RunnerConfigurationError("runner argv must be a non-empty string array")
-    environment = {"PATH": os.environ.get("PATH", ""), "NOESIS_EXTERNAL_RUNNER": "1"}
+    inherited = {name: os.environ[name] for name in ("PATH", "SystemRoot", "SystemDrive", "TEMP", "TMP", "COMSPEC", "PATHEXT") if name in os.environ}
+    environment = {**inherited, "NOESIS_EXTERNAL_RUNNER": "1"}
     return list(argv), root, environment
 
 

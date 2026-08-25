@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "C:\\Users\\djbionicl\\AppData\\Roaming\\npm\\node_modules\\opencode-ai\\bin\\opencode.exe",
+    "--version"
+  ],
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.7"
+  },
+  "execution": "not_started",
+  "model_provider": "pinned-by-run-manifest",
+  "protocol_fingerprint": "c7de180b106ac0a7e5f601f8a7c15c611ac22a3fb3b7aeb5d8aea3f3f6de1504",
+  "revision": "b72b50006b24666da9f2088dbce907d6b24b6901",
+  "schema_version": "noesis.external-runner.v1",
+  "system": "opencode",
+  "task_manifest_sha256": "f128786d04a701a266d02a8a84531156bbee1db2edcbac6de4db351d2fe816b4",
+  "workspace": {
+    "credentials": "absent",
+    "mode": "disposable",
+    "outside_access": "deny"
+  }
+}
