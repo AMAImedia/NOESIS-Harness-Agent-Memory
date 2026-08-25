@@ -66,6 +66,19 @@ This repository is a clean-room, local-first implementation informed by publicly
 
 No system-wide installation is required for the core tests. An isolated virtual environment is recommended for optional adapters. The repository now contains a stdlib read-only control-plane Web UI at `/` and `/ui`; it is not yet the full interactive agent surface. Model invocation, session mutation and executable skill entrypoints remain gated future layers.
 
+## Deterministic local benchmarks & evidence
+
+Developer entry points for the fixed local fixtures, also available as Makefile targets:
+
+```text
+make benchmark-recall20     # python benchmarks/recall20.py
+make benchmark-workload20   # python benchmarks/workload20.py
+make evidence-local         # regenerates docs/MEMORY_QUALITY_EVIDENCE.json and docs/MULTI_AGENT_WORKLOAD_EVIDENCE.json
+make sandbox-conformance    # backend command-level conformance probes; honest host report on stdout
+```
+
+These commands run deterministic local fixtures and replay probes: they exercise the memory, work-product and sandbox-conformance components of this repository against fixed inputs and report what ran on the local host. They are not external model benchmarks, hosted evaluations or universal performance claims.
+
 ## How the workflow works
 
 The harness separates durable state, memory selection, coordination and execution policy instead of treating them as one unrestricted agent loop.

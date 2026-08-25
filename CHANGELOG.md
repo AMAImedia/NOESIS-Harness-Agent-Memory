@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Persistent Windows autoloop default validation set grew from 9 to 20 test modules, covering all landed Gate 3/4/5 suites per cycle (~61s wall, 235 tests).
+- Makefile gained deterministic local gates: `benchmark-recall20`, `benchmark-workload20`, `evidence-local`, `sandbox-conformance`; README documents them with explicit honesty notes and INSTALL_FOR_AGENTS.md lists the coding-agent verification loop.
+- Added English primary and Russian supplemental contract for evidence projection (`noesis.evidence-projection.v1`) plus a provenance entry in `RESEARCH_DAIGEST.md`.
 - Added `noesis.evidence-projection.v1`: fail-closed read-only projection of committed workload/memory-quality evidence with recomputed digests, exposed on HealthServer operator snapshots via keyword-only `evidence_projection`.
 - Release-audit lanes now verify the committed Gate 4 workload evidence (fifth lane `workload-evidence-audit` with canonical digest recomputation and machine-readable failure reasons); validator extended to five lanes; `docs/PARALLEL_RELEASE_AUDIT_EVIDENCE.json` regenerated with all lanes passed.
 - Protocol-leakage suite grew to six deterministic holdouts: aggregate-digest isolation across sequential sessions and commit-marker authorization-scope conflict containment, with reusable pure detectors and negative injection tests.

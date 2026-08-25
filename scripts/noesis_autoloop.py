@@ -223,7 +223,7 @@ def run_cycle(root: Path, command: Optional[str], timeout: float, state_path: Pa
     if command:
         selected = command
     elif os.name == "nt":
-        smoke = "tests.test_agent_loop tests.test_core tests.test_task_session_api tests.test_turn_checkpoint tests.test_external_identity tests.test_skill_manifest tests.test_skill_runtime tests.test_noesis_autoloop tests.test_admin_state_sqlite"
+        smoke = "tests.test_agent_loop tests.test_core tests.test_task_session_api tests.test_turn_checkpoint tests.test_external_identity tests.test_skill_manifest tests.test_skill_runtime tests.test_noesis_autoloop tests.test_admin_state_sqlite tests.test_work_product_ma07 tests.test_work_product_ma08_ma09 tests.test_multi_agent_workflow tests.test_protocol_leakage_holdouts tests.test_memory_quality_corpora_v2 tests.test_memory_quality_corpora_v3 tests.test_learning_corpus_binding tests.test_evidence_projection tests.test_sandbox_windows tests.test_execution_assurance_gate3 tests.test_workload_evidence"
         selected = interpreter + " -X tracemalloc=10 -W error::ResourceWarning -m unittest " + smoke + " -q"
     else:
         selected = interpreter + " -X tracemalloc=10 -W error::ResourceWarning -m unittest discover -s tests -p test_*.py -q"

@@ -50,3 +50,10 @@ Provenance digest for ported research patterns, per `AGENTS.md` discipline. Each
 - Source patterns: evalscope seeded-fixture generation (explicit LCG over finite tables, seed-sensitivity probes, stable digests) + agentmemory decay-floor model (strength decay clamped at `Memory.DECAY_FLOOR`); LCG stream ported from [`noesis_harness/work_product_ma08_ma09.py`](noesis_harness/work_product_ma08_ma09.py).
 - Contract doc: [`docs/MEMORY_QUALITY_CORPUS_V3.md`](docs/MEMORY_QUALITY_CORPUS_V3.md) (RU: [`docs/locales/ru/MEMORY_QUALITY_CORPUS_V3_RU.md`](docs/locales/ru/MEMORY_QUALITY_CORPUS_V3_RU.md)).
 - Tests: [`tests/test_memory_quality_corpora_v3.py`](tests/test_memory_quality_corpora_v3.py).
+
+## 2026-08-25 — Evidence projection (fail-closed operator digest surface)
+
+- Module: [`noesis_harness/evidence_projection.py`](noesis_harness/evidence_projection.py) (`project_evidence`, schema `noesis.evidence-projection.v1`), integrated keyword-only into `HealthServer.operator_snapshot` in [`noesis_harness/health_server.py`](noesis_harness/health_server.py) (optional `evidence_projection`, default unchanged).
+- Source patterns: deepseek-harness fail-closed verification discipline (missing/corrupt input degrades to a typed unavailable status, never raises; `hmac.compare_digest` over canonical JSON) + LoopX read-only projections (deterministic view over committed state without mutation); canonical-JSON digest verification follows the signed report bundle / lifecycle audit ingestion lineage.
+- Contract doc: [`docs/EVIDENCE_PROJECTION.md`](docs/EVIDENCE_PROJECTION.md) (RU: [`docs/locales/ru/EVIDENCE_PROJECTION_RU.md`](docs/locales/ru/EVIDENCE_PROJECTION_RU.md)).
+- Tests: [`tests/test_evidence_projection.py`](tests/test_evidence_projection.py).

@@ -44,3 +44,12 @@ Copilot, etc.) working in this repo.
 - **`__main__` vs module name** - `python -m foo` runs the file as `__main__`;
   monkey-patching `import foo` does NOT patch `__main__`. Patch
   `sys.modules['__main__']` too, or test the class directly.
+
+## Verification loop for coding agents
+
+Run from the repo root after every change:
+
+1. `python -m unittest discover -s tests -v` - all green.
+2. `python benchmarks/recall20.py` - fixed 20-query recall gate, exit 0 expected.
+3. `python benchmarks/workload20.py` - fixed work-product gate, exit 0 expected.
+4. `python scripts/check_markdown_links.py --root .` - documentation link audit clean.
