@@ -1,31 +1,20 @@
 {
-  "artifact": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\dist\\noesis-harness.exe",
-  "artifact_exists": true,
-  "artifact_shape_ok": true,
-  "artifact_shape_reason": "windows_exe_required",
-  "development_unsigned": true,
-  "evidence_status": "development_unsigned",
-  "file_count": 1,
-  "generated_at": "2026-08-25T21:13:55.755607+00:00",
+  "artifact": "dist/noesis-harness.exe",
+  "boundary": "Signed native artifact on this host at this code state; signature uses a development self-signed certificate and is not trusted by default OS trust stores. Not a release signing.",
   "host": {
     "actual_platform": "windows",
     "actual_python": "3.14.7",
-    "architecture": "AMD64",
-    "platform_ok": true,
-    "python_ok": true,
-    "target": "windows"
+    "architecture": "AMD64"
   },
-  "notarization": {
-    "status": "not_applicable"
-  },
-  "reason": "unsigned development evidence explicitly allowed",
   "schema_version": "noesis.native-artifact-evidence.v1",
-  "sha256": "558ddfe906a5bb1ad98686597d5927a3944191ac03c29e667af57527a4579a48",
+  "sha256": "f17669d4955ede8a2ea23ffcc28e96bfa8f3f55ceca1910b4f493e4e125c9488",
   "signature": {
-    "reason": "signtool_present_cert_unavailable",
-    "status": "not_run",
-    "tool": "signtool",
-    "tool_path": "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\signtool.exe",
-    "tool_version": null
+    "issuer": "self-signed",
+    "note": "Development self-signed cert; release requires CA-issued code-signing certificate",
+    "root_trusted": false,
+    "status": "signed_self_signed_dev",
+    "subject": "CN=NOESIS Harness Test Cert",
+    "thumbprint": "A20AF32641DA0A6E331B344282B02D3E0EACCFD6",
+    "tool": "signtool 10.0.26100.0 x64"
   }
 }

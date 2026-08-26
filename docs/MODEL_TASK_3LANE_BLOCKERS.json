@@ -25,7 +25,9 @@
       "blockers": [
         "hermes binary missing (AV quarantine removed hermes.exe)",
         "OPENAI_API_KEY absent from operator environment",
-        "hermes runtime corrupted by AV quarantine (~75 stdlib files missing, binary removed)"
+        "hermes runtime corrupted by AV quarantine (~75 stdlib files missing, binary removed)",
+        "hermes requires API key for any provider; Anthropic credits exhausted, OPENAI_API_KEY not set, OpenRouter not configured",
+        "hermes v0.15.2 requires provider credentials; no valid provider configured"
       ],
       "model_task_status": "blocked",
       "unblock_path": [
