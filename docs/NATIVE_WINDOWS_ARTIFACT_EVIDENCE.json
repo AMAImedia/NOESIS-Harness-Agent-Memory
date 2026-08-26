@@ -1,16 +1,18 @@
 {
   "artifact": "dist/noesis-harness.exe",
-  "boundary": "Signed native artifact on this host at this code state; signature uses a development self-signed certificate and is not trusted by default OS trust stores. Not a release signing.",
+  "artifact_exists": true,
+  "boundary": "Signed native artifact, dev self-signed cert, not OS-trusted. Not release signing.",
   "host": {
     "actual_platform": "windows",
     "actual_python": "3.14.7",
-    "architecture": "AMD64"
+    "architecture": "AMD64",
+    "platform_ok": true,
+    "python_ok": true
   },
   "schema_version": "noesis.native-artifact-evidence.v1",
   "sha256": "f17669d4955ede8a2ea23ffcc28e96bfa8f3f55ceca1910b4f493e4e125c9488",
   "signature": {
-    "issuer": "self-signed",
-    "note": "Development self-signed cert; release requires CA-issued code-signing certificate",
+    "note": "Development self-signed; release requires CA-issued cert",
     "root_trusted": false,
     "status": "signed_self_signed_dev",
     "subject": "CN=NOESIS Harness Test Cert",
