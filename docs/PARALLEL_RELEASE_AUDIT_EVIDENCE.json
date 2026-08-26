@@ -13,11 +13,11 @@
       "agent_id": "audit-git",
       "error": "",
       "output": {
-        "changed_entries": 10,
+        "changed_entries": 0,
         "check": "git_integrity",
         "diff_check": true,
         "status": "passed",
-        "working_tree_clean": false
+        "working_tree_clean": true
       },
       "status": "passed",
       "task_id": "git-integrity",
@@ -64,7 +64,7 @@
         "secret_hits": 0,
         "status": "passed",
         "syntax_errors": 0,
-        "working_tree_clean": false
+        "working_tree_clean": true
       },
       "status": "passed",
       "task_id": "secret-ast-audit",
