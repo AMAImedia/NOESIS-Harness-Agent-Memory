@@ -64,12 +64,24 @@ def prepare(spec: Mapping[str, object], workspace: str, approval: bool = False) 
     return _validate_spec(spec, workspace)
 
 
-def execute(spec: Mapping[str, object], workspace: str, approval: bool = False, timeout: float = 120.0) -> RunnerOutcome:
+def execute(spec: Mapping[str, object], workspace: str, approval: bool = False, timeout: float = 120.0, *, allowlisted_hosts=None) -> RunnerOutcome:
     argv, root, environment = prepare(spec, workspace, approval)
+    jail = None
+    if spec.get("task_execution_class") == "model_task":
+        if not allowlisted_hosts:
+            raise RunnerExecutionDenied("model_task_requires_allowlisted_hosts")
+        from noesis_harness.proxy_jail import AllowlistProxy
+
+        jail = AllowlistProxy(allowlisted_hosts)
+        jail.start()
+        environment.update(jail.env_overrides())
     try:
         completed = subprocess.run(argv, cwd=root, env=environment, capture_output=True, text=True, timeout=timeout, check=False, shell=False)
     except subprocess.TimeoutExpired as exc:
         return RunnerOutcome("failed", None, _redact(exc.stdout or ""), _redact(exc.stderr or ""), True)
+    finally:
+        if jail is not None:
+            jail.stop()
     return RunnerOutcome("passed" if completed.returncode == 0 else "failed", completed.returncode, _redact(completed.stdout), _redact(completed.stderr), False)
 
 
