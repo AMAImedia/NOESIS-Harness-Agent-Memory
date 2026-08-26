@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Phase B AppContainer scaffold: `noesis_harness/appcontainer_backend.py` mirrors the Windows-sandbox honesty pattern (machine-readable unavailability reasons, hardening inventory, zero subprocess, run always blocked until an execution runtime is bound — never passed); 15 tests.
+- `docs/RELEASE_REVIEW_CHECKLIST.md` + Russian locale: ten-stage Gate 8 operator procedure binding every existing artifact and verifier with exact commands, expected statuses, per-stage claim limits, hard-stop conditions and the current honest host state.
+- Claims matrix and 25-to-100 roadmap gained dated 2026-08-26 entries (proxy-jail enforcement, opencode model_task through jail, BYO credentials contract, 3-lane version-smoke baseline, native build + signed pipeline under CPython 3.14.7, signtool probe present-not-run, hermes repair-then-requarantine, dsh third lane).
 - Phase A proxy-jail implemented: `noesis_harness/proxy_jail.py` provides a deny-by-default local forward proxy (exact-host allowlist, blind CONNECT tunneling without MITM, 403+counters for rejects); `pinned_runner_adapter.execute` now starts the jail and injects proxy env for `model_task` lanes, requiring an explicit allowlist or failing closed. Enforcement strength remains advisory per design doc.
 - Runner contract gained `task_execution_class` (`version_smoke` | `model_task`) in the protocol fingerprint: executed lanes are honestly classified as network-free smoke probes, while model-backed comparative tasks require a verified network-restricted sandbox backend before they may run under the deny-by-default policy.
 - External runner defect discovered during lane bring-up and recorded: local hermes install fails `--help` with a broken `cryptography` dependency (import error), so model-task lanes for hermes are blocked by the runner itself.
@@ -24,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - End-to-end surface tests prove the operator snapshot's `evidence_projection` survives the HTTP redaction pass and the UI-contract envelope against real committed artifacts, including tampered-copy fail-closed visibility.
 
 ### Fixed
+- Lifecycle-ingestion stale/fresh test pins explicit fresh mtimes after rewriting inputs, removing the last disk-timing flake under suite load.
 - Hermes external runner repaired and its comparative lane re-executed to `passed`: 4113 missing stdlib files restored into the corrupted embedded CPython 3.11.16 generation from a clean uv 3.11.14 tree (missing-only copy), plus in-place venv reinstalls (`pywin32`, `rich`); baseline now records `task_success=1.0` for all three executed competitors.
 - `build_native` backend availability probe now maps backend names to their import modules (`PyInstaller`/`briefcase`), so reports reflect a pip-installed backend instead of a false negative.
 - Simulated home roots in user-data/macOS-portable tests now anchor outside the source tree when the ambient temp directory is repository-internal scratch, keeping the data-root guard intact under the repo-local TEMP layout.
