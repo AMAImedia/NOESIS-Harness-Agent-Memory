@@ -23,17 +23,16 @@
     },
     "hermes": {
       "blockers": [
-        "hermes binary missing (AV quarantine removed hermes.exe)",
-        "OPENAI_API_KEY absent from operator environment",
-        "hermes runtime corrupted by AV quarantine (~75 stdlib files missing, binary removed)",
-        "hermes requires API key for any provider; Anthropic credits exhausted, OPENAI_API_KEY not set, OpenRouter not configured",
-        "hermes v0.15.2 requires provider credentials; no valid provider configured"
+        "hermes reinstalled (v0.15.2) but no working provider configured",
+        "ANTHROPIC_API_KEY present but credit balance too low",
+        "OPENAI_API_KEY not set",
+        "No other provider keys configured (OpenRouter, DeepSeek, etc.)"
       ],
       "model_task_status": "blocked",
       "unblock_path": [
-        "reinstall hermes (installer or hermes-managed uv runtime)",
-        "export OPENAI_API_KEY in operator shell before lane execution",
-        "re-run spec with credentials_env=[OPENAI_API_KEY] via byo_operator_env policy"
+        "Add credits to Anthropic account OR set OPENAI_API_KEY",
+        "Run: hermes config set provider <provider>",
+        "Re-run hermes model_task lane with credentials_env"
       ]
     },
     "opencode": {
