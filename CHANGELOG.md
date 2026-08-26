@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Gate 8 release review executed: stages 1-4, 9 pass under CPython 3.14.7; clean-tree release audit appendix green (`release_audit.py` exit 0, parallel lanes 5/5, validator PASS); native artifact signed with dev self-signed cert; status recorded in `docs/RELEASE_REVIEW_STATUS_2026-08-27.md`.
 - Phase B AppContainer scaffold: `noesis_harness/appcontainer_backend.py` mirrors the Windows-sandbox honesty pattern (machine-readable unavailability reasons, hardening inventory, zero subprocess, run always blocked until an execution runtime is bound — never passed); 15 tests.
 - `docs/RELEASE_REVIEW_CHECKLIST.md` + Russian locale: ten-stage Gate 8 operator procedure binding every existing artifact and verifier with exact commands, expected statuses, per-stage claim limits, hard-stop conditions and the current honest host state.
 - Claims matrix and 25-to-100 roadmap gained dated 2026-08-26 entries (proxy-jail enforcement, opencode model_task through jail, BYO credentials contract, 3-lane version-smoke baseline, native build + signed pipeline under CPython 3.14.7, signtool probe present-not-run, hermes repair-then-requarantine, dsh third lane).
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - End-to-end surface tests prove the operator snapshot's `evidence_projection` survives the HTTP redaction pass and the UI-contract envelope against real committed artifacts, including tampered-copy fail-closed visibility.
 
 ### Fixed
+- Regenerated `docs/MEMORY_QUALITY_EVIDENCE.json` as UTF-8 via Python subprocess capture: PowerShell 5.1 `>` redirect writes UTF-16, which broke `check_json_evidence.py`; regenerated file now includes the adversarial corpus v3 key and is byte-stable.
 - Lifecycle-ingestion stale/fresh test pins explicit fresh mtimes after rewriting inputs, removing the last disk-timing flake under suite load.
 - Hermes external runner repaired and its comparative lane re-executed to `passed`: 4113 missing stdlib files restored into the corrupted embedded CPython 3.11.16 generation from a clean uv 3.11.14 tree (missing-only copy), plus in-place venv reinstalls (`pywin32`, `rich`); baseline now records `task_success=1.0` for all three executed competitors.
 - `build_native` backend availability probe now maps backend names to their import modules (`PyInstaller`/`briefcase`), so reports reflect a pip-installed backend instead of a false negative.
