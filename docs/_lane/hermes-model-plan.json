@@ -1,0 +1,24 @@
+{
+  "approval_required": true,
+  "approval_schema": "noesis.external-approval.v1",
+  "argv_length": 4,
+  "command_sha256": "b59be7293fbf03bc3c23482b9e449bf8aa4b2723448b51b6c5fa15881f37690d",
+  "environment_keys": [
+    "COMSPEC",
+    "NOESIS_EXTERNAL_RUNNER",
+    "PATH",
+    "PATHEXT",
+    "SystemDrive",
+    "SystemRoot",
+    "TEMP",
+    "TMP"
+  ],
+  "execution": "not_started",
+  "protocol_fingerprint": "f0a3c25028f42dcf5583b850c95e400f93ac905df56c8922f4cb87c8bba62457",
+  "reason": "dry_run_only",
+  "revision": "62b2d78025c349996e753c6f7c748de035eb8048",
+  "schema_version": "noesis.external-lane-plan.v1",
+  "system": "hermes",
+  "task_manifest_sha256": "efbbbf43726561746520612066696c65206e616d65642068656c6c6f2e74787420696e207468652063757272656e74206469726563746f727920636f6e7461696e696e672065786163746c7920746869732073696e676c65206c696e6520616e64206e6f7468696e6720656c73653a204e4f455349535f47415445375f4d4f44454c5f4f4b0d0a",
+  "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\lane-ws-hermes-model"
+}

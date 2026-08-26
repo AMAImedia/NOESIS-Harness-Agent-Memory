@@ -23,8 +23,9 @@
     },
     "hermes": {
       "blockers": [
-        "binary quarantined: hermes.exe and AppData\\\\Local\\\\hermes tree removed by AV after repair session",
-        "operator key OPENAI_API_KEY absent from operator env"
+        "hermes binary missing (AV quarantine removed hermes.exe)",
+        "OPENAI_API_KEY absent from operator environment",
+        "hermes runtime corrupted by AV quarantine (~75 stdlib files missing, binary removed)"
       ],
       "model_task_status": "blocked",
       "unblock_path": [

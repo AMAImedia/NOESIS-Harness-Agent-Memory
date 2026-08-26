@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "C:\\Users\\djbionicl\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\hermes.exe",
+    "chat",
+    "-q",
+    "Create a file named hello.txt containing exactly: NOESIS_GATE7_MODEL_OK. Then exit."
+  ],
+  "credentials_env": [],
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.7"
+  },
+  "execution": "not_started",
+  "model_provider": "pinned-by-run-manifest",
+  "protocol_fingerprint": "f0a3c25028f42dcf5583b850c95e400f93ac905df56c8922f4cb87c8bba62457",
+  "revision": "62b2d78025c349996e753c6f7c748de035eb8048",
+  "schema_version": "noesis.external-runner.v1",
+  "system": "hermes",
+  "task_execution_class": "model_task",
+  "task_manifest_sha256": "efbbbf43726561746520612066696c65206e616d65642068656c6c6f2e74787420696e207468652063757272656e74206469726563746f727920636f6e7461696e696e672065786163746c7920746869732073696e676c65206c696e6520616e64206e6f7468696e6720656c73653a204e4f455349535f47415445375f4d4f44454c5f4f4b0d0a",
+  "workspace": {
+    "credentials": "absent",
+    "mode": "disposable",
+    "outside_access": "deny"
+  }
+}
