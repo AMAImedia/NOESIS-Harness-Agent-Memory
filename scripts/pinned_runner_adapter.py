@@ -29,10 +29,13 @@ class RunnerOutcome:
     stdout: str
     stderr: str
     timed_out: bool
+    jail_blocked_hosts: tuple = ()
+    jail_allowed_count: int = 0
 
 
-def _redact(value: str) -> str:
-    return _SECRET.sub(r"\1=[REDACTED]", value)
+def _redact(value) -> str:
+    text = value.decode("utf-8", "replace") if isinstance(value, bytes) else (value if isinstance(value, str) else "")
+    return _SECRET.sub(r"\1=[REDACTED]", text)
 
 
 def _validate_spec(spec: Mapping[str, object], workspace: str) -> tuple[list[str], Path, dict[str, str]]:
@@ -78,11 +81,16 @@ def execute(spec: Mapping[str, object], workspace: str, approval: bool = False, 
     try:
         completed = subprocess.run(argv, cwd=root, env=environment, capture_output=True, text=True, timeout=timeout, check=False, shell=False)
     except subprocess.TimeoutExpired as exc:
-        return RunnerOutcome("failed", None, _redact(exc.stdout or ""), _redact(exc.stderr or ""), True)
+        outcome = RunnerOutcome("failed", None, _redact(exc.stdout or ""), _redact(exc.stderr or ""), True)
+    else:
+        outcome = RunnerOutcome("passed" if completed.returncode == 0 else "failed", completed.returncode, _redact(completed.stdout), _redact(completed.stderr), False)
     finally:
         if jail is not None:
+            from dataclasses import replace
+
+            outcome = replace(outcome, jail_blocked_hosts=tuple(jail.blocked_hosts), jail_allowed_count=jail.allowed_count)
             jail.stop()
-    return RunnerOutcome("passed" if completed.returncode == 0 else "failed", completed.returncode, _redact(completed.stdout), _redact(completed.stderr), False)
+    return outcome
 
 
 __all__ = ["RunnerConfigurationError", "RunnerExecutionDenied", "RunnerOutcome", "execute", "prepare", "validate"]

@@ -60,6 +60,7 @@ def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha
         "revision": revision,
         "model_provider": model_provider,
         "task_manifest_sha256": task_manifest_sha256,
+        "task_execution_class": task_execution_class,
         "protocol_fingerprint": protocol_fingerprint,
         "environment": {"python": "%d.%d.%d" % sys.version_info[:3], "platform": platform.platform()},
         "workspace": {"mode": "disposable", "outside_access": "deny", "credentials": "absent"},

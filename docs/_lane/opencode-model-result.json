@@ -1,0 +1,40 @@
+{
+  "allowlist": [
+    "localhost",
+    "opencode.ai",
+    "﻿"
+  ],
+  "approval_id": "b15da03e47f7445e942826de579aa4bb0cb0433c0bcf097728222b57ff1970fb",
+  "approval_required": true,
+  "approval_schema": "noesis.external-approval.v1",
+  "argv_length": 4,
+  "command_sha256": "03b3d6cbf3e79fbaf7ba1e5e1b95cbbe4e1aef2b372a48de42eba0a0ae3c35ed",
+  "environment_keys": [
+    "COMSPEC",
+    "NOESIS_EXTERNAL_RUNNER",
+    "PATH",
+    "PATHEXT",
+    "SystemDrive",
+    "SystemRoot",
+    "TEMP",
+    "TMP"
+  ],
+  "execution": "started",
+  "jail": {
+    "allowed_count": 2,
+    "blocked_hosts": []
+  },
+  "journal_state": "completed",
+  "protocol_fingerprint": "2edf53569d756b8449fb11dbabac66cf252c636b78e1e79ee4d47a255f8af39c",
+  "reason": "dry_run_only",
+  "returncode": 0,
+  "revision": "b72b50006b24666da9f2088dbce907d6b24b6901",
+  "schema_version": "noesis.external-lane-plan.v1",
+  "status": "passed",
+  "stderr": "",
+  "stdout": "Done.\n",
+  "system": "opencode",
+  "task_manifest_sha256": "890679bb5ead850ede5ce40b30b314811f4789c09fb7480c6e73f62c600fc9f2",
+  "timed_out": false,
+  "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\lane-ws-opencode-model"
+}

@@ -1,0 +1,1 @@
+﻿Create a file named hello.txt in the current directory containing exactly this single line and nothing else: NOESIS_GATE7_MODEL_OK

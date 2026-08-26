@@ -199,8 +199,14 @@ def main(argv=None) -> int:
     parser.add_argument("--approval-key")
     parser.add_argument("--receipt-store")
     parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument("--allowlist-file", help="model_api allowlist: one host per line; required for model_task lanes")
     args = parser.parse_args(argv)
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
+    allowlisted_hosts = None
+    if spec.get("task_execution_class") == "model_task" and args.execute:
+        if not args.allowlist_file:
+            raise PermissionError("--allowlist-file is required for model_task lanes")
+        allowlisted_hosts = [line.strip() for line in Path(args.allowlist_file).read_text(encoding="utf-8").splitlines() if line.strip() and not line.strip().startswith("#")]
     try:
         report = plan(spec, args.workspace)
         if args.execute:
@@ -220,7 +226,10 @@ def main(argv=None) -> int:
                 if not started:
                     raise PermissionError(reason)
             try:
-                outcome = execute(spec, args.workspace, approval=True, timeout=args.timeout)
+                outcome = execute(spec, args.workspace, approval=True, timeout=args.timeout, allowlisted_hosts=allowlisted_hosts)
+                if allowlisted_hosts is not None:
+                    report["allowlist"] = sorted(allowlisted_hosts)
+                    report["jail"] = {"blocked_hosts": sorted(set(getattr(outcome, "jail_blocked_hosts", ()))), "allowed_count": getattr(outcome, "jail_allowed_count", 0)}
             except Exception:
                 if args.receipt_store:
                     record_execution_state(args.receipt_store, receipt["approval_id"], "abandoned", "runner raised before terminal outcome")

@@ -40,6 +40,7 @@ class AllowlistProxy:
         self.allowed_hosts = frozenset(normalized)
         self.allowed_count = 0
         self.blocked_count = 0
+        self._blocked_hosts: list[str] = []
         self._server: Optional[socket.socket] = None
         self._thread: Optional[threading.Thread] = None
         self._running = threading.Event()
@@ -101,8 +102,16 @@ class AllowlistProxy:
     def _is_allowed(self, host: str) -> bool:
         return host.lower() in self.allowed_hosts
 
-    def _reject(self, client: socket.socket, note: str) -> None:
+    @property
+    def blocked_hosts(self) -> tuple:
+        return tuple(self._blocked_hosts)
+
+    def _reject(self, client: socket.socket, note: str, host: str = "") -> None:
         self.blocked_count += 1
+        if host and host not in self._blocked_hosts:
+            self._blocked_hosts.append(host)
+            if len(self._blocked_hosts) > 64:
+                del self._blocked_hosts[0]
         try:
             client.sendall(("HTTP/1.1 403 Forbidden\r\nX-Noesis-Jail: %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n" % note).encode("ascii"))
         finally:
@@ -163,7 +172,7 @@ class AllowlistProxy:
                     host = host[1:-1]
                 port = int(port_text) if port_text.isdigit() else 443
                 if not self._is_allowed(host):
-                    return self._reject(client, "host_not_allowlisted")
+                    return self._reject(client, "host_not_allowlisted", host)
                 try:
                     upstream = self._open_upstream(host, port)
                 except OSError as exc:
@@ -187,7 +196,7 @@ class AllowlistProxy:
                 host, _, port_text = authority.partition(":")
                 port = int(port_text) if port_text.isdigit() else 80
                 if not self._is_allowed(host):
-                    return self._reject(client, "host_not_allowlisted")
+                    return self._reject(client, "host_not_allowlisted", host)
                 try:
                     upstream = self._open_upstream(host, port)
                 except OSError as exc:
