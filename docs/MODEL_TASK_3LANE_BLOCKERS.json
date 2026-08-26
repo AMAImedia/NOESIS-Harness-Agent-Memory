@@ -1,0 +1,48 @@
+{
+  "claim_boundary": "Local deterministic probes only. No external execution occurred while producing this file beyond previously committed signed lanes.",
+  "contract_extension": {
+    "credentials_policy_values": [
+      "absent",
+      "operator_bypass_explicit:<NAMES>"
+    ],
+    "fingerprint_binding": "credentials_env names are part of protocol fingerprint; secret VALUES never enter specs, receipts or logs"
+  },
+  "date": "2026-08-26",
+  "lanes": {
+    "deepseek_harness": {
+      "blockers": [
+        "dsh CLI is a profile booter; no standalone agent-run subcommand without DSH_HOME profile stack",
+        "DeepSeek API key absent"
+      ],
+      "model_task_status": "blocked",
+      "unblock_path": [
+        "configure dsh profile under DSH_HOME",
+        "export DEEPSEEK_API_KEY",
+        "extend runner contract argv for its task entrypoint"
+      ]
+    },
+    "hermes": {
+      "blockers": [
+        "binary quarantined: hermes.exe and AppData\\\\Local\\\\hermes tree removed by AV after repair session",
+        "operator key OPENAI_API_KEY absent from operator env"
+      ],
+      "model_task_status": "blocked",
+      "unblock_path": [
+        "reinstall hermes (installer or hermes-managed uv runtime)",
+        "export OPENAI_API_KEY in operator shell before lane execution",
+        "re-run spec with credentials_env=[OPENAI_API_KEY] via byo_operator_env policy"
+      ]
+    },
+    "opencode": {
+      "auth": "runner-internal store (env stays credential-free)",
+      "evidence": "docs/_lane/opencode-model-result.json",
+      "jail_allowlist": [
+        "localhost",
+        "opencode.ai"
+      ],
+      "model_task_status": "passed",
+      "task_success": 1.0
+    }
+  },
+  "schema_version": "noesis.model-task-3lane-blockers.v1"
+}

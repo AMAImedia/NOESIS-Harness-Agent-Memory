@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import platform
+import re
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -34,7 +35,7 @@ def file_sha256(path: str) -> str:
     return digest.hexdigest()
 
 
-def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha256: str, model_provider: str = "pinned-by-run-manifest", workspace_mode: str = "disposable", task_execution_class: str = "version_smoke") -> dict:
+def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha256: str, model_provider: str = "pinned-by-run-manifest", workspace_mode: str = "disposable", task_execution_class: str = "version_smoke", credentials_env: Sequence[str] = ()) -> dict:
     if system not in REQUIRED_SYSTEMS:
         raise ValueError("unsupported system")
     if not revision or not task_manifest_sha256:
@@ -45,13 +46,20 @@ def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha
         raise ValueError("workspace must be disposable")
     if task_execution_class not in {"version_smoke", "model_task"}:
         raise ValueError("unsupported task_execution_class")
+    credential_names = tuple(sorted({str(name) for name in credentials_env}))
+    if task_execution_class == "version_smoke" and credential_names:
+        raise ValueError("credentials_env_requires_model_task")
+    for name in credential_names:
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{2,63}", name):
+            raise ValueError("invalid_credential_env_name:" + name)
+    credentials_policy = "operator_bypass_explicit:" + ",".join(credential_names) if credential_names else "absent"
     protocol = {
         "task_manifest_sha256": task_manifest_sha256,
         "task_execution_class": task_execution_class,
         "model_provider": model_provider,
         "workspace_mode": workspace_mode,
         "outside_access": "deny",
-        "credentials": "absent",
+        "credentials": credentials_policy,
     }
     protocol_fingerprint = hashlib.sha256(json.dumps(protocol, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     return {
@@ -64,6 +72,7 @@ def make_spec(system: str, revision: str, argv: Sequence[str], task_manifest_sha
         "protocol_fingerprint": protocol_fingerprint,
         "environment": {"python": "%d.%d.%d" % sys.version_info[:3], "platform": platform.platform()},
         "workspace": {"mode": "disposable", "outside_access": "deny", "credentials": "absent"},
+        "credentials_env": list(credential_names),
         "argv": list(argv),
         "execution": "not_started",
     }
