@@ -125,6 +125,93 @@ class AppContainerBackendTests(unittest.TestCase):
     def test_module_never_imports_subprocess(self):
         self.assertNotIn("subprocess", vars(appcontainer_backend))
 
+    def test_profile_sid_probe_fails_closed_without_windll(self):
+        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: False):
+            report = appcontainer_backend.profile_sid_probe()
+            self.assertIs(report["available"], False)
+            self.assertEqual(report["reason"], appcontainer_backend.REASON_CTYPES_UNAVAILABLE)
+
+    def test_profile_sid_probe_fails_closed_on_non_windows(self):
+        with patch.object(os, "name", "posix"):
+            report = appcontainer_backend.profile_sid_probe()
+            self.assertIs(report["available"], False)
+            self.assertEqual(report["reason"], appcontainer_backend.REASON_NOT_WINDOWS_HOST)
+
+    def test_profile_sid_probe_never_raises_and_returns_shape(self):
+        report = appcontainer_backend.profile_sid_probe()
+        self.assertIsInstance(report, dict)
+        self.assertIsInstance(report["available"], bool)
+        self.assertIsInstance(report["reason"], str)
+
+    def test_profile_sid_probe_propagates_derivation_failure(self):
+        with patch.object(appcontainer_backend, "_probe_app_container_sid", lambda: (appcontainer_backend.REASON_SID_DERIVATION_FAILED, "")):
+            report = appcontainer_backend.profile_sid_probe()
+            self.assertIs(report["available"], False)
+            self.assertEqual(report["reason"], appcontainer_backend.REASON_SID_DERIVATION_FAILED)
+
+    def test_profile_sid_probe_reports_ok_with_used_export_on_success(self):
+        with patch.object(appcontainer_backend, "_probe_app_container_sid", lambda: ("", "GetAppContainerSid")):
+            report = appcontainer_backend.profile_sid_probe()
+            self.assertIs(report["available"], True)
+            self.assertEqual(report["reason"], "ok:GetAppContainerSid")
+
+    def test_capability_inventory_reports_all_expected_exports(self):
+        inventory = appcontainer_backend.capability_inventory()
+        expected = {
+            "CreateProcessW": "kernel32",
+            "InitializeProcThreadAttributeList": "kernel32",
+            "UpdateProcThreadAttribute": "kernel32",
+            "GetAppContainerSid": "userenv",
+        }
+        for name, library in expected.items():
+            self.assertIn(name, inventory["functions"])
+            entry = inventory["functions"][name]
+            self.assertEqual(entry["library"], library)
+            self.assertIsInstance(entry["callable"], bool)
+        self.assertIs(inventory["execution_bound"], False)
+        self.assertEqual(inventory["claim"], "api_presence_does_not_bind_execution")
+
+    def test_capability_inventory_is_deterministic(self):
+        first = appcontainer_backend.capability_inventory()
+        second = appcontainer_backend.capability_inventory()
+        self.assertEqual(first, second)
+
+    def test_capability_inventory_fails_closed_without_windll(self):
+        with patch.object(appcontainer_backend, "_has_windll", lambda: False):
+            inventory = appcontainer_backend.capability_inventory()
+            self.assertIs(inventory["windll_present"], False)
+            self.assertIs(inventory["execution_bound"], False)
+            for entry in inventory["functions"].values():
+                self.assertIs(entry["callable"], False)
+
+    def test_run_probe_never_returns_passed(self):
+        backend = AppContainerBackend()
+        report = backend.run_probe()
+        self.assertIn(report["status"], ("not_run", "blocked"))
+        self.assertNotEqual(report["status"], "passed")
+        self.assertTrue(report["reason"])
+        self.assertIn("capabilities", report)
+
+    def test_run_probe_capabilities_match_inventory(self):
+        backend = AppContainerBackend()
+        report = backend.run_probe()
+        self.assertEqual(report["capabilities"], appcontainer_backend.capability_inventory())
+
+    def test_run_probe_non_windows_reports_not_run(self):
+        with patch.object(os, "name", "posix"):
+            backend = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: True)
+            report = backend.run_probe()
+            self.assertEqual(report["status"], "not_run")
+            self.assertEqual(report["reason"], appcontainer_backend.REASON_NOT_WINDOWS_HOST)
+
+    def test_run_probe_configured_backend_is_blocked_execution_not_bound(self):
+        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
+            backend = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: True)
+            self.assertTrue(backend.available)
+            report = backend.run_probe()
+            self.assertEqual(report["status"], "blocked")
+            self.assertEqual(report["reason"], appcontainer_backend.REASON_EXECUTION_NOT_BOUND)
+
     def test_repeated_inspection_is_deterministic(self):
         with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
             backend = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: False)

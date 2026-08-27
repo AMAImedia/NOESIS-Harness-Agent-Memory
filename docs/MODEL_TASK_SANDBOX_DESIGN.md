@@ -133,6 +133,38 @@ Phase A failure modes:
 | Proxy crashes mid-run | egress breaks closed | safe direction; retry policy is operator-side |
 | DNS divergence (proxy resolves names itself) | possible rebinding concerns | open item for runtime phase; document resolution pinning then |
 
+### Phase A hardening
+
+Evasion classes now closed in `noesis_harness/proxy_jail.py` (additive, tested in
+`tests/test_proxy_jail.py`):
+
+- Hostname canonicalization on both the allowlist and the request side:
+  trailing dots stripped, case folded, embedded NUL/whitespace and `..`
+  rejected; the allowlist match is exact-equivalent after canonicalization.
+  `EXAMPLE.com.` and `example.com` are the same gate; lookalike suffixes and
+  embedded-whitespace hosts fail closed.
+- Strict CONNECT authority parsing: a port is required, must be numeric in
+  1..65535, IPv6 must be bracket-wrapped, and any ambiguous shape (missing or
+  empty port, non-numeric or out-of-range port, unbracketed IPv6, empty host)
+  is answered `400` and counted without tunneling. No input is tunneled on
+  guesswork.
+- Plain-HTTP absolute-URI requests are rejected fail-closed when the Host
+  header disagrees with the request-target authority (split-brain), when the
+  Host header is absent, or when it is duplicated. A proxied request is only
+  forwarded when target and Host agree on host and port.
+- Header limits: first request line is hard-capped at 16 KiB and the total
+  header block at 64 KiB; exceeding either closes with `431` and a
+  blocked-count bump. Clients cannot grow the header buffer past the cap.
+- Every reject path (malformed, split-brain, cap, deny, upstream failure)
+  bumps `blocked_count` and records the extracted host in `blocked_hosts`,
+  falling back to `"<malformed>"` when no host could be extracted.
+
+Residual advisory caveat (unchanged, still binding): all of the above assumes
+the runner honors the proxy environment. A child that ignores `HTTP(S)_PROXY`
+— raw sockets, its own resolver, non-HTTP protocols — still escapes this jail;
+that is `enforcement_strength=advisory` and remains probe A6's job to keep
+measured, and Phase B (AppContainer LPAC) is the real kernel boundary.
+
 ### Phase B — AppContainer LPAC backend
 
 Target state, same honesty contract:
@@ -163,3 +195,73 @@ Stated last, per house style (`docs/NATIVE_EVIDENCE_HONESTY_GATE.md`):
   results on every path until a verified boundary AND a bound runtime exist.
 - Runtime receipts require the Phase A proxy runtime, probes A4–A6 passing
   under operator approval, per `docs/PINNED_LANE_OPERATOR_PREFLIGHT.md`.
+
+## 5. Phase B implementation notes (Gate 26, 2026-08-27)
+
+Probed on this host (CPython 3.14.7, Windows, non-elevated). Nothing was
+created, no child was spawned, no token was derived beyond a freed SID, and
+`execution_claim` remains `not_run`. Three additive probes landed in
+`noesis_harness/appcontainer_backend.py`:
+
+- `profile_sid_probe()` — derives a SID from the inert probe moniker
+  `noesis.harness.probe` via ctypes and frees it immediately
+  (`advapi32.FreeSid`). Tries `GetAppContainerSid` first, then its documented
+  successor `DeriveAppContainerSidFromAppContainerName`; the reason records
+  which export actually derived the SID. Never raises, never creates a
+  profile.
+- `capability_inventory()` — resolves the `CreateProcessW`,
+  `InitializeProcThreadAttributeList`, `UpdateProcThreadAttribute`
+  (all `kernel32.dll`) and `GetAppContainerSid` (`userenv.dll`) exports via
+  ctypes without calling them. Deterministic, zero side effects.
+- `run_probe()` — returns `{status, reason, capabilities}` where `status` is
+  only ever `not_run` (non-Windows or no `ctypes.windll`) or `blocked`
+  (Windows host, execution unbound). Never `passed`.
+
+Host probe results (recorded, not derived from claims):
+
+| Probe | Result |
+|---|---|
+| `ctypes.windll` present | True |
+| `kernel32.CreateProcessW` | callable |
+| `kernel32.InitializeProcThreadAttributeList` | callable |
+| `kernel32.UpdateProcThreadAttribute` | callable |
+| `userenv.GetAppContainerSid` | **absent on this build** (deprecated export dropped) |
+| `userenv.DeriveAppContainerSidFromAppContainerName` | present; SID derivation succeeded |
+| `userenv.CreateAppContainerProfile` | present (requires elevation to create) |
+| `profile_sid_probe()` | `{available: true, reason: "ok:DeriveAppContainerSidFromAppContainerName"}` |
+
+Why execution stays unbound (per Microsoft docs, probed, never bypassed):
+
+- `CreateAppContainerProfile` writes per-user profile storage (ProgramData
+  AppRepository entries + `LocalAppData\Packages\<name>\AC` folders with
+  AppContainer ACLs) and returns `E_ACCESSDENIED` to a non-elevated caller.
+  A stdlib-only, portable, non-elevated harness cannot create the profile, so
+  there is no profile storage and no AppRepository capability grants.
+- Token derivation for a real boundary requires that profile to exist: even
+  though the package SID is a pure name-derived value (verifiable above),
+  `CreateProcess` with `PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES` only
+  yields a verifiable `internetClient`-only boundary when the AppRepository
+  grants behind the profile exist. SID derivation alone is not a boundary.
+- API presence is therefore never treated as a bound runtime:
+  `capability_inventory().execution_bound` is always `False`.
+
+Exact Win32 path an operator-backed extension would use (documented, not
+implemented here):
+
+1. `userenv.CreateAppContainerProfile(name, display, description,
+   capabilities, count, &sid)` — elevated; creates the profile + storage.
+2. `userenv.DeriveAppContainerSidFromAppContainerName(name, &sid)` — derive
+   the package SID (or reuse the one returned above); free with
+   `advapi32.FreeSid`.
+3. Fill `SECURITY_CAPABILITIES { AppContainerSid, Capabilities,
+   CapabilityCount }` with the package SID and the `internetClient`
+   capability SID.
+4. `kernel32.InitializeProcThreadAttributeList` → `UpdateProcThreadAttribute`
+   with `PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES` → `CreateProcessW`
+   passing the attribute list, then run probes B1 (token inspection),
+   B2 (denied FS write), B3 (non-allowlisted socket fails at OS layer).
+
+Every one of those steps lives behind an operator-supplied callback; the
+stdlib-only module only reports the probes above. Until that callback is bound
+by an operator, `run()` returns
+`appcontainer_execution_runtime_not_bound` on every path.
