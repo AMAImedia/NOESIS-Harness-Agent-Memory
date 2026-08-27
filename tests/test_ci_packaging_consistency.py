@@ -18,7 +18,7 @@ class CIPackagingConsistencyTests(unittest.TestCase):
             (root / ".github" / "workflows").mkdir(parents=True)
             (root / "docs" / "locales" / "ru").mkdir(parents=True)
             (root / ".github" / "workflows" / "ci.yml").write_text("python scripts/verify_python314.py --json\n", encoding="utf-8")
-            (root / "docs" / "locales" / "ru" / "NATIVE_PACKAGING_RUNBOOK_RU.md").write_text("Python 3.14.7\n", encoding="utf-8")
+            (root / "docs" / "NATIVE_PACKAGING_RUNBOOK.md").write_text("Python 3.14.7\n", encoding="utf-8")
             report = check(str(root))
             self.assertEqual(report["status"], "failed")
             self.assertIn("python scripts/verify_portable_artifact.py", report["ci"]["missing_markers"])

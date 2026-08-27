@@ -25,7 +25,7 @@ from scripts.run_parallel_release_audit_lanes import (
 from scripts.run_workload_evidence import canonical_digest
 
 
-EXPECTED_TASK_IDS = ("git-integrity", "package-exports", "ru-checklist", "secret-ast-audit", "workload-evidence-audit")
+EXPECTED_TASK_IDS = ("doc-checklist", "git-integrity", "package-exports", "secret-ast-audit", "workload-evidence-audit")
 
 
 def _context(task_id: str) -> AgentLaneContext:

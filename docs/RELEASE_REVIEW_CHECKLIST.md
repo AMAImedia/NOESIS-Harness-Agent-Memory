@@ -1,7 +1,7 @@
 # NOESIS Release Review Checklist (Gate 8 Preparation)
 
 **Status checkpoint:** 2026-08-26, repository commit `127b28d`
-**Normative source:** Gate 8 paragraph of [`PLAN_NOESIS_1.0_MASTER.md`](PLAN_NOESIS_1.0_MASTER.md)
+**Normative source:** Gate 8 paragraph of `PLAN_NOESIS_1.0_MASTER.md`
 **Runtime policy:** Python 3.14 only for release gates; deterministic core is stdlib-only.
 **Operating model:** local-first, private-by-default, human-governed, fail-closed.
 
@@ -31,8 +31,8 @@ Stages are executed in order. A failing stage either aborts the review (see Hard
 | 4 | Evidence regeneration | [`MEMORY_QUALITY_EVIDENCE.json`](MEMORY_QUALITY_EVIDENCE.json), [`MULTI_AGENT_WORKLOAD_EVIDENCE.json`](MULTI_AGENT_WORKLOAD_EVIDENCE.json) |
 | 5 | External lanes state (Gate 7) | [`PINNED_LANE_MATRIX_314.json`](PINNED_LANE_MATRIX_314.json), [`MODEL_TASK_3LANE_BLOCKERS.json`](MODEL_TASK_3LANE_BLOCKERS.json), [`COMPARATIVE_BASELINE_VERSION_SMOKE.json`](COMPARATIVE_BASELINE_VERSION_SMOKE.json) |
 | 6 | Native artifact state (Gate 6) | [`NATIVE_WINDOWS_ARTIFACT_EVIDENCE.json`](NATIVE_WINDOWS_ARTIFACT_EVIDENCE.json), [`CROSS_PLATFORM_RELEASE_GATE_MATRIX.json`](CROSS_PLATFORM_RELEASE_GATE_MATRIX.json) |
-| 7 | Signed evidence pipeline | `reports/evidence-pipeline/` bundle plus offline verifiers ([`OPERATOR_EVIDENCE_PIPELINE.md`](OPERATOR_EVIDENCE_PIPELINE.md)) |
-| 8 | Transfer audit | post-transfer audit of a copied evidence directory ([`POST_TRANSFER_AUDIT.md`](POST_TRANSFER_AUDIT.md)) |
+| 7 | Signed evidence pipeline | `reports/evidence-pipeline/` bundle plus offline verifiers (`OPERATOR_EVIDENCE_PIPELINE.md`) |
+| 8 | Transfer audit | post-transfer audit of a copied evidence directory (`POST_TRANSFER_AUDIT.md`) |
 | 9 | Link and docs audits | markdown links, JSON evidence parseability, docs security |
 | 10 | Human review items | license/provenance, README boundaries, localization |
 
@@ -93,7 +93,7 @@ py -3.14 -m scripts.run_sandbox_conformance
 
 Expected: regeneration produces zero diff; conformance prints schema `noesis.sandbox-conformance.v2` with explicit non-passed records for unavailable native execution paths.
 
-Current known status on this host: both committed evidence documents are byte-stable by construction (no wall-clock fields); the Windows backend conformance records remain command-inspection-level, consistent with [`NATIVE_EVIDENCE_HONESTY_GATE.md`](NATIVE_EVIDENCE_HONESTY_GATE.md).
+Current known status on this host: both committed evidence documents are byte-stable by construction (no wall-clock fields); the Windows backend conformance records remain command-inspection-level, consistent with `NATIVE_EVIDENCE_HONESTY_GATE.md`.
 
 If this stage fails (diff non-zero): the committed evidence no longer matches the code. Release review must stop until the artifact is regenerated and committed or the code change is reverted. No "deterministic evidence" claim survives a drift.
 
@@ -109,7 +109,7 @@ python scripts/pinned_lane_orchestrator.py \
   --output docs/PINNED_LANE_MATRIX_314.json
 ```
 
-Actual lane execution remains a separate operator-approved pinned-runner operation gated by `noesis.external-approval.v1` receipts (see [`PINNED_LANE_OPERATOR_PREFLIGHT.md`](PINNED_LANE_OPERATOR_PREFLIGHT.md)). Signed receipts, once acquired, are ingested offline by `scripts/aggregate_external_evidence.py` without launching anything.
+Actual lane execution remains a separate operator-approved pinned-runner operation gated by `noesis.external-approval.v1` receipts (see `PINNED_LANE_OPERATOR_PREFLIGHT.md`). Signed receipts, once acquired, are ingested offline by `scripts/aggregate_external_evidence.py` without launching anything.
 
 Recorded state (read, do not regenerate casually):
 
@@ -144,7 +144,7 @@ Recorded state on this host ([`NATIVE_WINDOWS_ARTIFACT_EVIDENCE.json`](NATIVE_WI
 | host | windows, AMD64, Python 3.14.7, `platform_ok` and `python_ok` true |
 | macOS lane | `not_run` (no matching host) |
 
-Native parity bundles ([`NATIVE_PARITY_OPERATOR_RUNBOOK.md`](NATIVE_PARITY_OPERATOR_RUNBOOK.md): `scripts/run_native_parity.ps1`, `scripts/run_native_parity_macos.sh`) remain unexecuted in the machine-readable matrix; the Windows host exists, but no recorded bundle run has been validated by `scripts/validate_native_parity.py`.
+Native parity bundles (`NATIVE_PARITY_OPERATOR_RUNBOOK.md`: `scripts/run_native_parity.ps1`, `scripts/run_native_parity_macos.sh`) remain unexecuted in the machine-readable matrix; the Windows host exists, but no recorded bundle run has been validated by `scripts/validate_native_parity.py`.
 
 If this stage is used to claim more than recorded: prohibited. No signed or notarized artifact claim, no native Windows/macOS parity claim, and no "production binary" wording may be made while `signature.status` is `not_run` and the parity matrix rows are `not_run`.
 
@@ -185,7 +185,7 @@ Expected current outcomes, and why they differ:
 | `post_transfer_audit.sh` | exit `2`, `failed_stage: artifact_chain` | Same fail-closed cause; composition and reproducibility stages are sound |
 | `release_gate.sh` | exit `2` | First stage inherits the blocked chain |
 
-These failures are the recorded Gate 6/7 gap, not verifier malfunctions. They cap the review at internal-release-candidate status. See [`RELEASE_READINESS_VERIFIER.md`](RELEASE_READINESS_VERIFIER.md), [`REPRODUCIBILITY_VERIFIER.md`](REPRODUCIBILITY_VERIFIER.md), [`OFFLINE_OPERATOR_ARTIFACT_VERIFIER.md`](OFFLINE_OPERATOR_ARTIFACT_VERIFIER.md), and [`RELEASE_GATE.md`](RELEASE_GATE.md).
+These failures are the recorded Gate 6/7 gap, not verifier malfunctions. They cap the review at internal-release-candidate status. See `RELEASE_READINESS_VERIFIER.md`, `REPRODUCIBILITY_VERIFIER.md`, `OFFLINE_OPERATOR_ARTIFACT_VERIFIER.md`, and `RELEASE_GATE.md`.
 
 If any verifier reports tampering, digest mismatch, or schema violation instead of a status-driven block: treat it as a hard stop condition below, not as expected behavior.
 
@@ -200,7 +200,7 @@ Copy `reports/evidence-pipeline/` to the receiving host or medium, then re-verif
 .\scripts\verify_operator_artifacts.ps1 --root <copied-dir> --key $env:NOESIS_EXTERNAL_EVIDENCE_KEY
 ```
 
-Expected: identical outcomes to Stage 7 on the same key. A successful copy changes no statuses; transfer proves integrity of composition and digests only ([`PORTABLE_TRANSFER_AUDIT.md`](PORTABLE_TRANSFER_AUDIT.md)). Unexpected extra files in the directory fail composition closed by design.
+Expected: identical outcomes to Stage 7 on the same key. A successful copy changes no statuses; transfer proves integrity of composition and digests only (`PORTABLE_TRANSFER_AUDIT.md`). Unexpected extra files in the directory fail composition closed by design.
 
 If this stage fails on an intact copy with the original key: hard stop. Investigate before any further distribution.
 
@@ -214,7 +214,7 @@ python scripts/docs_security_audit.py --root .
 
 Expected: exit `0` from all three (`clean: true`, `CLEAN`). Additionally `py -3.14 -m unittest tests.test_documentation_audit -q` must pass (covered in Stage 2).
 
-Localization audit: every English-primary release document must have its Russian supplemental mirror under `locales/ru/` with commands kept verbatim. The mirror of this document is [`locales/ru/RELEASE_REVIEW_CHECKLIST_RU.md`](locales/ru/RELEASE_REVIEW_CHECKLIST_RU.md); the normative plan mirror is [`locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md`](locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md).
+Localization audit: every English-primary release document must have its Russian supplemental mirror under `locales/ru/` with commands kept verbatim. The mirror of this document is `locales/ru/RELEASE_REVIEW_CHECKLIST_RU.md`; the normative plan mirror is `locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md`.
 
 Current known status on this host: link and docs-security audits were clean at authoring time; the localization pair was created together with this document.
 
@@ -226,8 +226,8 @@ Not executable; each item requires a named reviewer and a recorded decision.
 
 | Item | Source material |
 |---|---|
-| License and third-party attribution obligations | [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md), [`third_party_provenance.json`](third_party_provenance.json), provenance discipline in [`../RESEARCH_DAIGEST.md`](../RESEARCH_DAIGEST.md) |
-| README states verified capabilities and unresolved boundaries | repository `README.md`; honesty criterion in [`PLAN_NOESIS_1.0_MASTER.md`](PLAN_NOESIS_1.0_MASTER.md) |
+| License and third-party attribution obligations | [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md), [`third_party_provenance.json`](third_party_provenance.json), provenance discipline in `../RESEARCH_DAIGEST.md` |
+| README states verified capabilities and unresolved boundaries | repository `README.md`; honesty criterion in `PLAN_NOESIS_1.0_MASTER.md` |
 | Claim progress matrix agrees with recorded artifacts | [`CLAIMS_PROGRESS_MATRIX.json`](CLAIMS_PROGRESS_MATRIX.json), roadmap reconciliation guard [`ROADMAP_RECONCILIATION_EVIDENCE.json`](ROADMAP_RECONCILIATION_EVIDENCE.json) |
 | Localization completeness for changed docs | `locales/ru/` mirrors |
 | Changelog and release metadata currency | `CHANGELOG.md`, packaging metadata |
@@ -261,8 +261,8 @@ python scripts/run_parallel_release_audit_lanes.py --output docs/PARALLEL_RELEAS
 python scripts/validate_parallel_release_audit_report.py docs/PARALLEL_RELEASE_AUDIT_EVIDENCE.json
 ```
 
-Expected: exit `0` from all three; the validator requires five passed lanes, a clean working tree, zero secrets, and digest-valid workload evidence ([`RELEASE_AUDIT_EXTERNAL_READINESS.md`](RELEASE_AUDIT_EXTERNAL_READINESS.md)). An allowed `--remote --remote-branch <branch>` variant adds opt-in remote SHA parity; omitting it performs no network operation.
+Expected: exit `0` from all three; the validator requires five passed lanes, a clean working tree, zero secrets, and digest-valid workload evidence (`RELEASE_AUDIT_EXTERNAL_READINESS.md`). An allowed `--remote --remote-branch <branch>` variant adds opt-in remote SHA parity; omitting it performs no network operation.
 
 ## Claim boundary
 
-This checklist is procedural. Completing it, in whole or in part, creates no performance-superiority claim, no native Windows/macOS parity claim, and no external-execution claim beyond what the referenced signed artifacts individually record. `not_run` and `blocked` statuses remain exactly that regardless of how many stages pass. The governing honesty criterion, including the condition under which a world-class-superiority hypothesis could become testable, is defined solely by [`PLAN_NOESIS_1.0_MASTER.md`](PLAN_NOESIS_1.0_MASTER.md) and its Russian supplemental localization [`locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md`](locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md).
+This checklist is procedural. Completing it, in whole or in part, creates no performance-superiority claim, no native Windows/macOS parity claim, and no external-execution claim beyond what the referenced signed artifacts individually record. `not_run` and `blocked` statuses remain exactly that regardless of how many stages pass. The governing honesty criterion, including the condition under which a world-class-superiority hypothesis could become testable, is defined solely by `PLAN_NOESIS_1.0_MASTER.md` and its Russian supplemental localization `locales/ru/PLAN_NOESIS_1.0_MASTER_RU.md`.

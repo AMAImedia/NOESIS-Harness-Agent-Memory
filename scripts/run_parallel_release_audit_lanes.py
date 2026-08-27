@@ -38,13 +38,13 @@ def lane(ctx: AgentLaneContext) -> dict[str, Any]:
         status = subprocess.check_output(["git", "status", "--porcelain"], cwd=str(ROOT), text=True)
         return {"check": "git_integrity", "status": "passed", "diff_check": True, "working_tree_clean": not bool(status), "changed_entries": len([line for line in status.splitlines() if line])}
 
-    if ctx.task_id == "ru-checklist":
-        checklist = (ROOT / "docs" / "locales" / "ru" / "PROJECT_CHECKLIST_TODO_RU.md").read_text(encoding="utf-8")
-        markers = ("NAT-", "CI-", "REL-", "EXEC-", "API-", "MA-")
+    if ctx.task_id == "doc-checklist":
+        checklist = (ROOT / "docs" / "RELEASE_REVIEW_CHECKLIST.md").read_text(encoding="utf-8")
+        markers = ("Stage", "not_run", "blocked")
         missing = [marker for marker in markers if marker not in checklist]
         if missing:
             raise AssertionError("checklist_markers_missing:" + ",".join(missing))
-        return {"check": "ru_checklist", "status": "passed", "markers": list(markers), "line_count": len(checklist.splitlines())}
+        return {"check": "doc_checklist", "status": "passed", "markers": list(markers), "line_count": len(checklist.splitlines())}
 
     if ctx.task_id == "workload-evidence-audit":
         if not WORKLOAD_EVIDENCE_PATH.is_file():
@@ -76,7 +76,7 @@ def main(argv=None) -> int:
         AgentLane("audit-security", "secret-ast-audit", "secret-ast-audit"),
         AgentLane("audit-exports", "package-exports", "package-exports"),
         AgentLane("audit-git", "git-integrity", "git-integrity"),
-        AgentLane("audit-checklist", "ru-checklist", "ru-checklist"),
+        AgentLane("audit-checklist", "doc-checklist", "doc-checklist"),
         AgentLane("audit-workload-evidence", "workload-evidence-audit", "workload-evidence-audit"),
     ]
     events: list[dict[str, object]] = []

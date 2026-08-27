@@ -35,8 +35,8 @@ def audit(root: str = str(ROOT)) -> dict[str, Any]:
         "readme_provenance_links": "THIRD_PARTY_NOTICES.md" in readme and "third_party_provenance.json" in readme,
         "changelog_unreleased": "## [Unreleased]" in changelog,
         "changelog_current_work": "2026-08-18" in changelog and "Python 3.14" in changelog,
-        "docs_index_checklist": "PROJECT_CHECKLIST_TODO_RU.md" in docs_index,
-        "docs_index_native": "NATIVE_PACKAGING_RUNBOOK_RU.md" in docs_index,
+        "docs_index_checklist": "RELEASE_REVIEW_CHECKLIST.md" in docs_index,
+        "docs_index_native": "NATIVE_PACKAGING_RUNBOOK.md" in docs_index,
         "docs_index_provenance": "third_party_provenance.json" in docs_index,
     }
     findings.extend("failed_check:" + name for name, ok in checks.items() if not ok)

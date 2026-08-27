@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def check(root: str = str(ROOT)) -> dict[str, Any]:
     project = Path(root).resolve()
     workflow = (project / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    runbook_path = project / "docs" / "locales" / "ru" / "NATIVE_PACKAGING_RUNBOOK_RU.md"
+    runbook_path = project / "docs" / "NATIVE_PACKAGING_RUNBOOK.md"
     runbook = runbook_path.read_text(encoding="utf-8")
     ci_markers = (
         "python scripts/verify_python314.py --json",
