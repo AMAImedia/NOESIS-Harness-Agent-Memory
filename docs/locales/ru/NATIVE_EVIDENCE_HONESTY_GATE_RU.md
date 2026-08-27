@@ -10,6 +10,6 @@
 | Windows target matrix | `passed` как verifier-дорожка; evidence `not_run` | Linux-хост не совпадает; утверждения о Windows `.exe` нет. |
 | macOS target matrix | `passed` как verifier-дорожка; evidence `not_run` | Linux-хост не совпадает; утверждения о macOS `.app` нет. |
 
-Машиночитаемый отчёт — [`PARALLEL_NATIVE_EVIDENCE.json`](PARALLEL_NATIVE_EVIDENCE.json). Обязательные guard-поля: `native_builds_executed=false`, `network_allowed=false`, `credentials_available=false`, `model_generated_code_executed=false`.
+Машиночитаемый отчёт — [`PARALLEL_NATIVE_EVIDENCE.json`](../../PARALLEL_NATIVE_EVIDENCE.json). Обязательные guard-поля: `native_builds_executed=false`, `network_allowed=false`, `credentials_available=false`, `model_generated_code_executed=false`.
 
 `passed` verifier-дорожки означает, что правило честности соблюдено. Это НЕ означает, что целевой артефакт был собран, подписан, нотаризован или выполнен на Windows/macOS. Утверждения о нативной сборке требуют совпадающих целевых хостов и окружений Python 3.14.

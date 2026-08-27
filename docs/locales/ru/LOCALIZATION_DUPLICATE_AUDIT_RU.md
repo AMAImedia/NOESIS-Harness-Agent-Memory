@@ -6,7 +6,7 @@
 
 ## Структура
 
-Русская документация хранится в [`locales/ru/`](locales/ru/). Корневая директория `docs/` содержит английские primary-контракты, архитектуру, отчёты и навигацию. Российский мастер-чеклист — [`locales/ru/PROJECT_CHECKLIST_TODO_RU.md`](locales/ru/PROJECT_CHECKLIST_TODO_RU.md).
+Русская документация хранится в [`locales/ru/`](./). Корневая директория `docs/` содержит английские primary-контракты, архитектуру, отчёты и навигацию. Российский мастер-чеклист — [`locales/ru/PROJECT_CHECKLIST_TODO_RU.md`](./PROJECT_CHECKLIST_TODO_RU.md).
 
 | Проверка | Результат |
 |---|---|
