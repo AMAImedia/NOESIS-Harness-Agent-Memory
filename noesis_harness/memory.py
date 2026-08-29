@@ -124,6 +124,10 @@ class Memory:
         """Detect the best available vector search backend."""
         if self._vector_backend is not None:
             return self._vector_backend
+        env_override = os.environ.get("NOESIS_VECTOR_BACKEND")
+        if env_override:
+            self._vector_backend = env_override
+            return env_override
         for name, mod in [("faiss", "faiss"), ("hnswlib", "hnswlib"), ("numpy", "numpy")]:
             try:
                 __import__(mod)

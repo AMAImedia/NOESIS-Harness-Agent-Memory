@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tempfile
 from pathlib import Path
+
+os.environ["NOESIS_VECTOR_BACKEND"] = "none"  # deterministic stdlib path for evidence
 
 from noesis_harness import Memory
 from noesis_harness.experience_reuse import ExperienceRecord, ExperienceReuseSelector
@@ -198,7 +201,7 @@ def main() -> None:
         "adversarial_corpus_v3": adversarial_corpus_v3,
     }
     path = Path(__file__).resolve().parents[1] / "docs" / "MEMORY_QUALITY_EVIDENCE.json"
-    path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    open(path, "w", encoding="utf-8", newline="\n").write(json.dumps(out, indent=2, sort_keys=True) + "\n")
     print(json.dumps(out, sort_keys=True))
 
 
