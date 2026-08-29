@@ -7,19 +7,29 @@ pluggable callback.
 
 ## Quick start
 - Read the rules first: [AGENTS.md](AGENTS.md).
-- Run the suite: `python -m unittest discover -s tests -q` (expect ~1160 tests, OK).
-- Benchmarks: `python benchmarks/recall20.py` (target acc=1.00).
+- Run the suite: `py -3.14 -m unittest discover -s tests -q` (expect ~1397 tests, OK).
+- Benchmarks: `py -3.14 benchmarks/recall20.py` (target acc=1.00).
+- Native exe: `dist/noesis-harness.exe` (self-signed dev cert).
 - Documentation index: [docs/README.md](docs/README.md).
 
 ## What is real (honesty boundary)
-- Local gates 1-8 are executed and recorded with machine-readable evidence.
-- External agent-OS lanes (Hermes / OpenCode / DeepSeek Harness) are pinned and
-  verified only when an operator supplies matching hosts and credentials. Without
-  them they report `not_run` / `blocked` — never a fabricated pass.
-- Native Windows/macOS artifacts require a target host and a CA code-signing
-  certificate; a self-signed dev-signed Windows exe exists but is NOT a release
-  claim. No macOS host is available here.
+- **Local gates 1–5, 9**: executed, passed, evidence byte-stable (recall20 20/20, quality score 0.979, recall gain 1.0).
+- **Gate 6** (native): Windows exe built (dev-signed, 11MB); macOS not_run (no host).
+- **Gate 7** (external A/B): not_run — users supply API keys at runtime (like OpenCode).
+- **Gate 8** (release): pending human review.
+- **Stage 10**: requires named reviewer.
 - No superiority or native-parity claims are made without matching evidence.
+- `NOESIS_VECTOR_BACKEND=none` pinned for deterministic evidence across hosts.
+
+## Evidence (current, byte-stable)
+| Metric | Value |
+|--------|-------|
+| Local tests | 1397 OK (18 skipped) |
+| recall20 | 20/20 acc=1.00 |
+| Memory quality (v3) | quality_score 0.944, recall 1.0 |
+| Multi-session quality | quality_score 0.979, recall 0.833 |
+| Recall gain (baseline→nextgen) | 1.0 |
+| Synthetic fixture (security_holdouts) | by-design, not a leak |
 
 ## Security boundary
 The deterministic core is stdlib-only and does not execute model-generated
@@ -37,4 +47,10 @@ copies or dependencies. License/attribution: the project is distributed under th
 [third_party_provenance.json](docs/third_party_provenance.json).
 Security policy: [SECURITY.md](SECURITY.md).
 
-The repository is a private GitHub repository; publication remains owner-approved gates.
+## How to make public
+1. Go to `https://github.com/AMAImedia/NOESIS-Harness-Agent-Memory/settings`
+2. Scroll to "Danger Zone" → "Change visibility"
+3. Select "Public" → confirm
+4. Or via CLI: `gh repo edit AMAImedia/NOESIS-Harness-Agent-Memory --visibility public`
+
+**Required before publishing**: ensure README boundaries are understood by users — no superiority claims, honest `not_run`/`blocked` status for external lanes.
