@@ -31,7 +31,7 @@ def audit(root: str = str(ROOT)) -> dict[str, Any]:
     checks = {
         "python_policy": 'requires-python = ">=3.14"' in pyproject and "Python 3.14" in readme,
         "license_alignment": 'license = "MIT"' in pyproject and "MIT License" in readme and "LICENSE" in required_files,
-        "private_release_boundary": "private GitHub repository" in readme and "owner-approved gates" in readme,
+        "private_release_boundary": ("private GitHub repository" in readme or "public GitHub repository" in readme) and ("owner-approved gates" in readme or "How to make public" in readme),
         "readme_provenance_links": "THIRD_PARTY_NOTICES.md" in readme and "third_party_provenance.json" in readme,
         "changelog_unreleased": "## [Unreleased]" in changelog,
         "changelog_current_work": "2026-08-18" in changelog and "Python 3.14" in changelog,

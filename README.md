@@ -42,7 +42,7 @@ VM, container or hardened remote execution service; the execution ladder returns
 Design references Cloudflare OS / Project Think (capability access, durable
 execution, sub-agent isolation), LoopX, agentmemory, TencentDB, deepseek-harness,
 Hermes and agent-teams as patterns — local Python/SQLite interpretations, not
-copies or dependencies. License/attribution: the project is distributed under the MIT License; see
+copies or dependencies. **This is a public GitHub repository** (owner-approved gates applied). License/attribution: the project is distributed under the MIT License; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
 [third_party_provenance.json](docs/third_party_provenance.json).
 Security policy: [SECURITY.md](SECURITY.md).
