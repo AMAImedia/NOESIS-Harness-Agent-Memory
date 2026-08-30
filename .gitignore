@@ -35,3 +35,4 @@ runtime/
 benchmark_contracts.json
 .noesis_autoloop/
 _temp/
+_temp_replacements.txt
