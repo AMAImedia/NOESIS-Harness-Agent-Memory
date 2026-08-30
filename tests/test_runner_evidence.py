@@ -39,7 +39,7 @@ class RunnerEvidenceTests(unittest.TestCase):
         self.assertFalse(verify_evidence(evidence, KEY))
 
     def test_credential_like_result_is_rejected(self):
-        tampered = {**self.result, "diagnostic": "token=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"}
+        tampered = {**self.result, "diagnostic": "token=hf_FAKE0000000000000000000000000000000000"}
         evidence = ingest(self.spec, tampered, KEY)
         self.assertFalse(evidence["accepted"])
         self.assertIn("credential_like_content", evidence["errors"])
