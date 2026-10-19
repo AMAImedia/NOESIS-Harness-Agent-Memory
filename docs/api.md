@@ -423,3 +423,53 @@ HybridJudge().judge(["draft one"])
 ```
 
 `noesis-inspect --mem state/mem.db --events state/events.jsonl`
+
+## 0.6 extras
+
+All 0.6 symbols are re-exported from `noesis_harness`. Grouped highlights:
+
+```python
+from noesis_harness import (
+    # session index + retrieval
+    SessionSourceRegistry, HarnessSpec, FileKind, kind_for_path,
+    InvertedIndex, tokenize, bm25_score, encode_postings, decode_postings,
+    search_tiered, SearchTier, Hit, trim_to_budget, freshness_decay,
+    frame_untrusted, neutralize_markers, is_framed,
+    ManifestCache, plan_refresh, plan_all, FileState,
+    PeerWatermarks, DedupeLedger, SyncExchange, export_since,
+    atomic_write_text, atomic_append_line, read_text,
+    dialect_for, normalize_tool_args, ToolDialect,
+    ordered_fanout, parse_files_parallel, ParseFailure,
+    # control + recovery
+    AuthorizationGate, Decision, RiskTier, Rule,
+    LedgerClosure, closure_summary,
+    CircuitBreaker, RecoveryLadder, GuardedRecovery,
+    InstructionStack, InstructionFragment, LayerSource,
+    HookEngine, HookEvent, HookResult,
+    ForkCoordinator, CacheSafeSnapshot, ForkStatus, ChildScope,
+    ExtractionCoordinator, ExtractionWorker,
+    # state + knowledge
+    MemoryIndex, MemoryRecord, MemoryType, safe_memory_path,
+    MemoryRevisions, RevisionConflict, Revision,
+    LoopState, LoopStateStore, LoopContract, LoopRegistry, Cadence,
+    ObservationLog, SharedBoard, TaskNotification,
+    VerificationLedger, FixLoop, MarkerGuard, AppliedChange,
+    MetricCollector, MetricPoint, build_report,
+    # authority + storage
+    parse_scope, format_scope, scope_key, layered_workspace, is_entitled,
+    AclStore, Permission, Grant, Membership, MembershipAcl,
+    mint_capability, verify_capability, Capability, TokenError,
+    LeaderLease, KeyedQueue, Sweeper,
+    BlobStore, digest_bytes, sha256_shard,
+    NamespaceRegistry, qualified, sanitize,
+    # projection + scoring
+    AdapterRegistry, MarkdownAdapter, JsonAdapter, TomlAdapter,
+    parse_frontmatter, render_frontmatter, yaml_scalar,
+    score_composite, Confidence, Layer, Signal, grade_for,
+    reconcile_registry, emit_all, prune_plan, Severity, ProjectionFinding,
+    EloTable, bootstrap_ci, GoldCorpus,
+)
+```
+
+The full ported-design table (which upstream each module came from) is in
+[SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md).

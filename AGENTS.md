@@ -32,3 +32,20 @@ Instructions for AI coding agents working in this repo.
 Every non-trivial module documents its source patterns (LoopX, agentmemory,
 TencentDB, deepseek-harness, Hermes, agent-teams). When you port a new pattern,
 add the source to the module docstring and to `../RESEARCH_DAIGEST.md`.
+
+## Owner communication (recorded 2026-09-18)
+
+- The repository owner is not a programmer (student). Explain every change in
+  plain language, no jargon, with a simple "what changed and why".
+- Chat replies to the owner MUST be in Russian. Code, docstrings, comments,
+  commit messages, and repository documentation stay English.
+- Before starting a non-trivial task, restate your understanding and ask for
+  confirmation first.
+- End every work batch with an honest "before -> after" report in simple terms.
+
+## Integration sources (repos read, patterns ported)
+
+- deja-vu (Go), harness-books, claude-code-book, wshobson/agents, qm (TypeScript),
+  AI-Builder-Club/skills. Research copies live in `../_research_2026-08/`.
+  Ported modules are clean-room reimplementations, never vendored code.
+  See `docs/SESSION_INDEX_AND_GOVERNANCE.md` and `docs/third_party_provenance.json`.

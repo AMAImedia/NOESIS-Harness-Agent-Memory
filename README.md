@@ -7,7 +7,7 @@ pluggable callback.
 
 ## Quick start
 - Read the rules first: [AGENTS.md](AGENTS.md).
-- Run the suite: `py -3.14 -m unittest discover -s tests -q` (expect ~1397 tests, OK).
+- Run the suite: `py -3.14 -m unittest discover -s tests -q` (expect ~2267 tests, OK).
 - Benchmarks: `py -3.14 benchmarks/recall20.py` (target acc=1.00).
 - Native exe: `dist/noesis-harness.exe` (self-signed dev cert).
 - Documentation index: [docs/README.md](docs/README.md).
@@ -24,7 +24,7 @@ pluggable callback.
 ## Evidence (current, byte-stable)
 | Metric | Value |
 |--------|-------|
-| Local tests | 1397 OK (18 skipped) |
+| Local tests | 2267 OK (18 skipped) |
 | recall20 | 20/20 acc=1.00 |
 | Memory quality (v3) | quality_score 0.944, recall 1.0 |
 | Multi-session quality | quality_score 0.979, recall 0.833 |
@@ -42,7 +42,11 @@ VM, container or hardened remote execution service; the execution ladder returns
 Design references Cloudflare OS / Project Think (capability access, durable
 execution, sub-agent isolation), LoopX, agentmemory, TencentDB, deepseek-harness,
 Hermes and agent-teams as patterns — local Python/SQLite interpretations, not
-copies or dependencies. **This is a public GitHub repository** (owner-approved gates applied). License/attribution: the project is distributed under the MIT License; see
+copies or dependencies. The 0.6 batch additionally ports clean-room designs from
+deja-vu, harness-books, claude-code-book, wshobson/agents, qm and
+AI-Builder-Club/skills (36 modules; see
+[docs/SESSION_INDEX_AND_GOVERNANCE.md](docs/SESSION_INDEX_AND_GOVERNANCE.md)).
+**This is a public GitHub repository** (owner-approved gates applied). License/attribution: the project is distributed under the MIT License; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
 [third_party_provenance.json](docs/third_party_provenance.json).
 Security policy: [SECURITY.md](SECURITY.md).

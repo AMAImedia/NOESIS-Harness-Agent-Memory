@@ -22,7 +22,18 @@ below is the curated minimum needed to operate and extend the project.
 | [LANGUAGE_POLICY.md](LANGUAGE_POLICY.md) | English-primary / Russian-supplemental language rules. |
 | [MODEL_TASK_SANDBOX_DESIGN.md](MODEL_TASK_SANDBOX_DESIGN.md) | Model-task sandbox, proxy-jail and AppContainer design. |
 | [NATIVE_PACKAGING_RUNBOOK.md](NATIVE_PACKAGING_RUNBOOK.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |
+| [SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md) | 0.6 integration batch: 36 session-index/retrieval/governance modules and their upstream provenance. |
 | [third_party_provenance.json](third_party_provenance.json) | Machine-readable upstream reference/license/provenance manifest. |
+
+## 0.6 integration batch
+
+The 0.6 line added 36 stdlib-only modules ported as clean-room reimplementations
+from six upstream projects (deja-vu, harness-books, claude-code-book,
+wshobson/agents, qm, AI-Builder-Club/skills). They cover session-source
+indexing, a tiered retrieval ladder, watermarked sync, fork isolation,
+three-valued authorization, a durable leader lease, content-addressed storage,
+ACL grants, capability tokens, memory revisions, loop contracts and metrics.
+See [SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md).
 
 ## Security boundary
 The deterministic core is stdlib-only and does not execute model-generated
