@@ -73,6 +73,80 @@
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": false
+    },
+    {
+      "name": "deja-vu",
+      "source": "https://github.com/vshulcz/deja-vu",
+      "license": "MIT",
+      "status": "reference_and_benchmark",
+      "planned_adoption": ["session_source_registry", "prefix_sharded_inverted_index", "tiered_retrieval_ladder", "untrusted_data_framing", "manifest_cache_refresh", "watermarked_sync", "atomic_writer", "tool_dialect_table", "deterministic_parallel_parse"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "harness-books",
+      "source": "https://github.com/wquguru/harness-books",
+      "license": "upstream-license-to-verify",
+      "status": "reference_only",
+      "planned_adoption": ["three_valued_authorization_gate", "ledger_closure_invariant", "circuit_broken_recovery_ladder", "instruction_precedence_layers", "fork_isolation"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "claude-code-book",
+      "source": "https://github.com/lintsinghua/claude-code-book",
+      "license": "upstream-license-to-verify",
+      "status": "reference_only",
+      "planned_adoption": ["typed_memory_records", "bounded_memory_index", "trailing_extraction_queue", "shared_coordination_board", "hook_engine"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "wshobson-agents",
+      "source": "https://github.com/wshobson/agents",
+      "license": "MIT",
+      "status": "reference_and_benchmark",
+      "planned_adoption": ["tolerant_frontmatter", "layered_composite_scoring", "registry_disk_reconciliation", "projection_adapters", "namespace_collision_resolution", "elo_ranking"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "qm",
+      "source": "https://github.com/yc-software/qm",
+      "license": "MIT",
+      "status": "reference_only",
+      "planned_adoption": ["scope_namespace_isolation", "content_addressed_blob_store", "explicit_acl_grants", "capability_tokens", "durable_leader_lease", "memory_revisions_cas"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "ai-builder-club-skills",
+      "source": "https://github.com/AI-Builder-Club/skills",
+      "license": "upstream-license-to-verify",
+      "status": "reference_only",
+      "planned_adoption": ["loop_contract", "append_only_observation_log", "file_sentinel_completion", "verification_ledger", "metrics_collector", "loop_state"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true
+    },
+    {
+      "name": "harness2",
+      "source": "https://github.com/AMAImedia/harness2",
+      "upstream_note": "Open-source release of Harness^2 (Recursive Agent Harnessing for an Open World), arXiv 2610.14224, by Xu, Chen, CuiZhu, Dalvi Mishra, Ming, Yu, Han, Lee, Pfister. Released by Google; not an officially supported Google product.",
+      "license": "Apache-2.0",
+      "status": "reference_only",
+      "planned_adoption": ["cue_lesson_evidence_triple", "per_domain_adopted_artifact_library", "anonymised_selection_id_map", "before_after_contrast_artifact", "run_identity_budget_ledger"],
+      "rejected_adoption": ["llm_harness_editor_violates_deterministic_core", "unattended_library_writes_bypass_operator_approval", "third_party_benchmark_runners_and_data"],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true,
+      "ported_modules": ["lesson_cue.py", "domain_library.py", "blind_select.py", "budget.py (RunLedger only)"],
+      "port_notes": "docs/HARNESS2_PORT_NOTES.md"
     }
   ]
 }

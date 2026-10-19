@@ -75,7 +75,7 @@ __all__ = [
  "REPORT_EXPORT_ACTION_SCHEMA", "REPORT_EXPORT_RECEIPT_SCHEMA", "REPORT_EXPORT_LIFECYCLE_SCHEMA", "REPORT_EXPORT_REQUIRED_SCOPE", "ReportExportAction", "ReportExportActionError", "ReportExportActionExecutor", "verify_lifecycle_events", "verify_lifecycle_file", "lifecycle_audit_only_projection", "lifecycle_audit_readiness", "LifecycleAuditIngestionAdapter", "LifecycleAuditIngestionError", "build_healthserver_wiring", "verify_ingestion_receipt", "verify_ingestion_receipt_audit", "EVIDENCE_PROJECTION_SCHEMA", "load_workload_evidence", "load_memory_quality_digests", "project_evidence",
 ]
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 from .nextgen import AuditChain, AgentManifest, CapabilityDenied, CapabilityManifest, ContextManager, DurableCommandLedger, IsolationBroker, ResultEnvelope, RunEnvelope
 from .governance import ActionRequest, DAGPlanner, ExecutionLadder, Gatekeeper, SkillGate, VaultNote, VaultProjector
@@ -137,3 +137,122 @@ from .process_control import terminate_process_tree
 from .workspaces import MergeAuthorization, PatchReviewStore
 __all__.extend(["CONTRACT_VERSION", "UIContractError", "UIEnvelope", "failure", "health_payload", "model_payload", "new_request_id", "success", "HealthServer", "CAPABILITY_KEYS", "ModelDescriptor", "ProviderAdapterSpec", "ProviderDescriptor", "ProviderRegistry", "ProviderRegistryError", "SUPPORTED_PROVIDER_KINDS", "adapter_spec", "BridgeCandidate", "BridgeDiscovery", "BridgeStatus", "ChildRuntimeSupervisor", "RuntimeStatus", "UserDataPaths", "user_data_paths", "HERMES_FORBIDDEN_SCOPE_PREFIXES", "HERMES_SUPPORTED_SCOPES", "HermesGatewayAdapter", "HermesGatewayConfig", "HermesGatewayError", "CompatibilityResult", "DEEPSEEK_SUPPORTED_PLUGIN_CAPABILITIES", "DeepSeekHarnessAdapter", "DeepSeekHarnessConfig", "DeepSeekHarnessError", "SelectionResult", "select_model", "ALLOWED_CAPABILITIES", "ALLOWED_PLATFORMS", "MANIFEST_FILENAME", "MANIFEST_FORMAT_VERSION", "SkillManifest", "SkillManifestError", "digest_files", "ImportAssessment", "SafeSkillImport", "SkillImportError", "SkillStore", "SkillStoreError", "SkillDescriptor", "SkillDiscoveryError", "discover_skills", "ExperienceRecord", "ExperienceReuseError", "ExperienceReuseSelector", "ReuseDecision", "ExperienceReceipt", "HoldoutEvaluation", "PromotionProposal", "LearningPromotionError", "DurablePromotionState", "LearningPromotionPipeline", "TURN_CHECKPOINT_SCHEMA", "TurnCheckpoint", "TurnCheckpointError", "DurableTurnCheckpointStore", "DELEGATION_SCHEMA", "DelegationRequest", "DelegationReceipt", "DelegationError", "DelegationCoordinator", "EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "CoordinatedMutationJournal", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "SQLiteAdminStateError", "SQLiteAdministrativeBackend", "MIGRATION_SCHEMA", "AdministrativeMigrationError", "OperatorMigrationModeSource", "verify_signed_mode_change_receipt", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter", "EXTERNAL_IDENTITY_SCHEMA", "ExternalIdentityPreparationError", "PreparedExternalIdentity", "ExternalIdentityPreparation", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration", "ProductionLearningLifecycle", "MetadataTranslationError", "TranslationResult", "translate_metadata", "PortableLayout", "PortableLaunchError", "resolve_layout", "startup_probe", "BridgeIntegrationCoordinator", "BridgeIntegrationError", "IntegrationRecord", "GatewayFixture", "GatewayFixtureError", "MergeAuthorization", "PatchReviewStore", "BackendConformanceResult", "SandboxBackend", "inspect_backend", "run_conformance", "BubblewrapBackend", "SandboxResult", "SandboxUnavailable", "MacOSSandboxBackend", "terminate_process_tree"])
 __all__.extend(["WindowsSandboxBackend"])
+
+# 0.6 integration batch: session-source indexing, retrieval, memory records and
+# governance patterns ported from deja-vu (Go), harness-books, claude-code-book,
+# wshobson/agents (Python) and qm (TypeScript). Clean-room reimplementations,
+# no upstream code vendored. Provenance: docs/SESSION_INDEX_AND_GOVERNANCE.md,
+# docs/third_party_provenance.json.
+from .session_sources import FileKind, HarnessSpec, SessionSourceRegistry, kind_for_path, register_harness
+from .inverted_index import InvertedIndex, decode_postings, encode_postings
+from .inverted_index import bucket as index_bucket
+from .inverted_index import bm25_score as index_bm25_score
+from .inverted_index import tokenize as index_tokenize
+from .retrieval_ladder import Hit, SearchTier, damerau_levenshtein, freshness_decay, rank_with_relevance_tail, search_tiered, trim_to_budget
+from .retrieval_ladder import bm25_score as ladder_bm25_score
+from .retrieval_ladder import tokenize as query_tokenize
+from .untrusted_frame import FRAME_CLOSE, FRAME_OPEN, FRAME_TAG, UNTRUSTED_NOTICE, frame_untrusted, is_framed, neutralize_markers
+from .authorization_gate import AuthorizationGate, Decision, RiskTier, Rule, pattern_matches
+from .ledger_closure import LedgerClosure, LedgerError, closure_summary
+from .circuit_breaker import CircuitBreaker, CircuitState, GuardedRecovery, RecoveryLadder
+from .memory_index import ENTRY_MAX_CHARS, MAX_ENTRYPOINT_BYTES, MAX_ENTRYPOINT_LINES, MemoryIndex, MemoryRecord, MemoryRecordError, MemoryType, parse_record, render_record, safe_memory_path
+from .frontmatter import FrontmatterError, parse_frontmatter, render_frontmatter, yaml_scalar
+from .frontmatter import roundtrip as frontmatter_roundtrip
+from .composite_score import Composite, Confidence, LAYER_BLENDS, Layer, Signal, confidence_from_layers, grade_for, score_composite
+from .registry_reconcile import Finding, Severity, prune_plan, reconcile_directories, reconcile_registry
+from .registry_reconcile import summarize as summarize_findings
+from .scope_id import SCOPE_KINDS, ScopeError, WorkspaceLayer, conversation_scope, format_scope, is_cross_scope, is_entitled, layered_workspace, parse_scope, personal_scope, scope_key
+__all__.extend([
+    "FileKind", "HarnessSpec", "SessionSourceRegistry", "kind_for_path", "register_harness",
+    "InvertedIndex", "decode_postings", "encode_postings", "index_bucket", "index_bm25_score", "index_tokenize",
+    "Hit", "SearchTier", "damerau_levenshtein", "freshness_decay", "rank_with_relevance_tail", "search_tiered", "trim_to_budget", "ladder_bm25_score", "query_tokenize",
+    "FRAME_CLOSE", "FRAME_OPEN", "FRAME_TAG", "UNTRUSTED_NOTICE", "frame_untrusted", "is_framed", "neutralize_markers",
+    "AuthorizationGate", "Decision", "RiskTier", "Rule", "pattern_matches",
+    "LedgerClosure", "LedgerError", "closure_summary",
+    "CircuitBreaker", "CircuitState", "GuardedRecovery", "RecoveryLadder",
+    "ENTRY_MAX_CHARS", "MAX_ENTRYPOINT_BYTES", "MAX_ENTRYPOINT_LINES", "MemoryIndex", "MemoryRecord", "MemoryRecordError", "MemoryType", "parse_record", "render_record", "safe_memory_path",
+    "FrontmatterError", "parse_frontmatter", "render_frontmatter", "yaml_scalar", "frontmatter_roundtrip",
+    "Composite", "Confidence", "LAYER_BLENDS", "Layer", "Signal", "confidence_from_layers", "grade_for", "score_composite",
+    "Finding", "Severity", "prune_plan", "reconcile_directories", "reconcile_registry", "summarize_findings",
+    "SCOPE_KINDS", "ScopeError", "WorkspaceLayer", "conversation_scope", "format_scope", "is_cross_scope", "is_entitled", "layered_workspace", "parse_scope", "personal_scope", "scope_key",
+])
+
+# 0.6 integration batch, wave 2: loop/knowledge state, session sync, retrieval
+# plumbing, authority and scoring primitives ported from deja-vu, harness-books,
+# claude-code-book, wshobson/agents, qm and AI-Builder-Club/skills.
+from .observation_log import LOG_PREFIX, TIMELINE_HEADING, ObservationLog, content_key
+from .completion_sentinel import DONE_SUFFIX, LEASE_SUFFIX, READY_SUFFIX, RESULT_SUFFIX, ResourceLease, SentinelTimeout, StepMarker, TurnSentinel
+from .source_refresh import MANIFEST_VERSION, FileState, ManifestCache, RefreshPlan, plan_all, plan_refresh, prefix_sample
+from .source_refresh import observe as observe_file
+from .sync_watermark import DedupeLedger, ExportBatch, PeerWatermarks, SyncExchange, export_since, imported_id, record_identity, watermark_key
+from .atomic_write import AtomicWriteError, atomic_append_line, atomic_write_bytes, atomic_write_text, prune_temp_files, unique_temp_name
+from .atomic_write import read_text as atomic_read_text
+from .tool_dialect import CANONICAL_KEYS, DEFAULT_DIALECT_NAME, DIALECTS, ToolDialect, denormalize_tool_args, dialect_for, dialects, normalize_tool_args, tool_name_for
+from .parallel_parse import DEFAULT_WORKER_CAP, ParseFailure, bounded_fanout, ordered_fanout, parse_files_parallel
+from .fork_isolation import CacheSafeSnapshot, ChildScope, ForkCoordinator, ForkError
+from .fork_isolation import Status as ForkStatus
+from .fork_isolation import canonical_digest as fork_canonical_digest
+from .instruction_layers import PRECEDENCE, InstructionFragment, InstructionStack, LayerSource, assert_no_replacement
+from .hook_engine import Hook, HookBudgetError, HookEngine, HookEvent, HookResult
+from .extraction_queue import ExtractionCoordinator, ExtractionWorker
+from .shared_board import SharedBoard, TaskNotification, WriteConflict, safe_name
+from .shared_board import Confidence as BoardConfidence
+from .projection_adapters import AdapterRegistry, Consumer, JsonAdapter, MarkdownAdapter, TomlAdapter, VALID_SEVERITIES, default_registry, emit_all, slugify
+from .projection_adapters import Finding as ProjectionFinding
+from .projection_adapters import canonical_digest as projection_canonical_digest
+from .elo_rank import DEFAULT_RATING, K_FACTOR, BootstrapCI, ConfidenceTier, EloTable, GoldCorpus, Match, bootstrap_ci, expected_score, select_references, update_ratings
+from .namespace_registry import ALLOWED_RE, MAX_NAME_LEN, SEPARATOR, NamespaceError, NamespaceRegistry, qualified, sanitize
+from .blob_store import BlobStore, BlobStoreError, digest_bytes, sha256_shard
+from .acl_store import AclError, AclStore, Grant, Membership, MembershipAcl, Permission
+from .capability_token import Capability, TokenError, b64d, b64e, canonical_bytes, capability_grants, mint_capability, verify_capability
+from .leader_lease import KeyedQueue, LeaderLease, LeaseError, Sweeper
+from .memory_revisions import MemoryRevisions, Revision, RevisionConflict, mark_untrusted, read_revision_log
+from .memory_revisions import SCHEMA_VERSION as MEMORY_REVISIONS_SCHEMA_VERSION
+from .loop_contract import Cadence, GateCondition, LoopContract, LoopRegistry, LoopStatus, kebab_case
+from .verification_ledger import DEFAULT_MARKER, SECONDS_PER_DAY, AppliedChange, FixLoop, MarkerGuard, VerificationLedger
+from .verification_ledger import LedgerError as VerificationLedgerError
+from .metrics_collector import MetricCollector, MetricError, MetricPoint, MetricReport, build_report, safe_series
+from .loop_state import LoopState, LoopStateError, LoopStateStore, Understanding
+from .lesson_cue import CueDecision, CueMatch, CueSelector, Lesson, LessonCueError, LessonJournal, LessonJournalConflict, LessonRecord
+from .lesson_cue import SCHEMA_VERSION as LESSON_CUE_SCHEMA_VERSION
+from .lesson_cue import STATUS_ACTIVE, STATUS_CANDIDATE, STATUS_RETIRED, STATUS_SUPERSEDED
+from .lesson_cue import build_lesson, cue_score, extract_lesson, match_tier, meaningful_tokens, normalize_domain
+from .domain_library import DomainLibrary, DomainLibraryError, DomainLibraryRoot, LibraryEntry, LibraryReport, domain_dir, publish_lesson, slug
+from .domain_library import SCHEMA_VERSION as DOMAIN_LIBRARY_SCHEMA_VERSION
+from .blind_select import BlindSelectError, Candidate, Contrast, Selection, SelectionTask, anonym_id, assign_ids, build_contrast, render_pool, reverse_ids, run_selection, trivial_selection, write_candidates
+from .blind_select import SCHEMA_VERSION as BLIND_SELECT_SCHEMA_VERSION
+from .budget import BudgetIdentityError, RunEntry, RunLedger, expected_rollouts, expected_sessions
+__all__.extend([
+    "LOG_PREFIX", "TIMELINE_HEADING", "ObservationLog", "content_key",
+    "DONE_SUFFIX", "LEASE_SUFFIX", "READY_SUFFIX", "RESULT_SUFFIX", "ResourceLease", "SentinelTimeout", "StepMarker", "TurnSentinel",
+    "MANIFEST_VERSION", "FileState", "ManifestCache", "RefreshPlan", "plan_all", "plan_refresh", "prefix_sample", "observe_file",
+    "DedupeLedger", "ExportBatch", "PeerWatermarks", "SyncExchange", "export_since", "imported_id", "record_identity", "watermark_key",
+    "AtomicWriteError", "atomic_append_line", "atomic_write_bytes", "atomic_write_text", "prune_temp_files", "unique_temp_name", "atomic_read_text",
+    "CANONICAL_KEYS", "DEFAULT_DIALECT_NAME", "DIALECTS", "ToolDialect", "denormalize_tool_args", "dialect_for", "dialects", "normalize_tool_args", "tool_name_for",
+    "DEFAULT_WORKER_CAP", "ParseFailure", "bounded_fanout", "ordered_fanout", "parse_files_parallel",
+    "CacheSafeSnapshot", "ChildScope", "ForkCoordinator", "ForkError", "ForkStatus", "fork_canonical_digest",
+    "PRECEDENCE", "InstructionFragment", "InstructionStack", "LayerSource", "assert_no_replacement",
+    "Hook", "HookBudgetError", "HookEngine", "HookEvent", "HookResult",
+    "ExtractionCoordinator", "ExtractionWorker",
+    "SharedBoard", "TaskNotification", "WriteConflict", "safe_name", "BoardConfidence",
+    "AdapterRegistry", "Consumer", "JsonAdapter", "MarkdownAdapter", "TomlAdapter", "VALID_SEVERITIES", "default_registry", "emit_all", "slugify", "ProjectionFinding", "projection_canonical_digest",
+    "DEFAULT_RATING", "K_FACTOR", "BootstrapCI", "ConfidenceTier", "EloTable", "GoldCorpus", "Match", "bootstrap_ci", "expected_score", "select_references", "update_ratings",
+    "ALLOWED_RE", "MAX_NAME_LEN", "SEPARATOR", "NamespaceError", "NamespaceRegistry", "qualified", "sanitize",
+    "BlobStore", "BlobStoreError", "digest_bytes", "sha256_shard",
+    "AclError", "AclStore", "Grant", "Membership", "MembershipAcl", "Permission",
+    "Capability", "TokenError", "b64d", "b64e", "canonical_bytes", "capability_grants", "mint_capability", "verify_capability",
+    "KeyedQueue", "LeaderLease", "LeaseError", "Sweeper",
+    "MemoryRevisions", "Revision", "RevisionConflict", "mark_untrusted", "read_revision_log", "MEMORY_REVISIONS_SCHEMA_VERSION",
+    "Cadence", "GateCondition", "LoopContract", "LoopRegistry", "LoopStatus", "kebab_case",
+    "DEFAULT_MARKER", "SECONDS_PER_DAY", "AppliedChange", "FixLoop", "MarkerGuard", "VerificationLedger", "VerificationLedgerError",
+    "MetricCollector", "MetricError", "MetricPoint", "MetricReport", "build_report", "safe_series",
+    "LoopState", "LoopStateError", "LoopStateStore", "Understanding",
+    "CueDecision", "CueMatch", "CueSelector", "Lesson", "LessonCueError", "LessonJournal", "LessonJournalConflict", "LessonRecord",
+    "LESSON_CUE_SCHEMA_VERSION", "STATUS_ACTIVE", "STATUS_CANDIDATE", "STATUS_RETIRED", "STATUS_SUPERSEDED",
+    "build_lesson", "cue_score", "extract_lesson", "match_tier", "meaningful_tokens", "normalize_domain",
+    "DomainLibrary", "DomainLibraryError", "DomainLibraryRoot", "LibraryEntry", "LibraryReport", "domain_dir", "publish_lesson", "slug",
+    "DOMAIN_LIBRARY_SCHEMA_VERSION",
+    "BlindSelectError", "Candidate", "Contrast", "Selection", "SelectionTask", "anonym_id", "assign_ids", "build_contrast", "render_pool", "reverse_ids", "run_selection", "trivial_selection", "write_candidates",
+    "BLIND_SELECT_SCHEMA_VERSION",
+    "BudgetIdentityError", "RunEntry", "RunLedger", "expected_rollouts", "expected_sessions",
+])
