@@ -13,6 +13,7 @@ other — on your laptop, for free.
 
 from .event_store import EventStore, project_chain
 from .memory import Memory
+from .memory import DEFAULT_SENSITIVITIES, allowed_rows, check_sensitivity
 from .coordination import Leases, Signals, Actions
 from .privacy import PrivacyFilter
 from .snapshot import export_snapshot, import_snapshot
@@ -57,6 +58,7 @@ from .evidence_projection import EVIDENCE_PROJECTION_SCHEMA, load_memory_quality
 __all__ = [
     "EventStore", "project_chain",
     "Memory",
+    "DEFAULT_SENSITIVITIES", "allowed_rows", "check_sensitivity",
     "Leases", "Signals", "Actions",
     "PrivacyFilter",
     "export_snapshot", "import_snapshot",

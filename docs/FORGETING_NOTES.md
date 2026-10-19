@@ -273,9 +273,85 @@ annotation of minimal evidence combinations per secret covers real dialogue;
 this covers four hand-written shapes. It is a regression gate, and the file
 says so in its own `note` field rather than only here.
 
-### What is honestly still open
+### Round 4: the decision about storage, made
+
+Asked to decide rather than to defer, this round records the decision and the
+reasoning in full.
+
+**Decision: do not encrypt memory at rest. Gate recall instead.**
+
+### Why not encrypt
+
+The project is local-first, on one machine. A key stored beside its own
+encrypted file is a key that any reader of the directory already has. The
+threat model this most often protects against -- "someone obtained the disk" --
+is defeated by handing them the key taped to the box.
+
+So encryption here would have bought one thing: a better line in a report. The
+previous rounds were spent establishing that a report must not claim more than
+the mechanism delivers. Adding a cipher whose key lives with the ciphertext,
+and then reporting `erasure_class: cryptographic`, would have been the single
+clearest violation of the project's own rule.
+
+`CellCipher` still exists and is still correct. It is for a deployment that
+stores its key *somewhere else*. `capability(data_root=...)` reports whether
+the key sits inside the data directory and warns when it does, so a deployment
+that has done the theatre can see that it has.
+
+### What was actually missing
+
+The real requirement was never "the file is unreadable". It was: **the agent
+must not drag my password back into someone else's context.** That is a
+question about retrieval, and retrieval was the place to put it.
+
+Before this round `Memory` had **no `sensitivity` column at all**. The project
+already had `resource_lineage.SENSITIVITIES` and `experience_reuse` with a
+deny-by-default selector -- but neither reached the memory that actually serves
+a prompt. That is the same class of gap as `ExperienceReuseSelector` never being
+called: a policy defined and never wired.
+
+### What was built
+
+`memory.py` gained `sensitivity` on `memories`, `observations` and `summaries`,
+with a migration that defaults old rows to `internal` so they keep working.
+
+- `save()`, `observe()`, `summarize()` take `sensitivity`, validated against
+  `SENSITIVITIES`. An unknown label **raises** rather than downgrading --
+  silently storing `top-secret` as `internal` would be the worst failure
+  possible, because the caller believes it was restricted.
+- `recall()` and `profile()` return only `public` and `internal` by default.
+  A caller opts in with `allowed_sensitivities=SENSITIVITIES`.
+- `()` means **nothing** is allowed. The first version of `allowed_rows`
+  treated an empty set as "no filter", which is the loosest reading of the
+  strictest request -- exactly backwards, and caught by a test.
+- `get()` by id is deliberately **ungated**: knowing the id means you already
+  have the fact. The gate is on retrieval by content, which is what turns "the
+  agent remembered" into "the agent said it out loud".
+- The filter runs **before** `_strengthen`. A suppressed row must not bump its
+  access count: that counter lives in the same file, so bumping it would tell a
+  watcher that a sensitive fact matched without ever showing the fact. A test
+  asserts the counter stays put.
+
+The password is remembered. It just cannot be served.
+
+### The one thing this does not give
+
+`sensitive` does not encrypt the bytes. Anyone who opens the database file can
+read the row. What it prevents is the row reaching an agent's context through
+the ordinary retrieval path, which is the leak this system actually produces.
+
+For bytes an adversary must not read, use `CellCipher` with the key outside the
+data directory, or full-disk encryption. Those are different tools for
+different threats, and conflating them is how a system ends up claiming both.
+
+## What is honestly still open
 
 - **A copied key defeats cryptographic erasure.** Deployment duty, per SAIHM.
+  `CellCipher.capability(data_root=...)` now reports when the key store sits
+  inside the data directory and appends a WARNING to its own limits, so a
+  deployment that has done the theatre can see that it has. Passing no
+  `data_root` reports `null`, not `false`: an unchecked store is not a store
+  proven to separate its keys.
 - **Raw storage blocks are unreachable from user space.** `VACUUM` and fsync
   reduce the window; they do not prove the platter is clean. Full-disk
   encryption plus key destruction is the real answer at that layer.

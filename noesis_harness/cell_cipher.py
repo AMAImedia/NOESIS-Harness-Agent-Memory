@@ -164,6 +164,24 @@ class KeyStore:
     def exists(self, cell_id: str) -> bool:
         return os.path.exists(self._path(cell_id))
 
+    def is_inside(self, directory: str) -> bool:
+        """Whether this key store sits inside ``directory``.
+
+        Encryption with the key stored beside the ciphertext protects against
+        nothing: whoever reads the directory reads both. This check exists so a
+        deployment can *ask* that question and have an answer, rather than have
+        a report quietly claim cryptographic erasure while handing over the key
+        with it.
+        """
+        try:
+            root = os.path.abspath(str(self.root))
+            other = os.path.abspath(str(directory))
+        except (TypeError, ValueError):
+            return False
+        if not other:
+            return False
+        return root == other or root.startswith(other.rstrip(os.sep) + os.sep)
+
     def destroy(self, cell_id: str) -> bool:
         """Overwrite the key in place, then remove it.
 
@@ -487,22 +505,64 @@ class CellCipher:
             "receipt": receipt.to_dict() if receipt else None,
         }
 
-    def capability(self) -> Dict[str, Any]:
-        """What this build can honestly claim, checked rather than asserted."""
+    def capability(self, *, data_root: str = "") -> Dict[str, Any]:
+        """What this build can do, and what this store has actually done.
+
+        Two answers, kept apart on purpose, exactly as ``forget.cipher_capability``
+        keeps them:
+
+        - ``cipher_class`` -- the RFC vectors passed here, so a cipher exists.
+        - ``erasure_class`` -- raised to *cryptographic* only when there is
+          actually a sealed cell to erase. Verified vectors with an empty key
+          store is a ready cipher and no protected data; calling that
+          cryptographic erasure would be the blanket claim ``AGENTS.md``
+          forbids.
+
+        ``data_root`` is optional. When given, the report says whether the key
+        store sits inside it, because a key beside its own ciphertext is
+        protection against nobody, and a report that skips the question is
+        complicit in it.
+        """
         report = aead_selftest()
+        vectors = bool(report.get("all_passed"))
+        # Two kinds of evidence that a cell was ever sealed: a live key, and a
+        # receipt for one that was destroyed. Counting only live keys would
+        # flip the report to access-control the moment everything had been
+        # erased -- the exact moment the cryptographic claim is most needed.
+        live = len([cid for cid in self.keystore.cell_ids() if self.keystore.exists(cid)])
+        erased = len(self.journal.receipts()) if self.journal is not None else 0
+        sealed_cells = live + erased
+        sealed = sealed_cells > 0
+        cryptographic = vectors and sealed
+        key_next_to_data: Optional[bool] = None
+        if data_root:
+            key_next_to_data = self.keystore.is_inside(data_root)
+        limits = (
+            "Key destruction makes every copy of a cell unreadable. It does "
+            "not reach a copy of the plaintext taken before sealing, and it "
+            "does not promise constant-time execution under CPython."
+        )
+        if key_next_to_data:
+            limits += (
+                " WARNING: the key store is inside the data directory, so a "
+                "reader of the data is a reader of the key. Move the keys "
+                "outside it or the erasure is access control in fact however "
+                "strong the cipher."
+            )
         return {
             "schema_version": SCHEMA_VERSION,
-            "erasure_class": ERASURE_CRYPTOGRAPHIC if report["all_passed"] else ERASURE_ACCESS_CONTROL,
+            "cipher_class": ERASURE_CRYPTOGRAPHIC if vectors else ERASURE_ACCESS_CONTROL,
+            "erasure_class": ERASURE_CRYPTOGRAPHIC if cryptographic else ERASURE_ACCESS_CONTROL,
+            "sealed": sealed,
+            "sealed_cells": sealed_cells,
             "cipher": "AEAD_CHACHA20_POLY1305",
             "reference": "RFC 8439",
             "selftest": report,
             "per_cell_keys": True,
             "stdlib_only": True,
-            "limits": (
-                "Key destruction makes every copy of a cell unreadable. It does "
-                "not reach a copy of the plaintext taken before sealing, and it "
-                "does not promise constant-time execution under CPython."
-            ),
+            "key_store_root": str(self.keystore.root),
+            "key_next_to_data": key_next_to_data,
+            "limits": limits,
         }
 
 

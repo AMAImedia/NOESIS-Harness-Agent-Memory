@@ -52,6 +52,33 @@ add the source to the module docstring and to `../RESEARCH_DAIGEST.md`.
   confirmation first.
 - End every work batch with an honest "before -> after" report in simple terms.
 
+## Storage is not encrypted (recorded 2026-10-19)
+
+Memory is stored as plaintext. A key stored beside its own ciphertext protects
+against nothing, and reporting `cryptographic` for such a setup would be the
+blanket claim this document forbids.
+
+Privacy here is a **retrieval** control instead:
+
+- `save`/`observe`/`summarize` take `sensitivity`, validated against
+  `resource_lineage.SENSITIVITIES`. An unknown label **raises**; it is never
+  downgraded.
+- `recall` and `profile` return only `public` and `internal` by default.
+  Opt in with `allowed_sensitivities=SENSITIVITIES`. An empty set means
+  **nothing** is returned, not everything.
+- `get(id)` is ungated on purpose: knowing the id means you already have it.
+- The filter runs before `_strengthen`, so a suppressed match cannot bump a
+  counter someone else can read back.
+
+What `sensitive` does not do: encrypt the bytes. For that, `CellCipher` with the
+key stored outside the data directory, or full-disk encryption. Different tools
+for different threats.
+
+**Rule:** never let `erasure_class` say `cryptographic` unless cells were
+actually sealed. Both `forget.cipher_capability` and
+`CellCipher.capability()` keep `cipher_class` (can it?) separate from
+`erasure_class` (did it?), and an empty key store is always access control.
+
 ## Integration sources (repos read, patterns ported)
 
 - deja-vu (Go), harness-books, claude-code-book, wshobson/agents, qm (TypeScript),

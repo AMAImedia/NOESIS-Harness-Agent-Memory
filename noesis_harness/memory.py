@@ -29,14 +29,62 @@ import struct
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 try:
     from .nextgen import _ManagedConnection
+    from .resource_lineage import SENSITIVITIES
 except ImportError:
     from nextgen import _ManagedConnection
+    from resource_lineage import SENSITIVITIES
 
 log = __import__("logging").getLogger(__name__)
+
+#: What recall and profile return by default.
+#:
+#: Deny-by-default, matching ``experience_reuse.ExperienceReuseSelector``: a
+#: record marked ``sensitive`` or ``restricted`` is stored and stays reachable
+#: by id, but is never served into another context unless a caller asks for it
+#: by name. That is the practical privacy control for an agent memory -- the
+#: password is remembered, but it cannot be dragged back into the prompt.
+DEFAULT_SENSITIVITIES: Tuple[str, ...] = ("public", "internal")
+
+
+def check_sensitivity(value: str) -> str:
+    """Validate a sensitivity label. Anything unknown is refused, not downgraded."""
+    label = str(value or "").strip().lower()
+    if label not in SENSITIVITIES:
+        raise ValueError(
+            "unknown_sensitivity: %r; expected one of %s"
+            % (value, ", ".join(sorted(SENSITIVITIES)))
+        )
+    return label
+
+
+def allowed_rows(
+    rows: List[Dict[str, Any]], allowed: Sequence[str]
+) -> List[Dict[str, Any]]:
+    """Drop rows whose sensitivity is outside the allowed set.
+
+    An empty allowed set returns nothing. That is the correct direction for a
+    deny-by-default gate: an explicit "allow nothing" must not be read as
+    "allow everything", because the caller who writes ``()`` is asking for the
+    strictest answer and getting the loosest one would be the worst failure
+    this function could have.
+
+    Applied before ``_strengthen`` so that a suppressed row does not get its
+    access count bumped. The counter is readable by anyone with the file, so
+    bumping it would tell a watcher that a sensitive fact was matched even
+    though it was never returned.
+    """
+    if not allowed:
+        return []
+    permitted = set(allowed)
+    return [
+        row
+        for row in rows
+        if str(row.get("sensitivity") or "internal").lower() in permitted
+    ]
 
 
 class Memory:
@@ -86,6 +134,7 @@ class Memory:
                 CREATE TABLE IF NOT EXISTS observations (
                     id TEXT PRIMARY KEY, session_id TEXT NOT NULL,
                     kind TEXT NOT NULL, content TEXT NOT NULL,
+                    sensitivity TEXT NOT NULL DEFAULT 'internal',
                     created_at REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS memories (
                     id TEXT PRIMARY KEY, kind TEXT NOT NULL,
@@ -93,11 +142,14 @@ class Memory:
                     strength REAL NOT NULL DEFAULT 1.0,
                     access_count INTEGER NOT NULL DEFAULT 0,
                     last_accessed_at REAL NOT NULL DEFAULT 0,
+                    sensitivity TEXT NOT NULL DEFAULT 'internal',
                     created_at REAL NOT NULL,
                     embedding BLOB);
                 CREATE TABLE IF NOT EXISTS summaries (
                     id TEXT PRIMARY KEY, session_id TEXT NOT NULL,
-                    text TEXT NOT NULL, created_at REAL NOT NULL);
+                    text TEXT NOT NULL,
+                    sensitivity TEXT NOT NULL DEFAULT 'internal',
+                    created_at REAL NOT NULL);
                 CREATE VIRTUAL TABLE IF NOT EXISTS mem_fts USING fts5(
                     kind, fact, content='memories', content_rowid='rowid');
                 CREATE INDEX IF NOT EXISTS idx_obs_session ON observations(session_id);
@@ -115,6 +167,21 @@ class Memory:
             cols = {r[1] for r in c.execute("PRAGMA table_info(memories)").fetchall()}
             if "embedding" not in cols:
                 c.execute("ALTER TABLE memories ADD COLUMN embedding BLOB")
+            # Sensitivity arrives as a migration, not a schema rewrite: an
+            # existing database keeps every row and every old row becomes
+            # 'internal', which is still recalled. Deny-by-default applies to
+            # what is written from here on, never silently to what was already
+            # stored -- that would erase the memory's usefulness without
+            # anyone being told.
+            for table in ("memories", "observations", "summaries"):
+                table_cols = {
+                    r[1] for r in c.execute("PRAGMA table_info(%s)" % table).fetchall()
+                }
+                if "sensitivity" not in table_cols:
+                    c.execute(
+                        "ALTER TABLE %s ADD COLUMN sensitivity "
+                        "TEXT NOT NULL DEFAULT 'internal'" % table
+                    )
 
     # ==================================================================
     # Vector Tier (optional: sentence-transformers + faiss/hnswlib/numpy)
@@ -252,30 +319,37 @@ class Memory:
     # Working / Episodic
     # ==================================================================
 
-    def observe(self, session_id, kind, content):
+    def observe(self, session_id, kind, content, sensitivity="internal"):
         if self.privacy is not None:
             content = self.privacy.scrub(content)
             if not content:
                 return ""
+        sensitivity = check_sensitivity(sensitivity)
         oid = uuid.uuid4().hex
         with self._lock, self._conn() as c:
-            c.execute("INSERT INTO observations (id, session_id, kind, content, created_at)"
-                      " VALUES (?,?,?,?,?)", (oid, session_id, kind, content, time.time()))
+            c.execute("INSERT INTO observations (id, session_id, kind, content, sensitivity, created_at)"
+                      " VALUES (?,?,?,?,?,?)", (oid, session_id, kind, content, sensitivity, time.time()))
         return oid
 
-    def summarize(self, session_id: str, text: str) -> str:
+    def summarize(self, session_id: str, text: str, sensitivity: str = "internal") -> str:
+        sensitivity = check_sensitivity(sensitivity)
         sid = uuid.uuid4().hex
         with self._lock, self._conn() as c:
-            c.execute("INSERT INTO summaries (id, session_id, text, created_at)"
-                      " VALUES (?,?,?,?)", (sid, session_id, text, time.time()))
+            c.execute("INSERT INTO summaries (id, session_id, text, sensitivity, created_at)"
+                      " VALUES (?,?,?,?,?)", (sid, session_id, text, sensitivity, time.time()))
         return sid
 
     # ==================================================================
     # Semantic / Procedural
     # ==================================================================
 
-    def save(self, fact, kind="semantic", confidence=0.5):
-        """Save a durable fact/procedure. Supersedes an identical fact."""
+    def save(self, fact, kind="semantic", confidence=0.5, sensitivity="internal"):
+        """Save a durable fact/procedure. Supersedes an identical fact.
+
+        ``sensitivity`` is validated and stored. It does not change what is
+        written -- it changes what :meth:`recall` will hand back to anyone who
+        did not name this fact directly.
+        """
         if self.privacy is not None:
             fact = self.privacy.scrub(fact)
             if not fact:
@@ -285,6 +359,7 @@ class Memory:
                 fact = self.compressor(fact) or fact
             except Exception:
                 pass
+        sensitivity = check_sensitivity(sensitivity)
         mid = uuid.uuid4().hex
         with self._lock, self._conn() as c:
             row = c.execute("SELECT id FROM memories WHERE fact=?", (fact,)).fetchone()
@@ -292,16 +367,31 @@ class Memory:
                 c.execute("UPDATE memories SET strength=MIN(2.0, strength+0.2),"
                           " access_count=access_count+1 WHERE id=?", (row["id"],))
                 return row["id"]
-            c.execute("INSERT INTO memories (id, kind, fact, confidence, strength, created_at)"
-                      " VALUES (?,?,?,?,?,?)", (mid, kind, fact, confidence, 1.0, time.time()))
+            c.execute("INSERT INTO memories (id, kind, fact, confidence, strength, "
+                      "sensitivity, created_at)"
+                      " VALUES (?,?,?,?,?,?,?)",
+                      (mid, kind, fact, confidence, 1.0, sensitivity, time.time()))
         return mid
 
-    def recall(self, query: str, limit: int = 10, kind: str = "") -> List[Dict[str, Any]]:
+    def recall(self, query: str, limit: int = 10, kind: str = "",
+               allowed_sensitivities: Sequence[str] = DEFAULT_SENSITIVITIES
+               ) -> List[Dict[str, Any]]:
         """Hybrid recall: FTS5 + optional vector RRF fusion, then substring fallback.
 
         If vector backend is available and kind is not restricted, uses RRF fusion
         of BM25 (weight 0.4) and vector cosine (weight 0.6).
         Touches strength (access strengthens), applies decay lazily on read.
+
+        ``allowed_sensitivities`` is the deny-by-default gate: records marked
+        ``sensitive`` or ``restricted`` are stored and indexed, but are not
+        returned unless the caller opts into them. The default returns only
+        ``public`` and ``internal``; pass ``SENSITIVITIES`` to see everything;
+        pass ``()`` for the strictest answer, which returns nothing at all.
+
+        The filter runs *before* ``_strengthen`` on purpose. Suppressed rows
+        must not accumulate access counts, because that counter lives in the
+        same file and a watcher could read it back as evidence that a sensitive
+        fact matched.
         """
         self.decay()
 
@@ -318,6 +408,8 @@ class Memory:
             for r in extra:
                 if r["id"] not in seen:
                     out.append(r)
+
+        out = allowed_rows(out, tuple(allowed_sensitivities or ()))
         self._strengthen(out)
         return out[:limit]
 
@@ -400,12 +492,31 @@ class Memory:
                     n += 1
         return n
 
-    def profile(self, kind: str = "semantic", limit: int = 20) -> List[Dict[str, Any]]:
+    def profile(self, kind: str = "semantic", limit: int = 20,
+                allowed_sensitivities: Sequence[str] = DEFAULT_SENSITIVITIES
+                ) -> List[Dict[str, Any]]:
+        """Widest first, under the same gate as :meth:`recall`.
+
+        ``profile`` is the "what does this agent know" view. If it returned
+        sensitive rows while ``recall`` did not, the gate would be cosmetic --
+        one method away from leaking everything the other method protects.
+        """
         with self._conn() as c:
             rows = c.execute(
                 "SELECT * FROM memories WHERE kind=? ORDER BY strength DESC, "
                 "access_count DESC LIMIT ?", (kind, limit)).fetchall()
-            return [dict(r) for r in rows]
+        return allowed_rows([dict(r) for r in rows], tuple(allowed_sensitivities or ()))
+
+    def get(self, fact_id: str) -> Optional[Dict[str, Any]]:
+        """Look up one memory by its id, across sensitivities.
+
+        Deliberately ungated: knowing the id means the caller already has the
+        fact. The gate is on retrieval by content, which is what turns "the
+        agent remembered" into "the agent said it out loud".
+        """
+        with self._conn() as c:
+            row = c.execute("SELECT * FROM memories WHERE id=?", (fact_id,)).fetchone()
+        return dict(row) if row else None
 
     # ==================================================================
     # Symbolic offload (TencentDB pattern)

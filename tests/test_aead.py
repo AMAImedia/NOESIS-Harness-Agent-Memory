@@ -32,6 +32,7 @@ from noesis_harness.aead import (
 )
 from noesis_harness.cell_cipher import (
     CELL_ERASED,
+    ERASURE_ACCESS_CONTROL,
     ERASURE_CRYPTOGRAPHIC,
     Cell,
     CellCipher,
@@ -354,17 +355,86 @@ class CryptographicErasureTests(unittest.TestCase):
         thief = CellCipher(KeyStore(stolen_keys))
         self.assertEqual(thief.open(cell), b"payload")
 
-    def test_the_capability_report_claims_the_cryptographic_class(self):
+    def test_an_empty_keystore_is_not_cryptographic_erasure(self):
+        # This test used to assert the opposite. Verified vectors with nothing
+        # sealed is a ready cipher and no protected data; calling it
+        # cryptographic erasure was the blanket claim AGENTS.md forbids.
         report = self.cipher.capability()
-        self.assertEqual(report["erasure_class"], ERASURE_CRYPTOGRAPHIC)
+        self.assertEqual(report["cipher_class"], ERASURE_CRYPTOGRAPHIC)
+        self.assertEqual(report["erasure_class"], ERASURE_ACCESS_CONTROL)
+        self.assertEqual(report["sealed_cells"], 0)
         self.assertEqual(report["cipher"], "AEAD_CHACHA20_POLY1305")
         self.assertEqual(report["reference"], "RFC 8439")
         self.assertTrue(report["selftest"]["all_passed"])
 
-    def test_the_capability_report_states_its_limits(self):
+    def test_a_sealed_cell_raises_the_erasure_class(self):
+        self.cipher.seal("c1", b"payload")
+        report = self.cipher.capability()
+        self.assertEqual(report["erasure_class"], ERASURE_CRYPTOGRAPHIC)
+        self.assertEqual(report["sealed_cells"], 1)
+        self.assertTrue(report["sealed"])
+
+    def test_the_class_survives_fully_erasing_everything(self):
+        # Counting only live keys would flip the report to access-control the
+        # moment the last cell was destroyed -- precisely when the
+        # cryptographic claim is most needed. The receipts prove it.
+        cell = self.cipher.seal("c1", b"payload")
+        self.cipher.erase(cell, actor="ann")
+        self.assertFalse(self.cipher.keystore.exists("c1"))
+        report = self.cipher.capability()
+        self.assertEqual(report["erasure_class"], ERASURE_CRYPTOGRAPHIC)
+        self.assertEqual(report["sealed_cells"], 1)
+
+    def test_the_report_states_its_limits(self):
         limits = self.cipher.capability()["limits"]
         self.assertIn("copy of the plaintext", limits)
         self.assertIn("constant-time", limits)
+
+
+class KeyLocationTests(unittest.TestCase):
+    """A key beside its own ciphertext is protection against nobody."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.data_root = os.path.join(self.directory.name, "data")
+        os.makedirs(self.data_root)
+        self.keys_inside = KeyStore(os.path.join(self.data_root, "keys"))
+        self.keys_outside = KeyStore(os.path.join(self.directory.name, "keys"))
+
+    def test_a_key_store_inside_the_data_directory_is_detected(self):
+        self.assertTrue(self.keys_inside.is_inside(self.data_root))
+        self.assertFalse(self.keys_outside.is_inside(self.data_root))
+
+    def test_the_store_inside_its_own_directory_counts_as_inside(self):
+        self.assertTrue(self.keys_inside.is_inside(self.data_root + "/keys"))
+
+    def test_a_sibling_directory_is_not_inside(self):
+        other = os.path.join(self.directory.name, "other")
+        os.makedirs(other)
+        self.assertFalse(self.keys_inside.is_inside(other))
+
+    def test_the_capability_reports_the_warning(self):
+        cipher = CellCipher(self.keys_inside)
+        report = cipher.capability(data_root=self.data_root)
+        self.assertTrue(report["key_next_to_data"])
+        self.assertIn("WARNING", report["limits"])
+
+    def test_the_capability_stays_silent_when_the_key_is_elsewhere(self):
+        cipher = CellCipher(self.keys_outside)
+        report = cipher.capability(data_root=self.data_root)
+        self.assertFalse(report["key_next_to_data"])
+        self.assertNotIn("WARNING", report["limits"])
+
+    def test_no_data_root_is_reported_as_unknown_not_safe(self):
+        # Absent evidence must not read as favourable evidence. An unchecked
+        # store is not a store proven to separate its keys.
+        cipher = CellCipher(self.keys_inside)
+        self.assertIsNone(cipher.capability()["key_next_to_data"])
+
+    def test_a_root_passed_as_none_is_still_unknown(self):
+        cipher = CellCipher(self.keys_inside)
+        self.assertIsNone(cipher.capability(data_root=None)["key_next_to_data"])
 
 
 class RefusalTests(unittest.TestCase):
