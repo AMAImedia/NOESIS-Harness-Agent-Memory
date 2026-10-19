@@ -180,18 +180,24 @@ class BackupDeclarationTests(unittest.TestCase):
 
 
 class CapabilityTests(unittest.TestCase):
-    def test_the_cipher_reports_the_cryptographic_class(self):
+    def test_the_cipher_is_ready_but_nothing_sealed_yet(self):
         capability = cipher_capability()
         self.assertTrue(capability.symmetric_cipher_available)
         self.assertTrue(capability.aead_available)
         self.assertTrue(capability.selftest_passed)
+        self.assertEqual(capability.cipher_class, "cryptographic")
+        self.assertEqual(capability.erasure_class, "access_control")
+
+    def test_sealed_cells_are_what_lift_the_class(self):
+        capability = cipher_capability(sealed_cells=3)
         self.assertEqual(capability.erasure_class, "cryptographic")
+        self.assertEqual(capability.sealed_cells, 3)
 
     def test_the_report_names_the_cipher_and_the_spec(self):
         report = cipher_capability().to_dict()
         self.assertEqual(report["cipher"], "AEAD_CHACHA20_POLY1305")
         self.assertIn("RFC 8439", report["note"])
-        self.assertFalse(report["logical_erasure_only"])
+        self.assertTrue(report["logical_erasure_only"])
 
     def test_the_note_does_not_claim_more_than_the_mechanism(self):
         note = cipher_capability().to_dict()["note"]

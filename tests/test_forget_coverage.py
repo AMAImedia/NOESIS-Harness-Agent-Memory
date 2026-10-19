@@ -398,19 +398,37 @@ class CipherBoundaryTests(unittest.TestCase):
     before the capability report may say "cryptographic".
     """
 
-    def test_the_capability_report_names_cryptographic_erasure(self):
+    def test_the_cipher_is_available_but_no_erasure_class_is_claimed_yet(self):
+        # The two answers the report now keeps apart. The cipher is ready; a
+        # store that has sealed nothing is not cryptographically erased, and
+        # saying it was would be the blanket claim AGENTS.md forbids.
         capability = cipher_capability()
         self.assertTrue(capability.kdf_available)
         self.assertTrue(capability.selftest_passed)
+        self.assertEqual(capability.cipher_class, "cryptographic")
+        self.assertEqual(capability.erasure_class, "access_control")
+        self.assertEqual(capability.sealed_cells, 0)
+        self.assertTrue(capability.to_dict()["logical_erasure_only"])
+
+    def test_sealed_cells_raise_the_erasure_class(self):
+        # Only evidence of sealing may raise the class, and only cells that
+        # exist count.
+        capability = cipher_capability(sealed_cells=5)
+        self.assertEqual(capability.cipher_class, "cryptographic")
         self.assertEqual(capability.erasure_class, "cryptographic")
+        self.assertTrue(capability.sealed)
         self.assertFalse(capability.to_dict()["logical_erasure_only"])
+
+    def test_an_empty_sealed_count_is_not_evidence_of_sealing(self):
+        capability = cipher_capability(sealed_cells=0, sealed=True)
+        self.assertEqual(capability.erasure_class, "access_control")
 
     def test_the_report_names_the_cipher_and_the_specification(self):
         report = cipher_capability().to_dict()
         self.assertEqual(report["cipher"], "AEAD_CHACHA20_POLY1305")
         self.assertIn("RFC 8439", report["note"])
 
-    def test_the_report_still_distinguishes_a_sealed_store_from_an_unsealed_one(self):
+    def test_the_note_does_not_claim_more_than_the_mechanism(self):
         # The class is reachable, but a deployment that never sealed anything
         # is still only access-control erased. The note has to say so, or the
         # capability report becomes a blanket claim.

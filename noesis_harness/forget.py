@@ -1231,29 +1231,35 @@ def scan_raw_bytes(paths: Sequence[str], needle: str) -> Dict[str, Any]:
 # --------------------------------------------------------------------------
 
 
-class CellCipherUnavailable(RuntimeError):
-    """Raised when true cryptographic erasure is demanded but is not possible."""
-
-
 @dataclass(frozen=True)
 class CipherCapability:
-    """What this build can and cannot do about irrecoverable erasure.
+    """What this build can do, and what it has actually done.
 
     SAIHM defines two erasure classes. Cryptographic erasure destroys the
     wrapping key, after which the ciphertext is unreadable by anyone including
     the operator. Access-control erasure only withdraws access.
 
-    This build implements ChaCha20-Poly1305 in the standard library (see
-    ``aead.py``), verified against the RFC 8439 vectors, so the cryptographic
-    class is reachable. Whether a *deployment* actually reaches it depends on
-    whether it seals cells at all -- a store that never called ``CellCipher``
-    is still only access-control erased. The report says which.
+    Two separate answers, deliberately kept apart:
+
+    - ``cipher_class`` -- whether a cipher exists at all here. Raised only
+      after the RFC 8439 vectors pass on this interpreter.
+    - ``erasure_class`` -- what a store has actually done. ``cell_cipher.py``
+      exists and is verified, but a store that never called ``CellCipher`` has
+      only swept rows, and sweeping rows is access control however good the
+      cipher sitting unused beside it.
+
+    Collapsing these into one field would let an unused cipher make a database
+    deletion claim cryptographic erasure. ``AGENTS.md`` forbids exactly that,
+    so the report cannot express it.
     """
 
     kdf_available: bool = True
     symmetric_cipher_available: bool = False
     aead_available: bool = False
+    cipher_class: str = "access_control"
     erasure_class: str = "access_control"
+    sealed: bool = False
+    sealed_cells: int = 0
     stdlib_only: bool = True
     cipher: str = ""
     selftest_passed: bool = False
@@ -1263,23 +1269,34 @@ class CipherCapability:
             "kdf_available": self.kdf_available,
             "symmetric_cipher_available": self.symmetric_cipher_available,
             "aead_available": self.aead_available,
+            "cipher_class": self.cipher_class,
             "erasure_class": self.erasure_class,
+            "sealed": self.sealed,
+            "sealed_cells": self.sealed_cells,
             "stdlib_only": self.stdlib_only,
             "cipher": self.cipher,
             "selftest_passed": self.selftest_passed,
-            "logical_erasure_only": not self.symmetric_cipher_available,
+            "logical_erasure_only": self.erasure_class != "cryptographic",
             "note": (
                 "ChaCha20-Poly1305 is implemented in aead.py from RFC 8439 and "
                 "checked against every published test vector. A store that "
                 "seals cells under per-cell keys (cell_cipher.py) can therefore "
                 "perform cryptographic erasure. A store that does not is only "
-                "access-control erased, however clean its residue report."
+                "access-control erased, however clean its residue report and "
+                "however ready the unused cipher beside it."
             ),
         }
 
 
-def cipher_capability() -> CipherCapability:
-    """Run the cipher's own vectors and report what this build can claim."""
+def cipher_capability(
+    *, sealed_cells: int = 0, sealed: Optional[bool] = None
+) -> CipherCapability:
+    """Report cipher readiness and, separately, whether anything is sealed.
+
+    ``sealed_cells`` is the only thing that raises ``erasure_class``. Passing
+    nothing reports access-control, because the default state of a store that
+    has not been asked to seal anything is *not sealed*, not *sealed*.
+    """
     try:
         from .aead import selftest
     except ImportError:  # pragma: no cover - direct script import
@@ -1287,11 +1304,17 @@ def cipher_capability() -> CipherCapability:
 
     report = selftest()
     passed = bool(report.get("all_passed"))
+    count = int(sealed_cells)
+    is_sealed = bool(sealed) if sealed is not None else count > 0
+    cryptographic = passed and is_sealed and count > 0
     return CipherCapability(
         kdf_available=bool(getattr(hashlib, "scrypt", None)),
         symmetric_cipher_available=passed,
         aead_available=passed,
-        erasure_class="cryptographic" if passed else "access_control",
+        cipher_class="cryptographic" if passed else "access_control",
+        erasure_class="cryptographic" if cryptographic else "access_control",
+        sealed=is_sealed and count > 0,
+        sealed_cells=count,
         cipher=str(report.get("algorithm") or ""),
         selftest_passed=passed,
     )
@@ -1641,8 +1664,6 @@ def sweep(root: Any, phrase: str, **kwargs: Any) -> Dict[str, Any]:
 
 
 __all__ = [
-    "CellCipher",
-    "CellCipherUnavailable",
     "CipherCapability",
     "ERASED_BODY",
     "ERASED_MARKER",
@@ -1664,8 +1685,11 @@ __all__ = [
     "canonical",
     "cipher_capability",
     "content_digest",
+    "fsync_paths",
     "harden_sqlite",
     "normalize",
     "scan_raw_bytes",
+    "scrub_sidecars",
+    "sqlite_sidecars",
     "sweep",
 ]

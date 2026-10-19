@@ -30,6 +30,27 @@ node_modules/
 *.sqlite-shm
 *.sqlite-wal
 
+# Key material. Never commit a key: a key in git history is a key every
+# clone has, and there is no deleting it without rewriting history.
+# cell_cipher.KeyStore writes one file per cell under a directory of this shape.
+*.key
+*.keystore
+keys/
+keystore/
+*.key.erasing
+*.pem
+*.pfx
+*.p12
+# atomic_write and KeyStore both leave `<name>.<something>.tmp` briefly; a
+# temporary key is still a key.
+*.key.*.tmp
+receipts.jsonl.erasure-list
+# The one tracked exception: a self-signed dev certificate used by the test
+# suite. It contains no private key that opens anything, and it predates this
+# rule. Whitelisting it explicitly so the rule stays honest about its own
+# history rather than quietly matching a file already in git.
+!noesis-test-cert.pfx
+
 # Local downloaded/build runtimes and generated benchmark outputs
 runtime/
 benchmark_contracts.json

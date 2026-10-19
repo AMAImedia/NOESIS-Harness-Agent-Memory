@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 import tempfile
 
@@ -150,6 +151,84 @@ def _reconstruction_probe(memory, parts, minimal):
 #: Which case number the evidence-trail scenario uses. Fixed so the scenario
 #: is reproducible and its planted text is stable across runs.
 TRAIL_CASE_NN = 7
+
+
+def _run_crypto_erasure(spec, acceptance):
+    """Prove the sealed path reaches zero residue after key destruction.
+
+    Separate from the row sweep on purpose. A swept row is access-control
+    erasure; a sealed cell whose key is destroyed is cryptographic erasure, and
+    those two are different claims that must not be reported as one. This half
+    also verifies the check the row sweep cannot make: that the ciphertext
+    still on disk does not open once its key is gone.
+    """
+    from noesis_harness.aead import AuthenticationError, selftest as aead_selftest
+    from noesis_harness.cell_cipher import (
+        Cell,
+        CellCipher,
+        CellCipherError,
+        KeyDestroyed,
+        KeyStore,
+    )
+
+    vector_report = aead_selftest()
+    if not vector_report["all_passed"]:
+        return {
+            "cipher_vectors_passed": False,
+            "failed_vectors": [k for k, v in vector_report["checks"].items() if not v],
+            "sealed_cells": 0,
+            "ciphertext_stays_after_erasure": False,
+            "key_destroyed_opens": False,
+            "cryptographic": False,
+            "passed": False,
+            "reason": "RFC 8439 vectors failed; refusing to claim a class",
+        }
+
+    secret = "sk-CRYPTO42"
+    tmp = tempfile.mkdtemp(prefix="noesis_f20c_")
+    try:
+        cipher = CellCipher(
+            KeyStore(os.path.join(tmp, "keys")), receipt_path=os.path.join(tmp, "r.jsonl")
+        )
+        cell = cipher.seal("cell-1", ("the key is " + secret).encode("utf-8"))
+        # A copy the adversary took before the erasure.
+        stolen = cell.sealed
+        read_before = cipher.open(cell)
+
+        receipt = cipher.erase(cell, actor="operator:bench", reason="user_request")
+
+        opens_after = False
+        try:
+            cipher.open(cell)
+            opens_after = True
+        except (KeyDestroyed, AuthenticationError, CellCipherError):
+            opens_after = False
+
+        # Rebuild a cell purely from the stolen bytes: no key, no access.
+        rebuilt = Cell(cell_id="cell-1", sealed=stolen, nonce=cell.nonce, aad=cell.aad)
+        reconstructed_opens = cipher.can_open(rebuilt)
+
+        receipt_has_secret = secret in str(receipt.to_dict())
+        return {
+            "cipher_vectors_passed": True,
+            "failed_vectors": [],
+            "sealed_cells": 1,
+            "ciphertext_stays_after_erasure": bool(receipt.ciphertext_size),
+            "key_destroyed_opens": opens_after,
+            "stolen_ciphertext_opens": reconstructed_opens,
+            "plaintext_readable_before_erasure": read_before != b"",
+            "receipt_has_secret": receipt_has_secret,
+            "cryptographic": bool(receipt.cryptographic),
+            "passed": bool(
+                not opens_after
+                and not reconstructed_opens
+                and not receipt_has_secret
+                and receipt.cryptographic
+                and read_before != b""
+            ),
+        }
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def _trail_scenarios(spec, nn):
@@ -304,6 +383,7 @@ def run(path=None):
 
     n = len(spec["cases"])
     trail = _run_trail(spec, acceptance)
+    crypto = _run_crypto_erasure(spec, acceptance)
     return {
         "schema_version": spec["schema_version"],
         "hit": hit,
@@ -314,6 +394,7 @@ def run(path=None):
         "worst_hidden_risk": round(worst_hidden_risk, 4),
         "acceptance": acceptance,
         "evidence_trail": trail,
+        "cryptographic_erasure": crypto,
         "passed": bool(
             n
             and hit / float(n) >= acceptance["forget_rate"]
@@ -322,6 +403,7 @@ def run(path=None):
             and worst_hidden_risk <= acceptance["hidden_risk_max"]
             and trail["compound_reconstruction"] <= acceptance["compound_reconstruction_max"]
             and trail["passed"]
+            and crypto["passed"]
         ),
         "rows": rows,
     }
@@ -363,6 +445,18 @@ if __name__ == "__main__":
         % (
             trail["single_predicate_reconstructs"],
             trail["compound_predicate_reconstructs"],
+        )
+    )
+    crypto = out["cryptographic_erasure"]
+    print(
+        "  cryptographic: vectors=%s sealed=%s key_destroyed_opens=%s "
+        "stolen_ciphertext_opens=%s class=%s"
+        % (
+            crypto["cipher_vectors_passed"],
+            crypto["sealed_cells"],
+            crypto["key_destroyed_opens"],
+            crypto.get("stolen_ciphertext_opens", False),
+            "cryptographic" if crypto["cryptographic"] else "access_control",
         )
     )
     print("PASS" if out["passed"] else "FAIL")
