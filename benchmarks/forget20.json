@@ -1,0 +1,43 @@
+{
+  "schema_version": "noesis.forget20.v1",
+  "note": "Deterministic erasure bench. Each case plants a secret across several stores, asks for it to be forgotten, then measures what is still extractable. Cases mirror the failure modes reported by Bemula (arXiv 2610.18052), MemCut (arXiv 2610.21405) and Deployment-Time Memorization (arXiv 2606.10062). No LLM, no network.",
+  "plant": "the key is sk-CASE{nn}-ALPHA and the owner is case-{nn}",
+  "query": "sk-CASE{nn}",
+  "bystander": "routine note {nn} about nothing in particular",
+  "cases": [
+    {"id": 1, "secret": "the key is sk-CASE01-ALPHA", "stores": ["memory"]},
+    {"id": 2, "secret": "the key is sk-CASE02-ALPHA", "stores": ["memory", "observation"]},
+    {"id": 3, "secret": "the key is sk-CASE03-ALPHA", "stores": ["memory", "summary"]},
+    {"id": 4, "secret": "the key is sk-CASE04-ALPHA", "stores": ["memory", "graph"]},
+    {"id": 5, "secret": "the key is sk-CASE05-ALPHA", "stores": ["memory", "observation", "summary", "graph"]},
+    {"id": 6, "secret": "the key is sk-CASE06-ALPHA", "stores": ["memory"], "variant": "upper"},
+    {"id": 7, "secret": "the key is sk-CASE07-ALPHA", "stores": ["memory"], "variant": "hyphenless"},
+    {"id": 8, "secret": "the key is sk-CASE08-ALPHA", "stores": ["memory"], "variant": "spaced"},
+    {"id": 9, "secret": "the key is sk-CASE09-ALPHA", "stores": ["memory", "observation"], "variant": "paraphrase"},
+    {"id": 10, "secret": "the key is sk-CASE10-ALPHA", "stores": ["memory", "summary", "graph"], "variant": "paraphrase"},
+    {"id": 11, "secret": "the key is sk-CASE11-ALPHA", "stores": ["memory"]},
+    {"id": 12, "secret": "the key is sk-CASE12-ALPHA", "stores": ["memory", "observation"]},
+    {"id": 13, "secret": "the key is sk-CASE13-ALPHA", "stores": ["memory", "summary"]},
+    {"id": 14, "secret": "the key is sk-CASE14-ALPHA", "stores": ["memory", "graph"]},
+    {"id": 15, "secret": "the key is sk-CASE15-ALPHA", "stores": ["memory", "observation", "summary", "graph"]},
+    {"id": 16, "secret": "the key is sk-CASE16-ALPHA", "stores": ["memory"], "variant": "hyphenless"},
+    {"id": 17, "secret": "the key is sk-CASE17-ALPHA", "stores": ["memory", "observation"], "variant": "paraphrase"},
+    {"id": 18, "secret": "the key is sk-CASE18-ALPHA", "stores": ["memory", "summary", "graph"], "variant": "paraphrase"},
+    {"id": 19, "secret": "the key is sk-CASE19-ALPHA", "stores": ["memory", "observation", "summary"]},
+    {"id": 20, "secret": "the key is sk-CASE20-ALPHA", "stores": ["memory", "observation", "summary", "graph"], "variant": "spaced"}
+  ],
+  "variant_forms": {
+    "upper": "THE KEY IS SK-CASE{nn}-ALPHA",
+    "hyphenless": "the key is sk CASE{nn} ALPHA",
+    "spaced": "the  key   is   sk CASE{nn}   ALPHA",
+    "paraphrase": "credential sk-CASE{nn}-ALPHA was rotated last week"
+  },
+  "bystander_stores": ["memory"],
+  "acceptance": {
+    "forget_rate": 1.0,
+    "residue_max": 0.0,
+    "hidden_risk_max": 0.0,
+    "preservation_min": 1.0,
+    "receipt_completeness": 1.0
+  }
+}

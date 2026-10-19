@@ -16,8 +16,17 @@ Instructions for AI coding agents working in this repo.
 4. **Idempotency on every write path** — `event_id` fingerprints, content dedup,
    TTL leases. A double-send must be a no-op, not a duplicate.
 5. **Never delete files** — move to `_archive/<name>_<date>` instead.
+   **Sole exception, added 2026-10-19: erasure demanded by law.** When a user
+   or a regulator requires personal data to be erased, archiving it is not
+   compliance — it is the opposite. `noesis_harness/forget.py` is the only
+   sanctioned deletion path. It is required to leave evidence that is *not*
+   the erased content: a tombstone saying what was erased, when, and on whose
+   request, plus a public receipt list, so the deletion is provable without the
+   data being recoverable. Never add a second deletion path, and never make
+   erasure reach outside the coverage `forget.py` defines.
 6. **Tests with every change** — `python -m unittest discover -s tests -q` must
-   stay green (67+). Also `python benchmarks/recall20.py`. No external test deps.
+   stay green (67+). Also `python benchmarks/recall20.py` and
+   `python benchmarks/forget20.py`. No external test deps.
 
 ## Style
 
@@ -49,3 +58,25 @@ add the source to the module docstring and to `../RESEARCH_DAIGEST.md`.
   AI-Builder-Club/skills. Research copies live in `../_research_2026-08/`.
   Ported modules are clean-room reimplementations, never vendored code.
   See `docs/SESSION_INDEX_AND_GOVERNANCE.md` and `docs/third_party_provenance.json`.
+- harness2 (Google, Apache-2.0, arXiv 2610.14224), added 2026-10-19: cue/lesson/
+  evidence triple, per-domain adopted-artifact libraries, anonymised selection,
+  before/after contrast, run-identity budget ledger. Port notes:
+  `docs/HARNESS2_PORT_NOTES.md`.
+
+## Known gap: forgetting (recorded 2026-10-19)
+
+The field moved while this repo was idle. Four recent results:
+
+- **Bemula** (arXiv 2610.18052): no evaluated memory system passes more than
+  1.5% of forget requests end to end.
+- **MemCut** (2610.21405): deleting a narrow selection leaves 39-76% residual
+  recovery; broad cut beats precise selection.
+- **Deployment-Time Memorization** (2606.10062): derived copies stay
+  recoverable in ~20% of cases; only a full-pipeline purge or tombstone
+  reaches zero residue.
+- **SAIHM** (IETF draft, 2026-10-11): erasure needs a receipt in a public log
+  and a public list of erased ids.
+
+So forgetting is a *measured* property, not a claim. `forget.py` must be able
+to report what is still extractable after erasure, and `benchmarks/forget20.py`
+must fail when it cannot.

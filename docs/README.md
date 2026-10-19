@@ -23,6 +23,8 @@ below is the curated minimum needed to operate and extend the project.
 | [MODEL_TASK_SANDBOX_DESIGN.md](MODEL_TASK_SANDBOX_DESIGN.md) | Model-task sandbox, proxy-jail and AppContainer design. |
 | [NATIVE_PACKAGING_RUNBOOK.md](NATIVE_PACKAGING_RUNBOOK.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |
 | [SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md) | 0.6 integration batch: 36 session-index/retrieval/governance modules and their upstream provenance. |
+| [HARNESS2_PORT_NOTES.md](HARNESS2_PORT_NOTES.md) | Cue-addressed lessons, per-domain libraries, anonymised selection, before/after contrast, run-identity ledger — ported clean-room from Harness2 (Apache-2.0). |
+| [FORGETING_NOTES.md](FORGETING_NOTES.md) | Erasure that can be proven: `forget.py`, the `forget20` bench, and what it still does not solve. |
 | [third_party_provenance.json](third_party_provenance.json) | Machine-readable upstream reference/license/provenance manifest. |
 
 ## 0.6 integration batch
