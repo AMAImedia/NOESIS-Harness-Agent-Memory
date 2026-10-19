@@ -222,7 +222,7 @@ from .domain_library import SCHEMA_VERSION as DOMAIN_LIBRARY_SCHEMA_VERSION
 from .blind_select import BlindSelectError, Candidate, Contrast, Selection, SelectionTask, anonym_id, assign_ids, build_contrast, render_pool, reverse_ids, run_selection, trivial_selection, write_candidates
 from .blind_select import SCHEMA_VERSION as BLIND_SELECT_SCHEMA_VERSION
 from .budget import BudgetIdentityError, RunEntry, RunLedger, expected_rollouts, expected_sessions
-from .forget import ERASED_MARKER, REASONS, REASON_LEGAL_REQUEST, REASON_RETENTION, REASON_USER_REQUEST, ForgetError, ForgetReceipt, Forger, Predicate, ReceiptLog, ResidueReport, StoreResult, build_predicate, content_digest, normalize, sweep as forget_sweep
+from .forget import ERASED_MARKER, REASONS, REASON_LEGAL_REQUEST, REASON_RETENTION, REASON_USER_REQUEST, CellCipher, CellCipherUnavailable, CipherCapability, ForgetError, ForgetReceipt, Forger, Predicate, ReceiptLog, ResidueReport, StoreResult, build_predicate, cipher_capability, content_digest, harden_sqlite, normalize, scan_raw_bytes, sweep as forget_sweep
 from .forget import SCHEMA_VERSION as FORGET_SCHEMA_VERSION
 __all__.extend([
     "LOG_PREFIX", "TIMELINE_HEADING", "ObservationLog", "content_key",
@@ -260,4 +260,6 @@ __all__.extend([
     "ERASED_MARKER", "REASONS", "REASON_LEGAL_REQUEST", "REASON_RETENTION", "REASON_USER_REQUEST",
     "ForgetError", "ForgetReceipt", "Forger", "Predicate", "ReceiptLog", "ResidueReport", "StoreResult",
     "build_predicate", "content_digest", "normalize", "forget_sweep", "FORGET_SCHEMA_VERSION",
+    "CellCipher", "CellCipherUnavailable", "CipherCapability", "cipher_capability",
+    "harden_sqlite", "scan_raw_bytes",
 ])

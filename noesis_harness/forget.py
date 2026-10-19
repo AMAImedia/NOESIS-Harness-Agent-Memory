@@ -50,6 +50,7 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import time
 import uuid
 from dataclasses import dataclass, field, replace
@@ -81,8 +82,20 @@ STORE_OBSERVATIONS = "observations"
 STORE_SUMMARIES = "summaries"
 STORE_GRAPH = "graph"
 STORE_LESSONS = "lessons"
+STORE_SKILLS = "skills"
+STORE_LIBRARY = "library"
+STORE_PROMOTION = "promotion"
 
-STORES = (STORE_MEMORY, STORE_OBSERVATIONS, STORE_SUMMARIES, STORE_GRAPH, STORE_LESSONS)
+STORES = (
+    STORE_MEMORY,
+    STORE_OBSERVATIONS,
+    STORE_SUMMARIES,
+    STORE_GRAPH,
+    STORE_LESSONS,
+    STORE_SKILLS,
+    STORE_LIBRARY,
+    STORE_PROMOTION,
+)
 
 ERASURE_TABLE = "noesis_erasure_receipts"
 
@@ -256,10 +269,14 @@ def build_predicate(
     if not str(text or "").strip():
         raise ForgetError("predicate_text_required")
     raw_tokens = list(tokenize(normalize(text)))
-    for token in extra_tokens:
-        token = str(token or "").strip()
-        if token and token not in raw_tokens:
-            raw_tokens.append(token)
+    for extra in extra_tokens:
+        # Each extra is tokenized, not taken whole. An extra written as a
+        # phrase ("holder Ada Lovelace") is a phrase, and storing it as one
+        # token would make it match nothing, so the widening would silently
+        # do nothing at all -- the worst kind of failure in an erasure.
+        for token in tokenize(normalize(str(extra or ""))):
+            if token not in raw_tokens:
+                raw_tokens.append(token)
     if not raw_tokens:
         raise ForgetError("predicate_has_no_searchable_tokens")
     tokens = raw_tokens if reveal_tokens else [_digest_token(token) for token in raw_tokens]
@@ -740,6 +757,482 @@ class _LessonStore(_Store):
 
 
 # --------------------------------------------------------------------------
+# filesystem and sqlite-backed stores
+# --------------------------------------------------------------------------
+
+
+class _FileStore(_Store):
+    """Shared behaviour for stores that are directories of text files.
+
+    Erasure here is a rewrite, not a removal: the file keeps its name and a
+    tombstone body, so a reader can still see that something was there and
+    when it went, while the content is gone. Removing the file outright would
+    also delete the evidence, which is the opposite of what an erasure receipt
+    needs.
+    """
+
+    name = ""
+
+    def __init__(self, root: Any) -> None:
+        self.root = root
+
+    def available(self) -> bool:
+        return self.root is not None
+
+    def _files(self):
+        raise NotImplementedError
+
+    def _rewrite(self, path: Any, predicate: Predicate) -> None:
+        raise NotImplementedError
+
+    def sweep(self, predicate: Predicate) -> Tuple[int, int, str]:
+        try:
+            matched = 0
+            rewritten = 0
+            for path, body in self._files():
+                if not predicate.matches(body):
+                    continue
+                matched += 1
+                self._rewrite(path, predicate)
+                rewritten += 1
+            return matched, rewritten, ""
+        except Exception as exc:
+            return 0, 0, "%s: %s" % (type(exc).__name__, exc)
+
+    def survivors(self, predicate: Predicate) -> List[str]:
+        try:
+            return [str(path) for path, body in self._files() if predicate.matches(body)]
+        except Exception:
+            return []
+
+
+class _SkillStore(_FileStore):
+    """Installed skill content, across *every* version on disk.
+
+    Sweeping only the active version would be the obvious bug here: a rollback
+    target still carries the content, so a secret in a superseded skill would
+    survive an erasure that reported itself complete.
+    """
+
+    name = STORE_SKILLS
+
+    def _files(self):
+        root = getattr(self.root, "root", None)
+        if root is None:
+            return
+        for path in sorted(root.rglob("*")):
+            if not path.is_file() or "__pycache__" in path.parts:
+                continue
+            if path.name in ("active.json", "ACTIVE", "ACTIVE.next"):
+                continue  # pointers hold ids and digests, never content
+            try:
+                yield path, path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+
+    def _rewrite(self, path, predicate):
+        body = ERASED_BODY % content_digest(
+            " ".join(str(t) for t in predicate.tokens if not str(t).startswith(_DIGEST_PREFIX))
+            or "erased"
+        )
+        temporary = path.with_name(path.name + ".erasing")
+        temporary.write_text(body, encoding="utf-8")
+        os.replace(str(temporary), str(path))
+
+
+class _LibraryStore(_Store):
+    """Adopted artifacts in a domain library.
+
+    The library keeps full artifact trees, so a secret planted in an adopted
+    document is still readable long after the lesson that referenced it was
+    superseded. Entry metadata is tombstoned and the index is rebuilt, so a
+    later reader cannot be handed the content by following a stale pointer.
+    """
+
+    name = STORE_LIBRARY
+
+    def __init__(self, library: Any) -> None:
+        self.library = library
+
+    def available(self) -> bool:
+        return self.library is not None
+
+    def _files(self):
+        directory = getattr(self.library, "dir", None)
+        if directory is None or not directory.is_dir():
+            return
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file():
+                continue
+            try:
+                yield path, path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+
+    def sweep(self, predicate: Predicate) -> Tuple[int, int, str]:
+        matched = 0
+        rewritten = 0
+        try:
+            for path, body in self._files():
+                if not predicate.matches(body):
+                    continue
+                matched += 1
+                if path.name == "INDEX.md":
+                    # The index is a navigation aid over the entries, not a
+                    # record; it is regenerated from them below. Rewriting it
+                    # to a tombstone would just be overwritten.
+                    continue
+                if path.name == "entry.json":
+                    # The entry is structured data. It must stay parseable, or
+                    # rebuild_index() cannot see the entry at all and the
+                    # library silently reports itself empty -- which is how a
+                    # tombstoned entry becomes an entry that looks like it
+                    # never existed.
+                    self._tombstone_entry(path, body, predicate)
+                    rewritten += 1
+                    continue
+                temporary = path.with_name(path.name + ".erasing")
+                temporary.write_text(ERASED_BODY % content_digest(body), encoding="utf-8")
+                os.replace(str(temporary), str(path))
+                rewritten += 1
+            rebuild = getattr(self.library, "rebuild_index", None)
+            if callable(rebuild):
+                rebuild()
+            return matched, rewritten, ""
+        except Exception as exc:
+            return matched, rewritten, "%s: %s" % (type(exc).__name__, exc)
+
+    @staticmethod
+    def _tombstone_entry(path, body, predicate) -> None:
+        """Blank an entry's text fields while keeping its structure and id."""
+        try:
+            payload = json.loads(body)
+        except ValueError:
+            payload = {}
+        payload["cue"] = ERASED_MARKER
+        payload["why"] = ERASED_MARKER
+        payload["artifacts"] = []
+        if isinstance(payload.get("lesson"), dict):
+            payload["lesson"] = None
+        payload["erased"] = True
+        payload["erasure_digest"] = content_digest(body)
+        temporary = path.with_name(path.name + ".erasing")
+        temporary.write_text(canonical(payload), encoding="utf-8")
+        os.replace(str(temporary), str(path))
+
+    def survivors(self, predicate: Predicate) -> List[str]:
+        out: List[str] = []
+        try:
+            for path, body in self._files():
+                if predicate.matches(body) and ERASED_MARKER not in body:
+                    out.append(str(path))
+        except Exception:
+            pass
+        return out
+
+
+class _PromotionStore(_Store):
+    """The promotion state database.
+
+    Every governance row stores its payload as one JSON blob in a
+    ``record_json`` column, so the sweep reads and rewrites the column rather
+    than trying to address individual fields inside it. Rewriting to a
+    tombstone keeps the row, its id and its signed-receipt linkage intact --
+    which matters, because a promotion receipt that vanished would be
+    indistinguishable from one that never happened.
+    """
+
+    name = STORE_PROMOTION
+
+    #: Tables whose payload column can carry user content.
+    PAYLOAD_TABLES = (
+        ("promotion_receipts", "receipt_id", "record_json"),
+        ("promotion_evaluations", "evaluation_id", "record_json"),
+        ("promotion_proposals", "proposal_id", "record_json"),
+        ("promotion_activation_journal", "proposal_id", "record_json"),
+    )
+
+    def __init__(self, state: Any) -> None:
+        self.state = state
+
+    def available(self) -> bool:
+        return self.state is not None
+
+    def _connect(self):
+        return self.state._connect()
+
+    def _existing(self):
+        with self._connect() as db:
+            names = {
+                str(row[0])
+                for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            }
+        return [t for t in self.PAYLOAD_TABLES if t[0] in names]
+
+    def sweep(self, predicate: Predicate) -> Tuple[int, int, str]:
+        try:
+            matched = 0
+            rewritten = 0
+            for table, id_column, payload_column in self._existing():
+                with self._connect() as db:
+                    rows = db.execute(
+                        "SELECT %s AS rid, %s AS body FROM %s" % (id_column, payload_column, table)
+                    ).fetchall()
+                for row in rows:
+                    body = str(row["body"] or "")
+                    if not predicate.matches(body):
+                        continue
+                    matched += 1
+                    tombstone = canonical(
+                        {"erased": True, "digest": content_digest(body), "id": str(row["rid"])}
+                    )
+                    with self._connect() as db:
+                        db.execute(
+                            "UPDATE %s SET %s=? WHERE %s=?" % (table, payload_column, id_column),
+                            (tombstone, str(row["rid"])),
+                        )
+                    rewritten += 1
+            return matched, rewritten, ""
+        except Exception as exc:
+            return 0, 0, "%s: %s" % (type(exc).__name__, exc)
+
+    def survivors(self, predicate: Predicate) -> List[str]:
+        out: List[str] = []
+        try:
+            for table, id_column, payload_column in self._existing():
+                with self._connect() as db:
+                    rows = db.execute(
+                        "SELECT %s AS rid, %s AS body FROM %s" % (id_column, payload_column, table)
+                    ).fetchall()
+                for row in rows:
+                    body = str(row["body"] or "")
+                    if predicate.matches(body) and '"erased": true' not in body:
+                        out.append("%s:%s" % (table, row["rid"]))
+        except Exception:
+            pass
+        return out
+
+
+# --------------------------------------------------------------------------
+# raw residue: bytes, not rows
+# --------------------------------------------------------------------------
+
+#: Body written in place of erased file content.
+ERASED_BODY = (
+    "[erased]\n"
+    "This file's content was removed by an erasure request.\n"
+    "d9j9d1ffstub: %s\n"
+)
+
+
+def harden_sqlite(db_path: str) -> Dict[str, Any]:
+    """Make a SQLite file as close to unrecoverable as the stdlib allows.
+
+    Three pragmas, each with a distinct job:
+
+    - ``secure_delete=ON`` zeroes freed space instead of leaving the old bytes
+      in the page. SQLite 3.42+ defaults this on; setting it explicitly is what
+      makes the behaviour independent of the host's SQLite build, which is the
+      only thing that makes a claim portable.
+    - ``wal_checkpoint(TRUNCATE)`` folds the write-ahead log back into the
+      database and truncates it, because a deleted row can otherwise survive in
+      a WAL segment even when the main file is clean.
+    - ``VACUUM`` rebuilds the file, so freelists and overflow pages from before
+      the erasure are not carried forward.
+
+    None of this is cryptographic erasure. See :class:`CellCipher`.
+    """
+    db_path = str(db_path)
+    result: Dict[str, Any] = {"db_path": db_path, "applied": []}
+    if not os.path.isfile(db_path):
+        result["error"] = "not_a_file"
+        return result
+    wal = db_path + "-wal"
+    had_wal = os.path.exists(wal)
+    wal_size = os.path.getsize(wal) if had_wal else 0
+    try:
+        db = sqlite3.connect(db_path, timeout=10)
+        try:
+            db.execute("PRAGMA secure_delete=ON")
+            result["secure_delete"] = db.execute("PRAGMA secure_delete").fetchone()[0]
+            result["applied"].append("secure_delete")
+            db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            result["applied"].append("wal_checkpoint_truncate")
+            db.commit()
+            db.execute("VACUUM")
+            result["applied"].append("vacuum")
+            db.commit()
+        finally:
+            db.close()
+    except Exception as exc:
+        result["error"] = "%s: %s" % (type(exc).__name__, exc)
+        return result
+    result["wal_bytes_before"] = wal_size
+    result["wal_bytes_after"] = os.path.getsize(wal) if os.path.exists(wal) else 0
+    return result
+
+
+def scan_raw_bytes(paths: Sequence[str], needle: str) -> Dict[str, Any]:
+    """Search the raw bytes of files for a phrase the logical layer forgot.
+
+    This is the check that would catch the failure the logical report cannot
+    see: a row deleted cleanly while its bytes remain in a page, a WAL segment
+    or an overwritten-but-not-truncated file. It reads bytes, not records, and
+    it deliberately does not care whether anything is still queryable.
+
+    Matching is on the raw needle as well as on its normalized form, because
+    what survives on disk is usually the bytes that were written -- unnormalized,
+    with original punctuation.
+    """
+    forms = {str(needle or "")}
+    folded = normalize(needle)
+    if folded:
+        forms.add(folded)
+        forms.add(folded.replace(" ", ""))
+        # On disk the original bytes are usually unnormalized, so a phrase is
+        # also searched token by token: "SK COVER42" must find the stored
+        # "sk-COVER42" however the punctuation survived. A single distinctive
+        # token is the unit that actually persists in a page.
+        for token in tokenize(folded):
+            if len(token) >= 4:
+                forms.add(token)
+    forms = {f for f in forms if f}
+    needles = [(form, form.encode("utf-8")) for form in sorted(forms)]
+    hits: List[Dict[str, Any]] = []
+    scanned = 0
+    for path in paths:
+        try:
+            if os.path.isdir(path):
+                candidates = [
+                    os.path.join(root, name)
+                    for root, _dirs, names in os.walk(path)
+                    for name in names
+                ]
+            else:
+                candidates = [path]
+            for candidate in candidates:
+                if not os.path.isfile(candidate) or "__pycache__" in candidate:
+                    continue
+                scanned += 1
+                with open(candidate, "rb") as handle:
+                    blob = handle.read()
+                lowered = blob.lower()
+                for form, needle_bytes in needles:
+                    offset = lowered.find(needle_bytes.lower())
+                    if offset >= 0:
+                        hits.append(
+                            {
+                                "path": str(candidate),
+                                "offset": offset,
+                                "form": form,
+                                "form_length": len(needle_bytes),
+                                "size": len(blob),
+                            }
+                        )
+                        break
+        except OSError:
+            continue
+    return {
+        "files_scanned": scanned,
+        "needle_forms": sorted(forms),
+        "hits": hits,
+        "raw_residue": bool(hits),
+    }
+
+
+# --------------------------------------------------------------------------
+# the cryptographic boundary
+# --------------------------------------------------------------------------
+
+
+class CellCipherUnavailable(RuntimeError):
+    """Raised when true cryptographic erasure is demanded but is not possible."""
+
+
+@dataclass(frozen=True)
+class CipherCapability:
+    """What this build can and cannot do about irrecoverable erasure.
+
+    SAIHM defines two erasure classes. Cryptographic erasure destroys the
+    wrapping key, after which the ciphertext is unreadable by anyone including
+    the operator. Access-control erasure only withdraws access. Claiming the
+    first without the mechanism is the exact failure this dataclass exists to
+    make impossible.
+    """
+
+    kdf_available: bool = True
+    symmetric_cipher_available: bool = False
+    aead_available: bool = False
+    erasure_class: str = "access_control"
+    stdlib_only: bool = True
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "kdf_available": self.kdf_available,
+            "symmetric_cipher_available": self.symmetric_cipher_available,
+            "aead_available": self.aead_available,
+            "erasure_class": self.erasure_class,
+            "stdlib_only": self.stdlib_only,
+            "logical_erasure_only": not self.symmetric_cipher_available,
+            "note": (
+                "Python's standard library ships key-derivation functions "
+                "(hashlib.scrypt, hashlib.pbkdf2_hmac) but no symmetric cipher "
+                "and no AEAD construction. Content can therefore only be "
+                "removed logically. Cryptographic erasure requires a "
+                "third-party cipher, which this project forbids by rule."
+            ),
+        }
+
+
+def cipher_capability() -> CipherCapability:
+    """Probe for a symmetric cipher rather than assuming one is absent."""
+    available = False
+    try:  # pragma: no cover - depends on the host environment
+        import cryptography  # type: ignore  # noqa: F401
+
+        available = True
+    except ImportError:
+        available = False
+    return CipherCapability(
+        kdf_available=bool(getattr(hashlib, "scrypt", None)),
+        symmetric_cipher_available=available,
+        aead_available=available,
+    )
+
+
+class CellCipher:
+    """Interface for a real SAIHM cryptographic-erase cell. Unusable here.
+
+    This is a boundary marker, not an implementation. It exists so that the
+    answer to "can you erase irrecoverably?" is a checked capability rather than
+    a sentence in a document: calling :meth:`seal` raises, because there is no
+    stdlib cipher to seal with, and any implementation that reached the point
+    of pretending otherwise would have had to invent a cipher.
+    """
+
+    def __init__(self, capability: Optional[CipherCapability] = None) -> None:
+        self.capability = capability or cipher_capability()
+
+    @property
+    def erasure_class(self) -> str:
+        return self.capability.erasure_class
+
+    def seal(self, plaintext: bytes, key_id: str) -> bytes:
+        raise CellCipherUnavailable(
+            "no symmetric cipher in the Python standard library; cryptographic "
+            "erasure is unavailable under the zero-dependency rule. Report "
+            "access-control erasure and say so."
+        )
+
+    def destroy_key(self, key_id: str) -> None:
+        raise CellCipherUnavailable(
+            "no key is ever created, so no key can be destroyed; erasing a key "
+            "that does not exist would be a false claim of cryptographic "
+            "erasure"
+        )
+
+
+# --------------------------------------------------------------------------
 # receipt log
 # --------------------------------------------------------------------------
 
@@ -830,10 +1323,15 @@ class Forger:
         *,
         graph: Any = None,
         lesson_journal: Any = None,
+        skill_store: Any = None,
+        domain_library: Any = None,
+        promotion_state: Any = None,
         receipt_path: str = "",
         clock: Optional[Callable[[], float]] = None,
+        harden: bool = True,
     ) -> None:
         self.clock = clock or time.time
+        self.harden = bool(harden)
         self.stores: List[_Store] = []
         if memory is not None:
             self.stores.extend(
@@ -843,7 +1341,48 @@ class Forger:
             self.stores.append(_GraphStore(graph))
         if lesson_journal is not None:
             self.stores.append(_LessonStore(lesson_journal))
+        if skill_store is not None:
+            self.stores.append(_SkillStore(skill_store))
+        if domain_library is not None:
+            self.stores.append(_LibraryStore(domain_library))
+        if promotion_state is not None:
+            self.stores.append(_PromotionStore(promotion_state))
         self.log = ReceiptLog(receipt_path) if receipt_path else None
+
+    # -- hardening ---------------------------------------------------------
+
+    def sqlite_paths(self) -> Tuple[str, ...]:
+        """Every SQLite file this forger can reach, including WAL siblings."""
+        paths: List[str] = []
+        for candidate in (
+            getattr(self.stores[0].memory, "db_path", None) if self.stores else None,
+            getattr(getattr(self, "promotion_state", None), "path", None),
+        ):
+            if candidate:
+                paths.append(str(candidate))
+                paths.append(str(candidate) + "-wal")
+                paths.append(str(candidate) + "-shm")
+        seen: List[str] = []
+        for path in paths:
+            if path not in seen:
+                seen.append(path)
+        return tuple(seen)
+
+    def harden_databases(self) -> List[Dict[str, Any]]:
+        """Run :func:`harden_sqlite` over every reachable database."""
+        return [harden_sqlite(path) for path in self.sqlite_paths()]
+
+    def raw_residue(self, needle: str, extra_paths: Sequence[str] = ()) -> Dict[str, Any]:
+        """Search the raw bytes of every reachable file for ``needle``.
+
+        The logical residue report cannot see a row whose bytes linger in a
+        freed page or a WAL segment. This can. A non-empty result means the
+        erasure reached every row and still left the content on disk, which is
+        exactly the claim a sweep must not make silently.
+        """
+        paths = list(self.sqlite_paths()) + [str(p) for p in extra_paths]
+        paths.append(self.log.path) if self.log is not None else None
+        return scan_raw_bytes(paths, needle)
 
     @property
     def covered_stores(self) -> Tuple[str, ...]:
@@ -921,6 +1460,11 @@ class Forger:
         receipt = replace(receipt, receipt_digest=receipt.compute_digest())
         if self.log is not None:
             self.log.append(receipt)
+        if self.harden:
+            # Rows are gone at this point; the bytes may not be. Hardening runs
+            # after the sweep so the freed pages it rebuilds are the ones this
+            # erasure created.
+            self.harden_databases()
         return receipt
 
     def residue(self, request_id: str) -> ResidueReport:
@@ -981,6 +1525,11 @@ def sweep(root: Any, phrase: str, **kwargs: Any) -> Dict[str, Any]:
 
 
 __all__ = [
+    "CellCipher",
+    "CellCipherUnavailable",
+    "CipherCapability",
+    "ERASED_BODY",
+    "ERASED_MARKER",
     "ERASURE_TABLE",
     "ForgetError",
     "ForgetReceipt",
@@ -997,7 +1546,10 @@ __all__ = [
     "StoreResult",
     "build_predicate",
     "canonical",
+    "cipher_capability",
     "content_digest",
+    "harden_sqlite",
     "normalize",
+    "scan_raw_bytes",
     "sweep",
 ]

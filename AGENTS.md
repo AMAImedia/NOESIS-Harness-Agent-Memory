@@ -80,3 +80,15 @@ The field moved while this repo was idle. Four recent results:
 So forgetting is a *measured* property, not a claim. `forget.py` must be able
 to report what is still extractable after erasure, and `benchmarks/forget20.py`
 must fail when it cannot.
+
+**Status after round 2 (2026-10-19):** eight stores are covered (memory,
+observations, summaries, graph, lessons, skills, library, promotion); SQLite is
+hardened (`secure_delete`, WAL truncate, `VACUUM`) and raw bytes are scanned
+after every erasure. One earlier claim was **wrong and is corrected**:
+`LearningPromotionState` holds only `*_digest` fields, so it never carried
+content.
+
+**Hard limit:** the standard library has KDFs but no symmetric cipher, so this
+project can only perform *access-control* erasure. `cipher_capability()` reports
+that and `CellCipher.seal()` raises rather than pretend. Never describe a
+deletion here as cryptographic erasure.

@@ -101,17 +101,96 @@ a failure, not thoroughness.
    is correct — the type refuses to represent "no lesson". Erasure therefore
    writes `[erased]`, a valid tombstone.
 
-## What is still not solved
+## Round 2: the three gaps, closed and measured
 
-- **No coverage for the databases this module does not own.** A `LearningPromotionState`
-  SQLite file, a `DomainLibrary` tree or a `SkillStore` root is outside these
-  stores and can still hold the content. They need their own adapters; the
-  receipt makes the gap visible rather than hiding it.
-- **Deletion is a sweep, not a proof of unrecoverability.** SQLite pages,
-  WAL segments and filesystem blocks may retain bytes after `DELETE`. The
-  residue report measures *logical* reachability through this system's read
-  paths. A deployment claiming cryptographic erasure needs SAIHM's key-destroy
-  class, which is a different mechanism.
-- **The bench is synthetic.** Bemula's own limitation is that its dialogues
-  come from one generation pipeline; this bench is even narrower. It is a
+The first version of this note listed three unsolved problems. Each was then
+worked rather than restated, and one of the three turned out to be **wrong**.
+
+### Gap 1 — stores outside the original five: closed
+
+`Forger` now reaches eight stores. The three new ones:
+
+| Store | How it is reached | What was tricky |
+|---|---|---|
+| `SkillStore` | every file under `skills/`, every version | Sweeping only the *active* version would leave a rollback target intact — a secret in a superseded skill would survive an erasure that reported itself complete. Pointer files (`active.json`) hold ids and digests, so they are left alone. |
+| `DomainLibrary` | every file under the domain directory, then `rebuild_index()` | `entry.json` is structured data. Tombstoning it as plain text made `rebuild_index()` unable to parse the entry, so the library reported itself **empty** — a tombstoned entry looked like one that never existed. It is now tombstoned as JSON, keeping its id and a digest of what was removed. |
+| `DurablePromotionState` | the `record_json` column of every governance table | See below: this one produced the correction. |
+
+**The correction.** The first note claimed a secret could be sitting in
+`LearningPromotionState`. Measuring the schema showed that **no field in any
+promotion record carries raw content**: `ExperienceReceipt`,
+`HoldoutEvaluation` and `PromotionProposal` all store `*_digest` values, and
+the evaluator-manifest table stores a digest too. The store is covered, and the
+coverage finds nothing because there is nothing to find. `test_no_record_field_carries_raw_content`
+asserts that property directly, so the claim is checked rather than remembered.
+
+The sweep is still wired up as defence in depth, and a planted row is caught
+(see `test_a_planted_secret_is_found_and_tombstoned`), because a future change
+that starts storing content should not silently reopen the hole.
+
+### Gap 2 — bytes that outlive rows: measured, and bounded honestly
+
+Two mechanisms, one report:
+
+- **`harden_sqlite()`** sets `secure_delete=ON`, runs
+  `wal_checkpoint(TRUNCATE)` and then `VACUUM`. `Forger` calls it after every
+  erasure by default (`harden=True`). The three steps do different jobs: the
+  pragma zeroes freed pages, the checkpoint folds and truncates the WAL, and
+  the vacuum rebuilds the file so pre-erasure freelists are not carried
+  forward.
+- **`scan_raw_bytes()`** reads bytes, not records, and is case-insensitive and
+  token-aware. This is what closes the gap the logical report cannot see.
+
+Demonstrated on a real file: 400 rows containing a secret are deleted, a
+logical query returns `0` — and the raw scan still finds the secret in the
+file. After `harden_sqlite()`, the scan finds nothing. Without that
+demonstration, "we delete the rows" would have been a claim with a hole in it.
+
+**What this is not.** It is not cryptographic erasure. See the next section.
+
+### Gap 3 — the bench was too narrow: widened, and it caught a real defect
+
+`benchmarks/forget20.py` now runs an **evidence-trail scenario** modelled on
+MemCut: a token is planted in full, plus four supporting records that never
+state it (a holder, an issuer, a reference, a date). The bench runs the
+scenario twice:
+
+| Erasure | Result |
+|---|---|
+| by the literal secret alone | **secret reconstructable** — a clean receipt, zero logical residue, and the account still fully identifiable |
+| by the secret plus the supporting parts | not reconstructable |
+
+Both halves are required to pass. Reporting only the second would be the
+dishonest version of this bench, because the first is the failure the field
+actually reports.
+
+Writing it caught a defect in `build_predicate`: `extra_tokens` were appended
+**whole**, so a widening written as a phrase (`"holder Ada Lovelace"`) became a
+single token that matched nothing. A widening that silently does nothing is
+the worst kind of failure in an erasure. Extras are now tokenized like
+everything else.
+
+## What is still genuinely not solved
+
+- **Cryptographic erasure is impossible in this build, by rule.** Python's
+  standard library has key-derivation (`hashlib.scrypt`, `hashlib.pbkdf2_hmac`)
+  but **no symmetric cipher and no AEAD**. Under the zero-dependency rule the
+  only honest erasure class is *access control*: content is withdrawn from
+  every read path and its bytes are zeroed, but an attacker with a pre-erasure
+  copy can still read it. `cipher_capability()` reports this, and
+  `CellCipher.seal()` / `.destroy_key()` **raise** rather than pretend. A false
+  claim of cryptographic erasure is worse than an honest access-control one,
+  because it cannot be audited afterwards. Real cryptographic erasure needs
+  SAIHM's key-destroy class, which needs a third-party cipher.
+- **Filesystem blocks and backups are outside this module.** `VACUUM` rewrites
+  the database file, but the old file's blocks may survive on the storage
+  device, and nothing here reaches a backup, a snapshot or a replica. That is
+  a deployment concern, not a library one, and a receipt should not imply
+  otherwise.
+- **The bench is synthetic.** Bemula's own limitation is that its dialogues come
+  from one generation pipeline; this bench is narrower still. It is a
   regression gate, not a benchmark result.
+- **The evidence-trail scenario has one shape.** It tests "secret plus four
+  supporting facts". MemCut's real corpus annotates minimal evidence
+  combinations per secret; reproducing that properly needs their dataset, not a
+  hand-written case.

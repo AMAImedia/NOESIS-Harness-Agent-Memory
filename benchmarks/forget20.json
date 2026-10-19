@@ -33,11 +33,20 @@
     "paraphrase": "credential sk-CASE{nn}-ALPHA was rotated last week"
   },
   "bystander_stores": ["memory"],
+  "evidence_trail": {
+    "note": "MemCut (arXiv 2610.21405): removing the record that states the secret does not stop records that never state it but reveal it together. A sufficient cut must break every supporting combination without necessarily removing every related record. These cases plant the secret in full AND across parts, then check whether the parts still reconstruct it after erasure by the full secret alone.",
+    "whole_token": "sk-TRAIL{nn}",
+    "parts": ["sk-TRAIL{nn}", "holder Ada Lovelace", "issued by Northbank", "ref NB-4417-{nn}", "valid since 2019-04-01"],
+    "reconstruction_rule": "all of: the account token, the holder, the issuer, the reference suffix, the validity date",
+    "single_predicate_expected_reconstruction": 1.0,
+    "compound_predicate_expected_reconstruction": 0.0
+  },
   "acceptance": {
     "forget_rate": 1.0,
     "residue_max": 0.0,
     "hidden_risk_max": 0.0,
     "preservation_min": 1.0,
-    "receipt_completeness": 1.0
+    "receipt_completeness": 1.0,
+    "compound_reconstruction_max": 0.0
   }
 }
