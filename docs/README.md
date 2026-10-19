@@ -25,6 +25,8 @@ below is the curated minimum needed to operate and extend the project.
 | [SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md) | 0.6 integration batch: 36 session-index/retrieval/governance modules and their upstream provenance. |
 | [HARNESS2_PORT_NOTES.md](HARNESS2_PORT_NOTES.md) | Cue-addressed lessons, per-domain libraries, anonymised selection, before/after contrast, run-identity ledger — ported clean-room from Harness2 (Apache-2.0). |
 | [FORGETING_NOTES.md](FORGETING_NOTES.md) | Erasure that can be proven: `forget.py`, the `forget20` bench, and what it still does not solve. |
+| [RESEARCH_2026_10_FORGETTING.md](RESEARCH_2026_10_FORGETTING.md) | The 2026-10 research round in-repo: sources read, what was implemented, and the two claims that were corrected. |
+| [AEAD.md](AEAD.md) | The RFC 8439 cipher: why it is hand-written, which vectors prove it, and the limits of a Python implementation. |
 | [third_party_provenance.json](third_party_provenance.json) | Machine-readable upstream reference/license/provenance manifest. |
 
 ## 0.6 integration batch

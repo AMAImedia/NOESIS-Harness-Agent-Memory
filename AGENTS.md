@@ -88,7 +88,21 @@ after every erasure. One earlier claim was **wrong and is corrected**:
 `LearningPromotionState` holds only `*_digest` fields, so it never carried
 content.
 
-**Hard limit:** the standard library has KDFs but no symmetric cipher, so this
-project can only perform *access-control* erasure. `cipher_capability()` reports
-that and `CellCipher.seal()` raises rather than pretend. Never describe a
-deletion here as cryptographic erasure.
+**Cryptographic erasure (2026-10-19, round 3):** `aead.py` implements
+ChaCha20-Poly1305 from RFC 8439 and checks itself against all 11 published test
+vectors; `cell_cipher.py` seals each cell under its own key and erases by
+destroying that key. `cipher_capability()` reports the *cryptographic* class
+only after those vectors pass on the running interpreter.
+
+Rules that follow from it:
+
+- Never add a second cipher implementation. One verified implementation is
+  auditable; two are not.
+- Never reuse a key across cells. One key per cell is what makes one
+  destruction reach exactly one cell.
+- Never describe a store as cryptographically erased unless it was actually
+  sealed. A store that only swept rows is access-control erased, and the
+  receipt must say so.
+- A copied key defeats key destruction. That is a deployment duty (SAIHM: destroy
+  every copy including backups and replicas), not something this library can
+  do. Declare backup roots so a receipt cannot imply otherwise.

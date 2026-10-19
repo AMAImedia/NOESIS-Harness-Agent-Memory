@@ -6,7 +6,7 @@ Covers:
 - DomainLibrary: adopted artifacts and the rebuilt index.
 - DurablePromotionState: the JSON payload column of every governance table.
 - harden_sqlite / scan_raw_bytes: bytes that outlive the rows.
-- CellCipher: the refusal to claim cryptographic erasure.
+- CellCipher: the capability report, now that a real cipher exists.
 """
 
 import os
@@ -16,10 +16,9 @@ import unittest
 from pathlib import Path
 
 from noesis_harness.domain_library import DomainLibrary, LibraryEntry
+from noesis_harness.cell_cipher import CellCipher, CellCipherError
 from noesis_harness.forget import (
     ERASED_MARKER,
-    CellCipher,
-    CellCipherUnavailable,
     Forger,
     build_predicate,
     cipher_capability,
@@ -390,31 +389,37 @@ class RawResidueTests(unittest.TestCase):
 
 
 class CipherBoundaryTests(unittest.TestCase):
-    """The honest answer to "can you erase irrecoverably?"."""
+    """The honest answer to "can you erase irrecoverably?".
 
-    def test_the_capability_report_names_access_control_erasure(self):
+    This class used to assert that no cipher existed and that sealing raised.
+    Both changed when ``aead.py`` implemented ChaCha20-Poly1305 from RFC 8439
+    and ``cell_cipher.py`` gave it per-cell keys. The claim is now the stronger
+    one, and it is still checked rather than asserted: the vectors have to pass
+    before the capability report may say "cryptographic".
+    """
+
+    def test_the_capability_report_names_cryptographic_erasure(self):
         capability = cipher_capability()
         self.assertTrue(capability.kdf_available)
-        self.assertEqual(capability.erasure_class, "access_control")
-        # On a host without a third-party cipher the only honest answer is
-        # that this build performs logical erasure alone.
-        if not capability.symmetric_cipher_available:
-            self.assertTrue(capability.to_dict()["logical_erasure_only"])
+        self.assertTrue(capability.selftest_passed)
+        self.assertEqual(capability.erasure_class, "cryptographic")
+        self.assertFalse(capability.to_dict()["logical_erasure_only"])
 
-    def test_sealing_refuses_rather_than_pretending(self):
-        with self.assertRaises(CellCipherUnavailable):
-            CellCipher().seal(b"plaintext", "key-1")
+    def test_the_report_names_the_cipher_and_the_specification(self):
+        report = cipher_capability().to_dict()
+        self.assertEqual(report["cipher"], "AEAD_CHACHA20_POLY1305")
+        self.assertIn("RFC 8439", report["note"])
 
-    def test_destroying_a_key_that_was_never_created_is_refused(self):
-        # A false claim of cryptographic erasure is worse than an honest
-        # access-control erasure, because it cannot be audited afterwards.
-        with self.assertRaises(CellCipherUnavailable):
-            CellCipher().destroy_key("key-1")
-
-    def test_the_report_says_why(self):
+    def test_the_report_still_distinguishes_a_sealed_store_from_an_unsealed_one(self):
+        # The class is reachable, but a deployment that never sealed anything
+        # is still only access-control erased. The note has to say so, or the
+        # capability report becomes a blanket claim.
         note = cipher_capability().to_dict()["note"]
-        self.assertIn("no symmetric cipher", note)
-        self.assertIn("third-party", note)
+        self.assertIn("access-control", note)
+
+    def test_the_cipher_refuses_to_run_without_a_key_store(self):
+        with self.assertRaises(CellCipherError):
+            CellCipher(None)
 
 
 class ExtraTokenTests(unittest.TestCase):

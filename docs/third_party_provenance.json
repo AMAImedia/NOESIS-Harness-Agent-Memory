@@ -8,7 +8,11 @@
       "source": "https://github.com/cloudflare/cloudflare-os",
       "license": "Apache-2.0",
       "status": "reference_only",
-      "planned_adoption": ["capability_gatekeepers", "delayed_approval_simulation", "workspace_isolation"],
+      "planned_adoption": [
+        "capability_gatekeepers",
+        "delayed_approval_simulation",
+        "workspace_isolation"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -19,7 +23,11 @@
       "license": "Apache-2.0",
       "license_file": "https://github.com/cloudflare/sandbox-sdk/blob/main/packages/sandbox/LICENSE",
       "status": "optional_adapter_candidate",
-      "planned_adoption": ["remote_container_execution", "streaming_process_api", "workspace_files"],
+      "planned_adoption": [
+        "remote_container_execution",
+        "streaming_process_api",
+        "workspace_files"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -29,7 +37,12 @@
       "source": "https://github.com/NousResearch/hermes-agent",
       "license": "MIT",
       "status": "reference_and_benchmark",
-      "planned_adoption": ["session_search", "skills_surface", "gateway_interop", "parallel_delegates"],
+      "planned_adoption": [
+        "session_search",
+        "skills_surface",
+        "gateway_interop",
+        "parallel_delegates"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -39,7 +52,13 @@
       "source": "https://github.com/anomalyco/opencode",
       "license": "MIT",
       "status": "reference_and_benchmark",
-      "planned_adoption": ["plan_build_modes", "diff_review", "undo_redo", "terminal_desktop_surface", "subagents"],
+      "planned_adoption": [
+        "plan_build_modes",
+        "diff_review",
+        "undo_redo",
+        "terminal_desktop_surface",
+        "subagents"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -49,7 +68,11 @@
       "source": "https://github.com/deepseek-ai/deepseek-harness",
       "license": "upstream-license-to-verify",
       "status": "reference_and_benchmark",
-      "planned_adoption": ["plugin_composition", "model_tool_skill_sessions", "sandbox_surface"],
+      "planned_adoption": [
+        "plugin_composition",
+        "model_tool_skill_sessions",
+        "sandbox_surface"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -59,7 +82,12 @@
       "source": "https://github.com/openclaw/openclaw",
       "license": "upstream-license-to-verify",
       "status": "reference_and_benchmark",
-      "planned_adoption": ["multi_channel_gateway", "personal_agent_ux", "skills_plugins", "cross_platform_surfaces"],
+      "planned_adoption": [
+        "multi_channel_gateway",
+        "personal_agent_ux",
+        "skills_plugins",
+        "cross_platform_surfaces"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -69,7 +97,10 @@
       "source": "https://code.claude.com/docs/en/overview",
       "license": "proprietary_product",
       "status": "black_box_benchmark_only",
-      "planned_adoption": ["user_experience_comparison", "task_benchmark_reference"],
+      "planned_adoption": [
+        "user_experience_comparison",
+        "task_benchmark_reference"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": false
@@ -79,7 +110,17 @@
       "source": "https://github.com/vshulcz/deja-vu",
       "license": "MIT",
       "status": "reference_and_benchmark",
-      "planned_adoption": ["session_source_registry", "prefix_sharded_inverted_index", "tiered_retrieval_ladder", "untrusted_data_framing", "manifest_cache_refresh", "watermarked_sync", "atomic_writer", "tool_dialect_table", "deterministic_parallel_parse"],
+      "planned_adoption": [
+        "session_source_registry",
+        "prefix_sharded_inverted_index",
+        "tiered_retrieval_ladder",
+        "untrusted_data_framing",
+        "manifest_cache_refresh",
+        "watermarked_sync",
+        "atomic_writer",
+        "tool_dialect_table",
+        "deterministic_parallel_parse"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -89,7 +130,13 @@
       "source": "https://github.com/wquguru/harness-books",
       "license": "upstream-license-to-verify",
       "status": "reference_only",
-      "planned_adoption": ["three_valued_authorization_gate", "ledger_closure_invariant", "circuit_broken_recovery_ladder", "instruction_precedence_layers", "fork_isolation"],
+      "planned_adoption": [
+        "three_valued_authorization_gate",
+        "ledger_closure_invariant",
+        "circuit_broken_recovery_ladder",
+        "instruction_precedence_layers",
+        "fork_isolation"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -99,7 +146,13 @@
       "source": "https://github.com/lintsinghua/claude-code-book",
       "license": "upstream-license-to-verify",
       "status": "reference_only",
-      "planned_adoption": ["typed_memory_records", "bounded_memory_index", "trailing_extraction_queue", "shared_coordination_board", "hook_engine"],
+      "planned_adoption": [
+        "typed_memory_records",
+        "bounded_memory_index",
+        "trailing_extraction_queue",
+        "shared_coordination_board",
+        "hook_engine"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -109,7 +162,14 @@
       "source": "https://github.com/wshobson/agents",
       "license": "MIT",
       "status": "reference_and_benchmark",
-      "planned_adoption": ["tolerant_frontmatter", "layered_composite_scoring", "registry_disk_reconciliation", "projection_adapters", "namespace_collision_resolution", "elo_ranking"],
+      "planned_adoption": [
+        "tolerant_frontmatter",
+        "layered_composite_scoring",
+        "registry_disk_reconciliation",
+        "projection_adapters",
+        "namespace_collision_resolution",
+        "elo_ranking"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -119,7 +179,14 @@
       "source": "https://github.com/yc-software/qm",
       "license": "MIT",
       "status": "reference_only",
-      "planned_adoption": ["scope_namespace_isolation", "content_addressed_blob_store", "explicit_acl_grants", "capability_tokens", "durable_leader_lease", "memory_revisions_cas"],
+      "planned_adoption": [
+        "scope_namespace_isolation",
+        "content_addressed_blob_store",
+        "explicit_acl_grants",
+        "capability_tokens",
+        "durable_leader_lease",
+        "memory_revisions_cas"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -129,7 +196,14 @@
       "source": "https://github.com/AI-Builder-Club/skills",
       "license": "upstream-license-to-verify",
       "status": "reference_only",
-      "planned_adoption": ["loop_contract", "append_only_observation_log", "file_sentinel_completion", "verification_ledger", "metrics_collector", "loop_state"],
+      "planned_adoption": [
+        "loop_contract",
+        "append_only_observation_log",
+        "file_sentinel_completion",
+        "verification_ledger",
+        "metrics_collector",
+        "loop_state"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true
@@ -140,13 +214,49 @@
       "upstream_note": "Open-source release of Harness^2 (Recursive Agent Harnessing for an Open World), arXiv 2610.14224, by Xu, Chen, CuiZhu, Dalvi Mishra, Ming, Yu, Han, Lee, Pfister. Released by Google; not an officially supported Google product.",
       "license": "Apache-2.0",
       "status": "reference_only",
-      "planned_adoption": ["cue_lesson_evidence_triple", "per_domain_adopted_artifact_library", "anonymised_selection_id_map", "before_after_contrast_artifact", "run_identity_budget_ledger"],
-      "rejected_adoption": ["llm_harness_editor_violates_deterministic_core", "unattended_library_writes_bypass_operator_approval", "third_party_benchmark_runners_and_data"],
+      "planned_adoption": [
+        "cue_lesson_evidence_triple",
+        "per_domain_adopted_artifact_library",
+        "anonymised_selection_id_map",
+        "before_after_contrast_artifact",
+        "run_identity_budget_ledger"
+      ],
+      "rejected_adoption": [
+        "llm_harness_editor_violates_deterministic_core",
+        "unattended_library_writes_bypass_operator_approval",
+        "third_party_benchmark_runners_and_data"
+      ],
       "code_copied": false,
       "runtime_dependency": false,
       "required_notices": true,
-      "ported_modules": ["lesson_cue.py", "domain_library.py", "blind_select.py", "budget.py (RunLedger only)"],
+      "ported_modules": [
+        "lesson_cue.py",
+        "domain_library.py",
+        "blind_select.py",
+        "budget.py (RunLedger only)"
+      ],
       "port_notes": "docs/HARNESS2_PORT_NOTES.md"
+    },
+    {
+      "name": "rfc-8439-chacha20-poly1305",
+      "source": "https://www.rfc-editor.org/rfc/rfc8439",
+      "upstream_note": "ChaCha20 and Poly1305 for IETF Protocols, Y. Nir & A. Langley, IRTF/CFRG, June 2018. The algorithm, the AEAD construction and every test vector used by aead.py come from this document.",
+      "license": "IETF Trust / BCP 78 (specification, not code)",
+      "status": "specification",
+      "planned_adoption": [
+        "chacha20_block",
+        "poly1305_mac",
+        "aead_chacha20_poly1305",
+        "published_test_vectors"
+      ],
+      "code_copied": false,
+      "runtime_dependency": false,
+      "required_notices": true,
+      "ported_modules": [
+        "aead.py",
+        "cell_cipher.py"
+      ],
+      "port_notes": "docs/AEAD.md"
     }
   ]
 }

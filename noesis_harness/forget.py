@@ -838,6 +838,7 @@ class _SkillStore(_FileStore):
         temporary = path.with_name(path.name + ".erasing")
         temporary.write_text(body, encoding="utf-8")
         os.replace(str(temporary), str(path))
+        fsync_paths([str(path)])
 
 
 class _LibraryStore(_Store):
@@ -894,6 +895,7 @@ class _LibraryStore(_Store):
                 temporary = path.with_name(path.name + ".erasing")
                 temporary.write_text(ERASED_BODY % content_digest(body), encoding="utf-8")
                 os.replace(str(temporary), str(path))
+                fsync_paths([str(path)])
                 rewritten += 1
             rebuild = getattr(self.library, "rebuild_index", None)
             if callable(rebuild):
@@ -1025,6 +1027,41 @@ ERASED_BODY = (
 )
 
 
+#: Sibling files SQLite creates next to a database. Each can hold a copy of
+#: the content, and a checkpoint only truncates the WAL -- it does not touch a
+#: rollback journal left by an interrupted transaction.
+SQLITE_SIDECARS = ("-wal", "-shm", "-journal")
+
+
+def sqlite_sidecars(db_path: str) -> List[str]:
+    """Every sibling file that could carry the database's content."""
+    return [db_path + suffix for suffix in SQLITE_SIDECARS if os.path.exists(db_path + suffix)]
+
+
+def scrub_sidecars(db_path: str) -> Dict[str, Any]:
+    """Overwrite and remove the WAL, SHM and rollback journal of a database.
+
+    ``wal_checkpoint(TRUNCATE)`` truncates the WAL to zero but leaves the file,
+    and it does not touch ``-journal`` at all. A rollback journal from an
+    interrupted transaction can hold the pre-deletion page images, which is a
+    copy of exactly what was erased. This removes them.
+    """
+    result: Dict[str, Any] = {"db_path": db_path, "removed": [], "kept": []}
+    for path in sqlite_sidecars(db_path):
+        try:
+            size = os.path.getsize(path)
+            if size:
+                with open(path, "r+b") as handle:
+                    handle.write(b"\x00" * size)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+            os.remove(path)
+            result["removed"].append(os.path.basename(path))
+        except OSError as exc:
+            result["kept"].append("%s: %s" % (os.path.basename(path), exc))
+    return result
+
+
 def harden_sqlite(db_path: str) -> Dict[str, Any]:
     """Make a SQLite file as close to unrecoverable as the stdlib allows.
 
@@ -1050,6 +1087,11 @@ def harden_sqlite(db_path: str) -> Dict[str, Any]:
     wal = db_path + "-wal"
     had_wal = os.path.exists(wal)
     wal_size = os.path.getsize(wal) if had_wal else 0
+    # Record what was present before anything opens the database. SQLite
+    # recovers and removes a valid WAL on open, so a report written afterwards
+    # would credit the scrubber for work SQLite did -- or, worse, claim nothing
+    # was there.
+    present_before = sqlite_sidecars(db_path)
     try:
         db = sqlite3.connect(db_path, timeout=10)
         try:
@@ -1069,7 +1111,51 @@ def harden_sqlite(db_path: str) -> Dict[str, Any]:
         return result
     result["wal_bytes_before"] = wal_size
     result["wal_bytes_after"] = os.path.getsize(wal) if os.path.exists(wal) else 0
+    # The checkpoint truncates the WAL but leaves the file, and does not touch
+    # a rollback journal. Scrub both, because either can hold a page image of
+    # the content that was just erased.
+    sidecars = scrub_sidecars(db_path)
+    sidecars["present_before"] = [os.path.basename(path) for path in present_before]
+    sidecars["vanished_on_open"] = [
+        os.path.basename(path)
+        for path in present_before
+        if not os.path.exists(path) and os.path.basename(path) not in sidecars["removed"]
+    ]
+    sidecars["removed"] = sidecars["removed"] + sidecars.pop("vanished_on_open")
+    result["sidecars"] = sidecars
     return result
+
+
+def fsync_paths(paths: Sequence[str]) -> Dict[str, Any]:
+    """Flush file and directory metadata to the storage device.
+
+    A rewrite is not durable until the device says so. Without this, an
+    erasure receipt can be true of the page cache and false of the disk after
+    a crash. Directory entries are fsynced too, because replacing a file
+    updates its directory entry, not only its contents.
+    """
+    report: Dict[str, Any] = {"fsynced": [], "errors": []}
+    seen = set()
+    for path in paths:
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        targets = [path]
+        directory = os.path.dirname(os.path.abspath(path))
+        if directory not in seen:
+            seen.add(directory)
+            targets.append(directory)
+        for target in targets:
+            try:
+                descriptor = os.open(target, os.O_RDONLY)
+                try:
+                    os.fsync(descriptor)
+                finally:
+                    os.close(descriptor)
+                report["fsynced"].append(target)
+            except OSError as exc:
+                report["errors"].append("%s: %s" % (target, exc))
+    return report
 
 
 def scan_raw_bytes(paths: Sequence[str], needle: str) -> Dict[str, Any]:
@@ -1155,9 +1241,13 @@ class CipherCapability:
 
     SAIHM defines two erasure classes. Cryptographic erasure destroys the
     wrapping key, after which the ciphertext is unreadable by anyone including
-    the operator. Access-control erasure only withdraws access. Claiming the
-    first without the mechanism is the exact failure this dataclass exists to
-    make impossible.
+    the operator. Access-control erasure only withdraws access.
+
+    This build implements ChaCha20-Poly1305 in the standard library (see
+    ``aead.py``), verified against the RFC 8439 vectors, so the cryptographic
+    class is reachable. Whether a *deployment* actually reaches it depends on
+    whether it seals cells at all -- a store that never called ``CellCipher``
+    is still only access-control erased. The report says which.
     """
 
     kdf_available: bool = True
@@ -1165,6 +1255,8 @@ class CipherCapability:
     aead_available: bool = False
     erasure_class: str = "access_control"
     stdlib_only: bool = True
+    cipher: str = ""
+    selftest_passed: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -1173,63 +1265,36 @@ class CipherCapability:
             "aead_available": self.aead_available,
             "erasure_class": self.erasure_class,
             "stdlib_only": self.stdlib_only,
+            "cipher": self.cipher,
+            "selftest_passed": self.selftest_passed,
             "logical_erasure_only": not self.symmetric_cipher_available,
             "note": (
-                "Python's standard library ships key-derivation functions "
-                "(hashlib.scrypt, hashlib.pbkdf2_hmac) but no symmetric cipher "
-                "and no AEAD construction. Content can therefore only be "
-                "removed logically. Cryptographic erasure requires a "
-                "third-party cipher, which this project forbids by rule."
+                "ChaCha20-Poly1305 is implemented in aead.py from RFC 8439 and "
+                "checked against every published test vector. A store that "
+                "seals cells under per-cell keys (cell_cipher.py) can therefore "
+                "perform cryptographic erasure. A store that does not is only "
+                "access-control erased, however clean its residue report."
             ),
         }
 
 
 def cipher_capability() -> CipherCapability:
-    """Probe for a symmetric cipher rather than assuming one is absent."""
-    available = False
-    try:  # pragma: no cover - depends on the host environment
-        import cryptography  # type: ignore  # noqa: F401
+    """Run the cipher's own vectors and report what this build can claim."""
+    try:
+        from .aead import selftest
+    except ImportError:  # pragma: no cover - direct script import
+        from noesis_harness.aead import selftest
 
-        available = True
-    except ImportError:
-        available = False
+    report = selftest()
+    passed = bool(report.get("all_passed"))
     return CipherCapability(
         kdf_available=bool(getattr(hashlib, "scrypt", None)),
-        symmetric_cipher_available=available,
-        aead_available=available,
+        symmetric_cipher_available=passed,
+        aead_available=passed,
+        erasure_class="cryptographic" if passed else "access_control",
+        cipher=str(report.get("algorithm") or ""),
+        selftest_passed=passed,
     )
-
-
-class CellCipher:
-    """Interface for a real SAIHM cryptographic-erase cell. Unusable here.
-
-    This is a boundary marker, not an implementation. It exists so that the
-    answer to "can you erase irrecoverably?" is a checked capability rather than
-    a sentence in a document: calling :meth:`seal` raises, because there is no
-    stdlib cipher to seal with, and any implementation that reached the point
-    of pretending otherwise would have had to invent a cipher.
-    """
-
-    def __init__(self, capability: Optional[CipherCapability] = None) -> None:
-        self.capability = capability or cipher_capability()
-
-    @property
-    def erasure_class(self) -> str:
-        return self.capability.erasure_class
-
-    def seal(self, plaintext: bytes, key_id: str) -> bytes:
-        raise CellCipherUnavailable(
-            "no symmetric cipher in the Python standard library; cryptographic "
-            "erasure is unavailable under the zero-dependency rule. Report "
-            "access-control erasure and say so."
-        )
-
-    def destroy_key(self, key_id: str) -> None:
-        raise CellCipherUnavailable(
-            "no key is ever created, so no key can be destroyed; erasing a key "
-            "that does not exist would be a false claim of cryptographic "
-            "erasure"
-        )
 
 
 # --------------------------------------------------------------------------
@@ -1329,6 +1394,7 @@ class Forger:
         receipt_path: str = "",
         clock: Optional[Callable[[], float]] = None,
         harden: bool = True,
+        durable: bool = True,
     ) -> None:
         self.clock = clock or time.time
         self.harden = bool(harden)
@@ -1348,6 +1414,12 @@ class Forger:
         if promotion_state is not None:
             self.stores.append(_PromotionStore(promotion_state))
         self.log = ReceiptLog(receipt_path) if receipt_path else None
+        #: Backup locations this process cannot reach. Declared rather than
+        #: assumed, so a receipt can say what it does not cover.
+        self.backup_roots: List[str] = []
+        #: Whether erasure flushes to the storage device. On by default: a
+        #: rewrite is not durable until the device says so.
+        self.durable = bool(durable)
 
     # -- hardening ---------------------------------------------------------
 
@@ -1371,6 +1443,46 @@ class Forger:
     def harden_databases(self) -> List[Dict[str, Any]]:
         """Run :func:`harden_sqlite` over every reachable database."""
         return [harden_sqlite(path) for path in self.sqlite_paths()]
+
+    def declare_backups(self, roots: Sequence[str]) -> List[str]:
+        """Register backup locations this process cannot reach but must report.
+
+        A library cannot delete a replica it does not own. What it *can* do is
+        refuse to let a receipt imply that it did. Declared roots are carried
+        on every subsequent receipt and counted in the residue report, so an
+        operator reading a "complete" erasure sees the places it does not
+        cover rather than inferring there are none.
+        """
+        declared = [str(root) for root in roots if str(root or "").strip()]
+        for root in declared:
+            if root not in self.backup_roots:
+                self.backup_roots.append(root)
+        return list(self.backup_roots)
+
+    def reachable_backups(self) -> List[str]:
+        """Declared backup roots that exist on this filesystem and are readable."""
+        return [root for root in self.backup_roots if os.path.exists(root)]
+
+    def scan_backups(self, needle: str) -> Dict[str, Any]:
+        """Scan the declared backup roots that this process can actually read.
+
+        Replicas that are absent, remote or permission-denied are reported as
+        *unreached* rather than passed over. "I could not look" and "I looked
+        and found nothing" are different answers, and a receipt that conflates
+        them is the failure this method exists to prevent.
+        """
+        reachable = self.reachable_backups()
+        report = scan_raw_bytes(reachable, needle) if reachable else {
+            "files_scanned": 0,
+            "needle_forms": [],
+            "hits": [],
+            "raw_residue": False,
+        }
+        report["declared"] = list(self.backup_roots)
+        report["reached"] = reachable
+        report["unreached"] = [root for root in self.backup_roots if root not in reachable]
+        report["complete_coverage"] = bool(self.backup_roots) and not report["unreached"]
+        return report
 
     def raw_residue(self, needle: str, extra_paths: Sequence[str] = ()) -> Dict[str, Any]:
         """Search the raw bytes of every reachable file for ``needle``.
@@ -1465,6 +1577,10 @@ class Forger:
             # after the sweep so the freed pages it rebuilds are the ones this
             # erasure created.
             self.harden_databases()
+        if self.durable:
+            # A rewrite is not durable until the device confirms it. Without
+            # this the receipt describes the page cache, not the disk.
+            fsync_paths(list(self.sqlite_paths()))
         return receipt
 
     def residue(self, request_id: str) -> ResidueReport:

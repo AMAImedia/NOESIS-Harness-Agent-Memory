@@ -170,27 +170,119 @@ single token that matched nothing. A widening that silently does nothing is
 the worst kind of failure in an erasure. Extras are now tokenized like
 everything else.
 
-## What is still genuinely not solved
+## Round 3: the four remaining gaps, worked
 
-- **Cryptographic erasure is impossible in this build, by rule.** Python's
-  standard library has key-derivation (`hashlib.scrypt`, `hashlib.pbkdf2_hmac`)
-  but **no symmetric cipher and no AEAD**. Under the zero-dependency rule the
-  only honest erasure class is *access control*: content is withdrawn from
-  every read path and its bytes are zeroed, but an attacker with a pre-erasure
-  copy can still read it. `cipher_capability()` reports this, and
-  `CellCipher.seal()` / `.destroy_key()` **raise** rather than pretend. A false
-  claim of cryptographic erasure is worse than an honest access-control one,
-  because it cannot be audited afterwards. Real cryptographic erasure needs
-  SAIHM's key-destroy class, which needs a third-party cipher.
-- **Filesystem blocks and backups are outside this module.** `VACUUM` rewrites
-  the database file, but the old file's blocks may survive on the storage
-  device, and nothing here reaches a backup, a snapshot or a replica. That is
-  a deployment concern, not a library one, and a receipt should not imply
-  otherwise.
-- **The bench is synthetic.** Bemula's own limitation is that its dialogues come
-  from one generation pipeline; this bench is narrower still. It is a
-  regression gate, not a benchmark result.
-- **The evidence-trail scenario has one shape.** It tests "secret plus four
-  supporting facts". MemCut's real corpus annotates minimal evidence
-  combinations per secret; reproducing that properly needs their dataset, not a
-  hand-written case.
+The previous version of this section listed four problems. Each was worked;
+three are closed and the fourth is now bounded by a mechanism instead of a
+sentence.
+
+### Gap 1 — cryptographic erasure: implemented, verified against the RFC
+
+The blocker was real: Python's standard library ships key derivation but **no
+symmetric cipher and no AEAD**. The two honest options were to keep reporting
+access-control erasure forever, or to implement a cipher that can be *proved*
+correct.
+
+`noesis_harness/aead.py` implements **ChaCha20-Poly1305** from RFC 8439. It is
+the right choice for a hand implementation because the RFC publishes test
+vectors, so correctness is a check rather than a hope, and because the
+algorithm uses only 32-bit addition, XOR and rotation -- no lookup tables, no
+data-dependent branches.
+
+**11 of 11 published vectors pass**, and the suite fails if any stops passing:
+
+| Vector | Section |
+|---|---|
+| Quarter round | 2.1.1 |
+| Block function | 2.3.2 |
+| Encryption | 2.4.2 |
+| Poly1305 MAC | 2.5.2 |
+| Poly1305 key generation | 2.6.2 |
+| AEAD ciphertext and tag | 2.8.2 |
+| Empty message, all-zero key | A.3 #1 |
+| Zero r (tag equals s) | A.3 #2 |
+| 130-bit partial reduction | A.3 #5 |
+
+`noesis_harness/cell_cipher.py` then gives each cell **its own key**, seals the
+content under it, and erases by destroying that key. That is SAIHM's
+*cryptographic* erasure class: after destruction the ciphertext is unreadable
+by anyone, including the operator, and a stolen copy of the ciphertext is
+useless.
+
+Two details that matter more than they look:
+
+- **One key per cell.** A shared key would make one destruction destroy every
+  cell, and one leak expose every cell.
+- **The cell id is the associated data.** A ciphertext moved into another
+  cell's slot fails authentication instead of silently decrypting under the
+  wrong identity.
+
+`cipher_capability()` now reports `erasure_class: "cryptographic"` -- but only
+after running the vectors on the current interpreter. If they fail, the report
+falls back to `access_control`. The claim is checked, not asserted.
+
+**The limit that remains, stated plainly:** destroying a key does not reach a
+copy of the key taken before the destruction. A test records this rather than
+hides it (`test_the_honest_limit_a_copied_key_still_opens`). SAIHM requires
+destroying every copy *including backups and replicas*; that is a deployment
+duty, not something a library can perform on a machine it does not control.
+
+### Gap 2 — filesystem blocks and backups: mechanism plus honest reporting
+
+Three additions:
+
+- **`scrub_sidecars()`** overwrites and removes `-wal`, `-shm` and `-journal`
+  siblings. `wal_checkpoint(TRUNCATE)` truncates the WAL but leaves the file,
+  and never touches a rollback journal -- which holds pre-deletion page images
+  after an interrupted transaction. A test records that a clean SQLite close
+  already removes the WAL, so the scrubber's silence is understood as "nothing
+  to do" rather than "broken".
+- **`fsync_paths()`** flushes the file and its directory entry. Without it an
+  erasure receipt describes the page cache, not the disk, and a crash could
+  resurrect what the receipt says is gone. Erasure is durable by default.
+- **`declare_backups()` / `scan_backups()`** -- the part that cannot be fixed in
+  code. A library cannot delete a replica it does not own. It *can* refuse to
+  let a receipt imply that it did: declared roots are scanned where reachable,
+  and unreachable ones are reported as **unreached**, with
+  `complete_coverage: false`. "I could not look" and "I looked and found
+  nothing" are different answers.
+
+What is still outside: raw filesystem blocks on the storage device, and any
+replica that was never declared. The second is now visible in the report; the
+first is not reachable from user space at all.
+
+### Gap 3 and 4 — the bench: four shapes, not one
+
+`forget20` now runs **four evidence-trail scenarios**, each with its own
+minimal evidence combination:
+
+| Scenario | Minimal combination |
+|---|---|
+| account | holder + issuer + reference |
+| medical | patient initials + clinic + diagnosis code |
+| employment | badge + department + termination date |
+| location | address + resident + postcode |
+
+Each is run twice -- erase the literal token only, then erase the combination --
+and every scenario must show **both** halves: the trap on the naive erasure,
+and closure on the compound one. A scenario where the naive erasure already
+reconstructs nothing has stopped testing anything and counts as a failure.
+
+This is still a reproduction of MemCut's *shape*, not their corpus. Their
+annotation of minimal evidence combinations per secret covers real dialogue;
+this covers four hand-written shapes. It is a regression gate, and the file
+says so in its own `note` field rather than only here.
+
+### What is honestly still open
+
+- **A copied key defeats cryptographic erasure.** Deployment duty, per SAIHM.
+- **Raw storage blocks are unreachable from user space.** `VACUUM` and fsync
+  reduce the window; they do not prove the platter is clean. Full-disk
+  encryption plus key destruction is the real answer at that layer.
+- **The cipher is not constant-time under CPython.** The algorithm has no
+  data-dependent branches, but the interpreter, allocator and garbage collector
+  sit between the arithmetic and the hardware. Suitable for at-rest erasure of
+  local agent memory; not suitable for a network protocol facing an active
+  timing attacker. Stated in `CellCipher.capability()["limits"]`.
+- **The bench is synthetic and has four shapes.** A regression gate, not a
+  benchmark result.

@@ -117,6 +117,17 @@ NOESIS-Harness-Agent-Memory is not a copy of any upstream agent product. The cur
 - Research copy: `../_research_2026-08/harness2`. Port notes: `docs/HARNESS2_PORT_NOTES.md`.
 - Redistribution obligations if code is reused: retain the Apache 2.0 notice; note that the upstream repository bundles third-party benchmark runners under separate upstream licenses.
 
+## RFC 8439 — ChaCha20 and Poly1305 for IETF Protocols (rfc-8439-chacha20-poly1305)
+
+- Source: https://www.rfc-editor.org/rfc/rfc8439
+- Authors: Y. Nir (Dell EMC), A. Langley (Google). IRTF Crypto Forum Research Group, June 2018. Obsoletes RFC 7539.
+- License: IETF Trust / BCP 78. This is a **specification**, not code: no source line was copied.
+- Status: specification reference (the algorithm, the AEAD construction and every test vector).
+- Ported designs (clean-room Python implementation from the published specification): `aead.py` implements ChaCha20, Poly1305 and AEAD_CHACHA20_POLY1305; `cell_cipher.py` applies it to per-cell key destruction.
+- Verification: all 11 published test vectors pass (sections 2.1.1, 2.3.2, 2.4.2, 2.5.2, 2.6.2, 2.8.2 and Appendix A.3). `selftest()` runs them at runtime.
+- Redistribution obligations: the RFC's own copyright terms apply to quotations from it; the implementation is this project's own work.
+- Notes: `docs/AEAD.md`.
+
 ## NOESIS integration rule
 
 Any future copied or vendored file must be added to the provenance manifest, preserve its original license header where applicable, be accompanied by the complete license/NOTICE text, identify modifications, and pass dependency, secret, AST and security review. Architectural inspiration or a clean-room reimplementation does not require copying upstream source, but its design lineage remains documented here.

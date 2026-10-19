@@ -122,17 +122,17 @@ def _bystander_recalls(bystander, memory):
     return False
 
 
-def _reconstruction_probe(memory, parts):
-    """Which supporting parts are still readable.
+def _reconstruction_probe(memory, parts, minimal):
+    """Which parts survive, and whether the minimal combination is intact.
 
     MemCut's central case: the record that *states* the secret is deleted, and
-    the secret is still identifiable from records that never state it -- a
-    holder, an issuer, a reference and a date, none of which is the secret on
-    its own but which together pick out exactly one account.
+    the secret is still identifiable from records that never state it. The
+    minimal combination is the smallest subset that still implies it, so
+    ``reconstructed`` is true when every member of that subset is readable.
 
-    The supporting parts deliberately exclude the secret token. Including it
-    would make the check circular: the token is what the erasure names, so it
-    would always be gone and reconstruction would always read as impossible.
+    The parts deliberately exclude the token. Including it would make the check
+    circular: the token is what the erasure names, so it would always be gone
+    and reconstruction would always read as impossible.
 
     Returning the survivors rather than a boolean lets a failure name its own
     cause instead of just going red.
@@ -143,7 +143,8 @@ def _reconstruction_probe(memory, parts):
         hits = " ".join(str(h.get("fact", "")) for h in memory.recall(probe, limit=20))
         if part.lower() in hits.lower():
             survivors.append(part)
-    return survivors
+    reconstructed = all(part in survivors for part in minimal)
+    return survivors, reconstructed
 
 
 #: Which case number the evidence-trail scenario uses. Fixed so the scenario
@@ -151,60 +152,81 @@ def _reconstruction_probe(memory, parts):
 TRAIL_CASE_NN = 7
 
 
-def _trail_case(nn):
-    """The account token and the supporting parts that together identify it.
+def _trail_scenarios(spec, nn):
+    """Expand the configured scenarios into ``(id, token, parts, minimal)``.
 
-    Returns ``(token, supporting_parts)``. The token is what a naive erasure
-    names; the parts are what it leaves behind.
+    Each scenario is one shape of the MemCut problem: a token, records that
+    never state it, and the minimal subset of those records that still implies
+    it. Several shapes rather than one, because a single hand-written case
+    proves only that one case works.
     """
-    token = "sk-TRAIL%02d" % nn
-    parts = [
-        "holder Ada Lovelace",
-        "issued by Northbank",
-        "ref NB-4417-%02d" % nn,
-        "valid since 2019-04-01",
-    ]
-    return token, parts
+    out = []
+    for scenario in spec["evidence_trail"]["scenarios"]:
+        def expand(value):
+            return value.replace("{nn}", "%02d" % nn)
+
+        out.append(
+            (
+                scenario["id"],
+                expand(scenario["token"]),
+                [expand(part) for part in scenario["parts"]],
+                [expand(part) for part in scenario["minimal_combination"]],
+            )
+        )
+    return out
 
 
 def _run_trail(spec, acceptance):
-    """The MemCut case: one erasure by the whole secret, then a compound one.
+    """Every MemCut scenario, each erased two ways.
 
     Run in two halves on purpose. The first shows what a caller gets who
     forgets only the literal secret: a clean receipt, zero logical residue, and
-    the secret still fully reconstructable. The second shows that naming the
-    parts closes it. Reporting only the second would be the dishonest version of
-    this bench.
+    the secret still reconstructable from the minimal combination. The second
+    shows that naming the combination closes it. Reporting only the second
+    would be the dishonest version of this bench.
+
+    Every scenario must show both halves. A scenario where the naive erasure
+    already reconstructs nothing has stopped testing anything, so it counts as
+    a failure rather than a pass.
     """
-    token, parts = _trail_case(TRAIL_CASE_NN)
     rows = []
+    all_closed = True
+    all_trapped = True
 
-    single = _one_trail_pass(parts, token, compound=False)
-    rows.append(
-        {"mode": "single_predicate", "surviving_parts": single[0], "reconstructed": single[1]}
-    )
+    for scenario_id, token, parts, minimal in _trail_scenarios(spec, TRAIL_CASE_NN):
+        single_survivors, single_reconstructed = _one_trail_pass(
+            token, parts, minimal, compound=False
+        )
+        compound_survivors, compound_reconstructed = _one_trail_pass(
+            token, parts, minimal, compound=True
+        )
+        all_trapped = all_trapped and single_reconstructed
+        all_closed = all_closed and not compound_reconstructed
+        rows.append(
+            {
+                "id": scenario_id,
+                "single_predicate": {
+                    "surviving_parts": single_survivors,
+                    "reconstructed": single_reconstructed,
+                },
+                "compound_predicate": {
+                    "surviving_parts": compound_survivors,
+                    "reconstructed": compound_reconstructed,
+                },
+            }
+        )
 
-    compound = _one_trail_pass(parts, token, compound=True)
-    rows.append(
-        {"mode": "compound_predicate", "surviving_parts": compound[0], "reconstructed": compound[1]}
-    )
-
-    # Both halves must behave: the trap has to be demonstrable on the naive
-    # erasure, and closed by the compound one. A run where the naive erasure
-    # already reconstructs nothing would mean the scenario stopped testing
-    # anything, so it counts as a failure rather than a pass.
-    passed = compound[1] is False and single[1] is True
     return {
-        "cases": 1,
+        "cases": len(rows),
         "rows": rows,
-        "single_predicate_reconstructs": single[1],
-        "compound_predicate_reconstructs": compound[1],
-        "compound_reconstruction": 1.0 if compound[1] else 0.0,
-        "passed": passed,
+        "single_predicate_reconstructs": all_trapped,
+        "compound_predicate_reconstructs": not all_closed,
+        "compound_reconstruction": 0.0 if all_closed else 1.0,
+        "passed": bool(rows) and all_trapped and all_closed,
     }
 
 
-def _one_trail_pass(parts, token, compound):
+def _one_trail_pass(token, parts, minimal, compound):
     """Plant the token and its supporting parts, then erase one way or the other."""
     tmp = tempfile.mkdtemp(prefix="noesis_f20t_")
     memory = Memory(os.path.join(tmp, "m.db"))
@@ -219,9 +241,7 @@ def _one_trail_pass(parts, token, compound):
     else:
         predicate = build_predicate(token)
     forger.forget(predicate, actor="operator:bench", request_id="trail-%s" % compound)
-    survivors = _reconstruction_probe(memory, parts)
-    reconstructed = len(survivors) == len(parts)
-    return survivors, reconstructed
+    return _reconstruction_probe(memory, parts, minimal)
 
 
 def run(path=None):
