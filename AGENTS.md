@@ -166,3 +166,33 @@ Rules that follow from it:
 - A copied key defeats key destruction. That is a deployment duty (SAIHM: destroy
   every copy including backups and replicas), not something this library can
   do. Declare backup roots so a receipt cannot imply otherwise.
+
+## Bubblewrap test interpreters (recorded 2026-11-18)
+
+`BubblewrapBackend.command` mounts a fixed set -- `/usr`, `/bin`, `/lib`,
+`/lib64`, `/etc`, `/proc`, `/dev`, a tmpfs `/tmp` and the workspace -- and sets
+`PATH=/usr/bin:/bin`. A Python interpreter outside those roots does not exist
+for the child, and `bwrap` reports it as
+`bwrap: execvp <path>: No such file or directory`.
+
+This bit CI, not the sandbox: GitHub's hosted Ubuntu runner exposes Python at
+`/opt/hostedtoolcache/Python/<version>/x64/bin/python3`, which is exactly what
+`shutil.which("python3")` returns there. Local hosts where Python lives in
+`/usr/bin` passed, so the mistake was invisible outside CI.
+
+Rules that follow:
+
+- In tests, choose an interpreter by its real path against the bind set, never
+  by `PATH` alone. `tests/test_child_execution.py` names the bind roots in
+  `_SANDBOX_READ_ONLY_ROOTS`; keep that tuple in sync with `--ro-bind` lines in
+  `noesis_harness/sandbox_bwrap.py`.
+- A skip probe must run the exact argv the test will run, and must quote the
+  child's own stderr line. "This host cannot execute this interpreter" is a
+  skip; anything the child itself decided is a failure.
+- Do not let `BubblewrapBackend.command` bind a directory derived from
+  `argv[0]`. `argv` comes from the caller (`ChildExecutionRuntime` passes
+  `request.argv` straight through), so such a bind would let a request define
+  its own sandbox boundary -- the opposite of the guarantee the manifest test
+  checks. A directory-only bind is also insufficient: CPython needs its
+  installation prefix for the stdlib, as a bind of just the `bin` dir shows
+  with `Fatal Python error: Failed to import encodings module`.

@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -11,38 +12,110 @@ from noesis_harness.gatekeeper import CapabilityRequest, Gatekeeper
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
 from noesis_harness.skill_manifest import SkillManifest
 
+# Roots that BubblewrapBackend.command mounts read-only into the child. Keep in
+# sync with the --ro-bind lines in noesis_harness/sandbox_bwrap.py.
+_SANDBOX_READ_ONLY_ROOTS = ("/usr", "/bin", "/lib", "/lib64")
 
-def _bubblewrap_skip_reason(backend: BubblewrapBackend, workspace: Path) -> str:
-    """Return why this host cannot really run a bubblewrap child, or "".
+# bwrap reports an interpreter it cannot execute through one of these strings.
+# Any other non-zero exit means the child did run and the script itself failed,
+# which must surface as a failing assertion, never as a skip.
+_SANDBOX_EXEC_FAILURE_MARKERS = (
+    "No such file or directory",
+    "Permission denied",
+    "Exec format error",
+    "execvp",
+    "execve",
+    "bwrap:",
+)
+
+
+def _inside_sandbox_roots(path: Path) -> bool:
+    for root in _SANDBOX_READ_ONLY_ROOTS:
+        root_path = Path(root)
+        if path == root_path or root_path in path.parents:
+            return True
+    return False
+
+
+def _sandbox_interpreter() -> str:
+    """Return the Python interpreter that the bubblewrap bind set can exec.
+
+    ``BubblewrapBackend.command`` mounts exactly ``/usr``, ``/bin``, ``/lib``,
+    ``/lib64``, ``/etc``, ``/proc``, ``/dev``, a tmpfs ``/tmp`` and the
+    workspace, and it sets ``PATH=/usr/bin:/bin`` for the child. An interpreter
+    outside those roots simply does not exist from the child's point of view.
+
+    That is not hypothetical: GitHub's hosted Ubuntu runner exposes Python at
+    ``/opt/hostedtoolcache/Python/<version>/x64/bin/python3``, which is what
+    ``shutil.which("python3")`` returns there. Using it as ``argv[0]`` made
+    bwrap fail to exec the child, so the runtime honestly reported
+    ``status="failed"`` while namespaces were working. On hosts where Python
+    lives in ``/usr/bin`` the same test passed, which hid the mistake.
+
+    Candidates, each checked by real path so a symlink cannot smuggle in an
+    unbindable target:
+
+    1. ``sys.executable`` -- the interpreter running these tests, when its real
+       path is under a bound root;
+    2. ``/usr/bin/python3`` -- the system interpreter, when its real path is
+       under a bound root;
+    3. ``shutil.which("python3")`` -- last resort. ``_bubblewrap_skip_reason``
+       then decides whether it is usable, so the test skips with
+       "cannot execute ... inside the sandbox" instead of asserting a success
+       it never observed.
+    """
+    candidates = (sys.executable, "/usr/bin/python3", shutil.which("python3") or "")
+    for candidate in candidates:
+        if not candidate:
+            continue
+        resolved = Path(os.path.realpath(candidate))
+        if resolved.is_file() and os.access(str(resolved), os.X_OK) and _inside_sandbox_roots(resolved):
+            return str(resolved)
+    return shutil.which("python3") or "/usr/bin/python3"
+
+
+def _bubblewrap_skip_reason(backend: BubblewrapBackend, workspace: Path, argv) -> str:
+    """Return why this host cannot run ``argv`` under bubblewrap, or "".
 
     ``BubblewrapBackend.available`` only proves the binary exists. A host can
     have bwrap installed and still refuse to create a user namespace, which is
     what happens when the kernel restricts unprivileged user namespaces (for
     example ``kernel.apparmor_restrict_unprivileged_userns=1`` on newer Ubuntu,
-    or a seccomp profile that blocks ``unshare``). Without a runtime probe such
-    a host turns an environment limitation into a failing assertion about the
-    sandbox itself, which reads as a regression when nothing regressed.
+    or a seccomp profile that blocks ``unshare``). A second way to fail is an
+    interpreter the bind set does not cover. Both are environment limits, and
+    both turn into a failing assertion about the sandbox unless they are probed.
 
-    The probe runs the backend's own command builder once, in the same
-    workspace and with the same bind set the real tests use, against /bin/true.
-    When the probe succeeds both tests keep their full assertions; when it
-    cannot run they report not_run with the host reason instead of a false
-    failure or a false pass.
+    ``argv`` is the exact command line the caller is about to hand to the
+    runtime, so the probe exercises the same interpreter and the same script,
+    through the backend's own command builder, in the same workspace with the
+    same mounts. That is strictly stronger than a ``python -c`` exec probe: it
+    also proves the interpreter can open the script from the bound workspace.
+
+    A skip is returned only when the failure is an exec/namespace failure
+    reported by bwrap itself. If the child ran and the script exited non-zero,
+    this returns "" on purpose so the test executes and fails with evidence
+    instead of hiding a real defect behind a skip.
     """
     if shutil.which(backend.executable or "bwrap") is None:
         return "bubblewrap not installed on this host"
     if not backend.available:
         return "bubblewrap unavailable on this host"
     try:
-        command = backend.command(("true",), workspace)
+        command = backend.command(tuple(argv), workspace)
         completed = subprocess.run(command, capture_output=True, text=True, timeout=60)
     except Exception as exc:
-        return "bubblewrap cannot start a sandbox on this host: %s" % (type(exc).__name__,)
-    if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout or "").strip().splitlines()
-        return "bubblewrap cannot create an isolated namespace on this host: %s" % (
-            detail[-1] if detail else "exit %s" % completed.returncode,
+        lines = str(exc).strip().splitlines()
+        return "bubblewrap cannot start a sandbox for %s on this host: %s: %s" % (
+            argv[0],
+            type(exc).__name__,
+            lines[-1] if lines else "no detail",
         )
+    if completed.returncode == 0:
+        return ""
+    lines = [line for line in (completed.stderr or completed.stdout or "").strip().splitlines() if line.strip()]
+    last_line = lines[-1] if lines else "exit %s" % completed.returncode
+    if any(marker in last_line for marker in _SANDBOX_EXEC_FAILURE_MARKERS):
+        return "bubblewrap cannot execute %s inside the sandbox on this host: %s" % (argv[0], last_line)
     return ""
 
 
@@ -171,13 +244,14 @@ class ChildExecutionTests(unittest.TestCase):
 
     def test_bubblewrap_backend_is_explicitly_sandboxed(self):
         backend = BubblewrapBackend()
-        skip_reason = _bubblewrap_skip_reason(backend, self.workspace)
+        python3 = _sandbox_interpreter()
+        argv = (python3, "ok.py")
+        skip_reason = _bubblewrap_skip_reason(backend, self.workspace, argv)
         if skip_reason:
             self.skipTest(skip_reason)
         request_id = self._approved_request()
         runtime = ChildExecutionRuntime(self.gate, sandbox_backend=backend)
-        python3 = shutil.which("python3") or "/usr/bin/python3"
-        request = ExecutionRequest(request_id, (python3, "ok.py"), str(self.workspace), (Path(python3).name,))
+        request = ExecutionRequest(request_id, argv, str(self.workspace), (Path(python3).name,))
         result = runtime.run(request)
         self.assertEqual(result.status, "completed")
         self.assertTrue(result.sandboxed)
@@ -185,14 +259,16 @@ class ChildExecutionTests(unittest.TestCase):
 
     def test_bubblewrap_manifest_runtime_blocks_host_filesystem_and_network(self):
         backend = BubblewrapBackend()
-        skip_reason = _bubblewrap_skip_reason(backend, self.workspace)
-        if skip_reason:
-            self.skipTest(skip_reason)
         probe = self.workspace / "probe.py"
         probe.write_text("import pathlib, socket\ntry:\n pathlib.Path('/home/ubuntu/noesis-p3/README.md').read_text(); print('host_read=allowed')\nexcept Exception:\n print('host_read=blocked')\ntry:\n socket.create_connection(('1.1.1.1', 80), 0.2); print('network=allowed')\nexcept Exception:\n print('network=blocked')\n", encoding="utf-8")
+        python3 = _sandbox_interpreter()
+        argv = (python3, "probe.py")
+        skip_reason = _bubblewrap_skip_reason(backend, self.workspace, argv)
+        if skip_reason:
+            self.skipTest(skip_reason)
         request_id = self._approved_request(target="probe.py")
         manifest = SkillManifest("demo-skill", "Demo", "1.0.0", "sha256:" + "0" * 64, ("skill.execute",), ("linux",), {"source": "test"}, "probe.py")
-        request = ExecutionRequest(request_id, (shutil.which("python3") or "/usr/bin/python3", "probe.py"), str(self.workspace), (Path(shutil.which("python3") or "/usr/bin/python3").name,), skill_id="demo-skill", manifest=manifest, granted_capabilities=("skill.execute",))
+        request = ExecutionRequest(request_id, argv, str(self.workspace), (Path(python3).name,), skill_id="demo-skill", manifest=manifest, granted_capabilities=("skill.execute",))
         result = ChildExecutionRuntime(self.gate, sandbox_backend=backend).run(request)
         self.assertEqual(result.status, "completed")
         self.assertTrue(result.sandboxed)
