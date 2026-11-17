@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -9,6 +10,40 @@ from noesis_harness.execution_assurance import ExecutionReceiptStore, ExecutionR
 from noesis_harness.gatekeeper import CapabilityRequest, Gatekeeper
 from noesis_harness.sandbox_bwrap import BubblewrapBackend
 from noesis_harness.skill_manifest import SkillManifest
+
+
+def _bubblewrap_skip_reason(backend: BubblewrapBackend, workspace: Path) -> str:
+    """Return why this host cannot really run a bubblewrap child, or "".
+
+    ``BubblewrapBackend.available`` only proves the binary exists. A host can
+    have bwrap installed and still refuse to create a user namespace, which is
+    what happens when the kernel restricts unprivileged user namespaces (for
+    example ``kernel.apparmor_restrict_unprivileged_userns=1`` on newer Ubuntu,
+    or a seccomp profile that blocks ``unshare``). Without a runtime probe such
+    a host turns an environment limitation into a failing assertion about the
+    sandbox itself, which reads as a regression when nothing regressed.
+
+    The probe runs the backend's own command builder once, in the same
+    workspace and with the same bind set the real tests use, against /bin/true.
+    When the probe succeeds both tests keep their full assertions; when it
+    cannot run they report not_run with the host reason instead of a false
+    failure or a false pass.
+    """
+    if shutil.which(backend.executable or "bwrap") is None:
+        return "bubblewrap not installed on this host"
+    if not backend.available:
+        return "bubblewrap unavailable on this host"
+    try:
+        command = backend.command(("true",), workspace)
+        completed = subprocess.run(command, capture_output=True, text=True, timeout=60)
+    except Exception as exc:
+        return "bubblewrap cannot start a sandbox on this host: %s" % (type(exc).__name__,)
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "").strip().splitlines()
+        return "bubblewrap cannot create an isolated namespace on this host: %s" % (
+            detail[-1] if detail else "exit %s" % completed.returncode,
+        )
+    return ""
 
 
 class ChildExecutionTests(unittest.TestCase):
@@ -136,8 +171,9 @@ class ChildExecutionTests(unittest.TestCase):
 
     def test_bubblewrap_backend_is_explicitly_sandboxed(self):
         backend = BubblewrapBackend()
-        if not backend.available:
-            self.skipTest("bubblewrap unavailable")
+        skip_reason = _bubblewrap_skip_reason(backend, self.workspace)
+        if skip_reason:
+            self.skipTest(skip_reason)
         request_id = self._approved_request()
         runtime = ChildExecutionRuntime(self.gate, sandbox_backend=backend)
         python3 = shutil.which("python3") or "/usr/bin/python3"
@@ -149,8 +185,9 @@ class ChildExecutionTests(unittest.TestCase):
 
     def test_bubblewrap_manifest_runtime_blocks_host_filesystem_and_network(self):
         backend = BubblewrapBackend()
-        if not backend.available:
-            self.skipTest("bubblewrap unavailable")
+        skip_reason = _bubblewrap_skip_reason(backend, self.workspace)
+        if skip_reason:
+            self.skipTest(skip_reason)
         probe = self.workspace / "probe.py"
         probe.write_text("import pathlib, socket\ntry:\n pathlib.Path('/home/ubuntu/noesis-p3/README.md').read_text(); print('host_read=allowed')\nexcept Exception:\n print('host_read=blocked')\ntry:\n socket.create_connection(('1.1.1.1', 80), 0.2); print('network=allowed')\nexcept Exception:\n print('network=blocked')\n", encoding="utf-8")
         request_id = self._approved_request(target="probe.py")

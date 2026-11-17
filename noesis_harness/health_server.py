@@ -12,7 +12,7 @@ from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 from .provider_registry import ProviderRegistry
 from .ui_assets import CONTROL_PLANE_HTML
-from .session_stream import SessionEventBuffer, StreamContractError
+from .session_stream import SessionEventBuffer, StreamContractError, StreamEvent
 from .task_session_api import TaskSessionError, TaskSessionStore
 from .promotion_integration import OperatorAuthContext, OperatorSessionAction, PromotionApprovalAction
 from .ui_contract import UIEnvelope, failure, health_payload, success

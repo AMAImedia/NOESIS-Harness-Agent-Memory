@@ -42,6 +42,39 @@ Every non-trivial module documents its source patterns (LoopX, agentmemory,
 TencentDB, deepseek-harness, Hermes, agent-teams). When you port a new pattern,
 add the source to the module docstring and to `../RESEARCH_DAIGEST.md`.
 
+## Known gap: CI lint gate (recorded 2026-11-18)
+
+`Lint (pyflakes)` in `.github/workflows/ci.yml` runs plain
+`pyflakes noesis_harness/ examples/ integrations/ benchmarks/`, which exits 1 on
+any finding. Three findings were real defects and are fixed:
+
+- `health_server.publish_session_event` annotated a `StreamEvent` return type
+  that was never imported. It only survived because
+  `from __future__ import annotations` makes annotations lazy strings, so the
+  undefined name was invisible at runtime and visible only to the linter.
+- `integrations/codex.py` and `integrations/claude_code.py` called `time.time()`
+  in methods with no `time` binding (`get_state`, `recall`), so those two paths
+  would raise NameError the first time they were executed.
+
+What remains after that fix is not a defect list but the package's public
+surface: 619 findings, 602 of them unused imports and 505 of those in
+`noesis_harness/__init__.py`, which re-exports the public names used at 52
+`from noesis_harness import ...` sites across tests, scripts, examples and
+integrations. pyflakes cannot see a re-export without an `__all__`, so the
+correct remedies are a generated `__all__` for the package root and individual
+judgement for the remaining 114 findings in 64 files (some unused imports are
+deliberate availability probes, some untouched-locals are intentional).
+
+Rules that follow:
+
+- Never delete imports in bulk to make the lint job green. Dropping a name from
+  `noesis_harness/__init__.py` breaks a documented import for every caller.
+- Never narrow the gate (fewer paths, `|| true`, a hand-picked file list) to
+  make it pass. A narrowed gate must be recorded here with the exact command
+  and the reason.
+- The three undefined names above are the only lint findings that ever broke
+  behaviour; the rest is cleanliness, tracked separately.
+
 ## Owner communication (recorded 2026-09-18)
 
 - The repository owner is not a programmer (student). Explain every change in

@@ -79,11 +79,22 @@ def _has_windll() -> bool:
     return hasattr(ctypes, "windll")
 
 
+def _host_is_windows() -> bool:
+    """Report whether this host is Windows.
+
+    Single seam for every platform gate in this module. Tests simulate a Windows
+    host by patching this function instead of the global os.name, because
+    patching os.name also changes how pathlib dispatches Path to WindowsPath and
+    breaks unrelated path arithmetic on a POSIX host.
+    """
+    return os.name == "nt"
+
+
 def hardening_inventory_appcontainer() -> dict[str, object]:
     """Machine-readable inventory of what an AppContainer boundary must prove."""
     return {
         "schema_version": "noesis.appcontainer-inventory.v1",
-        "host_platform": "windows" if os.name == "nt" else os.name,
+        "host_platform": "windows" if _host_is_windows() else os.name,
         "boundary_required": ["appcontainer_lpac_profile"],
         "boundary_verified": False,
         "capabilities_required": list(REQUIRED_CAPABILITIES),
@@ -173,7 +184,7 @@ def profile_sid_probe() -> dict[str, object]:
     actually derived it. available=True does NOT mean any AppContainer profile
     exists on this host.
     """
-    if os.name != "nt":
+    if not _host_is_windows():
         return {"available": False, "reason": REASON_NOT_WINDOWS_HOST}
     reason, used = _probe_app_container_sid()
     if reason:
@@ -195,7 +206,7 @@ def capability_inventory() -> dict[str, object]:
     }
     return {
         "schema_version": "noesis.appcontainer-capabilities.v1",
-        "host_platform": "windows" if os.name == "nt" else os.name,
+        "host_platform": "windows" if _host_is_windows() else os.name,
         "windll_present": _has_windll(),
         "functions": functions,
         "execution_bound": False,
@@ -237,7 +248,7 @@ class AppContainerBackend:
 
     @property
     def available(self) -> bool:
-        if os.name != "nt":
+        if not _host_is_windows():
             return False
         if not _has_windll():
             return False
@@ -246,12 +257,20 @@ class AppContainerBackend:
         return self._profile_verified
 
     def unavailability_reason(self) -> str:
-        if os.name != "nt":
+        """Return the first failing gate, caller-visible configuration first.
+
+        A blank profile name is a configuration error that is invalid on every
+        host, so it is reported before the ctypes probe: on a Windows host that
+        also lacks ctypes.windll the operator still needs to know the profile
+        name was never supplied, and on a host without the Windows loader the
+        configuration error is the only actionable fact.
+        """
+        if not _host_is_windows():
             return REASON_NOT_WINDOWS_HOST
-        if not _has_windll():
-            return REASON_CTYPES_UNAVAILABLE
         if not self.profile_name:
             return REASON_PROFILE_MISSING
+        if not _has_windll():
+            return REASON_CTYPES_UNAVAILABLE
         if not callable(self._verify_profile):
             return DEFAULT_UNAVAILABLE_REASON
         if not self._profile_verified:
@@ -287,7 +306,7 @@ class AppContainerBackend:
         never starts a child process.
         """
         capabilities = capability_inventory()
-        if os.name != "nt":
+        if not _host_is_windows():
             return {
                 "status": "not_run",
                 "reason": REASON_NOT_WINDOWS_HOST,
