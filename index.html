@@ -1,0 +1,2992 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title data-i18n="page_title">NOESIS Harness — Agent Memory</title>
+<meta name="description" content="Local-first agent memory with honesty gates, fail-closed evidence policy and zero dependencies." />
+<meta name="google" content="notranslate" />
+<meta name="robots" content="notranslate" />
+<!-- Fonts and shell are vendored locally. No CDN, no external font requests. -->
+<link rel="stylesheet" href="vendor/fonts/fonts.css" />
+<link rel="stylesheet" href="vendor/noesis-unified.css" />
+<style>
+  :root { color-scheme: dark; }
+  :root[data-theme="light"] { color-scheme: light; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  ::selection { background: rgba(167, 139, 250, 0.35); color: var(--text); }
+  .svg-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  .skip-link {
+    position: fixed; top: 10px; left: 10px; z-index: 300;
+    transform: translateY(-200%); transition: transform .2s var(--ease);
+    padding: 10px 14px; border-radius: 9px; border: 1px solid var(--border-2);
+    background: var(--bg-2); color: var(--text); font: 600 12px/1 var(--mono);
+  }
+  .skip-link:focus { transform: none; }
+  a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--violet); outline-offset: 3px;
+  }
+
+  .brand-mark .brand-am-sq { transition: transform .3s var(--easeBack), box-shadow .3s var(--ease); }
+  .brand-mark:hover .brand-am-sq { transform: rotate(-5deg) scale(1.06); box-shadow: 0 6px 22px rgba(236, 72, 153, 0.35); }
+  .support-cta {
+    color: #fff;
+    background: linear-gradient(135deg, #a78bfa 0%, #f472b6 58%, #fbbf24 100%);
+    border-color: rgba(255, 255, 255, 0.24);
+    box-shadow: 0 4px 18px -6px rgba(124, 58, 237, 0.65);
+  }
+  .support-cta:hover { color: #fff; border-color: rgba(255, 255, 255, 0.45); filter: brightness(1.05); }
+  .lang-select { white-space: nowrap; }
+  .theme-btn { font-size: 16px; line-height: 1; }
+
+  .wrap { padding-top: 26px; }
+  .tabs-bar {
+    display: flex; gap: 5px; align-items: center;
+    margin: 0 0 34px; padding: 5px;
+    border: 1px solid var(--border); border-radius: 13px;
+    background: var(--surface); backdrop-filter: blur(14px) saturate(130%);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 15px; border: 1px solid transparent; border-radius: 9px;
+    background: transparent; color: var(--text-dim);
+    font-family: var(--display); font-size: 13.5px; font-weight: 600; letter-spacing: -.01em;
+    transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .tab:hover { color: var(--text); background: var(--surface-2); }
+  .tab[aria-selected="true"] {
+    color: var(--text);
+    background: linear-gradient(180deg, rgba(167, 139, 250, 0.18), rgba(236, 72, 153, 0.07));
+    border-color: rgba(167, 139, 250, 0.34);
+    box-shadow: 0 10px 28px -18px rgba(167, 139, 250, 0.7);
+  }
+  :root[data-theme="light"] .tab[aria-selected="true"] {
+    background: linear-gradient(180deg, #f3e8ff, #fdf2f8); border-color: #ddd6fe;
+  }
+  .tab-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; opacity: .35; transition: opacity .2s, box-shadow .2s, background .2s;
+  }
+  .tab[aria-selected="true"] .tab-dot { background: var(--violet); opacity: 1; box-shadow: 0 0 10px var(--violet); }
+  .tab-panel:not([hidden]) { animation: panelIn .38s var(--easeOut) both; }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(9px); } }
+
+  .hero-wrap {
+    display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
+    gap: clamp(24px, 4vw, 56px); align-items: center; padding: 8px 0 34px;
+  }
+  .hero-copy .eyebrow { margin-bottom: 18px; }
+  .hero-title {
+    margin: 0; padding: 0; font-family: var(--display);
+    font-size: clamp(42px, 6.4vw, 78px); font-weight: 700; line-height: 1.02;
+    letter-spacing: -.045em; font-variation-settings: 'opsz' 96;
+  }
+  .hero-copy .lede { max-width: 700px; margin: 18px 0 0; font-size: clamp(15px, 1.5vw, 17px); }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .hero-actions .btn .ico { width: 16px; height: 16px; }
+
+  .hero-panel {
+    position: relative; overflow: hidden; padding: 20px 22px;
+    border-radius: 20px;
+    background: linear-gradient(165deg, var(--surface-2), var(--surface));
+  }
+  .hero-panel::before {
+    content: ''; position: absolute; width: 360px; height: 360px; right: -150px; top: -190px;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.28), transparent 66%);
+    pointer-events: none;
+  }
+  .panel-head {
+    position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding-bottom: 13px; border-bottom: 1px solid var(--border);
+  }
+  .panel-kicker { font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--text-faint); }
+  .panel-live {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--green);
+  }
+  .panel-live i {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.1); animation: pulseDot 2.8s ease-in-out infinite;
+  }
+  @keyframes pulseDot { 50% { opacity: .45; box-shadow: 0 0 0 7px rgba(52, 211, 153, 0.03); } }
+  .flow-node { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px 0; }
+  .flow-node + .flow-node { border-top: 1px dashed var(--border); }
+  .node-ico {
+    width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+    color: var(--violet-text); background: rgba(167, 139, 250, 0.09);
+    border: 1px solid rgba(167, 139, 250, 0.2);
+  }
+  .node-ico .ico { width: 17px; height: 17px; }
+  .node-title { display: block; font-family: var(--display); font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
+  .node-sub { display: block; margin-top: 2px; font-family: var(--mono); font-size: 9.5px; color: var(--text-faint); letter-spacing: .02em; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 12px; }
+  .kpi { position: relative; overflow: hidden; padding: 18px 18px 16px; border-radius: 14px; }
+  .kpi::before {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+    background: var(--grad-spectrum); opacity: .7;
+  }
+  .kpi-value { font-family: var(--display); font-size: clamp(28px, 3.1vw, 38px); font-weight: 700; line-height: 1; letter-spacing: -.04em; }
+  .kpi-label { margin: 12px 0 3px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); }
+  .kpi-sub { font-size: 12px; line-height: 1.45; color: var(--text-dim); }
+  .fineprint { margin: 0; max-width: 920px; color: var(--text-faint); font-size: 11.5px; line-height: 1.7; }
+
+  .section { margin-top: 46px; }
+  .section-head { margin-bottom: 16px; }
+  .section-kicker { margin-bottom: 7px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--violet-text); }
+  .section-title { margin: 0; font-family: var(--display); font-size: clamp(23px, 3vw, 32px); font-weight: 600; letter-spacing: -.03em; line-height: 1.15; }
+  .section-desc { max-width: 680px; margin: 8px 0 0; color: var(--text-dim); font-size: 13.5px; line-height: 1.65; }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .feature { position: relative; overflow: hidden; padding: 20px; border-radius: 16px; transition: transform .25s var(--easeOut), border-color .25s, background .25s; }
+  .feature:hover { transform: translateY(-2px); border-color: var(--border-2); background: var(--surface-2); }
+  .feature::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0; pointer-events: none;
+    background: radial-gradient(420px 130px at 50% 0%, rgba(167, 139, 250, 0.1), transparent 70%);
+    transition: opacity .25s;
+  }
+  .feature:hover::after { opacity: 1; }
+  .feature-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .feature-num { font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; color: var(--faint); }
+  .feature h3 { margin: 0 0 7px; font-family: var(--display); font-size: 16.5px; font-weight: 600; letter-spacing: -.015em; }
+  .feature p { margin: 0; font-size: 13px; line-height: 1.65; color: var(--text-dim); }
+  .ico-box {
+    flex: none; width: 38px; height: 38px; border-radius: 10px; display: inline-grid; place-items: center;
+    color: var(--violet-text); background: linear-gradient(145deg, rgba(167, 139, 250, 0.18), rgba(236, 72, 153, 0.07));
+    border: 1px solid rgba(167, 139, 250, 0.22);
+  }
+  .ico-box .ico { width: 18px; height: 18px; }
+  :root[data-theme="light"] .ico-box { color: #6d28d9; background: linear-gradient(145deg, #f3e8ff, #fce7f3); border-color: #e9d5ff; }
+
+  .gate-card { overflow: hidden; border-radius: 16px; }
+  .gate-top { display: flex; flex-wrap: wrap; gap: 7px; padding: 15px 17px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .count-chip {
+    display: inline-flex; align-items: baseline; gap: 7px; padding: 7px 11px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; color: var(--text-dim);
+  }
+  .count-chip b { font-family: var(--display); font-size: 15px; color: var(--text); line-height: 1; }
+  .gate-list { display: flex; flex-direction: column; }
+  .gate-row {
+    display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 16px; align-items: center;
+    padding: 15px 17px; transition: background .2s;
+  }
+  .gate-row + .gate-row { border-top: 1px solid var(--border); }
+  .gate-row:hover { background: var(--surface-2); }
+  .gate-id { font-family: var(--mono); font-size: 11px; letter-spacing: .07em; color: var(--violet-text); white-space: nowrap; }
+  .gate-name { font-family: var(--display); font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+  .gate-note { display: block; margin-top: 2px; color: var(--text-faint); font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 400; line-height: 1.55; }
+  .status {
+    padding: 5px 9px; border: 1px solid; border-radius: 6px; white-space: nowrap;
+    font-family: var(--mono); font-size: 9px; letter-spacing: .09em; text-transform: uppercase;
+  }
+  .status-passed { color: var(--green); border-color: rgba(52, 211, 153, 0.3); background: rgba(52, 211, 153, 0.09); }
+  .status-built { color: var(--cyan); border-color: rgba(34, 211, 238, 0.3); background: rgba(34, 211, 238, 0.08); }
+  .status-not-run { color: var(--gold); border-color: rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.08); }
+  .status-pending { color: var(--amber); border-color: rgba(251, 146, 60, 0.32); background: rgba(251, 146, 60, 0.09); }
+  :root[data-theme="light"] .status-passed { color: #047857; border-color: #a7f3d0; background: #ecfdf5; }
+  :root[data-theme="light"] .status-built { color: #0e7490; border-color: #a5f3fc; background: #ecfeff; }
+  :root[data-theme="light"] .status-not-run { color: #a16207; border-color: #fde68a; background: #fffbeb; }
+  :root[data-theme="light"] .status-pending { color: #c2410c; border-color: #fed7aa; background: #fff7ed; }
+  .gate-foot {
+    padding: 11px 17px; border-top: 1px solid var(--border);
+    color: var(--text-faint); font-family: var(--mono); font-size: 10px; line-height: 1.6; letter-spacing: .02em;
+  }
+
+  .tab-head { padding: 4px 0 24px; }
+  .tab-head .eyebrow { margin-bottom: 16px; }
+  .tab-hero {
+    margin: 0; padding: 0; font-family: var(--display);
+    font-size: clamp(34px, 4.6vw, 58px); font-weight: 700; line-height: 1.06; letter-spacing: -.04em;
+  }
+  .tab-head .lede { margin: 16px 0 0; max-width: 760px; font-size: 16px; }
+
+  .tier-card { padding: 22px; margin-bottom: 12px; }
+  .card-head { display: flex; align-items: flex-start; gap: 14px; }
+  .card-head h3 { margin: 0 0 4px; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
+  .card-head p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--text-dim); }
+  .table-scroll { margin-top: 18px; overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .tier-table { width: 100%; min-width: 580px; border-collapse: collapse; }
+  .tier-table th {
+    padding: 9px 12px; text-align: left; background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint);
+  }
+  .tier-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; line-height: 1.5; color: var(--text-dim); vertical-align: top; }
+  .tier-table tr:last-child td { border-bottom: 0; }
+  .tier-table td:first-child { font-family: var(--display); font-weight: 600; color: var(--text); white-space: nowrap; }
+  .tier-table td:nth-child(2) { font-family: var(--mono); font-size: 10.5px; color: var(--violet-text); white-space: nowrap; }
+  :root[data-theme="light"] .tier-table td:nth-child(2) { color: #6d28d9; }
+
+  .vocab-card { margin-top: 12px; padding: 22px; }
+  .vocab-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 13px 0 10px; }
+  .vocab-chips code {
+    padding: 5px 9px; border: 1px solid var(--border-2); border-radius: 6px;
+    background: var(--surface-2); color: var(--violet-text);
+    font-family: var(--mono); font-size: 10.5px;
+  }
+  .vocab-note { margin: 0; max-width: 780px; color: var(--text-dim); font-size: 12.5px; line-height: 1.65; }
+  .claims {
+    margin-top: 12px; padding: 22px; border-radius: 16px;
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.065), transparent 68%);
+  }
+  .claims h3 { margin: 0; font-family: var(--display); font-size: 16px; font-weight: 600; }
+  .claims ul { display: grid; gap: 7px; margin: 12px 0 0; padding: 0; list-style: none; }
+  .claims li { position: relative; padding-left: 17px; color: var(--text-dim); font-size: 13px; line-height: 1.55; }
+  .claims li::before { content: '×'; position: absolute; left: 0; top: 0; color: var(--red-text); font-family: var(--mono); }
+
+  .cmd-stack { display: flex; flex-direction: column; gap: 10px; }
+  .cmd-card { padding: 18px; border-radius: 16px; }
+  .cmd-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+  .cmd-title { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .cmd-step {
+    padding: 3px 6px; border: 1px solid var(--border); border-radius: 5px;
+    background: var(--surface-2); color: var(--text-faint);
+    font-family: var(--mono); font-size: 9px; letter-spacing: .04em;
+  }
+  .cmd-tag {
+    padding: 3px 6px; border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text-faint); font-family: var(--mono); font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; white-space: nowrap;
+  }
+  .code-row { display: flex; align-items: stretch; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; background: #05050b; }
+  .code {
+    flex: 1; min-width: 0; display: block; padding: 13px 15px; overflow-x: auto;
+    color: #ece9ff; font-family: var(--mono); font-size: 12px; line-height: 1.6;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  :root[data-theme="light"] .code-row { background: #f4f3fb; }
+  :root[data-theme="light"] .code { color: #2b2440; }
+  .copy-btn {
+    flex: none; display: inline-flex; align-items: center; gap: 7px;
+    padding: 0 13px; border: 0; border-left: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-dim);
+    font-family: var(--mono); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+    transition: background .2s, color .2s;
+  }
+  .copy-btn:hover { background: var(--surface-strong); color: var(--text); }
+  .copy-btn .ico { width: 14px; height: 14px; }
+  .copy-btn .check-ico { display: none; }
+  .copy-btn.is-copied { color: var(--green); }
+  .copy-btn.is-copied .copy-ico { display: none; }
+  .copy-btn.is-copied .check-ico { display: block; }
+  .cmd-hint { margin: 8px 0 0; color: var(--text-faint); font-size: 11.5px; line-height: 1.6; }
+
+  .integration-card { margin-top: 12px; padding: 22px; }
+  .integration-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .integration-head h3 { margin: 0; font-family: var(--display); font-size: 16.5px; font-weight: 600; }
+  .stub-tag {
+    padding: 3px 6px; border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 5px;
+    background: rgba(251, 191, 36, 0.08); color: var(--gold);
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: .1em;
+  }
+  :root[data-theme="light"] .stub-tag { color: #a16207; background: #fffbeb; border-color: #fde68a; }
+  .integration-card p { margin: 0; max-width: 820px; color: var(--text-dim); font-size: 13px; line-height: 1.65; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 13px; }
+  .chip {
+    padding: 5px 9px; border: 1px solid var(--border-2); border-radius: 999px;
+    background: var(--surface-2); color: var(--text-dim);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .03em;
+  }
+
+  .docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+  .link-card {
+    display: flex; align-items: center; gap: 13px; padding: 16px 17px;
+    border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
+    transition: transform .22s var(--easeOut), border-color .22s, background .22s;
+  }
+  .link-card:hover { transform: translateY(-2px); border-color: var(--border-2); background: var(--surface-2); }
+  .link-card .ico-box { width: 34px; height: 34px; border-radius: 9px; }
+  .link-card .ico-box .ico { width: 16px; height: 16px; }
+  .link-copy { min-width: 0; }
+  .link-card h3 { margin: 0 0 2px; font-family: var(--display); font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+  .link-card p { margin: 0; color: var(--text-dim); font-size: 11.5px; line-height: 1.55; }
+  .link-arrow { flex: none; width: 15px; height: 15px; margin-left: auto; color: var(--faint); transition: transform .2s, color .2s; }
+  .link-card:hover .link-arrow { color: var(--violet-text); transform: translate(2px, -2px); }
+
+  .footer-note { margin-top: 4px; }
+  .shell-footer { margin-top: 56px; }
+  .toast-host {
+    position: fixed; left: 50%; bottom: 24px; z-index: 250;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: none; transform: translateX(-50%);
+  }
+  .toast {
+    max-width: 88vw; padding: 12px 18px; border: 1px solid var(--border-2); border-radius: 12px;
+    background: var(--bg-3); color: var(--text); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    font-size: 13px; font-weight: 500; animation: toastIn .3s var(--easeOut);
+  }
+  .toast.ok { border-color: rgba(52, 211, 153, 0.42); }
+  .toast.err { border-color: rgba(248, 113, 113, 0.45); }
+  .toast.err::before { content: '! '; color: var(--red-text); font-family: var(--mono); }
+  .toast.ok::before { content: '✓ '; color: var(--green); }
+  .toast.out { opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } }
+
+  @media (max-width: 1020px) {
+    .hero-wrap { grid-template-columns: 1fr; gap: 28px; }
+    .hero-panel { max-width: 560px; }
+    .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 860px) {
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gate-row { grid-template-columns: 60px minmax(0, 1fr) auto; gap: 12px; }
+  }
+  @media (max-width: 760px) {
+    .brand-product { display: none; }
+    .support-label { display: none; }
+    .support-cta { padding-left: 11px; padding-right: 11px; }
+    .tabs-bar { margin-bottom: 26px; }
+    .tab { padding: 9px 12px; font-size: 12.5px; }
+  }
+  @media (max-width: 640px) {
+    .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    .tabs-bar { flex-wrap: wrap; overflow: visible; }
+    .tab { flex: 1 1 auto; justify-content: center; }
+    .gate-row { grid-template-columns: 50px minmax(0, 1fr); row-gap: 7px; }
+    .gate-row .status { grid-column: 2; justify-self: start; }
+    .cmd-top { align-items: flex-start; }
+    .cmd-tag { display: none; }
+    .code { font-size: 11px; padding: 12px 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .copy-btn { padding: 0 10px; }
+    .copy-btn span { display: none; }
+    .copy-btn .ico { width: 15px; height: 15px; }
+    .tier-table { min-width: 540px; }
+  }
+  @media (max-width: 520px) {
+    .lang-select > span:nth-of-type(1) { display: none; }
+    .topnav-inner { padding-left: 14px; padding-right: 14px; }
+  }
+  @media (max-width: 350px) {
+    .brand-mark > span:nth-child(2) { display: none; }
+    .kpi-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"></div>
+
+<svg class="svg-sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-db" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="5.5" rx="7.5" ry="3"/>
+    <path d="M4.5 5.5v6c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-6"/>
+    <path d="M4.5 11.5v6c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-6"/>
+  </symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24">
+    <path d="M12 3 3 7.5 12 12l9-4.5L12 3Z"/>
+    <path d="m3 12 9 4.5L21 12"/>
+    <path d="m3 16.5 9 4.5 9-4.5"/>
+  </symbol>
+  <symbol id="i-net" viewBox="0 0 24 24">
+    <circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="18" r="2.2"/>
+    <path d="M12 7.2v4.3M10.2 13.2 6.6 16M13.8 13.2l3.6 2.8"/>
+  </symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24">
+    <path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6l-7-3Z"/>
+    <path d="m9 12 2 2 4-4.2"/>
+  </symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24">
+    <path d="M12 4v16M7 20h10M4 7h16M6 7l-2 6h4L6 7ZM18 7l-2 6h4l-2-6Z"/>
+  </symbol>
+  <symbol id="i-code" viewBox="0 0 24 24">
+    <path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>
+  </symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24">
+    <rect x="5" y="10" width="14" height="10" rx="2"/>
+    <path d="M8 10V7.5a4 4 0 0 1 8 0V10M12 14v2.5"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24">
+    <circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>
+  </symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24">
+    <rect x="3" y="4.5" width="18" height="15" rx="2"/>
+    <path d="m7 9 3 3-3 3M13 15h4"/>
+  </symbol>
+  <symbol id="i-book" viewBox="0 0 24 24">
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/>
+    <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5v-16Z"/>
+  </symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24">
+    <path d="M6 3h8l4 4v14H6V3Z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>
+  </symbol>
+  <symbol id="i-git" viewBox="0 0 24 24">
+    <circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><circle cx="6" cy="18" r="2"/>
+    <path d="M6 8v8M8 6h3a4 4 0 0 1 4 4v6"/>
+  </symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24">
+    <rect x="8" y="8" width="11" height="12" rx="2"/>
+    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 6.5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24">
+    <path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5M12 17.2v.2"/>
+  </symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24">
+    <path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"/>
+    <circle cx="12" cy="12" r="2.7"/>
+  </symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24">
+    <path d="M4 7h16M9 7V4.5h6V7M7 7l1 13h8l1-13M10 11v5M14 11v5"/>
+  </symbol>
+  <symbol id="i-link" viewBox="0 0 24 24">
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2"/>
+    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1.2-1.2"/>
+  </symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24">
+    <rect x="7" y="7" width="10" height="10" rx="2"/>
+    <path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/>
+  </symbol>
+</svg>
+
+<a class="skip-link" href="#main" data-i18n="skip">Skip to content</a>
+
+<nav class="topnav" aria-label="Primary navigation" data-i18n-aria="primary_nav">
+  <div class="topnav-inner">
+    <a class="brand-mark" href="https://amaimedia.com" target="_blank" rel="noopener" aria-label="AMAImedia home" data-i18n-aria="brand_aria">
+      <span class="brand-am-sq" aria-hidden="true"></span>
+      <span>AMAImedia</span>
+      <span class="brand-product">NOESIS · Harness</span>
+    </a>
+    <div class="topnav-actions">
+      <a class="support-btn support-cta" href="https://amaimedia.com/subscribe" target="_blank" rel="noopener" aria-label="Support" data-i18n-aria="support">
+        <span aria-hidden="true">♥</span>
+        <span class="support-label" data-i18n="support">Support</span>
+      </a>
+      <div class="lang-picker" id="langSelect">
+        <button type="button" class="lang-select lang-picker-btn" id="langBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Language" data-i18n-aria="lang_aria">
+          <span class="lang-flag-slot" aria-hidden="true"></span><span class="lang-native-slot">English</span><span aria-hidden="true">▾</span>
+        </button>
+        <div class="lang-menu" id="langMenu" role="listbox" aria-label="Language" data-i18n-aria="lang_aria"></div>
+      </div>
+      <button type="button" class="theme-btn" id="themeBtn" aria-label="Toggle theme" data-i18n-aria="theme_toggle">◐</button>
+    </div>
+  </div>
+</nav>
+
+<main id="main" class="wrap app-frame">
+  <div class="tabs-bar" role="tablist" aria-label="Sections" data-i18n-aria="sections_aria">
+    <button type="button" class="tab" id="tab-overview" role="tab" aria-controls="panel-overview" aria-selected="true" data-tab="overview" tabindex="0">
+      <span class="tab-dot" aria-hidden="true"></span><span data-i18n="tab_overview">Overview</span>
+    </button>
+    <button type="button" class="tab" id="tab-memory" role="tab" aria-controls="panel-memory" aria-selected="false" data-tab="memory" tabindex="-1">
+      <span class="tab-dot" aria-hidden="true"></span><span data-i18n="tab_memory">Memory</span>
+    </button>
+    <button type="button" class="tab" id="tab-security" role="tab" aria-controls="panel-security" aria-selected="false" data-tab="security" tabindex="-1">
+      <span class="tab-dot" aria-hidden="true"></span><span data-i18n="tab_security">Security</span>
+    </button>
+    <button type="button" class="tab" id="tab-quick" role="tab" aria-controls="panel-quick" aria-selected="false" data-tab="quick" tabindex="-1">
+      <span class="tab-dot" aria-hidden="true"></span><span data-i18n="tab_quick">Quick start</span>
+    </button>
+    <button type="button" class="tab" id="tab-docs" role="tab" aria-controls="panel-docs" aria-selected="false" data-tab="docs" tabindex="-1">
+      <span class="tab-dot" aria-hidden="true"></span><span data-i18n="tab_docs">Docs</span>
+    </button>
+  </div>
+
+  <!-- ============================== OVERVIEW ============================== -->
+  <section class="tab-panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
+    <div class="hero-wrap">
+      <div class="hero-copy">
+        <span class="eyebrow" data-i18n="eyebrow_overview">Local-first agent memory</span>
+        <h1 class="hero-title" data-i18n-html="hero_title">Memory with <span class="grad">receipts.</span></h1>
+        <p class="lede" data-i18n="hero_lede">A zero-dependency harness for agent state: append-only events, four-tier recall and TTL coordination. Storage never calls a model. Every claim arrives with an evidence status — including the ones still missing.</p>
+        <div class="hero-actions">
+          <a class="btn" href="#memory" data-tab-jump="memory">
+            <span data-i18n="hero_cta1">Explore the memory model</span>
+            <svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </a>
+          <a class="btn ghost" href="README.md" target="_blank" rel="noopener">
+            <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg>
+            <span data-i18n="hero_cta2">Read the README</span>
+          </a>
+        </div>
+      </div>
+      <aside class="hero-panel card" aria-labelledby="heroPanelTitle">
+        <div class="panel-head">
+          <span class="panel-kicker" id="heroPanelTitle" data-i18n="hero_panel_kicker">System at a glance</span>
+          <span class="panel-live"><i aria-hidden="true"></i><span data-i18n="hero_panel_status">local core</span></span>
+        </div>
+        <div class="flow">
+          <div class="flow-node">
+            <span class="node-ico" aria-hidden="true"><svg class="ico"><use href="#i-db"/></svg></span>
+            <span>
+              <span class="node-title" data-i18n="flow_store">Event store</span>
+              <span class="node-sub" data-i18n="flow_store_sub">append-only JSONL · replay</span>
+            </span>
+          </div>
+          <div class="flow-node">
+            <span class="node-ico" aria-hidden="true"><svg class="ico"><use href="#i-layers"/></svg></span>
+            <span>
+              <span class="node-title" data-i18n="flow_memory">Memory</span>
+              <span class="node-sub" data-i18n="flow_memory_sub">4 tiers · FTS5 · decay</span>
+            </span>
+          </div>
+          <div class="flow-node">
+            <span class="node-ico" aria-hidden="true"><svg class="ico"><use href="#i-net"/></svg></span>
+            <span>
+              <span class="node-title" data-i18n="flow_coord">Coordination</span>
+              <span class="node-sub" data-i18n="flow_coord_sub">leases · signals · DAG</span>
+            </span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi card">
+        <div class="kpi-value">2267</div>
+        <div class="kpi-label" data-i18n="kpi_tests_label">Local tests</div>
+        <div class="kpi-sub" data-i18n="kpi_tests_sub">OK · 18 skipped</div>
+      </div>
+      <div class="kpi card">
+        <div class="kpi-value">20/20</div>
+        <div class="kpi-label" data-i18n="kpi_recall_label">recall20</div>
+        <div class="kpi-sub" data-i18n="kpi_recall_sub">20 of 20 · accuracy 1.00</div>
+      </div>
+      <div class="kpi card">
+        <div class="kpi-value">0.979</div>
+        <div class="kpi-label" data-i18n="kpi_quality_label">Quality · multi-session</div>
+        <div class="kpi-sub" data-i18n="kpi_quality_sub">quality score · recall 0.833</div>
+      </div>
+      <div class="kpi card">
+        <div class="kpi-value">1.0</div>
+        <div class="kpi-label" data-i18n="kpi_gain_label">Recall gain</div>
+        <div class="kpi-sub" data-i18n="kpi_gain_sub">baseline → next-gen</div>
+      </div>
+    </div>
+    <p class="fineprint" data-i18n="kpi_note">Quality 0.979 is the multi-session score. The adversarial v3 corpus scores 0.944. Recall gain 1.0 is the baseline → next-gen result.</p>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-kicker" data-i18n="what_kicker">What it does</div>
+        <h2 class="section-title" data-i18n="what_title">One core, three durable layers.</h2>
+        <p class="section-desc" data-i18n="what_lede">The deterministic core handles state, memory and coordination. The model layer is optional and always outside the storage path.</p>
+      </div>
+      <div class="grid-3">
+        <article class="feature card">
+          <div class="feature-head">
+            <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-db"/></svg></span>
+            <span class="feature-num" aria-hidden="true">01</span>
+          </div>
+          <h3 data-i18n="feature_store_title">Event-sourced state</h3>
+          <p data-i18n="feature_store_body">Append-only JSONL, SHA-256 content fingerprints and deterministic replay. A double-send is a no-op, not a duplicate. State is rebuilt from the log, never patched in place.</p>
+        </article>
+        <article class="feature card">
+          <div class="feature-head">
+            <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-layers"/></svg></span>
+            <span class="feature-num" aria-hidden="true">02</span>
+          </div>
+          <h3 data-i18n="feature_memory_title">Four-tier memory</h3>
+          <p data-i18n="feature_memory_body">Working observations, episodic summaries, semantic facts and procedural workflows in SQLite. Hybrid FTS5 recall, substring fallback and Ebbinghaus decay keep the useful facts close.</p>
+        </article>
+        <article class="feature card">
+          <div class="feature-head">
+            <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-net"/></svg></span>
+            <span class="feature-num" aria-hidden="true">03</span>
+          </div>
+          <h3 data-i18n="feature_coord_title">Coordination without a server</h3>
+          <p data-i18n="feature_coord_body">TTL leases keep one task with one agent. Signals carry async mail and threads. The action DAG auto-unblocks dependents when their requirements are complete.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-kicker" data-i18n="gates_kicker">Evidence</div>
+        <h2 class="section-title" data-i18n="gates_title">Honesty gates</h2>
+        <p class="section-desc" data-i18n="gates_lede">Nine gates, explicit statuses. A missing host or key is reported as not_run, never dressed up as success.</p>
+      </div>
+      <div class="card gate-card">
+        <div class="gate-top">
+          <span class="count-chip"><b>6</b> passed</span>
+          <span class="count-chip"><b>1</b> built</span>
+          <span class="count-chip"><b>1</b> not_run</span>
+          <span class="count-chip"><b>1</b> pending</span>
+        </div>
+        <div class="gate-list">
+          <div class="gate-row">
+            <div class="gate-id">1–5</div>
+            <div class="gate-name"><span data-i18n="gate_local_name">Local gates</span><span class="gate-note" data-i18n="gate_local_note">Executed and passed; evidence is byte-stable.</span></div>
+            <span class="status status-passed">passed</span>
+          </div>
+          <div class="gate-row">
+            <div class="gate-id">6</div>
+            <div class="gate-name"><span data-i18n="gate_native_name">Native artifact</span><span class="gate-note" data-i18n="gate_native_note">Windows exe, dev-signed, 11 MB. The macOS lane is not_run (no host).</span></div>
+            <span class="status status-built">built</span>
+          </div>
+          <div class="gate-row">
+            <div class="gate-id">7</div>
+            <div class="gate-name"><span data-i18n="gate_external_name">External A/B</span><span class="gate-note" data-i18n="gate_external_note">not_run — users supply API keys at runtime.</span></div>
+            <span class="status status-not-run">not_run</span>
+          </div>
+          <div class="gate-row">
+            <div class="gate-id">8</div>
+            <div class="gate-name"><span data-i18n="gate_release_name">Release review</span><span class="gate-note" data-i18n="gate_release_note">Pending human review. No release claim is made.</span></div>
+            <span class="status status-pending">pending</span>
+          </div>
+          <div class="gate-row">
+            <div class="gate-id">9</div>
+            <div class="gate-name"><span data-i18n="gate_evidence_name">Local evidence</span><span class="gate-note" data-i18n="gate_evidence_note">recall20 20/20 · quality 0.979 · recall gain 1.0.</span></div>
+            <span class="status status-passed">passed</span>
+          </div>
+        </div>
+        <div class="gate-foot" data-i18n="gates_source">Source: README.md. Evidence is byte-stable on this host.</div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============================== MEMORY ============================== -->
+  <section class="tab-panel" id="panel-memory" role="tabpanel" aria-labelledby="tab-memory" tabindex="0" hidden>
+    <div class="tab-head">
+      <span class="eyebrow" data-i18n="memory_kicker">Memory model</span>
+      <h2 class="tab-hero" data-i18n-html="memory_title">Built to remember — and to <span class="grad">forget.</span></h2>
+      <p class="lede" data-i18n="memory_lede">Four tiers, explicit scopes and a retrieval path that fails closed. Memory is plaintext; privacy is a read-time control, not an encryption claim.</p>
+    </div>
+
+    <div class="card tier-card">
+      <div class="card-head">
+        <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-layers"/></svg></span>
+        <div>
+          <h3 data-i18n="tiers_title">Four tiers, one recall path</h3>
+          <p data-i18n="tiers_lede">Each tier has a different retention rule. Recall draws from all of them and strengthens what it touches.</p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="tier-table">
+          <thead>
+            <tr>
+              <th data-i18n="tier_col_tier">Tier</th>
+              <th data-i18n="tier_col_table">Table</th>
+              <th data-i18n="tier_col_purpose">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-i18n="tier_working">Working</td>
+              <td>observations</td>
+              <td data-i18n="tier_working_p">Raw inbound events, bounded per session.</td>
+            </tr>
+            <tr>
+              <td data-i18n="tier_episodic">Episodic</td>
+              <td>summaries</td>
+              <td data-i18n="tier_episodic_p">Session summaries: what happened.</td>
+            </tr>
+            <tr>
+              <td data-i18n="tier_semantic">Semantic</td>
+              <td>memories</td>
+              <td data-i18n="tier_semantic_p">Durable facts with confidence and decay.</td>
+            </tr>
+            <tr>
+              <td data-i18n="tier_procedural">Procedural</td>
+              <td>memories</td>
+              <td data-i18n="tier_procedural_p">Reusable workflows with triggers.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-lock"/></svg></span>
+          <span class="feature-num" aria-hidden="true">01</span>
+        </div>
+        <h3 data-i18n="mem_scopes_title">Scopes and sensitivity</h3>
+        <p data-i18n="mem_scopes_body">Records carry a sensitivity label validated against a fixed set. recall and profile return only public and internal by default. An unknown label raises; it is never silently downgraded.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-search"/></svg></span>
+          <span class="feature-num" aria-hidden="true">02</span>
+        </div>
+        <h3 data-i18n="mem_recall_title">Hybrid recall</h3>
+        <p data-i18n="mem_recall_body">FTS5 BM25 is the primary match. A substring path covers CJK and camelCase. Strength and Ebbinghaus decay rank what survives; access strengthens, time fades.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-doc"/></svg></span>
+          <span class="feature-num" aria-hidden="true">03</span>
+        </div>
+        <h3 data-i18n="mem_evidence_title">Evidence, not vibes</h3>
+        <p data-i18n="mem_evidence_body">The event log is append-only and replayable. Idempotency is a SHA-256 content fingerprint. A suppressed match is filtered before it can strengthen a counter someone else can read.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-alert"/></svg></span>
+          <span class="feature-num" aria-hidden="true">04</span>
+        </div>
+        <h3 data-i18n="mem_fail_title">Fail-closed by default</h3>
+        <p data-i18n="mem_fail_body">An empty sensitivity set returns nothing. A missing execution adapter returns unavailable. A missing key returns not_run. The default is never assume it worked.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-trash"/></svg></span>
+          <span class="feature-num" aria-hidden="true">05</span>
+        </div>
+        <h3 data-i18n="mem_forget_title">Forgetting is measured</h3>
+        <p data-i18n="mem_forget_body">forget.py covers eight stores, hardens SQLite, scans raw bytes and emits a receipt. Cryptographic erasure is reported only when cells were actually sealed.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-eye"/></svg></span>
+          <span class="feature-num" aria-hidden="true">06</span>
+        </div>
+        <h3 data-i18n="mem_plain_title">Plaintext storage</h3>
+        <p data-i18n="mem_plain_body">Memory is not encrypted by default. Sensitive bytes need CellCipher with a key stored outside the data directory, or full-disk encryption. Access control is not encryption.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================== SECURITY ============================== -->
+  <section class="tab-panel" id="panel-security" role="tabpanel" aria-labelledby="tab-security" tabindex="0" hidden>
+    <div class="tab-head">
+      <span class="eyebrow" data-i18n="security_kicker">Trust boundary</span>
+      <h2 class="tab-hero" data-i18n-html="security_title">The boundary is the <span class="grad">feature.</span></h2>
+      <p class="lede" data-i18n="security_lede">The core decides, records and reports. It does not pretend to be an operating-system sandbox.</p>
+    </div>
+
+    <div class="grid-2">
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-scale"/></svg></span>
+          <span class="feature-num" aria-hidden="true">01</span>
+        </div>
+        <h3 data-i18n="sec_honesty_title">Honesty boundary</h3>
+        <p data-i18n="sec_honesty_body">Local gates are executed and evidence-backed. Native and external lanes publish not_run or pending when the host or credentials are missing. No superiority or native-parity claim is made without matching evidence.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-shield"/></svg></span>
+          <span class="feature-num" aria-hidden="true">02</span>
+        </div>
+        <h3 data-i18n="sec_cap_title">Capability decisions</h3>
+        <p data-i18n="sec_cap_body">Three-valued authorization, explicit ACL grants, HMAC capability tokens, logical private scopes and an auditable decision trail. Deny is a first-class result.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-code"/></svg></span>
+          <span class="feature-num" aria-hidden="true">03</span>
+        </div>
+        <h3 data-i18n="sec_model_title">No in-process model code</h3>
+        <p data-i18n="sec_model_body">The deterministic core is stdlib-only and never executes model-generated Python in-process. The LLM is a pluggable callback, not a dependency.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-cpu"/></svg></span>
+          <span class="feature-num" aria-hidden="true">04</span>
+        </div>
+        <h3 data-i18n="sec_sandbox_title">OS sandbox not included</h3>
+        <p data-i18n="sec_sandbox_body">This is not a VM, container or hardened remote executor. The execution ladder returns unavailable until a real adapter is configured.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-lock"/></svg></span>
+          <span class="feature-num" aria-hidden="true">05</span>
+        </div>
+        <h3 data-i18n="sec_plain_title">Plaintext by default</h3>
+        <p data-i18n="sec_plain_body">Storage is not encrypted by default. Sensitive bytes need CellCipher with an external key store, or full-disk encryption. Access control is not encryption.</p>
+      </article>
+      <article class="feature card">
+        <div class="feature-head">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-doc"/></svg></span>
+          <span class="feature-num" aria-hidden="true">06</span>
+        </div>
+        <h3 data-i18n="sec_vocab_title">Stable status vocabulary</h3>
+        <p data-i18n="sec_vocab_body">Status words stay English by contract, so evidence remains machine-readable across hosts and reports.</p>
+      </article>
+    </div>
+
+    <div class="card vocab-card">
+      <div class="vocab-chips" aria-label="Status vocabulary" data-i18n-aria="status_vocab_aria">
+        <code>passed</code><code>failed</code><code>blocked</code><code>not_run</code><code>not_started</code><code>unknown</code>
+      </div>
+      <p class="vocab-note" data-i18n="sec_vocab_note">not_run is an honest statement about a missing host or key, never a failure disguised as success.</p>
+    </div>
+
+    <div class="claims">
+      <h3 data-i18n="sec_claims_title">Not claimed</h3>
+      <ul>
+        <li data-i18n="sec_claim_1">No production-ready or secure-sandbox claim.</li>
+        <li data-i18n="sec_claim_2">No beats-X claim without external A/B evidence.</li>
+        <li data-i18n="sec_claim_3">No native parity claim without a matching host.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================== QUICK START ============================== -->
+  <section class="tab-panel" id="panel-quick" role="tabpanel" aria-labelledby="tab-quick" tabindex="0" hidden>
+    <div class="tab-head">
+      <span class="eyebrow" data-i18n="quick_kicker">Verification</span>
+      <h2 class="tab-hero" data-i18n-html="quick_title">Check the truth in <span class="grad">three commands.</span></h2>
+      <p class="lede" data-i18n="quick_lede">The plan-authoritative runtime is CPython 3.14. Commands below are copied from the README and run locally.</p>
+    </div>
+
+    <div class="cmd-stack">
+      <div class="cmd-card card">
+        <div class="cmd-top">
+          <div class="cmd-title"><span class="cmd-step">01</span><span data-i18n="cmd_suite_title">Run the full test suite</span></div>
+          <span class="cmd-tag">unittest</span>
+        </div>
+        <div class="code-row">
+          <code class="code" id="cmd-suite">py -3.14 -m unittest discover -s tests -q</code>
+          <button type="button" class="copy-btn" data-copy-target="cmd-suite" aria-label="Copy to clipboard" data-i18n-aria="copy_aria">
+            <svg class="ico copy-ico" aria-hidden="true"><use href="#i-copy"/></svg>
+            <svg class="ico check-ico" aria-hidden="true"><use href="#i-check"/></svg>
+            <span data-i18n="copy">Copy</span>
+          </button>
+        </div>
+        <p class="cmd-hint" data-i18n="cmd_suite_hint">Expected: OK, about 2267 tests, 18 skipped. stdlib unittest only.</p>
+      </div>
+
+      <div class="cmd-card card">
+        <div class="cmd-top">
+          <div class="cmd-title"><span class="cmd-step">02</span><span data-i18n="cmd_recall_title">Run the recall benchmark</span></div>
+          <span class="cmd-tag">recall20</span>
+        </div>
+        <div class="code-row">
+          <code class="code" id="cmd-recall">py -3.14 benchmarks/recall20.py</code>
+          <button type="button" class="copy-btn" data-copy-target="cmd-recall" aria-label="Copy to clipboard" data-i18n-aria="copy_aria">
+            <svg class="ico copy-ico" aria-hidden="true"><use href="#i-copy"/></svg>
+            <svg class="ico check-ico" aria-hidden="true"><use href="#i-check"/></svg>
+            <span data-i18n="copy">Copy</span>
+          </button>
+        </div>
+        <p class="cmd-hint" data-i18n="cmd_recall_hint">Expected: recall20 20/20, accuracy 1.00.</p>
+      </div>
+
+      <div class="cmd-card card">
+        <div class="cmd-top">
+          <div class="cmd-title"><span class="cmd-step">03</span><span data-i18n="cmd_exe_title">Launch the native build</span></div>
+          <span class="cmd-tag">exe</span>
+        </div>
+        <div class="code-row">
+          <code class="code" id="cmd-exe">dist/noesis-harness.exe</code>
+          <button type="button" class="copy-btn" data-copy-target="cmd-exe" aria-label="Copy to clipboard" data-i18n-aria="copy_aria">
+            <svg class="ico copy-ico" aria-hidden="true"><use href="#i-copy"/></svg>
+            <svg class="ico check-ico" aria-hidden="true"><use href="#i-check"/></svg>
+            <span data-i18n="copy">Copy</span>
+          </button>
+        </div>
+        <p class="cmd-hint" data-i18n="cmd_exe_hint">Windows, dev-signed with a self-signed certificate. macOS lane is not_run.</p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-kicker" data-i18n="quick_cli_kicker">CLI and integrations</div>
+        <h2 class="section-title" data-i18n="integration_title">One local core, honest adapters.</h2>
+        <p class="section-desc" data-i18n="integration_lede">One local core, several honest adapters. Integration modules are contracts today, not live bridges.</p>
+      </div>
+      <div class="grid-2">
+        <div class="cmd-card card">
+          <div class="cmd-top">
+            <div class="cmd-title"><span class="cmd-step">04</span><span data-i18n="cmd_cli_title">Inspect state from the CLI</span></div>
+            <span class="cmd-tag">cli</span>
+          </div>
+          <div class="code-row">
+            <code class="code" id="cmd-inspect">noesis-inspect --mem state/mem.db --events state/events.jsonl</code>
+            <button type="button" class="copy-btn" data-copy-target="cmd-inspect" aria-label="Copy to clipboard" data-i18n-aria="copy_aria">
+              <svg class="ico copy-ico" aria-hidden="true"><use href="#i-copy"/></svg>
+              <svg class="ico check-ico" aria-hidden="true"><use href="#i-check"/></svg>
+              <span data-i18n="copy">Copy</span>
+            </button>
+          </div>
+          <p class="cmd-hint" data-i18n="cmd_cli_hint">Read-only inspector for memory and events.</p>
+        </div>
+        <div class="cmd-card card">
+          <div class="cmd-top">
+            <div class="cmd-title"><span class="cmd-step">05</span><span data-i18n="cmd_import_title">Import the library</span></div>
+            <span class="cmd-tag">python</span>
+          </div>
+          <div class="code-row">
+            <code class="code" id="cmd-import">from noesis_harness import EventStore, Memory, Leases, Signals, Actions</code>
+            <button type="button" class="copy-btn" data-copy-target="cmd-import" aria-label="Copy to clipboard" data-i18n-aria="copy_aria">
+              <svg class="ico copy-ico" aria-hidden="true"><use href="#i-copy"/></svg>
+              <svg class="ico check-ico" aria-hidden="true"><use href="#i-check"/></svg>
+              <span data-i18n="copy">Copy</span>
+            </button>
+          </div>
+          <p class="cmd-hint" data-i18n="cmd_import_hint">The public core exports five entry points.</p>
+        </div>
+      </div>
+
+      <div class="card integration-card">
+        <div class="integration-head">
+          <span class="stub-tag" data-i18n="integration_stub">STUB</span>
+          <h3 data-i18n="integration_adapters">Claude Code · Codex · OpenClaw</h3>
+        </div>
+        <p data-i18n="integration_note">Claude Code, Codex and OpenClaw adapters are contract-only stubs in this repository. No live MCP bridge is claimed.</p>
+        <div class="chip-row">
+          <span class="chip">Claude Code</span>
+          <span class="chip">Codex</span>
+          <span class="chip">OpenClaw</span>
+          <span class="chip">MCP</span>
+        </div>
+        <p class="cmd-hint" data-i18n="integration_cli">noesis-inspect is the shipped CLI entry point.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-kicker" data-i18n="quick_links_kicker">Read next</div>
+      </div>
+      <div class="docs-grid">
+        <a class="link-card" href="docs/README.md" target="_blank" rel="noopener">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-book"/></svg></span>
+          <div class="link-copy">
+            <h3 data-i18n="docs_index_title">Documentation index</h3>
+            <p data-i18n="docs_index_desc">The curated map of every working document.</p>
+          </div>
+          <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="link-card" href="docs/architecture.md" target="_blank" rel="noopener">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-layers"/></svg></span>
+          <div class="link-copy">
+            <h3 data-i18n="docs_arch_title">Architecture</h3>
+            <p data-i18n="docs_arch_desc">Event store, four-tier memory and coordination.</p>
+          </div>
+          <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="link-card" href="docs/api.md" target="_blank" rel="noopener">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-code"/></svg></span>
+          <div class="link-copy">
+            <h3 data-i18n="docs_api_title">API reference</h3>
+            <p data-i18n="docs_api_desc">Method signatures, examples and the 0.6 surface.</p>
+          </div>
+          <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============================== DOCS ============================== -->
+  <section class="tab-panel" id="panel-docs" role="tabpanel" aria-labelledby="tab-docs" tabindex="0" hidden>
+    <div class="tab-head">
+      <span class="eyebrow" data-i18n="docs_kicker">Source of truth</span>
+      <h2 class="tab-hero" data-i18n-html="docs_title">Source of truth, not <span class="grad">marketing.</span></h2>
+      <p class="lede" data-i18n="docs_lede">Every number on this page comes from these files. Open them next to the panel.</p>
+    </div>
+
+    <div class="docs-grid">
+      <a class="link-card" href="README.md" target="_blank" rel="noopener">
+        <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-book"/></svg></span>
+        <div class="link-copy">
+          <h3 data-i18n="doc_readme_title">README</h3>
+          <p data-i18n="doc_readme_desc">Entry point, quick start and the honesty boundary.</p>
+        </div>
+        <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+      <a class="link-card" href="AGENTS.md" target="_blank" rel="noopener">
+        <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-shield"/></svg></span>
+        <div class="link-copy">
+          <h3 data-i18n="doc_agents_title">AGENTS</h3>
+          <p data-i18n="doc_agents_desc">Hard rules: zero dependencies, append-only state, idempotent writes, tests with every change.</p>
+        </div>
+        <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+      <a class="link-card" href="CHANGELOG.md" target="_blank" rel="noopener">
+        <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-doc"/></svg></span>
+        <div class="link-copy">
+          <h3 data-i18n="doc_changelog_title">CHANGELOG</h3>
+          <p data-i18n="doc_changelog_desc">What landed, what was fixed and what remains blocked.</p>
+        </div>
+        <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+      <a class="link-card" href="docs/README.md" target="_blank" rel="noopener">
+        <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-book"/></svg></span>
+        <div class="link-copy">
+          <h3 data-i18n="doc_docs_title">Documentation index</h3>
+          <p data-i18n="doc_docs_desc">Curated minimum for operating and extending the project.</p>
+        </div>
+        <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+      <a class="link-card" href="THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">
+        <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-scale"/></svg></span>
+        <div class="link-copy">
+          <h3 data-i18n="doc_third_title">Third-party notices</h3>
+          <p data-i18n="doc_third_desc">Licenses and provenance for referenced work.</p>
+        </div>
+        <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-kicker" data-i18n="docs_more">Also useful</div>
+      </div>
+      <div class="docs-grid">
+        <a class="link-card" href="SECURITY.md" target="_blank" rel="noopener">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-lock"/></svg></span>
+          <div class="link-copy">
+            <h3 data-i18n="doc_security_title">Security policy</h3>
+            <p data-i18n="doc_security_desc">How to report a vulnerability and what the boundary covers.</p>
+          </div>
+          <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="link-card" href="docs/architecture.md" target="_blank" rel="noopener">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-layers"/></svg></span>
+          <div class="link-copy">
+            <h3 data-i18n="docs_arch_title">Architecture</h3>
+            <p data-i18n="docs_arch_desc">Event store, four-tier memory and coordination.</p>
+          </div>
+          <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="link-card" href="docs/api.md" target="_blank" rel="noopener">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-code"/></svg></span>
+          <div class="link-copy">
+            <h3 data-i18n="docs_api_title">API reference</h3>
+            <p data-i18n="docs_api_desc">Method signatures, examples and the 0.6 surface.</p>
+          </div>
+          <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="link-card" href="https://github.com/AMAImedia/NOESIS-Harness-Agent-Memory" target="_blank" rel="noopener">
+          <span class="ico-box" aria-hidden="true"><svg class="ico"><use href="#i-git"/></svg></span>
+          <div class="link-copy">
+            <h3 data-i18n="doc_repo_title">GitHub repository</h3>
+            <p data-i18n="doc_repo_desc">MIT-licensed source, issues and releases.</p>
+          </div>
+          <svg class="ico link-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer class="shell-footer">
+  <div>© 2026 AMAImedia · NOESIS Harness</div>
+  <div class="footer-note" data-i18n="footer_note">MIT License · local-first · no CDN · no telemetry</div>
+</footer>
+
+<div class="toast-host" id="toastHost" role="status" aria-live="polite"></div>
+
+<script src="vendor/noesis-shell.js"></script>
+<script>
+'use strict';
+
+var I18N = {
+  "en": {
+    "page_title": "NOESIS Harness — Agent Memory",
+    "skip": "Skip to content",
+    "brand_aria": "AMAImedia home",
+    "support": "Support",
+    "lang_aria": "Language",
+    "primary_nav": "Primary navigation",
+    "theme_toggle": "Toggle light or dark theme",
+    "sections_aria": "Sections",
+    "tab_overview": "Overview",
+    "tab_memory": "Memory",
+    "tab_security": "Security",
+    "tab_quick": "Quick start",
+    "tab_docs": "Docs",
+    "eyebrow_overview": "Local-first agent memory",
+    "hero_title": "Memory with <span class=\"grad\">receipts.</span>",
+    "hero_lede": "A zero-dependency harness for agent state: append-only events, four-tier recall and TTL coordination. Storage never calls a model. Every claim arrives with an evidence status — including the ones still missing.",
+    "hero_cta1": "Explore the memory model",
+    "hero_cta2": "Read the README",
+    "hero_panel_kicker": "System at a glance",
+    "hero_panel_status": "local core",
+    "flow_store": "Event store",
+    "flow_store_sub": "append-only JSONL · replay",
+    "flow_memory": "Memory",
+    "flow_memory_sub": "4 tiers · FTS5 · decay",
+    "flow_coord": "Coordination",
+    "flow_coord_sub": "leases · signals · DAG",
+    "kpi_tests_label": "Local tests",
+    "kpi_tests_sub": "OK · 18 skipped",
+    "kpi_recall_label": "recall20",
+    "kpi_recall_sub": "20 of 20 · accuracy 1.00",
+    "kpi_quality_label": "Quality · multi-session",
+    "kpi_quality_sub": "quality score · recall 0.833",
+    "kpi_gain_label": "Recall gain",
+    "kpi_gain_sub": "baseline → next-gen",
+    "kpi_note": "Quality 0.979 is the multi-session score. The adversarial v3 corpus scores 0.944. Recall gain 1.0 is the baseline → next-gen result.",
+    "what_kicker": "What it does",
+    "what_title": "One core, three durable layers.",
+    "what_lede": "The deterministic core handles state, memory and coordination. The model layer is optional and always outside the storage path.",
+    "feature_store_title": "Event-sourced state",
+    "feature_store_body": "Append-only JSONL, SHA-256 content fingerprints and deterministic replay. A double-send is a no-op, not a duplicate. State is rebuilt from the log, never patched in place.",
+    "feature_memory_title": "Four-tier memory",
+    "feature_memory_body": "Working observations, episodic summaries, semantic facts and procedural workflows in SQLite. Hybrid FTS5 recall, substring fallback and Ebbinghaus decay keep the useful facts close.",
+    "feature_coord_title": "Coordination without a server",
+    "feature_coord_body": "TTL leases keep one task with one agent. Signals carry async mail and threads. The action DAG auto-unblocks dependents when their requirements are complete.",
+    "gates_kicker": "Evidence",
+    "gates_title": "Honesty gates",
+    "gates_lede": "Nine gates, explicit statuses. A missing host or key is reported as not_run, never dressed up as success.",
+    "gates_source": "Source: README.md. Evidence is byte-stable on this host.",
+    "gate_local_name": "Local gates",
+    "gate_local_note": "Executed and passed; evidence is byte-stable.",
+    "gate_native_name": "Native artifact",
+    "gate_native_note": "Windows exe, dev-signed, 11 MB. The macOS lane is not_run (no host).",
+    "gate_external_name": "External A/B",
+    "gate_external_note": "not_run — users supply API keys at runtime.",
+    "gate_release_name": "Release review",
+    "gate_release_note": "Pending human review. No release claim is made.",
+    "gate_evidence_name": "Local evidence",
+    "gate_evidence_note": "recall20 20/20 · quality 0.979 · recall gain 1.0.",
+    "memory_kicker": "Memory model",
+    "memory_title": "Built to remember — and to <span class=\"grad\">forget.</span>",
+    "memory_lede": "Four tiers, explicit scopes and a retrieval path that fails closed. Memory is plaintext; privacy is a read-time control, not an encryption claim.",
+    "tiers_title": "Four tiers, one recall path",
+    "tiers_lede": "Each tier has a different retention rule. Recall draws from all of them and strengthens what it touches.",
+    "tier_col_tier": "Tier",
+    "tier_col_table": "Table",
+    "tier_col_purpose": "Purpose",
+    "tier_working": "Working",
+    "tier_working_p": "Raw inbound events, bounded per session.",
+    "tier_episodic": "Episodic",
+    "tier_episodic_p": "Session summaries: what happened.",
+    "tier_semantic": "Semantic",
+    "tier_semantic_p": "Durable facts with confidence and decay.",
+    "tier_procedural": "Procedural",
+    "tier_procedural_p": "Reusable workflows with triggers.",
+    "mem_scopes_title": "Scopes and sensitivity",
+    "mem_scopes_body": "Records carry a sensitivity label validated against a fixed set. recall and profile return only public and internal by default. An unknown label raises; it is never silently downgraded.",
+    "mem_recall_title": "Hybrid recall",
+    "mem_recall_body": "FTS5 BM25 is the primary match. A substring path covers CJK and camelCase. Strength and Ebbinghaus decay rank what survives; access strengthens, time fades.",
+    "mem_evidence_title": "Evidence, not vibes",
+    "mem_evidence_body": "The event log is append-only and replayable. Idempotency is a SHA-256 content fingerprint. A suppressed match is filtered before it can strengthen a counter someone else can read.",
+    "mem_fail_title": "Fail-closed by default",
+    "mem_fail_body": "An empty sensitivity set returns nothing. A missing execution adapter returns unavailable. A missing key returns not_run. The default is never assume it worked.",
+    "mem_forget_title": "Forgetting is measured",
+    "mem_forget_body": "forget.py covers eight stores, hardens SQLite, scans raw bytes and emits a receipt. Cryptographic erasure is reported only when cells were actually sealed.",
+    "mem_plain_title": "Plaintext storage",
+    "mem_plain_body": "Memory is not encrypted by default. Sensitive bytes need CellCipher with a key stored outside the data directory, or full-disk encryption. Access control is not encryption.",
+    "security_kicker": "Trust boundary",
+    "security_title": "The boundary is the <span class=\"grad\">feature.</span>",
+    "security_lede": "The core decides, records and reports. It does not pretend to be an operating-system sandbox.",
+    "sec_honesty_title": "Honesty boundary",
+    "sec_honesty_body": "Local gates are executed and evidence-backed. Native and external lanes publish not_run or pending when the host or credentials are missing. No superiority or native-parity claim is made without matching evidence.",
+    "sec_cap_title": "Capability decisions",
+    "sec_cap_body": "Three-valued authorization, explicit ACL grants, HMAC capability tokens, logical private scopes and an auditable decision trail. Deny is a first-class result.",
+    "sec_model_title": "No in-process model code",
+    "sec_model_body": "The deterministic core is stdlib-only and never executes model-generated Python in-process. The LLM is a pluggable callback, not a dependency.",
+    "sec_sandbox_title": "OS sandbox not included",
+    "sec_sandbox_body": "This is not a VM, container or hardened remote executor. The execution ladder returns unavailable until a real adapter is configured.",
+    "sec_plain_title": "Plaintext by default",
+    "sec_plain_body": "Storage is not encrypted by default. Sensitive bytes need CellCipher with an external key store, or full-disk encryption. Access control is not encryption.",
+    "sec_vocab_title": "Stable status vocabulary",
+    "sec_vocab_body": "Status words stay English by contract, so evidence remains machine-readable across hosts and reports.",
+    "status_vocab_aria": "Status vocabulary",
+    "sec_vocab_note": "not_run is an honest statement about a missing host or key, never a failure disguised as success.",
+    "sec_claims_title": "Not claimed",
+    "sec_claim_1": "No production-ready or secure-sandbox claim.",
+    "sec_claim_2": "No beats-X claim without external A/B evidence.",
+    "sec_claim_3": "No native parity claim without a matching host.",
+    "quick_kicker": "Verification",
+    "quick_title": "Check the truth in <span class=\"grad\">three commands.</span>",
+    "quick_lede": "The plan-authoritative runtime is CPython 3.14. Commands below are copied from the README and run locally.",
+    "cmd_suite_title": "Run the full test suite",
+    "cmd_suite_hint": "Expected: OK, about 2267 tests, 18 skipped. stdlib unittest only.",
+    "cmd_recall_title": "Run the recall benchmark",
+    "cmd_recall_hint": "Expected: recall20 20/20, accuracy 1.00.",
+    "cmd_exe_title": "Launch the native build",
+    "cmd_exe_hint": "Windows, dev-signed with a self-signed certificate. macOS lane is not_run.",
+    "copy": "Copy",
+    "copy_aria": "Copy to clipboard",
+    "copied": "Copied to clipboard.",
+    "copy_failed": "Copy failed. The text is selected; press Ctrl+C.",
+    "quick_cli_kicker": "CLI and integrations",
+    "integration_title": "One local core, honest adapters.",
+    "integration_lede": "One local core, several honest adapters. Integration modules are contracts today, not live bridges.",
+    "cmd_cli_title": "Inspect state from the CLI",
+    "cmd_cli_hint": "Read-only inspector for memory and events.",
+    "cmd_import_title": "Import the library",
+    "cmd_import_hint": "The public core exports five entry points.",
+    "integration_stub": "STUB",
+    "integration_adapters": "Claude Code · Codex · OpenClaw",
+    "integration_note": "Claude Code, Codex and OpenClaw adapters are contract-only stubs in this repository. No live MCP bridge is claimed.",
+    "integration_cli": "noesis-inspect is the shipped CLI entry point.",
+    "quick_links_kicker": "Read next",
+    "docs_index_title": "Documentation index",
+    "docs_index_desc": "The curated map of every working document.",
+    "docs_arch_title": "Architecture",
+    "docs_arch_desc": "Event store, four-tier memory and coordination.",
+    "docs_api_title": "API reference",
+    "docs_api_desc": "Method signatures, examples and the 0.6 surface.",
+    "docs_kicker": "Source of truth",
+    "docs_title": "Source of truth, not <span class=\"grad\">marketing.</span>",
+    "docs_lede": "Every number on this page comes from these files. Open them next to the panel.",
+    "doc_readme_title": "README",
+    "doc_readme_desc": "Entry point, quick start and the honesty boundary.",
+    "doc_agents_title": "AGENTS",
+    "doc_agents_desc": "Hard rules: zero dependencies, append-only state, idempotent writes, tests with every change.",
+    "doc_changelog_title": "CHANGELOG",
+    "doc_changelog_desc": "What landed, what was fixed and what remains blocked.",
+    "doc_docs_title": "Documentation index",
+    "doc_docs_desc": "Curated minimum for operating and extending the project.",
+    "doc_third_title": "Third-party notices",
+    "doc_third_desc": "Licenses and provenance for referenced work.",
+    "docs_more": "Also useful",
+    "doc_security_title": "Security policy",
+    "doc_security_desc": "How to report a vulnerability and what the boundary covers.",
+    "doc_repo_title": "GitHub repository",
+    "doc_repo_desc": "MIT-licensed source, issues and releases.",
+    "footer_note": "MIT License · local-first · no CDN · no telemetry"
+  },
+  "ru": {
+    "page_title": "NOESIS Harness — память агента",
+    "skip": "Перейти к содержимому",
+    "brand_aria": "Главная AMAImedia",
+    "support": "Поддержать",
+    "lang_aria": "Язык",
+    "primary_nav": "Основная навигация",
+    "theme_toggle": "Переключить светлую или тёмную тему",
+    "sections_aria": "Разделы",
+    "tab_overview": "Обзор",
+    "tab_memory": "Память",
+    "tab_security": "Безопасность",
+    "tab_quick": "Быстрый старт",
+    "tab_docs": "Документы",
+    "eyebrow_overview": "Локальная память агента",
+    "hero_title": "Память с <span class=\"grad\">доказательствами.</span>",
+    "hero_lede": "Harness без зависимостей для состояния агента: append-only события, четырёхуровневая память и координация через TTL. Хранилище не вызывает модель. Каждое утверждение приходит со статусом доказательств — включая те, которых пока нет.",
+    "hero_cta1": "Как устроена память",
+    "hero_cta2": "Открыть README",
+    "hero_panel_kicker": "Система кратко",
+    "hero_panel_status": "локальное ядро",
+    "flow_store": "Хранилище событий",
+    "flow_store_sub": "append-only JSONL · replay",
+    "flow_memory": "Память",
+    "flow_memory_sub": "4 уровня · FTS5 · затухание",
+    "flow_coord": "Координация",
+    "flow_coord_sub": "leases · signals · DAG",
+    "kpi_tests_label": "Локальные тесты",
+    "kpi_tests_sub": "OK · 18 пропущено",
+    "kpi_recall_label": "recall20",
+    "kpi_recall_sub": "20 из 20 · точность 1.00",
+    "kpi_quality_label": "Качество · multi-session",
+    "kpi_quality_sub": "quality score · recall 0.833",
+    "kpi_gain_label": "Прирост recall",
+    "kpi_gain_sub": "baseline → next-gen",
+    "kpi_note": "0.979 — оценка multi-session. Состязательный корпус v3 даёт 0.944. Прирост recall 1.0 — результат baseline → next-gen.",
+    "what_kicker": "Что это делает",
+    "what_title": "Одно ядро, три надёжных слоя.",
+    "what_lede": "Детерминированное ядро отвечает за состояние, память и координацию. Слой модели опционален и всегда находится вне пути хранения.",
+    "feature_store_title": "Состояние из событий",
+    "feature_store_body": "Append-only JSONL, SHA-256 отпечатки контента и детерминированный replay. Повторная отправка — no-op, а не дубликат. Состояние собирается из лога и никогда не правится на месте.",
+    "feature_memory_title": "Четырёхуровневая память",
+    "feature_memory_body": "Рабочие наблюдения, эпизодические сводки, семантические факты и процедурные сценарии в SQLite. Гибридный FTS5, substring-fallback и затухание Эббингауза держат полезное рядом.",
+    "feature_coord_title": "Координация без сервера",
+    "feature_coord_body": "TTL-лизы закрепляют одну задачу за одним агентом. Signals переносят асинхронную почту и треды. DAG действий сам разблокирует зависимости, когда требования выполнены.",
+    "gates_kicker": "Доказательства",
+    "gates_title": "Проверки честности",
+    "gates_lede": "Девять проверок, явные статусы. Отсутствующий хост или ключ помечается not_run и никогда не выдаётся за успех.",
+    "gates_source": "Источник: README.md. Доказательства byte-stable на этом хосте.",
+    "gate_local_name": "Локальные проверки",
+    "gate_local_note": "Выполнены и пройдены; доказательства byte-stable.",
+    "gate_native_name": "Нативная сборка",
+    "gate_native_note": "Windows exe, dev-подпись, 11 МБ. Ветка macOS — not_run (нет хоста).",
+    "gate_external_name": "Внешний A/B",
+    "gate_external_note": "not_run — пользователи передают API-ключи во время запуска.",
+    "gate_release_name": "Релизная проверка",
+    "gate_release_note": "Ожидает человеческой проверки. Релиз не заявляется.",
+    "gate_evidence_name": "Локальные доказательства",
+    "gate_evidence_note": "recall20 20/20 · качество 0.979 · прирост recall 1.0.",
+    "memory_kicker": "Модель памяти",
+    "memory_title": "Создана, чтобы помнить — и <span class=\"grad\">забывать.</span>",
+    "memory_lede": "Четыре уровня, явные scopes и путь извлечения, который fail-closed. Память хранится в открытом виде; приватность — контроль при чтении, а не заявление о шифровании.",
+    "tiers_title": "Четыре уровня, один путь recall",
+    "tiers_lede": "У каждого уровня своё правило хранения. Recall читает все и усиливает то, к чему прикоснулся.",
+    "tier_col_tier": "Уровень",
+    "tier_col_table": "Таблица",
+    "tier_col_purpose": "Назначение",
+    "tier_working": "Рабочий",
+    "tier_working_p": "Сырые входящие события, ограничены сессией.",
+    "tier_episodic": "Эпизодический",
+    "tier_episodic_p": "Сводки сессий: что произошло.",
+    "tier_semantic": "Семантический",
+    "tier_semantic_p": "Устойчивые факты с уверенностью и затуханием.",
+    "tier_procedural": "Процедурный",
+    "tier_procedural_p": "Переиспользуемые сценарии с триггерами.",
+    "mem_scopes_title": "Scopes и чувствительность",
+    "mem_scopes_body": "Записи несут метку чувствительности из фиксированного набора. recall и profile по умолчанию возвращают только public и internal. Неизвестная метка вызывает ошибку и никогда не понижается молча.",
+    "mem_recall_title": "Гибридный recall",
+    "mem_recall_body": "Основное совпадение — FTS5 BM25. Substring-путь покрывает CJK и camelCase. Strength и затухание Эббингауза ранжируют выжившее: доступ усиливает, время стирает.",
+    "mem_evidence_title": "Доказательства, а не ощущения",
+    "mem_evidence_body": "Лог событий append-only и воспроизводим. Идемпотентность — SHA-256 отпечаток контента. Подавленное совпадение отфильтровывается до того, как усилит счётчик, который прочитает кто-то другой.",
+    "mem_fail_title": "Fail-closed по умолчанию",
+    "mem_fail_body": "Пустой набор чувствительностей не возвращает ничего. Нет адаптера исполнения — unavailable. Нет ключа — not_run. По умолчанию никто не считает, что всё сработало.",
+    "mem_forget_title": "Забывание измеряется",
+    "mem_forget_body": "forget.py покрывает восемь хранилищ, ужесточает SQLite, сканирует сырые байты и выдаёт receipt. Криптографическое стирание заявляется только тогда, когда ячейки действительно были запечатаны.",
+    "mem_plain_title": "Открытое хранение",
+    "mem_plain_body": "Память не шифруется по умолчанию. Для чувствительных байтов нужен CellCipher с ключом вне каталога данных или шифрование всего диска. Контроль доступа — не шифрование.",
+    "security_kicker": "Граница доверия",
+    "security_title": "Граница — это <span class=\"grad\">функция.</span>",
+    "security_lede": "Ядро решает, записывает и сообщает. Оно не притворяется операционной песочницей.",
+    "sec_honesty_title": "Граница честности",
+    "sec_honesty_body": "Локальные проверки выполнены и подкреплены доказательствами. Нативные и внешние ветки публикуют not_run или pending, если нет хоста или ключей. Заявлений о превосходстве или нативном паритете без соответствующих доказательств нет.",
+    "sec_cap_title": "Решения о возможностях",
+    "sec_cap_body": "Трёхзначная авторизация, явные ACL-гранты, HMAC capability-токены, логические приватные scopes и аудируемый след решений. Отказ — полноценный результат.",
+    "sec_model_title": "Без кода модели в процессе",
+    "sec_model_body": "Детерминированное ядро использует только stdlib и никогда не исполняет сгенерированный моделью Python внутри процесса. LLM — подключаемый callback, а не зависимость.",
+    "sec_sandbox_title": "OS-песочница не входит",
+    "sec_sandbox_body": "Это не VM, не контейнер и не усиленный удалённый исполнитель. Лестница выполнения возвращает unavailable, пока не настроен настоящий адаптер.",
+    "sec_plain_title": "Открытые данные по умолчанию",
+    "sec_plain_body": "Хранилище не шифруется по умолчанию. Для чувствительных байтов нужен CellCipher с внешним хранилищем ключей или шифрование всего диска. Контроль доступа — не шифрование.",
+    "sec_vocab_title": "Стабильный словарь статусов",
+    "sec_vocab_body": "Статусы по контракту остаются английскими, чтобы доказательства были машиночитаемыми на разных хостах и в отчётах.",
+    "status_vocab_aria": "Словарь статусов",
+    "sec_vocab_note": "not_run — честное утверждение об отсутствующем хосте или ключе, а не провал, замаскированный под успех.",
+    "sec_claims_title": "Не заявляется",
+    "sec_claim_1": "Нет заявлений о production-ready или безопасной песочнице.",
+    "sec_claim_2": "Нет заявлений «лучше X» без внешних A/B-доказательств.",
+    "sec_claim_3": "Нет заявлений о нативном паритете без подходящего хоста.",
+    "quick_kicker": "Проверка",
+    "quick_title": "Проверьте правду <span class=\"grad\">тремя командами.</span>",
+    "quick_lede": "Целевой runtime — CPython 3.14. Команды ниже взяты из README и выполняются локально.",
+    "cmd_suite_title": "Запустить полный набор тестов",
+    "cmd_suite_hint": "Ожидается: OK, около 2267 тестов, 18 пропущено. Только stdlib unittest.",
+    "cmd_recall_title": "Запустить бенчмарк recall",
+    "cmd_recall_hint": "Ожидается: recall20 20/20, точность 1.00.",
+    "cmd_exe_title": "Запустить нативную сборку",
+    "cmd_exe_hint": "Windows, dev-подпись самоподписанным сертификатом. Ветка macOS — not_run.",
+    "copy": "Копировать",
+    "copy_aria": "Скопировать в буфер обмена",
+    "copied": "Скопировано в буфер обмена.",
+    "copy_failed": "Не удалось скопировать. Текст выделен; нажмите Ctrl+C.",
+    "quick_cli_kicker": "CLI и интеграции",
+    "integration_title": "Одно локальное ядро, честные адаптеры.",
+    "integration_lede": "Одно локальное ядро, несколько честных адаптеров. Сейчас интеграционные модули — контракты, а не живые мосты.",
+    "cmd_cli_title": "Посмотреть состояние через CLI",
+    "cmd_cli_hint": "Read-only инспектор памяти и событий.",
+    "cmd_import_title": "Импортировать библиотеку",
+    "cmd_import_hint": "Публичное ядро экспортирует пять точек входа.",
+    "integration_stub": "STUB",
+    "integration_adapters": "Claude Code · Codex · OpenClaw",
+    "integration_note": "Адаптеры Claude Code, Codex и OpenClaw в этом репозитории — только контракты. Живой MCP-мост не заявляется.",
+    "integration_cli": "noesis-inspect — поставляемая точка входа CLI.",
+    "quick_links_kicker": "Что читать дальше",
+    "docs_index_title": "Индекс документации",
+    "docs_index_desc": "Карта всех рабочих документов.",
+    "docs_arch_title": "Архитектура",
+    "docs_arch_desc": "Хранилище событий, четырёхуровневая память и координация.",
+    "docs_api_title": "Справочник API",
+    "docs_api_desc": "Сигнатуры методов, примеры и поверхность 0.6.",
+    "docs_kicker": "Источник истины",
+    "docs_title": "Источник истины, а не <span class=\"grad\">маркетинг.</span>",
+    "docs_lede": "Каждое число на этой странице взято из этих файлов. Откройте их рядом с панелью.",
+    "doc_readme_title": "README",
+    "doc_readme_desc": "Точка входа, быстрый старт и граница честности.",
+    "doc_agents_title": "AGENTS",
+    "doc_agents_desc": "Жёсткие правила: ноль зависимостей, append-only состояние, идемпотентные записи, тесты с каждым изменением.",
+    "doc_changelog_title": "CHANGELOG",
+    "doc_changelog_desc": "Что вошло, что исправлено и что остаётся заблокированным.",
+    "doc_docs_title": "Индекс документации",
+    "doc_docs_desc": "Минимальный набор для работы и расширения проекта.",
+    "doc_third_title": "Уведомления о сторонних компонентах",
+    "doc_third_desc": "Лицензии и происхождение использованных работ.",
+    "docs_more": "Ещё полезное",
+    "doc_security_title": "Политика безопасности",
+    "doc_security_desc": "Как сообщить об уязвимости и что покрывает граница.",
+    "doc_repo_title": "Репозиторий GitHub",
+    "doc_repo_desc": "Исходники под MIT, issues и релизы.",
+    "footer_note": "Лицензия MIT · local-first · без CDN · без телеметрии"
+  },
+  "vi": {
+    "page_title": "NOESIS Harness — Bộ nhớ agent",
+    "skip": "Bỏ qua đến nội dung",
+    "brand_aria": "Trang chủ AMAImedia",
+    "support": "Hỗ trợ",
+    "lang_aria": "Ngôn ngữ",
+    "primary_nav": "Điều hướng chính",
+    "theme_toggle": "Chuyển giao diện sáng hoặc tối",
+    "sections_aria": "Các mục",
+    "tab_overview": "Tổng quan",
+    "tab_memory": "Bộ nhớ",
+    "tab_security": "Bảo mật",
+    "tab_quick": "Bắt đầu nhanh",
+    "tab_docs": "Tài liệu",
+    "eyebrow_overview": "Bộ nhớ agent ưu tiên cục bộ",
+    "hero_title": "Bộ nhớ có <span class=\"grad\">bằng chứng.</span>",
+    "hero_lede": "Harness không phụ thuộc cho trạng thái agent: sự kiện append-only, bộ nhớ bốn tầng và điều phối TTL. Kho lưu trữ không bao giờ gọi mô hình. Mỗi tuyên bố đều đi kèm trạng thái bằng chứng — kể cả những tuyên bố còn thiếu.",
+    "hero_cta1": "Khám phá mô hình bộ nhớ",
+    "hero_cta2": "Đọc README",
+    "hero_panel_kicker": "Hệ thống trong một cái nhìn",
+    "hero_panel_status": "lõi cục bộ",
+    "flow_store": "Kho sự kiện",
+    "flow_store_sub": "append-only JSONL · replay",
+    "flow_memory": "Bộ nhớ",
+    "flow_memory_sub": "4 tầng · FTS5 · suy giảm",
+    "flow_coord": "Điều phối",
+    "flow_coord_sub": "leases · signals · DAG",
+    "kpi_tests_label": "Kiểm thử cục bộ",
+    "kpi_tests_sub": "OK · bỏ qua 18",
+    "kpi_recall_label": "recall20",
+    "kpi_recall_sub": "20 trên 20 · độ chính xác 1.00",
+    "kpi_quality_label": "Chất lượng · multi-session",
+    "kpi_quality_sub": "quality score · recall 0.833",
+    "kpi_gain_label": "Mức tăng recall",
+    "kpi_gain_sub": "baseline → next-gen",
+    "kpi_note": "Điểm 0.979 là điểm multi-session. Bộ dữ liệu đối kháng v3 đạt 0.944. Mức tăng recall 1.0 là kết quả baseline → next-gen.",
+    "what_kicker": "Nó làm gì",
+    "what_title": "Một lõi, ba tầng bền vững.",
+    "what_lede": "Lõi tất định xử lý trạng thái, bộ nhớ và điều phối. Tầng mô hình là tùy chọn và luôn nằm ngoài đường lưu trữ.",
+    "feature_store_title": "Trạng thái từ sự kiện",
+    "feature_store_body": "JSONL append-only, dấu vân tay nội dung SHA-256 và replay tất định. Gửi hai lần là no-op, không phải bản sao. Trạng thái được dựng lại từ log, không bao giờ vá tại chỗ.",
+    "feature_memory_title": "Bộ nhớ bốn tầng",
+    "feature_memory_body": "Quan sát làm việc, tóm tắt theo phiên, sự kiện ngữ nghĩa và quy trình tái sử dụng trong SQLite. FTS5 lai, substring fallback và suy giảm Ebbinghaus giữ những gì hữu ích ở gần.",
+    "feature_coord_title": "Điều phối không cần máy chủ",
+    "feature_coord_body": "Lease TTL giữ một nhiệm vụ cho một agent. Signal mang thư bất đồng bộ và thread. DAG hành động tự mở khóa phần phụ thuộc khi yêu cầu hoàn tất.",
+    "gates_kicker": "Bằng chứng",
+    "gates_title": "Cổng trung thực",
+    "gates_lede": "Chín cổng, trạng thái rõ ràng. Máy chủ hoặc khóa bị thiếu được báo là not_run, không bao giờ được khoác thành công.",
+    "gates_source": "Nguồn: README.md. Bằng chứng byte-stable trên máy này.",
+    "gate_local_name": "Cổng cục bộ",
+    "gate_local_note": "Đã chạy và đạt; bằng chứng byte-stable.",
+    "gate_native_name": "Bản dựng native",
+    "gate_native_note": "Windows exe, ký dev, 11 MB. Nhánh macOS là not_run (không có máy chủ).",
+    "gate_external_name": "A/B bên ngoài",
+    "gate_external_note": "not_run — người dùng cung cấp API key khi chạy.",
+    "gate_release_name": "Đánh giá phát hành",
+    "gate_release_note": "Đang chờ đánh giá thủ công. Không có tuyên bố phát hành.",
+    "gate_evidence_name": "Bằng chứng cục bộ",
+    "gate_evidence_note": "recall20 20/20 · chất lượng 0.979 · mức tăng recall 1.0.",
+    "memory_kicker": "Mô hình bộ nhớ",
+    "memory_title": "Được xây để nhớ — và <span class=\"grad\">quên.</span>",
+    "memory_lede": "Bốn tầng, scope rõ ràng và đường truy xuất fail-closed. Bộ nhớ là văn bản thô; quyền riêng tư là kiểm soát lúc đọc, không phải tuyên bố mã hóa.",
+    "tiers_title": "Bốn tầng, một đường recall",
+    "tiers_lede": "Mỗi tầng có quy tắc lưu trữ riêng. Recall đọc từ tất cả và làm mạnh những gì nó chạm tới.",
+    "tier_col_tier": "Tầng",
+    "tier_col_table": "Bảng",
+    "tier_col_purpose": "Mục đích",
+    "tier_working": "Làm việc",
+    "tier_working_p": "Sự kiện thô đến, giới hạn theo phiên.",
+    "tier_episodic": "Tình huống",
+    "tier_episodic_p": "Tóm tắt phiên: chuyện gì đã xảy ra.",
+    "tier_semantic": "Ngữ nghĩa",
+    "tier_semantic_p": "Sự thật bền vững với độ tin cậy và suy giảm.",
+    "tier_procedural": "Quy trình",
+    "tier_procedural_p": "Quy trình tái sử dụng với trigger.",
+    "mem_scopes_title": "Scope và độ nhạy",
+    "mem_scopes_body": "Bản ghi mang nhãn độ nhạy được kiểm tra theo bộ cố định. recall và profile mặc định chỉ trả về public và internal. Nhãn lạ sẽ gây lỗi; không bao giờ bị hạ cấp âm thầm.",
+    "mem_recall_title": "Recall lai",
+    "mem_recall_body": "FTS5 BM25 là khớp chính. Đường substring bao phủ CJK và camelCase. Strength và suy giảm Ebbinghaus xếp hạng những gì còn lại; truy cập làm mạnh, thời gian làm phai.",
+    "mem_evidence_title": "Bằng chứng, không phải cảm giác",
+    "mem_evidence_body": "Log sự kiện append-only và có thể replay. Tính idempotent là dấu vân tay nội dung SHA-256. Kết quả bị chặn được lọc trước khi có thể làm tăng bộ đếm mà người khác đọc được.",
+    "mem_fail_title": "Fail-closed mặc định",
+    "mem_fail_body": "Tập độ nhạy rỗng trả về không gì. Thiếu adapter thực thi trả về unavailable. Thiếu khóa trả về not_run. Mặc định không bao giờ là cho rằng nó đã chạy.",
+    "mem_forget_title": "Quên được đo lường",
+    "mem_forget_body": "forget.py bao phủ tám kho, gia cố SQLite, quét byte thô và phát hành receipt. Xóa bằng mật mã chỉ được báo khi các cell thực sự đã được niêm phong.",
+    "mem_plain_title": "Lưu trữ văn bản thô",
+    "mem_plain_body": "Bộ nhớ không được mã hóa mặc định. Byte nhạy cảm cần CellCipher với khóa nằm ngoài thư mục dữ liệu, hoặc mã hóa toàn ổ đĩa. Kiểm soát truy cập không phải mã hóa.",
+    "security_kicker": "Ranh giới tin cậy",
+    "security_title": "Ranh giới là <span class=\"grad\">tính năng.</span>",
+    "security_lede": "Lõi quyết định, ghi lại và báo cáo. Nó không giả vờ là hộp cát hệ điều hành.",
+    "sec_honesty_title": "Ranh giới trung thực",
+    "sec_honesty_body": "Các cổng cục bộ đã chạy và có bằng chứng. Nhánh native và bên ngoài công bố not_run hoặc pending khi thiếu máy chủ hay thông tin xác thực. Không có tuyên bố vượt trội hay ngang bằng native khi thiếu bằng chứng tương ứng.",
+    "sec_cap_title": "Quyết định năng lực",
+    "sec_cap_body": "Ủy quyền ba giá trị, grant ACL rõ ràng, token năng lực HMAC, scope riêng tư logic và dấu vết quyết định có thể kiểm toán. Từ chối là một kết quả hợp lệ.",
+    "sec_model_title": "Không chạy mã mô hình trong tiến trình",
+    "sec_model_body": "Lõi tất định chỉ dùng stdlib và không bao giờ chạy Python do mô hình sinh ra trong tiến trình. LLM là callback cắm được, không phải phụ thuộc.",
+    "sec_sandbox_title": "Không gồm hộp cát OS",
+    "sec_sandbox_body": "Đây không phải VM, container hay trình thực thi từ xa được gia cố. Thang thực thi trả về unavailable cho đến khi adapter thật được cấu hình.",
+    "sec_plain_title": "Văn bản thô mặc định",
+    "sec_plain_body": "Kho lưu trữ không được mã hóa mặc định. Byte nhạy cảm cần CellCipher với kho khóa bên ngoài, hoặc mã hóa toàn ổ đĩa. Kiểm soát truy cập không phải mã hóa.",
+    "sec_vocab_title": "Từ vựng trạng thái ổn định",
+    "sec_vocab_body": "Các từ trạng thái giữ tiếng Anh theo hợp đồng, để bằng chứng vẫn đọc được bằng máy trên nhiều máy chủ và báo cáo.",
+    "status_vocab_aria": "Từ vựng trạng thái",
+    "sec_vocab_note": "not_run là tuyên bố trung thực về máy chủ hoặc khóa bị thiếu, không bao giờ là thất bại được ngụy trang thành thành công.",
+    "sec_claims_title": "Không tuyên bố",
+    "sec_claim_1": "Không tuyên bố production-ready hay hộp cát an toàn.",
+    "sec_claim_2": "Không tuyên bố vượt X khi thiếu bằng chứng A/B bên ngoài.",
+    "sec_claim_3": "Không tuyên bố ngang bằng native khi thiếu máy chủ tương ứng.",
+    "quick_kicker": "Xác minh",
+    "quick_title": "Kiểm tra sự thật bằng <span class=\"grad\">ba lệnh.</span>",
+    "quick_lede": "Runtime mục tiêu là CPython 3.14. Các lệnh dưới đây được lấy từ README và chạy cục bộ.",
+    "cmd_suite_title": "Chạy toàn bộ kiểm thử",
+    "cmd_suite_hint": "Kỳ vọng: OK, khoảng 2267 kiểm thử, bỏ qua 18. Chỉ dùng stdlib unittest.",
+    "cmd_recall_title": "Chạy benchmark recall",
+    "cmd_recall_hint": "Kỳ vọng: recall20 20/20, độ chính xác 1.00.",
+    "cmd_exe_title": "Khởi chạy bản dựng native",
+    "cmd_exe_hint": "Windows, ký dev bằng chứng chỉ tự ký. Nhánh macOS là not_run.",
+    "copy": "Sao chép",
+    "copy_aria": "Sao chép vào bộ nhớ tạm",
+    "copied": "Đã sao chép vào bộ nhớ tạm.",
+    "copy_failed": "Sao chép thất bại. Văn bản đã được chọn; nhấn Ctrl+C.",
+    "quick_cli_kicker": "CLI và tích hợp",
+    "integration_title": "Một lõi cục bộ, adapter trung thực.",
+    "integration_lede": "Một lõi cục bộ, nhiều adapter trung thực. Các module tích hợp hiện là hợp đồng, chưa phải cầu nối trực tiếp.",
+    "cmd_cli_title": "Xem trạng thái qua CLI",
+    "cmd_cli_hint": "Trình xem chỉ đọc cho bộ nhớ và sự kiện.",
+    "cmd_import_title": "Nhập thư viện",
+    "cmd_import_hint": "Lõi công khai xuất năm điểm vào.",
+    "integration_stub": "STUB",
+    "integration_adapters": "Claude Code · Codex · OpenClaw",
+    "integration_note": "Adapter Claude Code, Codex và OpenClaw chỉ là stub hợp đồng trong kho này. Không tuyên bố cầu MCP trực tiếp.",
+    "integration_cli": "noesis-inspect là điểm vào CLI được phát hành.",
+    "quick_links_kicker": "Đọc tiếp",
+    "docs_index_title": "Chỉ mục tài liệu",
+    "docs_index_desc": "Bản đồ được tuyển chọn của mọi tài liệu đang dùng.",
+    "docs_arch_title": "Kiến trúc",
+    "docs_arch_desc": "Kho sự kiện, bộ nhớ bốn tầng và điều phối.",
+    "docs_api_title": "Tham chiếu API",
+    "docs_api_desc": "Chữ ký phương thức, ví dụ và bề mặt 0.6.",
+    "docs_kicker": "Nguồn sự thật",
+    "docs_title": "Nguồn sự thật, không phải <span class=\"grad\">quảng cáo.</span>",
+    "docs_lede": "Mọi con số trên trang này đến từ các tệp sau. Hãy mở chúng bên cạnh bảng điều khiển.",
+    "doc_readme_title": "README",
+    "doc_readme_desc": "Điểm vào, bắt đầu nhanh và ranh giới trung thực.",
+    "doc_agents_title": "AGENTS",
+    "doc_agents_desc": "Quy tắc cứng: không phụ thuộc, trạng thái append-only, ghi idempotent, kiểm thử với mọi thay đổi.",
+    "doc_changelog_title": "CHANGELOG",
+    "doc_changelog_desc": "Những gì đã vào, đã sửa và còn bị chặn.",
+    "doc_docs_title": "Chỉ mục tài liệu",
+    "doc_docs_desc": "Bộ tối thiểu được tuyển chọn để vận hành và mở rộng dự án.",
+    "doc_third_title": "Thông báo bên thứ ba",
+    "doc_third_desc": "Giấy phép và nguồn gốc của các công trình được tham chiếu.",
+    "docs_more": "Hữu ích thêm",
+    "doc_security_title": "Chính sách bảo mật",
+    "doc_security_desc": "Cách báo lỗ hổng và phạm vi của ranh giới.",
+    "doc_repo_title": "Kho GitHub",
+    "doc_repo_desc": "Mã nguồn MIT, issue và bản phát hành.",
+    "footer_note": "Giấy phép MIT · ưu tiên cục bộ · không CDN · không telemetry"
+  },
+  "es": {
+    "page_title": "Arnés NOESIS: memoria del agente",
+    "skip": "Saltar al contenido",
+    "brand_aria": "AMAImedia inicio",
+    "support": "Apoyo",
+    "lang_aria": "Idioma",
+    "primary_nav": "Navegación primaria",
+    "theme_toggle": "Alternar tema claro u oscuro",
+    "sections_aria": "Secciones",
+    "tab_overview": "Descripción general",
+    "tab_memory": "Memoria",
+    "tab_security": "Seguridad",
+    "tab_quick": "Inicio rápido",
+    "tab_docs": "Documentos",
+    "eyebrow_overview": "Memoria de primer agente local",
+    "hero_title": "Memoria con recibos <span class=\"grad\">.</span>",
+    "hero_lede": "Un arnés de dependencia cero para el estado del agente: eventos de solo agregar, recuperación de cuatro niveles y coordinación TTL. El almacenamiento nunca llama a un modelo. Cada reclamo llega con un estado de evidencia, incluidos los que aún faltan.",
+    "hero_cta1": "Explora el modelo de memoria",
+    "hero_cta2": "Lea el archivo LÉAME",
+    "hero_panel_kicker": "Sistema de un vistazo",
+    "hero_panel_status": "núcleo local",
+    "flow_store": "tienda de eventos",
+    "flow_store_sub": "JSONL de solo agregar · reproducir",
+    "flow_memory": "Memoria",
+    "flow_memory_sub": "4 niveles · FTS5 · decadencia",
+    "flow_coord": "Coordinación",
+    "flow_coord_sub": "arrendamientos · señales · DAG",
+    "kpi_tests_label": "Pruebas locales",
+    "kpi_tests_sub": "Aceptar · 18 omitidos",
+    "kpi_recall_label": "recordar20",
+    "kpi_recall_sub": "20 de 20 · precisión 1,00",
+    "kpi_quality_label": "Calidad · multisesión",
+    "kpi_quality_sub": "puntuación de calidad · recuperación 0,833",
+    "kpi_gain_label": "Ganancia de recuperación",
+    "kpi_gain_sub": "línea de base → próxima generación",
+    "kpi_note": "La calidad 0,979 es la puntuación de varias sesiones. El corpus adversarial v3 obtiene una puntuación de 0,944. La ganancia de recuperación 1.0 es la línea base → resultado de próxima generación.",
+    "what_kicker": "que hace",
+    "what_title": "Un núcleo, tres capas duraderas.",
+    "what_lede": "El núcleo determinista maneja el estado, la memoria y la coordinación. La capa de modelo es opcional y siempre está fuera de la ruta de almacenamiento.",
+    "feature_store_title": "Estado de origen de evento",
+    "feature_store_body": "Adjuntar solo huellas digitales de contenido JSONL, SHA-256 y reproducción determinista. Un envío doble es una operación no operativa, no un duplicado. El estado se reconstruye a partir del registro, nunca se parchea.",
+    "feature_memory_title": "Memoria de cuatro niveles",
+    "feature_memory_body": "Observaciones de trabajo, resúmenes episódicos, hechos semánticos y flujos de trabajo procedimentales en SQLite. La recuperación híbrida de FTS5, el retroceso de subcadenas y la caída de Ebbinghaus mantienen los datos útiles cerca.",
+    "feature_coord_title": "Coordinación sin servidor",
+    "feature_coord_body": "Los arrendamientos TTL mantienen una tarea con un solo agente. Las señales transportan correo e hilos asíncronos. La acción DAG desbloquea automáticamente a los dependientes cuando se completan sus requisitos.",
+    "gates_kicker": "Evidencia",
+    "gates_title": "Puertas de honestidad",
+    "gates_lede": "Nueve puertas, estados explícitos. Un host o clave faltante se informa como not_run, nunca disfrazado de éxito.",
+    "gates_source": "Fuente: README.md. La evidencia es estable en bytes en este host.",
+    "gate_local_name": "Puertas locales",
+    "gate_local_note": "Ejecutado y aprobado; la evidencia es estable en bytes.",
+    "gate_native_name": "artefacto nativo",
+    "gate_native_note": "Windows exe, firmado por el desarrollador, 11 MB. El carril de macOS es not_run (sin host).",
+    "gate_external_name": "A/B externo",
+    "gate_external_note": "not_run: los usuarios proporcionan claves API en tiempo de ejecución.",
+    "gate_release_name": "Revisión de lanzamiento",
+    "gate_release_note": "Pendiente de revisión humana. No se hace ningún reclamo de liberación.",
+    "gate_evidence_name": "evidencia local",
+    "gate_evidence_note": "recuerdo20 20/20 · calidad 0,979 · ganancia de recuerdo 1,0.",
+    "memory_kicker": "Modelo de memoria",
+    "memory_title": "Creado para recordar y para <span class=\"grad\">olvidar.</span>",
+    "memory_lede": "Cuatro niveles, alcances explícitos y una ruta de recuperación que falla cerrada. La memoria es texto sin formato; la privacidad es un control del tiempo de lectura, no una afirmación de cifrado.",
+    "tiers_title": "Cuatro niveles, una ruta de recuperación",
+    "tiers_lede": "Cada nivel tiene una regla de retención diferente. El recuerdo bebe de todos ellos y fortalece lo que toca.",
+    "tier_col_tier": "Nivel",
+    "tier_col_table": "Mesa",
+    "tier_col_purpose": "Objetivo",
+    "tier_working": "Laboral",
+    "tier_working_p": "Eventos entrantes sin procesar, acotados por sesión.",
+    "tier_episodic": "Episódico",
+    "tier_episodic_p": "Resúmenes de las sesiones: qué pasó.",
+    "tier_semantic": "Semántico",
+    "tier_semantic_p": "Hechos duraderos con confianza y decadencia.",
+    "tier_procedural": "Procesal",
+    "tier_procedural_p": "Flujos de trabajo reutilizables con desencadenadores.",
+    "mem_scopes_title": "Alcances y sensibilidad",
+    "mem_scopes_body": "Los registros llevan una etiqueta de confidencialidad validada con respecto a un conjunto fijo. La recuperación y el perfil devuelven solo públicos e internos de forma predeterminada. Surge una etiqueta desconocida; nunca se degrada silenciosamente.",
+    "mem_recall_title": "Recuperación híbrida",
+    "mem_recall_body": "FTS5 BM25 es el partido principal. Una ruta de subcadena cubre CJK y camelCase. La fuerza y ​​la decadencia de Ebbinghaus clasifican lo que sobrevive; el acceso se fortalece, el tiempo se desvanece.",
+    "mem_evidence_title": "Evidencia, no vibraciones",
+    "mem_evidence_body": "El registro de eventos solo se puede agregar y reproducir. La idempotencia es una huella digital del contenido SHA-256. Una coincidencia suprimida se filtra antes de que pueda reforzar un contador que alguien más pueda leer.",
+    "mem_fail_title": "Cerrado por falla por defecto",
+    "mem_fail_body": "Un conjunto de sensibilidad vacío no devuelve nada. Un adaptador de ejecución faltante devuelve no disponible. Una clave faltante devuelve not_run. El valor predeterminado es nunca asumir que funcionó.",
+    "mem_forget_title": "El olvido se mide",
+    "mem_forget_body": "Forget.py cubre ocho tiendas, fortalece SQLite, escanea bytes sin procesar y emite un recibo. El borrado criptográfico se informa sólo cuando las células fueron realmente selladas.",
+    "mem_plain_title": "Almacenamiento de texto sin formato",
+    "mem_plain_body": "La memoria no está cifrada de forma predeterminada. Los bytes confidenciales necesitan CellCipher con una clave almacenada fuera del directorio de datos o cifrado de disco completo. El control de acceso no es cifrado.",
+    "security_kicker": "Límite de confianza",
+    "security_title": "El límite es la característica <span class=\"grad\">.</span>",
+    "security_lede": "El núcleo decide, registra e informa. No pretende ser un entorno limitado de sistemas operativos.",
+    "sec_honesty_title": "Límite de honestidad",
+    "sec_honesty_body": "Las puertas locales se ejecutan y están respaldadas por evidencia. Los carriles nativos y externos publican not_run o pendiente cuando faltan el host o las credenciales. No se hace ninguna afirmación de superioridad o paridad nativa sin pruebas coincidentes.",
+    "sec_cap_title": "Decisiones de capacidad",
+    "sec_cap_body": "Autorización de tres valores, concesiones ACL explícitas, tokens de capacidad HMAC, ámbitos privados lógicos y un seguimiento de decisiones auditable. Negar es un resultado de primera clase.",
+    "sec_model_title": "Sin código de modelo en proceso",
+    "sec_model_body": "El núcleo determinista es solo stdlib y nunca ejecuta Python generado por el modelo en el proceso. El LLM es una devolución de llamada conectable, no una dependencia.",
+    "sec_sandbox_title": "Zona de pruebas del sistema operativo no incluida",
+    "sec_sandbox_body": "Esta no es una máquina virtual, un contenedor ni un ejecutor remoto reforzado. La escalera de ejecución no está disponible hasta que se configura un adaptador real.",
+    "sec_plain_title": "Texto sin formato por defecto",
+    "sec_plain_body": "El almacenamiento no está cifrado de forma predeterminada. Los bytes confidenciales necesitan CellCipher con un almacén de claves externo o cifrado de disco completo. El control de acceso no es cifrado.",
+    "sec_vocab_title": "Vocabulario de estado estable",
+    "sec_vocab_body": "Las palabras de estado permanecen en inglés por contrato, por lo que la evidencia sigue siendo legible por máquina en todos los hosts e informes.",
+    "status_vocab_aria": "Vocabulario de estado",
+    "sec_vocab_note": "not_run es una declaración honesta sobre la falta de un host o una clave, nunca un fracaso disfrazado de éxito.",
+    "sec_claims_title": "No reclamado",
+    "sec_claim_1": "No hay ninguna afirmación de que esté listo para producción o que esté en un espacio aislado seguro.",
+    "sec_claim_2": "No hay reclamo de beats-X sin evidencia A/B externa.",
+    "sec_claim_3": "No hay reclamo de paridad nativa sin un host coincidente.",
+    "quick_kicker": "Verificación",
+    "quick_title": "Comprueba la verdad en <span class=\"grad\">tres comandos.</span>",
+    "quick_lede": "El tiempo de ejecución autorizado por el plan es CPython 3.14. Los comandos siguientes se copian del archivo README y se ejecutan localmente.",
+    "cmd_suite_title": "Ejecute el conjunto de pruebas completo",
+    "cmd_suite_hint": "Esperado: OK, alrededor de 2267 pruebas, 18 omitidas. Prueba unitaria stdlib únicamente.",
+    "cmd_recall_title": "Ejecute el punto de referencia de recuperación",
+    "cmd_recall_hint": "Esperado: recuperación20 20/20, precisión 1,00.",
+    "cmd_exe_title": "Inicie la compilación nativa",
+    "cmd_exe_hint": "Windows, firmado por el desarrollador con un certificado autofirmado. El carril de macOS no es_run.",
+    "copy": "Copiar",
+    "copy_aria": "Copiar al portapapeles",
+    "copied": "Copiado al portapapeles.",
+    "copy_failed": "La copia falló. El texto está seleccionado; presione Ctrl+C.",
+    "quick_cli_kicker": "CLI e integraciones",
+    "integration_title": "Un núcleo local, adaptadores honestos.",
+    "integration_lede": "Un núcleo local, varios adaptadores honestos. Los módulos de integración hoy son contratos, no puentes activos.",
+    "cmd_cli_title": "Inspeccionar el estado desde la CLI",
+    "cmd_cli_hint": "Inspector de solo lectura para memoria y eventos.",
+    "cmd_import_title": "Importar la biblioteca",
+    "cmd_import_hint": "El núcleo público exporta cinco puntos de entrada.",
+    "integration_stub": "TALÓN",
+    "integration_adapters": "Código Claude · Códice · OpenClaw",
+    "integration_note": "Los adaptadores Claude Code, Codex y OpenClaw son resguardos de contrato únicamente en este repositorio. No se reclama ningún puente MCP activo.",
+    "integration_cli": "noesis-inspect es el punto de entrada CLI enviado.",
+    "quick_links_kicker": "Leer siguiente",
+    "docs_index_title": "Índice de documentación",
+    "docs_index_desc": "El mapa seleccionado de cada documento de trabajo.",
+    "docs_arch_title": "Arquitectura",
+    "docs_arch_desc": "Tienda de eventos, memoria y coordinación de cuatro niveles.",
+    "docs_api_title": "Referencia API",
+    "docs_api_desc": "Firmas de métodos, ejemplos y la superficie 0.6.",
+    "docs_kicker": "fuente de verdad",
+    "docs_title": "Fuente de la verdad, no <span class=\"grad\">marketing.</span>",
+    "docs_lede": "Cada número en esta página proviene de estos archivos. Ábrelos al lado del panel.",
+    "doc_readme_title": "LÉAME",
+    "doc_readme_desc": "Punto de entrada, inicio rápido y límite de la honestidad.",
+    "doc_agents_title": "AGENTES",
+    "doc_agents_desc": "Reglas estrictas: cero dependencias, estado de solo agregar, escrituras idempotentes, pruebas con cada cambio.",
+    "doc_changelog_title": "REGISTRO DE CAMBIOS",
+    "doc_changelog_desc": "Qué aterrizó, qué se arregló y qué queda bloqueado.",
+    "doc_docs_title": "Índice de documentación",
+    "doc_docs_desc": "Mínimo curado para operar y ampliar el proyecto.",
+    "doc_third_title": "Avisos de terceros",
+    "doc_third_desc": "Licencias y procedencia de la obra referenciada.",
+    "docs_more": "También útil",
+    "doc_security_title": "Política de seguridad",
+    "doc_security_desc": "Cómo informar una vulnerabilidad y qué cubre el límite.",
+    "doc_repo_title": "repositorio de GitHub",
+    "doc_repo_desc": "Fuente, problemas y lanzamientos con licencia del MIT.",
+    "footer_note": "Licencia MIT · local-first · sin CDN · sin telemetría"
+  },
+  "fr": {
+    "page_title": "Harnais NOESIS — Mémoire d'agent",
+    "skip": "Passer au contenu",
+    "brand_aria": "Accueil AMAImédia",
+    "support": "Soutien",
+    "lang_aria": "Langue",
+    "primary_nav": "Navigation principale",
+    "theme_toggle": "Basculer entre le thème clair ou sombre",
+    "sections_aria": "Sections",
+    "tab_overview": "Aperçu",
+    "tab_memory": "Mémoire",
+    "tab_security": "Sécurité",
+    "tab_quick": "Démarrage rapide",
+    "tab_docs": "Documents",
+    "eyebrow_overview": "Mémoire d'agent locale d'abord",
+    "hero_title": "Mémoire avec <span class=\"grad\">receipts.</span>",
+    "hero_lede": "Un harnais sans dépendance pour l'état de l'agent : événements en ajout uniquement, rappel à quatre niveaux et coordination TTL. Le stockage n’appelle jamais de modèle. Chaque réclamation arrive avec un statut de preuve, y compris celles qui manquent encore.",
+    "hero_cta1": "Explorez le modèle de mémoire",
+    "hero_cta2": "Lire le README",
+    "hero_panel_kicker": "Le système en un coup d'oeil",
+    "hero_panel_status": "noyau local",
+    "flow_store": "Magasin d'événements",
+    "flow_store_sub": "JSONL en ajout uniquement · relecture",
+    "flow_memory": "Mémoire",
+    "flow_memory_sub": "4 niveaux · FTS5 · désintégration",
+    "flow_coord": "Coordination",
+    "flow_coord_sub": "baux · signaux · DAG",
+    "kpi_tests_label": "Tests locaux",
+    "kpi_tests_sub": "OK · 18 sautés",
+    "kpi_recall_label": "rappel20",
+    "kpi_recall_sub": "20 sur 20 · précision 1,00",
+    "kpi_quality_label": "Qualité · multi-session",
+    "kpi_quality_sub": "score de qualité · rappel 0,833",
+    "kpi_gain_label": "Gain de rappel",
+    "kpi_gain_sub": "référence → nouvelle génération",
+    "kpi_note": "La qualité 0,979 est le score multi-session. Le corpus contradictoire v3 obtient un score de 0,944. Le gain de rappel 1,0 est le résultat de base → nouvelle génération.",
+    "what_kicker": "Ce que ça fait",
+    "what_title": "Un noyau, trois couches durables.",
+    "what_lede": "Le noyau déterministe gère l’état, la mémoire et la coordination. La couche modèle est facultative et toujours en dehors du chemin de stockage.",
+    "feature_store_title": "État généré par l'événement",
+    "feature_store_body": "JSONL en ajout uniquement, empreintes digitales de contenu SHA-256 et relecture déterministe. Un double envoi est une non-opération, pas un doublon. L'état est reconstruit à partir du journal, jamais corrigé.",
+    "feature_memory_title": "Mémoire à quatre niveaux",
+    "feature_memory_body": "Observations de travail, résumés épisodiques, faits sémantiques et flux de travail procéduraux dans SQLite. Le rappel hybride FTS5, le repli des sous-chaînes et la désintégration d'Ebbinghaus gardent les faits utiles proches.",
+    "feature_coord_title": "Coordination sans serveur",
+    "feature_coord_body": "Les baux TTL conservent une tâche avec un seul agent. Les signaux transportent du courrier et des threads asynchrones. L’action DAG débloque automatiquement les personnes à charge lorsque leurs exigences sont remplies.",
+    "gates_kicker": "Preuve",
+    "gates_title": "Portes d'honnêteté",
+    "gates_lede": "Neuf portes, des statuts explicites. Un hôte ou une clé manquante est signalé comme not_run, jamais présenté comme un succès.",
+    "gates_source": "Source : README.md. Les preuves sont stables en octets sur cet hôte.",
+    "gate_local_name": "Portes locales",
+    "gate_local_note": "Exécuté et adopté ; la preuve est stable en octets.",
+    "gate_native_name": "Artefact natif",
+    "gate_native_note": "Exécute Windows, signé par le développeur, 11 Mo. La voie macOS est not_run (pas d'hôte).",
+    "gate_external_name": "A/B externe",
+    "gate_external_note": "not_run — les utilisateurs fournissent des clés API au moment de l'exécution.",
+    "gate_release_name": "Examen de la version",
+    "gate_release_note": "En attente d'un examen humain. Aucune demande de libération n'est faite.",
+    "gate_evidence_name": "Preuve locale",
+    "gate_evidence_note": "rappel20 20/20 · qualité 0,979 · gain de rappel 1,0.",
+    "memory_kicker": "Modèle de mémoire",
+    "memory_title": "Conçu pour se souvenir — et pour <span class=\"grad\">forget.</span>",
+    "memory_lede": "Quatre niveaux, des portées explicites et un chemin de récupération qui échoue. La mémoire est en clair ; la confidentialité est un contrôle du temps de lecture, pas une revendication de chiffrement.",
+    "tiers_title": "Quatre niveaux, un seul chemin de rappel",
+    "tiers_lede": "Chaque niveau a une règle de conservation différente. Le rappel s'inspire de chacun d'eux et renforce ce qu'il touche.",
+    "tier_col_tier": "Étage",
+    "tier_col_table": "Tableau",
+    "tier_col_purpose": "But",
+    "tier_working": "Fonctionnement",
+    "tier_working_p": "Événements entrants bruts, limités par session.",
+    "tier_episodic": "Épisodique",
+    "tier_episodic_p": "Résumés des séances : que s'est-il passé.",
+    "tier_semantic": "Sémantique",
+    "tier_semantic_p": "Des faits durables avec confiance et décadence.",
+    "tier_procedural": "De procédure",
+    "tier_procedural_p": "Flux de travail réutilisables avec déclencheurs.",
+    "mem_scopes_title": "Portées et sensibilité",
+    "mem_scopes_body": "Les enregistrements portent une étiquette de sensibilité validée par rapport à un ensemble fixe. le rappel et le profil renvoient uniquement public et interne par défaut. Une étiquette inconnue apparaît ; il n’est jamais déclassé en silence.",
+    "mem_recall_title": "Rappel hybride",
+    "mem_recall_body": "FTS5 BM25 est la correspondance principale. Un chemin de sous-chaîne couvre CJK et camelCase. La force et la décadence d'Ebbinghaus classent ce qui survit ; l'accès se renforce, le temps s'efface.",
+    "mem_evidence_title": "Des preuves, pas des vibrations",
+    "mem_evidence_body": "Le journal des événements est en ajout uniquement et peut être rejoué. L'idempotence est une empreinte digitale de contenu SHA-256. Une correspondance supprimée est filtrée avant de pouvoir renforcer un compteur que quelqu'un d'autre peut lire.",
+    "mem_fail_title": "Fermé en cas d'échec par défaut",
+    "mem_fail_body": "Un ensemble de sensibilité vide ne renvoie rien. Un adaptateur d'exécution manquant revient indisponible. Une clé manquante renvoie not_run. La valeur par défaut est de ne jamais supposer que cela a fonctionné.",
+    "mem_forget_title": "L’oubli se mesure",
+    "mem_forget_body": "Forget.py couvre huit magasins, renforce SQLite, analyse les octets bruts et émet un reçu. L'effacement cryptographique n'est signalé que lorsque les cellules ont été effectivement scellées.",
+    "mem_plain_title": "Stockage en texte brut",
+    "mem_plain_body": "La mémoire n'est pas chiffrée par défaut. Les octets sensibles nécessitent CellCipher avec une clé stockée en dehors du répertoire de données ou un chiffrement complet du disque. Le contrôle d’accès n’est pas un cryptage.",
+    "security_kicker": "Limite de confiance",
+    "security_title": "La limite est la fonctionnalité <span class=\"grad\">.</span>",
+    "security_lede": "Le noyau décide, enregistre et rend compte. Il ne prétend pas être un bac à sable de système d'exploitation.",
+    "sec_honesty_title": "Limite d'honnêteté",
+    "sec_honesty_body": "Les portes locales sont exécutées et étayées par des preuves. Les voies natives et externes publient not_run ou en attente lorsque l'hôte ou les informations d'identification sont manquantes. Aucune affirmation de supériorité ou de parité native n’est faite sans preuves correspondantes.",
+    "sec_cap_title": "Décisions de capacité",
+    "sec_cap_body": "Autorisation à trois valeurs, attributions ACL explicites, jetons de capacité HMAC, étendues privées logiques et piste de décision vérifiable. Le refus est un résultat de première classe.",
+    "sec_model_title": "Aucun code de modèle en cours",
+    "sec_model_body": "Le noyau déterministe est uniquement stdlib et n'exécute jamais Python généré par le modèle en cours de processus. Le LLM est un rappel enfichable, pas une dépendance.",
+    "sec_sandbox_title": "Bac à sable du système d'exploitation non inclus",
+    "sec_sandbox_body": "Il ne s'agit pas d'une VM, d'un conteneur ou d'un exécuteur distant renforcé. L'échelle d'exécution revient indisponible jusqu'à ce qu'un véritable adaptateur soit configuré.",
+    "sec_plain_title": "Texte brut par défaut",
+    "sec_plain_body": "Le stockage n'est pas chiffré par défaut. Les octets sensibles nécessitent CellCipher avec un magasin de clés externe ou un chiffrement complet du disque. Le contrôle d’accès n’est pas un cryptage.",
+    "sec_vocab_title": "Vocabulaire de statut stable",
+    "sec_vocab_body": "Les mots d'état restent en anglais par contrat, de sorte que les preuves restent lisibles par machine sur tous les hôtes et rapports.",
+    "status_vocab_aria": "Vocabulaire de statut",
+    "sec_vocab_note": "not_run est une déclaration honnête concernant un hôte ou une clé manquante, jamais un échec déguisé en succès.",
+    "sec_claims_title": "Non réclamé",
+    "sec_claim_1": "Aucune réclamation de prêt pour la production ou de bac à sable sécurisé.",
+    "sec_claim_2": "Aucune réclamation Beats-X sans preuve A/B externe.",
+    "sec_claim_3": "Aucune revendication de parité native sans hôte correspondant.",
+    "quick_kicker": "Vérification",
+    "quick_title": "Vérifiez la vérité dans <span class=\"grad\">trois commandes.</span>",
+    "quick_lede": "Le runtime faisant autorité sur le plan est CPython 3.14. Les commandes ci-dessous sont copiées à partir du README et exécutées localement.",
+    "cmd_suite_title": "Exécutez la suite de tests complète",
+    "cmd_suite_hint": "Attendu : OK, environ 2267 tests, 18 ignorés. test unitaire stdlib uniquement.",
+    "cmd_recall_title": "Exécutez le benchmark de rappel",
+    "cmd_recall_hint": "Attendu : rappel20 20/20, précision 1,00.",
+    "cmd_exe_title": "Lancer la build native",
+    "cmd_exe_hint": "Windows, signé par le développeur avec un certificat auto-signé. La voie macOS n'est pas_run.",
+    "copy": "Copie",
+    "copy_aria": "Copier dans le presse-papier",
+    "copied": "Copié dans le presse-papiers.",
+    "copy_failed": "La copie a échoué. Le texte est sélectionné ; appuyez sur Ctrl+C.",
+    "quick_cli_kicker": "CLI et intégrations",
+    "integration_title": "Un noyau local, des adaptateurs honnêtes.",
+    "integration_lede": "Un noyau local, plusieurs adaptateurs honnêtes. Les modules d'intégration sont aujourd'hui des contrats, pas des ponts actifs.",
+    "cmd_cli_title": "Inspecter l'état à partir de la CLI",
+    "cmd_cli_hint": "Inspecteur en lecture seule pour la mémoire et les événements.",
+    "cmd_import_title": "Importer la bibliothèque",
+    "cmd_import_hint": "Le noyau public exporte cinq points d’entrée.",
+    "integration_stub": "BOUT",
+    "integration_adapters": "Claude Code · Codex · OpenClaw",
+    "integration_note": "Les adaptateurs Claude Code, Codex et OpenClaw sont des stubs réservés aux contrats dans ce référentiel. Aucun pont MCP actif n'est revendiqué.",
+    "integration_cli": "noesis-inspect est le point d'entrée CLI fourni.",
+    "quick_links_kicker": "Lire ensuite",
+    "docs_index_title": "Index des documents",
+    "docs_index_desc": "La carte organisée de chaque document de travail.",
+    "docs_arch_title": "Architecture",
+    "docs_arch_desc": "Magasin d'événements, mémoire à quatre niveaux et coordination.",
+    "docs_api_title": "Référence API",
+    "docs_api_desc": "Signatures de méthode, exemples et surface 0,6.",
+    "docs_kicker": "Source de vérité",
+    "docs_title": "Source de vérité, pas <span class=\"grad\">marketing.</span>",
+    "docs_lede": "Chaque numéro sur cette page provient de ces fichiers. Ouvrez-les à côté du panneau.",
+    "doc_readme_title": "LISEZMOI",
+    "doc_readme_desc": "Point d’entrée, démarrage rapide et limite d’honnêteté.",
+    "doc_agents_title": "AGENTS",
+    "doc_agents_desc": "Règles strictes : zéro dépendance, état d'ajout uniquement, écritures idempotentes, tests à chaque modification.",
+    "doc_changelog_title": "JOURNAL DES CHANGEMENTS",
+    "doc_changelog_desc": "Ce qui a atterri, ce qui a été réparé et ce qui reste bloqué.",
+    "doc_docs_title": "Index des documents",
+    "doc_docs_desc": "Minimum organisé pour l’exploitation et l’extension du projet.",
+    "doc_third_title": "Avis de tiers",
+    "doc_third_desc": "Licences et provenance des œuvres référencées.",
+    "docs_more": "Aussi utile",
+    "doc_security_title": "Politique de sécurité",
+    "doc_security_desc": "Comment signaler une vulnérabilité et ce que couvre la limite.",
+    "doc_repo_title": "Dépôt GitHub",
+    "doc_repo_desc": "Source, problèmes et versions sous licence MIT.",
+    "footer_note": "Licence MIT · local d'abord · pas de CDN · pas de télémétrie"
+  },
+  "pt": {
+    "page_title": "Harness NOESIS – Memória do Agente",
+    "skip": "Pular para o conteúdo",
+    "brand_aria": "Página inicial da AMAImedia",
+    "support": "Apoiar",
+    "lang_aria": "Linguagem",
+    "primary_nav": "Navegação primária",
+    "theme_toggle": "Alternar tema claro ou escuro",
+    "sections_aria": "Seções",
+    "tab_overview": "Visão geral",
+    "tab_memory": "Memória",
+    "tab_security": "Segurança",
+    "tab_quick": "Início rápido",
+    "tab_docs": "Documentos",
+    "eyebrow_overview": "Memória do primeiro agente local",
+    "hero_title": "Memória com recibos <span class=\"grad\">.</span>",
+    "hero_lede": "Um chicote de dependência zero para o estado do agente: eventos somente anexados, recall de quatro camadas e coordenação TTL. O armazenamento nunca chama um modelo. Cada reclamação chega com um status de evidência – incluindo aquelas que ainda estão desaparecidas.",
+    "hero_cta1": "Explore o modelo de memória",
+    "hero_cta2": "Leia o LEIA-ME",
+    "hero_panel_kicker": "Visão geral do sistema",
+    "hero_panel_status": "núcleo local",
+    "flow_store": "Loja de eventos",
+    "flow_store_sub": "JSONL somente para acréscimo · repetição",
+    "flow_memory": "Memória",
+    "flow_memory_sub": "4 níveis · FTS5 · decadência",
+    "flow_coord": "Coordenação",
+    "flow_coord_sub": "arrendamentos · sinais · DAG",
+    "kpi_tests_label": "Testes locais",
+    "kpi_tests_sub": "OK · 18 ignorados",
+    "kpi_recall_label": "recordar20",
+    "kpi_recall_sub": "20 de 20 · precisão 1,00",
+    "kpi_quality_label": "Qualidade · multisessão",
+    "kpi_quality_sub": "índice de qualidade · recall 0,833",
+    "kpi_gain_label": "Ganho de recall",
+    "kpi_gain_sub": "linha de base → próxima geração",
+    "kpi_note": "Qualidade 0,979 é a pontuação de várias sessões. O corpus adversário v3 pontua 0,944. O ganho de recall 1.0 é a linha de base → resultado da próxima geração.",
+    "what_kicker": "O que isso faz",
+    "what_title": "Um núcleo, três camadas duráveis.",
+    "what_lede": "O núcleo determinístico lida com estado, memória e coordenação. A camada de modelo é opcional e está sempre fora do caminho de armazenamento.",
+    "feature_store_title": "Estado originado do evento",
+    "feature_store_body": "JSONL somente anexado, impressões digitais de conteúdo SHA-256 e reprodução determinística. Um envio duplo é autônomo, não duplicado. O estado é reconstruído a partir do log, nunca corrigido.",
+    "feature_memory_title": "Memória de quatro camadas",
+    "feature_memory_body": "Observações de trabalho, resumos episódicos, fatos semânticos e fluxos de trabalho procedimentais em SQLite. O recall híbrido FTS5, o fallback de substring e o decaimento de Ebbinghaus mantêm os fatos úteis próximos.",
+    "feature_coord_title": "Coordenação sem servidor",
+    "feature_coord_body": "As concessões TTL mantêm uma tarefa com um agente. Os sinais transportam mensagens e threads assíncronos. A ação DAG desbloqueia automaticamente os dependentes quando seus requisitos são concluídos.",
+    "gates_kicker": "Evidência",
+    "gates_title": "Portões de honestidade",
+    "gates_lede": "Nove portões, status explícitos. Um host ou chave ausente é relatado como not_run, nunca disfarçado como sucesso.",
+    "gates_source": "Fonte: README.md. A evidência é estável em bytes neste host.",
+    "gate_local_name": "Portões locais",
+    "gate_local_note": "Executado e aprovado; a evidência é estável em bytes.",
+    "gate_native_name": "Artefato nativo",
+    "gate_native_note": "Windows exe, assinado pelo desenvolvedor, 11 MB. A pista do macOS é not_run (sem host).",
+    "gate_external_name": "A/B externo",
+    "gate_external_note": "not_run — os usuários fornecem chaves de API em tempo de execução.",
+    "gate_release_name": "Revisão de lançamento",
+    "gate_release_note": "Revisão humana pendente. Nenhuma reivindicação de liberação é feita.",
+    "gate_evidence_name": "Evidência local",
+    "gate_evidence_note": "recall20 20/20 · qualidade 0,979 · ganho de recall 1,0.",
+    "memory_kicker": "Modelo de memória",
+    "memory_title": "Construído para lembrar - e para <span class=\"grad\">forget.</span>",
+    "memory_lede": "Quatro níveis, escopos explícitos e um caminho de recuperação que falha ao fechar. A memória é texto simples; a privacidade é um controle de tempo de leitura, não uma reivindicação de criptografia.",
+    "tiers_title": "Quatro níveis, um caminho de recall",
+    "tiers_lede": "Cada camada tem uma regra de retenção diferente. Recall extrai-se de todos eles e fortalece o que toca.",
+    "tier_col_tier": "Nível",
+    "tier_col_table": "Mesa",
+    "tier_col_purpose": "Propósito",
+    "tier_working": "Trabalhando",
+    "tier_working_p": "Eventos de entrada brutos, limitados por sessão.",
+    "tier_episodic": "Episódico",
+    "tier_episodic_p": "Resumos das sessões: o que aconteceu.",
+    "tier_semantic": "Semântica",
+    "tier_semantic_p": "Fatos duráveis ​​com confiança e decadência.",
+    "tier_procedural": "Processual",
+    "tier_procedural_p": "Fluxos de trabalho reutilizáveis ​​com gatilhos.",
+    "mem_scopes_title": "Escopos e sensibilidade",
+    "mem_scopes_body": "Os registros carregam um rótulo de sensibilidade validado em relação a um conjunto fixo. recall e profile retornam apenas público e interno por padrão. Um rótulo desconhecido surge; nunca é rebaixado silenciosamente.",
+    "mem_recall_title": "recall híbrido",
+    "mem_recall_body": "FTS5 BM25 é a correspondência primária. Um caminho de substring cobre CJK e camelCase. A força e a decadência de Ebbinghaus classificam o que sobrevive; o acesso se fortalece, o tempo desaparece.",
+    "mem_evidence_title": "Evidências, não vibrações",
+    "mem_evidence_body": "O log de eventos é somente anexado e reproduzível. Idempotência é uma impressão digital de conteúdo SHA-256. Uma correspondência suprimida é filtrada antes que possa fortalecer um contador que outra pessoa possa ler.",
+    "mem_fail_title": "Fechado com falha por padrão",
+    "mem_fail_body": "Um conjunto de sensibilidade vazio não retorna nada. Um adaptador de execução ausente retorna indisponível. Uma chave ausente retorna not_run. O padrão é nunca presumir que funcionou.",
+    "mem_forget_title": "O esquecimento é medido",
+    "mem_forget_body": "esqueça.py cobre oito lojas, fortalece o SQLite, verifica bytes brutos e emite um recibo. O apagamento criptográfico é relatado apenas quando as células foram realmente seladas.",
+    "mem_plain_title": "Armazenamento de texto simples",
+    "mem_plain_body": "A memória não é criptografada por padrão. Bytes sensíveis precisam de CellCipher com uma chave armazenada fora do diretório de dados ou criptografia de disco completo. Controle de acesso não é criptografia.",
+    "security_kicker": "Limite de confiança",
+    "security_title": "O limite é o <span class=\"grad\">feature.</span>",
+    "security_lede": "O núcleo decide, registra e reporta. Ele não pretende ser uma sandbox de sistema operacional.",
+    "sec_honesty_title": "Limite de honestidade",
+    "sec_honesty_body": "Os portões locais são executados e apoiados por evidências. As pistas nativas e externas publicam not_run ou pendentes quando o host ou as credenciais estão faltando. Nenhuma reivindicação de superioridade ou paridade nativa é feita sem evidências correspondentes.",
+    "sec_cap_title": "Decisões de capacidade",
+    "sec_cap_body": "Autorização de três valores, concessões ACL explícitas, tokens de capacidade HMAC, escopos privados lógicos e uma trilha de decisão auditável. Negar é um resultado de primeira classe.",
+    "sec_model_title": "Nenhum código de modelo em processo",
+    "sec_model_body": "O núcleo determinístico é somente stdlib e nunca executa Python gerado por modelo no processo. O LLM é um retorno de chamada conectável, não uma dependência.",
+    "sec_sandbox_title": "Sandbox do sistema operacional não incluído",
+    "sec_sandbox_body": "Este não é uma VM, contêiner ou executor remoto protegido. A escada de execução retorna indisponível até que um adaptador real seja configurado.",
+    "sec_plain_title": "Texto simples por padrão",
+    "sec_plain_body": "O armazenamento não é criptografado por padrão. Bytes confidenciais precisam do CellCipher com um armazenamento de chaves externo ou criptografia de disco completo. Controle de acesso não é criptografia.",
+    "sec_vocab_title": "Vocabulário de status estável",
+    "sec_vocab_body": "As palavras de status permanecem em inglês por contrato, portanto as evidências permanecem legíveis por máquina em hosts e relatórios.",
+    "status_vocab_aria": "Vocabulário de status",
+    "sec_vocab_note": "not_run é uma declaração honesta sobre um host ou chave ausente, nunca uma falha disfarçada de sucesso.",
+    "sec_claims_title": "Não reivindicado",
+    "sec_claim_1": "Nenhuma reivindicação de pronto para produção ou sandbox seguro.",
+    "sec_claim_2": "Nenhuma afirmação de beats-X sem evidência A/B externa.",
+    "sec_claim_3": "Nenhuma reivindicação de paridade nativa sem um host correspondente.",
+    "quick_kicker": "Verificação",
+    "quick_title": "Verifique a verdade em <span class=\"grad\">três comandos.</span>",
+    "quick_lede": "O tempo de execução oficial do plano é CPython 3.14. Os comandos abaixo são copiados do README e executados localmente.",
+    "cmd_suite_title": "Execute o conjunto de testes completo",
+    "cmd_suite_hint": "Esperado: OK, cerca de 2.267 testes, 18 ignorados. stdlib somente teste unitário.",
+    "cmd_recall_title": "Execute o benchmark de recall",
+    "cmd_recall_hint": "Esperado: recall20 20/20, precisão 1,00.",
+    "cmd_exe_title": "Inicie a compilação nativa",
+    "cmd_exe_hint": "Windows, assinado pelo desenvolvedor com um certificado autoassinado. A pista do macOS é not_run.",
+    "copy": "Cópia",
+    "copy_aria": "Copiar para a área de transferência",
+    "copied": "Copiado para a área de transferência.",
+    "copy_failed": "Falha na cópia. O texto está selecionado; pressione Ctrl+C.",
+    "quick_cli_kicker": "CLI e integrações",
+    "integration_title": "Um núcleo local, adaptadores honestos.",
+    "integration_lede": "Um núcleo local, vários adaptadores honestos. Os módulos de integração são hoje contratos, não pontes ativas.",
+    "cmd_cli_title": "Inspecione o estado da CLI",
+    "cmd_cli_hint": "Inspetor somente leitura para memória e eventos.",
+    "cmd_import_title": "Importe a biblioteca",
+    "cmd_import_hint": "O núcleo público exporta cinco pontos de entrada.",
+    "integration_stub": "ESBOÇO",
+    "integration_adapters": "Código Claude · Codex · OpenClaw",
+    "integration_note": "Os adaptadores Claude Code, Codex e OpenClaw são stubs somente de contrato neste repositório. Nenhuma ponte MCP ativa é reivindicada.",
+    "integration_cli": "noesis-inspect é o ponto de entrada CLI enviado.",
+    "quick_links_kicker": "Leia a seguir",
+    "docs_index_title": "Índice de documentação",
+    "docs_index_desc": "O mapa selecionado de cada documento de trabalho.",
+    "docs_arch_title": "Arquitetura",
+    "docs_arch_desc": "Armazenamento de eventos, memória e coordenação de quatro camadas.",
+    "docs_api_title": "Referência da API",
+    "docs_api_desc": "Assinaturas de métodos, exemplos e a superfície 0,6.",
+    "docs_kicker": "Fonte da verdade",
+    "docs_title": "Fonte da verdade, não <span class=\"grad\">marketing.</span>",
+    "docs_lede": "Cada número nesta página vem desses arquivos. Abra-os próximo ao painel.",
+    "doc_readme_title": "LEIA-ME",
+    "doc_readme_desc": "Ponto de entrada, início rápido e limite da honestidade.",
+    "doc_agents_title": "AGENTES",
+    "doc_agents_desc": "Regras rígidas: zero dependências, estado somente de acréscimo, gravações idempotentes, testes a cada alteração.",
+    "doc_changelog_title": "REGISTRO DE ALTERAÇÕES",
+    "doc_changelog_desc": "O que pousou, o que foi consertado e o que permanece bloqueado.",
+    "doc_docs_title": "Índice de documentação",
+    "doc_docs_desc": "Curadoria mínima para operação e extensão do projeto.",
+    "doc_third_title": "Avisos de terceiros",
+    "doc_third_desc": "Licenças e procedência das obras referenciadas.",
+    "docs_more": "Também útil",
+    "doc_security_title": "Política de segurança",
+    "doc_security_desc": "Como relatar uma vulnerabilidade e o que o limite cobre.",
+    "doc_repo_title": "Repositório GitHub",
+    "doc_repo_desc": "Fonte, problemas e lançamentos licenciados pelo MIT.",
+    "footer_note": "Licença MIT · local primeiro · sem CDN · sem telemetria"
+  },
+  "zh": {
+    "page_title": "NOESIS Harness — 特工记忆",
+    "skip": "跳至内容",
+    "brand_aria": "AMAI媒体主页",
+    "support": "支持",
+    "lang_aria": "语言",
+    "primary_nav": "主要导航",
+    "theme_toggle": "切换浅色或深色主题",
+    "sections_aria": "部分",
+    "tab_overview": "概述",
+    "tab_memory": "记忆",
+    "tab_security": "安全",
+    "tab_quick": "快速启动",
+    "tab_docs": "文档",
+    "eyebrow_overview": "本地优先代理内存",
+    "hero_title": "带有 <span class=\"grad\">receipts.</span> 的内存",
+    "hero_lede": "代理状态的零依赖工具：仅附加事件、四层召回和 TTL 协调。存储从不调用模型。每项索赔都带有证据状态——包括那些仍然失踪的索赔。",
+    "hero_cta1": "探索内存模型",
+    "hero_cta2": "阅读自述文件",
+    "hero_panel_kicker": "系统一览",
+    "hero_panel_status": "本地核心",
+    "flow_store": "活动商店",
+    "flow_store_sub": "仅附加 JSONL · 重放",
+    "flow_memory": "记忆",
+    "flow_memory_sub": "4 层 · FTS5 · 衰减",
+    "flow_coord": "协调",
+    "flow_coord_sub": "租赁·信号·DAG",
+    "kpi_tests_label": "本地测试",
+    "kpi_tests_sub": "好的·18 已跳过",
+    "kpi_recall_label": "回忆20",
+    "kpi_recall_sub": "20 共 20 · 准确度 1.00",
+    "kpi_quality_label": "质量·多会话",
+    "kpi_quality_sub": "质量得分·召回率 0.833",
+    "kpi_gain_label": "回忆增益",
+    "kpi_gain_sub": "基线 → 下一代",
+    "kpi_note": "质量 0.979 是多会话分数。对抗性 v3 语料库得分为 0.944。召回增益 1.0 是基线 → 下一代结果。",
+    "what_kicker": "它的作用",
+    "what_title": "一层核心，三层耐用层。",
+    "what_lede": "确定性核心处理状态、内存和协调。模型层是可选的，并且始终位于存储路径之外。",
+    "feature_store_title": "事件源状态",
+    "feature_store_body": "仅附加 JSONL、SHA-256 内容指纹和确定性重播。双重发送是无操作，而不是重复。状态是根据日志重建的，从不就地修补。",
+    "feature_memory_title": "四层内存",
+    "feature_memory_body": "SQLite 中的工作观察、情景摘要、语义事实和程序工作流程。混合 FTS5 召回、子串回退和艾宾浩斯衰减使有用的事实保持紧密。",
+    "feature_coord_title": "无需服务器的协调",
+    "feature_coord_body": "TTL 租约将一项任务保留给一名代理。信号携带异步邮件和线程。当依赖者的要求完成时，操作 DAG 会自动解除阻止。",
+    "gates_kicker": "证据",
+    "gates_title": "诚信之门",
+    "gates_lede": "九门，身份明确。丢失的主机或密钥将报告为 not_run，永远不会装扮成成功。",
+    "gates_source": "来源：README.md。证据在此主机上是字节稳定的。",
+    "gate_local_name": "本地登机口",
+    "gate_local_note": "已执行并通过；证据是字节稳定的。",
+    "gate_native_name": "原生神器",
+    "gate_native_note": "Windows exe，开发签名，11 MB。 macOS 通道为 not_run（无主机）。",
+    "gate_external_name": "外部A/B",
+    "gate_external_note": "not_run — 用户在运行时提供 API 密钥。",
+    "gate_release_name": "发布审核",
+    "gate_release_note": "等待人工审核。没有提出释放声明。",
+    "gate_evidence_name": "当地证据",
+    "gate_evidence_note": "召回率 20 20/20 · 质量 0.979 · 召回率增益 1.0。",
+    "memory_kicker": "内存模型",
+    "memory_title": "旨在记住 — 并忘记 <span class=\"grad\">.</span>",
+    "memory_lede": "四层、明确的范围和失败关闭的检索路径。内存是明文的；隐私是读取时间控制，而不是加密声明。",
+    "tiers_title": "四层，一条回忆路径",
+    "tiers_lede": "每个级别都有不同的保留规则。回忆从所有这些中汲取灵感，并强化了它所触及的内容。",
+    "tier_col_tier": "等级",
+    "tier_col_table": "桌子",
+    "tier_col_purpose": "目的",
+    "tier_working": "在职的",
+    "tier_working_p": "原始入站事件，每个会话都有限制。",
+    "tier_episodic": "情景式",
+    "tier_episodic_p": "会议摘要：发生了什么。",
+    "tier_semantic": "语义学",
+    "tier_semantic_p": "具有信心和衰退的持久事实。",
+    "tier_procedural": "程序",
+    "tier_procedural_p": "带触发器的可重用工作流程。",
+    "mem_scopes_title": "范围和灵敏度",
+    "mem_scopes_body": "记录带有针对固定集进行验证的敏感度标签。默认情况下，召回和配置文件仅返回公共和内部。出现未知标签；它永远不会被默默降级。",
+    "mem_recall_title": "混合召回",
+    "mem_recall_body": "FTS5 BM25 是主要比赛。子字符串路径涵盖 CJK 和驼峰命名法。强度和艾宾浩斯衰变对幸存者进行排序；访问加强，时间流逝。",
+    "mem_evidence_title": "证据，而不是共鸣",
+    "mem_evidence_body": "事件日志仅可追加且可重播。幂等性是 SHA-256 内容指纹。被抑制的匹配在它可以增强其他人可以读取的计数器之前被过滤。",
+    "mem_fail_title": "默认失败关闭",
+    "mem_fail_body": "空的敏感度集不会返回任何内容。缺少执行适配器返回不可用。缺少键将返回 not_run。默认情况下永远不会假设它有效。",
+    "mem_forget_title": "遗忘是可以衡量的",
+    "mem_forget_body": "forget.py 涵盖八个存储、强化 SQLite、扫描原始字节并发出收据。仅当单元实际密封时才会报告密码擦除。",
+    "mem_plain_title": "明文存储",
+    "mem_plain_body": "默认情况下内存不加密。敏感字节需要使用存储在数据目录之外的密钥的 CellCipher 或全盘加密。访问控制不是加密。",
+    "security_kicker": "信任边界",
+    "security_title": "边界是 <span class=\"grad\">feature.</span>",
+    "security_lede": "核心决定、记录和报告。它不会伪装成操作系统沙箱。",
+    "sec_honesty_title": "诚信边界",
+    "sec_honesty_body": "当地的大门已被执行并有证据支持。当主机或凭据丢失时，本机和外部通道会发布 not_run 或待处理。如果没有匹配的证据，就不会提出优越性或本地平等性的主张。",
+    "sec_cap_title": "能力决策",
+    "sec_cap_body": "三值授权、显式 ACL 授予、HMAC 功能令牌、逻辑私有范围和可审计的决策跟踪。拒绝是一流的结果。",
+    "sec_model_title": "没有进程内模型代码",
+    "sec_model_body": "确定性核心仅包含 stdlib，并且从不在进程内执行模型生成的 Python。 LLM 是可插入回调，而不是依赖项。",
+    "sec_sandbox_title": "不包括操作系统沙箱",
+    "sec_sandbox_body": "这不是虚拟机、容器或强化的远程执行器。在配置真正的适配器之前，执行梯形图将返回不可用状态。",
+    "sec_plain_title": "默认为明文",
+    "sec_plain_body": "默认情况下存储不加密。敏感字节需要带有外部密钥存储的 CellCipher 或全盘加密。访问控制不是加密。",
+    "sec_vocab_title": "稳定状态词汇",
+    "sec_vocab_body": "根据合同，状态字保持英语状态，因此证据在主机和报告中仍然是机器可读的。",
+    "status_vocab_aria": "状态词汇",
+    "sec_vocab_note": "not_run 是关于丢失主机或密钥的诚实声明，绝不是伪装成成功的失败。",
+    "sec_claims_title": "未认领",
+    "sec_claim_1": "没有生产就绪或安全沙箱声明。",
+    "sec_claim_2": "没有外部 A/B 证据，就没有 Beats-X 声明。",
+    "sec_claim_3": "没有匹配的主机就没有本机奇偶校验声明。",
+    "quick_kicker": "确认",
+    "quick_title": "检查<span class=\"grad\">三个命令的真实性。</span>",
+    "quick_lede": "计划权威运行时是 CPython 3.14。以下命令是从自述文件中复制并在本地运行的。",
+    "cmd_suite_title": "运行完整的测试套件",
+    "cmd_suite_hint": "预期：好的，大约 2267 次测试，跳过 18 次。仅 stdlib 单元测试。",
+    "cmd_recall_title": "运行召回基准",
+    "cmd_recall_hint": "预期：召回率 20 20/20，准确率 1.00。",
+    "cmd_exe_title": "启动本机构建",
+    "cmd_exe_hint": "Windows，使用自签名证书进行开发签名。 macOS 通道未运行。",
+    "copy": "复制",
+    "copy_aria": "复制到剪贴板",
+    "copied": "复制到剪贴板。",
+    "copy_failed": "复制失败。文本被选中；按 Ctrl+C。",
+    "quick_cli_kicker": "CLI 和集成",
+    "integration_title": "一个本地核心，诚实的适配器。",
+    "integration_lede": "一个本地核心，几个诚实的适配器。如今，集成模块是合同，而不是实时桥梁。",
+    "cmd_cli_title": "从 CLI 检查状态",
+    "cmd_cli_hint": "内存和事件的只读检查器。",
+    "cmd_import_title": "导入库",
+    "cmd_import_hint": "公共核心导出五个入口点。",
+    "integration_stub": "存根",
+    "integration_adapters": "克劳德代码 · Codex · OpenClaw",
+    "integration_note": "Claude Code、Codex 和 OpenClaw 适配器是此存储库中的仅合约存根。没有声称拥有实时 MCP 桥。",
+    "integration_cli": "noesis-inspect 是附带的 CLI 入口点。",
+    "quick_links_kicker": "阅读下一篇",
+    "docs_index_title": "文档索引",
+    "docs_index_desc": "每个工作文件的精心策划的地图。",
+    "docs_arch_title": "建筑学",
+    "docs_arch_desc": "事件存储、四层内存和协调。",
+    "docs_api_title": "API参考",
+    "docs_api_desc": "方法签名、示例和 0.6 表面。",
+    "docs_kicker": "真相来源",
+    "docs_title": "事实来源，不是 <span class=\"grad\">marketing.</span>",
+    "docs_lede": "此页面上的每个数字都来自这些文件。打开面板旁边的它们。",
+    "doc_readme_title": "自述文件",
+    "doc_readme_desc": "切入点、快速启动和诚实边界。",
+    "doc_agents_title": "代理商",
+    "doc_agents_desc": "硬规则：零依赖、仅追加状态、幂等写入、每次更改都进行测试。",
+    "doc_changelog_title": "变更日志",
+    "doc_changelog_desc": "哪些内容已落地，哪些内容已修复，哪些内容仍被阻止。",
+    "doc_docs_title": "文档索引",
+    "doc_docs_desc": "为项目的运营和扩展制定了最低限度。",
+    "doc_third_title": "第三方通知",
+    "doc_third_desc": "参考作品的许可和出处。",
+    "docs_more": "也有用",
+    "doc_security_title": "安全政策",
+    "doc_security_desc": "如何报告漏洞以及边界涵盖的内容。",
+    "doc_repo_title": "GitHub 存储库",
+    "doc_repo_desc": "麻省理工学院许可的来源、问题和发布。",
+    "footer_note": "麻省理工学院许可证 · 本地优先 · 无 CDN · 无遥测"
+  },
+  "hi": {
+    "page_title": "NOESIS हार्नेस - एजेंट मेमोरी",
+    "skip": "सामग्री पर जाएं",
+    "brand_aria": "एएमएआईमीडिया होम",
+    "support": "सहायता",
+    "lang_aria": "भाषा",
+    "primary_nav": "प्राथमिक नेविगेशन",
+    "theme_toggle": "प्रकाश या गहरे रंग की थीम टॉगल करें",
+    "sections_aria": "धारा",
+    "tab_overview": "सिंहावलोकन",
+    "tab_memory": "याद",
+    "tab_security": "सुरक्षा",
+    "tab_quick": "त्वरित शुरुआत",
+    "tab_docs": "डॉक्स",
+    "eyebrow_overview": "स्थानीय-प्रथम एजेंट मेमोरी",
+    "hero_title": "<span class=\"grad\">receipts.</span> के साथ मेमोरी",
+    "hero_lede": "एजेंट स्थिति के लिए एक शून्य-निर्भरता हार्नेस: केवल परिशिष्ट ईवेंट, चार-स्तरीय रिकॉल और टीटीएल समन्वय। स्टोरेज कभी भी किसी मॉडल को कॉल नहीं करता है। प्रत्येक दावा साक्ष्य की स्थिति के साथ आता है - जिसमें वे भी शामिल हैं जो अभी भी गायब हैं।",
+    "hero_cta1": "मेमोरी मॉडल का अन्वेषण करें",
+    "hero_cta2": "रीडमे पढ़ें",
+    "hero_panel_kicker": "सिस्टम एक नजर में",
+    "hero_panel_status": "स्थानीय कोर",
+    "flow_store": "इवेंट स्टोर",
+    "flow_store_sub": "केवल-जोड़ें JSONL · पुनः चलाएं",
+    "flow_memory": "याद",
+    "flow_memory_sub": "4 स्तर · FTS5 · क्षय",
+    "flow_coord": "समन्वय",
+    "flow_coord_sub": "पट्टे · सिग्नल · डीएजी",
+    "kpi_tests_label": "स्थानीय परीक्षण",
+    "kpi_tests_sub": "ठीक · 18 छोड़ दिया गया",
+    "kpi_recall_label": "स्मरण20",
+    "kpi_recall_sub": "20 में से 20 · सटीकता 1.00",
+    "kpi_quality_label": "गुणवत्ता · बहु-सत्र",
+    "kpi_quality_sub": "गुणवत्ता स्कोर · स्मरण 0.833",
+    "kpi_gain_label": "लाभ को याद करें",
+    "kpi_gain_sub": "आधार रेखा → अगली पीढ़ी",
+    "kpi_note": "गुणवत्ता 0.979 बहु-सत्र स्कोर है। प्रतिकूल v3 कॉर्पस का स्कोर 0.944 है। याद रखें लाभ 1.0 आधार रेखा है → अगली पीढ़ी का परिणाम।",
+    "what_kicker": "यह क्या करता है",
+    "what_title": "एक कोर, तीन टिकाऊ परतें।",
+    "what_lede": "नियतात्मक कोर स्थिति, स्मृति और समन्वय को संभालता है। मॉडल परत वैकल्पिक है और हमेशा भंडारण पथ के बाहर होती है।",
+    "feature_store_title": "घटना-स्रोत वाली स्थिति",
+    "feature_store_body": "केवल संलग्न JSONL, SHA-256 सामग्री फ़िंगरप्रिंट और नियतात्मक रीप्ले। डबल-सेंड एक नो-ऑप है, डुप्लिकेट नहीं। राज्य को लॉग से फिर से बनाया गया है, कभी भी जगह पर पैच नहीं किया गया है।",
+    "feature_memory_title": "चार स्तरीय स्मृति",
+    "feature_memory_body": "SQLite में कामकाजी अवलोकन, एपिसोडिक सारांश, अर्थ संबंधी तथ्य और प्रक्रियात्मक वर्कफ़्लो। हाइब्रिड FTS5 रिकॉल, सबस्ट्रिंग फॉलबैक और एबिंगहॉस क्षय उपयोगी तथ्यों को करीब रखते हैं।",
+    "feature_coord_title": "सर्वर के बिना समन्वय",
+    "feature_coord_body": "टीटीएल पट्टे एक एजेंट के पास एक कार्य रखते हैं। सिग्नल एसिंक मेल और थ्रेड ले जाते हैं। जब आश्रितों की आवश्यकताएं पूरी हो जाती हैं तो DAG क्रिया स्वचालित रूप से अनब्लॉक कर देती है।",
+    "gates_kicker": "प्रमाण",
+    "gates_title": "ईमानदारी के द्वार",
+    "gates_lede": "नौ द्वार, सुस्पष्ट स्थितियाँ। एक गुम होस्ट या कुंजी को not_run के रूप में रिपोर्ट किया जाता है, इसे कभी भी सफलता के रूप में प्रस्तुत नहीं किया जाता है।",
+    "gates_source": "स्रोत: README.md. इस होस्ट पर साक्ष्य बाइट-स्थिर है।",
+    "gate_local_name": "स्थानीय द्वार",
+    "gate_local_note": "निष्पादित और पारित; साक्ष्य बाइट-स्थिर है.",
+    "gate_native_name": "मूल कलाकृति",
+    "gate_native_note": "विंडोज़ एक्सई, डेव-साइनड, 11 एमबी। MacOS लेन not_run (कोई होस्ट नहीं) है।",
+    "gate_external_name": "बाहरी ए/बी",
+    "gate_external_note": "not_run - उपयोगकर्ता रनटाइम पर एपीआई कुंजियाँ प्रदान करते हैं।",
+    "gate_release_name": "समीक्षा जारी करें",
+    "gate_release_note": "मानव समीक्षा लंबित है. कोई रिहाई का दावा नहीं किया गया है.",
+    "gate_evidence_name": "स्थानीय साक्ष्य",
+    "gate_evidence_note": "रिकॉल20 20/20 · गुणवत्ता 0.979 · रिकॉल गेन 1.0।",
+    "memory_kicker": "मेमोरी मॉडल",
+    "memory_title": "याद रखने के लिए बनाया गया - और <span class=\"grad\">forget.</span> के लिए",
+    "memory_lede": "चार स्तर, स्पष्ट दायरे और एक पुनर्प्राप्ति पथ जो बंद हो जाता है। स्मृति सादा पाठ है; गोपनीयता एक पढ़ने के समय का नियंत्रण है, एन्क्रिप्शन का दावा नहीं।",
+    "tiers_title": "चार स्तर, एक स्मरण पथ",
+    "tiers_lede": "प्रत्येक स्तर का एक अलग अवधारण नियम होता है। रिकॉल उन सभी से आकर्षित होता है और जो छूता है उसे मजबूत करता है।",
+    "tier_col_tier": "टीयर",
+    "tier_col_table": "मेज़",
+    "tier_col_purpose": "उद्देश्य",
+    "tier_working": "कार्यरत",
+    "tier_working_p": "कच्चे इनबाउंड इवेंट, प्रति सत्र सीमाबद्ध।",
+    "tier_episodic": "प्रासंगिक",
+    "tier_episodic_p": "सत्र सारांश: क्या हुआ.",
+    "tier_semantic": "सिमेंटिक",
+    "tier_semantic_p": "आत्मविश्वास और क्षय के साथ टिकाऊ तथ्य।",
+    "tier_procedural": "ि यात्मक",
+    "tier_procedural_p": "ट्रिगर्स के साथ पुन: प्रयोज्य वर्कफ़्लो।",
+    "mem_scopes_title": "दायरा और संवेदनशीलता",
+    "mem_scopes_body": "रिकॉर्ड्स में एक निश्चित सेट के विरुद्ध मान्य संवेदनशीलता लेबल होता है। रिकॉल और प्रोफ़ाइल डिफ़ॉल्ट रूप से केवल सार्वजनिक और आंतरिक लौटाते हैं। एक अज्ञात लेबल उठाता है; इसे कभी भी चुपचाप डाउनग्रेड नहीं किया जाता है।",
+    "mem_recall_title": "हाइब्रिड रिकॉल",
+    "mem_recall_body": "FTS5 BM25 प्राथमिक मेल है। एक सबस्ट्रिंग पथ सीजेके और कैमलकेस को कवर करता है। ताकत और एबिंगहॉस क्षय रैंक जो जीवित रहता है; पहुंच मजबूत होती है, समय फीका पड़ जाता है।",
+    "mem_evidence_title": "सबूत, भावनाएं नहीं",
+    "mem_evidence_body": "ईवेंट लॉग केवल परिशिष्ट और पुन: चलाने योग्य है। इडेम्पोटेंसी एक SHA-256 सामग्री फ़िंगरप्रिंट है। एक दबाए गए मैच को फ़िल्टर किया जाता है इससे पहले कि यह एक काउंटर को मजबूत कर सके जिसे कोई और पढ़ सके।",
+    "mem_fail_title": "विफल-डिफ़ॉल्ट रूप से बंद",
+    "mem_fail_body": "एक खाली संवेदनशीलता सेट कुछ भी नहीं लौटाता। एक गुम निष्पादन एडॉप्टर अनुपलब्ध हो जाता है। एक गुम कुंजी not_run लौटाती है। डिफ़ॉल्ट यह कभी नहीं माना जाता कि यह काम कर गया।",
+    "mem_forget_title": "भूलना मापा जाता है",
+    "mem_forget_body": "Forget.py आठ स्टोर्स को कवर करता है, SQLite को सख्त करता है, कच्चे बाइट्स को स्कैन करता है और एक रसीद उत्सर्जित करता है। क्रिप्टोग्राफ़िक विलोपन की सूचना केवल तभी दी जाती है जब कोशिकाओं को वास्तव में सील कर दिया गया हो।",
+    "mem_plain_title": "सादा पाठ भंडारण",
+    "mem_plain_body": "मेमोरी डिफ़ॉल्ट रूप से एन्क्रिप्टेड नहीं है. संवेदनशील बाइट्स को डेटा निर्देशिका के बाहर संग्रहीत कुंजी, या पूर्ण-डिस्क एन्क्रिप्शन के साथ सेलसिफर की आवश्यकता होती है। अभिगम नियंत्रण एन्क्रिप्शन नहीं है.",
+    "security_kicker": "विश्वास की सीमा",
+    "security_title": "सीमा <span class=\"grad\">feature.</span> है",
+    "security_lede": "कोर निर्णय लेता है, रिकॉर्ड करता है और रिपोर्ट करता है। यह ऑपरेटिंग-सिस्टम सैंडबॉक्स होने का दिखावा नहीं करता है।",
+    "sec_honesty_title": "ईमानदारी की सीमा",
+    "sec_honesty_body": "स्थानीय गेटों को क्रियान्वित किया जाता है और साक्ष्य-समर्थित किया जाता है। होस्ट या क्रेडेंशियल अनुपलब्ध होने पर मूल और बाहरी लेन not_run या लंबित प्रकाशित करती हैं। कोई भी श्रेष्ठता या मूल-समता का दावा मिलान साक्ष्य के बिना नहीं किया जाता है।",
+    "sec_cap_title": "क्षमता निर्णय",
+    "sec_cap_body": "तीन-मूल्यवान प्राधिकरण, स्पष्ट एसीएल अनुदान, एचएमएसी क्षमता टोकन, तार्किक निजी दायरे और एक श्रव्य निर्णय ट्रेल। इनकार प्रथम श्रेणी का परिणाम है।",
+    "sec_model_title": "कोई इन-प्रोसेस मॉडल कोड नहीं",
+    "sec_model_body": "नियतात्मक कोर केवल stdlib-है और प्रक्रिया में मॉडल-जनरेटेड पायथन को कभी निष्पादित नहीं करता है। एलएलएम एक प्लग करने योग्य कॉलबैक है, निर्भरता नहीं।",
+    "sec_sandbox_title": "ओएस सैंडबॉक्स शामिल नहीं है",
+    "sec_sandbox_body": "यह कोई वीएम, कंटेनर या कठोर रिमोट निष्पादक नहीं है। वास्तविक एडाप्टर कॉन्फ़िगर होने तक निष्पादन सीढ़ी अनुपलब्ध हो जाती है।",
+    "sec_plain_title": "डिफ़ॉल्ट रूप से सादा पाठ",
+    "sec_plain_body": "भंडारण डिफ़ॉल्ट रूप से एन्क्रिप्टेड नहीं है. संवेदनशील बाइट्स को बाहरी कुंजी स्टोर, या पूर्ण-डिस्क एन्क्रिप्शन के साथ सेलसिफर की आवश्यकता होती है। अभिगम नियंत्रण एन्क्रिप्शन नहीं है.",
+    "sec_vocab_title": "स्थिर स्थिति शब्दावली",
+    "sec_vocab_body": "स्थिति शब्द अनुबंध द्वारा अंग्रेजी रहते हैं, इसलिए मेजबानों और रिपोर्टों में साक्ष्य मशीन-पठनीय रहता है।",
+    "status_vocab_aria": "स्थिति शब्दावली",
+    "sec_vocab_note": "not_run किसी खोए हुए होस्ट या कुंजी के बारे में एक ईमानदार बयान है, कभी भी असफलता को सफलता के रूप में नहीं छिपाया जाता है।",
+    "sec_claims_title": "दावा नहीं किया गया",
+    "sec_claim_1": "कोई उत्पादन-तैयार या सुरक्षित-सैंडबॉक्स दावा नहीं।",
+    "sec_claim_2": "बाहरी ए/बी साक्ष्य के बिना कोई बीट्स-एक्स दावा नहीं।",
+    "sec_claim_3": "मेल खाने वाले होस्ट के बिना कोई भी मूल समता का दावा नहीं किया जा सकता।",
+    "quick_kicker": "सत्यापन",
+    "quick_title": "<span class=\"grad\">तीन कमांडों में सत्यता की जाँच करें।</span>",
+    "quick_lede": "योजना-प्राधिकृत रनटाइम CPython 3.14 है। नीचे दिए गए आदेश README से कॉपी किए गए हैं और स्थानीय रूप से चलाए गए हैं।",
+    "cmd_suite_title": "पूर्ण परीक्षण सुइट चलाएँ",
+    "cmd_suite_hint": "अपेक्षित: ठीक है, लगभग 2267 परीक्षण, 18 छोड़े गए। केवल stdlib यूनिटटेस्ट।",
+    "cmd_recall_title": "रिकॉल बेंचमार्क चलाएँ",
+    "cmd_recall_hint": "अपेक्षित: रिकॉल20 20/20, सटीकता 1.00।",
+    "cmd_exe_title": "मूल बिल्ड लॉन्च करें",
+    "cmd_exe_hint": "विंडोज़, स्व-हस्ताक्षरित प्रमाणपत्र के साथ डेव-हस्ताक्षरित। macOS लेन चालू नहीं है।",
+    "copy": "प्रतिलिपि",
+    "copy_aria": "क्लिपबोर्ड पर कॉपी करें",
+    "copied": "क्लिपबोर्ड पर कॉपी किया गया.",
+    "copy_failed": "प्रतिलिपि विफल. पाठ चयनित है; Ctrl+C दबाएँ.",
+    "quick_cli_kicker": "सीएलआई और एकीकरण",
+    "integration_title": "एक स्थानीय कोर, ईमानदार एडाप्टर।",
+    "integration_lede": "एक स्थानीय कोर, कई ईमानदार एडाप्टर। एकीकरण मॉड्यूल आज अनुबंध हैं, लाइव ब्रिज नहीं।",
+    "cmd_cli_title": "सीएलआई से राज्य का निरीक्षण करें",
+    "cmd_cli_hint": "स्मृति और घटनाओं के लिए केवल पढ़ने योग्य निरीक्षक।",
+    "cmd_import_title": "लाइब्रेरी आयात करें",
+    "cmd_import_hint": "सार्वजनिक कोर पांच प्रवेश बिंदुओं का निर्यात करता है।",
+    "integration_stub": "ठूंठ",
+    "integration_adapters": "क्लाउड कोड · कोडेक्स · ओपनक्लॉ",
+    "integration_note": "क्लाउड कोड, कोडेक्स और ओपनक्लाव एडेप्टर इस रिपॉजिटरी में केवल अनुबंध स्टब्स हैं। किसी लाइव एमसीपी ब्रिज का दावा नहीं किया गया है।",
+    "integration_cli": "नॉएसिस-निरीक्षण शिप किया गया सीएलआई प्रवेश बिंदु है।",
+    "quick_links_kicker": "आगे पढ़िए",
+    "docs_index_title": "दस्तावेज़ीकरण सूचकांक",
+    "docs_index_desc": "प्रत्येक कार्यशील दस्तावेज़ का क्यूरेटेड मानचित्र।",
+    "docs_arch_title": "वास्तुकला",
+    "docs_arch_desc": "इवेंट स्टोर, चार स्तरीय मेमोरी और समन्वय।",
+    "docs_api_title": "एपीआई संदर्भ",
+    "docs_api_desc": "विधि हस्ताक्षर, उदाहरण और 0.6 सतह।",
+    "docs_kicker": "सत्य का स्रोत",
+    "docs_title": "सत्य का स्रोत, <span class=\"grad\">marketing.</span> नहीं",
+    "docs_lede": "इस पृष्ठ पर प्रत्येक नंबर इन फ़ाइलों से आता है। उन्हें पैनल के बगल में खोलें.",
+    "doc_readme_title": "रीडमी",
+    "doc_readme_desc": "प्रवेश बिंदु, त्वरित शुरुआत और ईमानदारी की सीमा।",
+    "doc_agents_title": "एजेंट",
+    "doc_agents_desc": "कठिन नियम: शून्य निर्भरता, केवल परिशिष्ट स्थिति, निष्क्रिय लेखन, हर परिवर्तन के साथ परीक्षण।",
+    "doc_changelog_title": "चैंज",
+    "doc_changelog_desc": "क्या उतरा, क्या तय हुआ और क्या अवरुद्ध रहा।",
+    "doc_docs_title": "दस्तावेज़ीकरण सूचकांक",
+    "doc_docs_desc": "परियोजना के संचालन और विस्तार के लिए क्यूरेटेड न्यूनतम।",
+    "doc_third_title": "तृतीय-पक्ष नोटिस",
+    "doc_third_desc": "संदर्भित कार्य के लिए लाइसेंस और उद्गम स्थान।",
+    "docs_more": "उपयोगी भी",
+    "doc_security_title": "सुरक्षा नीति",
+    "doc_security_desc": "किसी भेद्यता की रिपोर्ट कैसे करें और सीमा क्या कवर करती है।",
+    "doc_repo_title": "गिटहब रिपॉजिटरी",
+    "doc_repo_desc": "एमआईटी-लाइसेंस प्राप्त स्रोत, मुद्दे और रिलीज़।",
+    "footer_note": "एमआईटी लाइसेंस · स्थानीय-प्रथम · कोई सीडीएन नहीं · कोई टेलीमेट्री नहीं"
+  },
+  "ar": {
+    "page_title": "أداة NOESIS — ذاكرة الوكيل",
+    "skip": "انتقل إلى المحتوى",
+    "brand_aria": "أمايميديا ​​​​المنزل",
+    "support": "يدعم",
+    "lang_aria": "لغة",
+    "primary_nav": "التنقل الأساسي",
+    "theme_toggle": "تبديل المظهر الفاتح أو الداكن",
+    "sections_aria": "الأقسام",
+    "tab_overview": "ملخص",
+    "tab_memory": "ذاكرة",
+    "tab_security": "حماية",
+    "tab_quick": "بداية سريعة",
+    "tab_docs": "المستندات",
+    "eyebrow_overview": "ذاكرة الوكيل المحلي الأول",
+    "hero_title": "الذاكرة مع <span class=\"grad\">receipts.</span>",
+    "hero_lede": "أداة عديمة التبعية لحالة الوكيل: أحداث الإلحاق فقط، واستدعاء من أربعة مستويات، وتنسيق TTL. التخزين لا يستدعي نموذجًا أبدًا. تصل كل مطالبة مصحوبة بحالة دليل - بما في ذلك تلك التي لا تزال مفقودة.",
+    "hero_cta1": "استكشاف نموذج الذاكرة",
+    "hero_cta2": "اقرأ الملف التمهيدي",
+    "hero_panel_kicker": "النظام في لمحة",
+    "hero_panel_status": "الأساسية المحلية",
+    "flow_store": "متجر للمناسبات",
+    "flow_store_sub": "إلحاق JSONL فقط · إعادة التشغيل",
+    "flow_memory": "ذاكرة",
+    "flow_memory_sub": "4 طبقات · FTS5 · الاضمحلال",
+    "flow_coord": "تنسيق",
+    "flow_coord_sub": "الإيجارات · الإشارات · DAG",
+    "kpi_tests_label": "الاختبارات المحلية",
+    "kpi_tests_sub": "حسنًا · تم تخطي 18",
+    "kpi_recall_label": "استدعاء20",
+    "kpi_recall_sub": "20 من 20 · الدقة 1.00",
+    "kpi_quality_label": "الجودة · جلسات متعددة",
+    "kpi_quality_sub": "نقاط الجودة · أذكر 0.833",
+    "kpi_gain_label": "أذكر المكاسب",
+    "kpi_gain_sub": "خط الأساس → الجيل التالي",
+    "kpi_note": "الجودة 0.979 هي درجة الجلسة المتعددة. سجلت مجموعة v3 العدائية 0.944. كسب الاستدعاء 1.0 هو خط الأساس → نتيجة الجيل التالي.",
+    "what_kicker": "ماذا يفعل",
+    "what_title": "قلب واحد، ثلاث طبقات متينة.",
+    "what_lede": "يتعامل النواة الحتمية مع الحالة والذاكرة والتنسيق. طبقة النموذج اختيارية وتكون دائمًا خارج مسار التخزين.",
+    "feature_store_title": "حالة مصدر الحدث",
+    "feature_store_body": "إلحاق بصمات محتوى JSONL وSHA-256 وإعادة التشغيل الحتمية فقط. الإرسال المزدوج هو أمر محظور، وليس نسخة مكررة. تتم إعادة بناء الحالة من السجل، ولا يتم تصحيحها أبدًا في مكانها.",
+    "feature_memory_title": "ذاكرة من أربع طبقات",
+    "feature_memory_body": "ملاحظات العمل والملخصات العرضية والحقائق الدلالية وسير العمل الإجرائي في SQLite. إن استدعاء Hybrid FTS5 والسلسلة الفرعية الاحتياطية واضمحلال Ebbinghaus يبقي الحقائق المفيدة قريبة.",
+    "feature_coord_title": "التنسيق بدون خادم",
+    "feature_coord_body": "تحتفظ عقود إيجار TTL بمهمة واحدة مع وكيل واحد. تحمل الإشارات بريدًا وخيوطًا غير متزامنة. يقوم الإجراء DAG بإلغاء حظر المعالين تلقائيًا عند اكتمال متطلباتهم.",
+    "gates_kicker": "شهادة",
+    "gates_title": "أبواب الصدق",
+    "gates_lede": "تسعة أبواب، حالات صريحة. يتم الإبلاغ عن المضيف أو المفتاح المفقود على أنه not_run، ولا يتم عرضه على أنه نجاح.",
+    "gates_source": "المصدر: README.md. الأدلة مستقرة بالبايت على هذا المضيف.",
+    "gate_local_name": "البوابات المحلية",
+    "gate_local_note": "تم تنفيذها ومرت؛ الأدلة مستقرة بالبايت.",
+    "gate_native_name": "قطعة أثرية أصلية",
+    "gate_native_note": "Windows exe، موقع من قبل المطورين، 11 ميجابايت. لا يتم تشغيل ممر macOS (لا يوجد مضيف).",
+    "gate_external_name": "خارجي أ/ب",
+    "gate_external_note": "not_run - يقوم المستخدمون بتوفير مفاتيح واجهة برمجة التطبيقات (API) في وقت التشغيل.",
+    "gate_release_name": "مراجعة الإصدار",
+    "gate_release_note": "في انتظار المراجعة البشرية. لم يتم تقديم أي مطالبة بالإفراج.",
+    "gate_evidence_name": "الأدلة المحلية",
+    "gate_evidence_note": "استدعاء20 20/20 · الجودة 0.979 · اكتساب الاستدعاء 1.0.",
+    "memory_kicker": "نموذج الذاكرة",
+    "memory_title": "صُمم للتذكر - وإلى <span class=\"grad\">forget.</span>",
+    "memory_lede": "تم إغلاق أربع مستويات ونطاقات واضحة ومسار استرجاع فاشل. الذاكرة نص عادي. الخصوصية هي التحكم في وقت القراءة، وليست مطالبة بالتشفير.",
+    "tiers_title": "أربع مستويات، ومسار استدعاء واحد",
+    "tiers_lede": "كل طبقة لها قاعدة احتفاظ مختلفة. فالأذكار ينهل من كل منها ويقوي ما يمسها.",
+    "tier_col_tier": "الطبقة",
+    "tier_col_table": "طاولة",
+    "tier_col_purpose": "غاية",
+    "tier_working": "عمل",
+    "tier_working_p": "الأحداث الواردة الأولية، محدودة بكل جلسة.",
+    "tier_episodic": "عرضي",
+    "tier_episodic_p": "ملخصات الجلسة: ماذا حدث.",
+    "tier_semantic": "الدلالي",
+    "tier_semantic_p": "حقائق دائمة مع الثقة والانحلال.",
+    "tier_procedural": "إجرائية",
+    "tier_procedural_p": "سير العمل القابل لإعادة الاستخدام مع المشغلات.",
+    "mem_scopes_title": "النطاقات والحساسية",
+    "mem_scopes_body": "تحمل السجلات علامة حساسية تم التحقق من صحتها مقابل مجموعة ثابتة. يقوم الاستدعاء والملف الشخصي بإرجاع الجمهور والداخلي فقط بشكل افتراضي. ترفع تسمية غير معروفة؛ لم يتم تخفيض رتبته بصمت أبدًا.",
+    "mem_recall_title": "استدعاء الهجين",
+    "mem_recall_body": "FTS5 BM25 هي المباراة الأساسية. يغطي مسار السلسلة الفرعية CJK وcamelCase. القوة واضمحلال إبنجهاوس يصنفان ما يبقى على قيد الحياة؛ الوصول يقوي، الوقت يتلاشى.",
+    "mem_evidence_title": "الأدلة، وليس المشاعر",
+    "mem_evidence_body": "سجل الأحداث قابل للإلحاق فقط ويمكن إعادة تشغيله. العجز هو بصمة محتوى SHA-256. تتم تصفية المباراة المحظورة قبل أن تتمكن من تعزيز العداد الذي يمكن لشخص آخر قراءته.",
+    "mem_fail_title": "فشل مغلق بشكل افتراضي",
+    "mem_fail_body": "مجموعة الحساسية الفارغة لا تُرجع شيئًا. يعود محول التنفيذ المفقود غير متوفر. يُرجع المفتاح المفقود not_run. الافتراضي هو عدم افتراض أنه نجح أبدًا.",
+    "mem_forget_title": "النسيان يقاس",
+    "mem_forget_body": "يغطي Forget.py ثمانية متاجر، ويقوم بتقوية SQLite، ومسح وحدات البايت الأولية وإصدار إيصال. يتم الإبلاغ عن محو التشفير فقط عندما تكون الخلايا مغلقة بالفعل.",
+    "mem_plain_title": "تخزين نص عادي",
+    "mem_plain_body": "لا يتم تشفير الذاكرة بشكل افتراضي. تحتاج وحدات البايت الحساسة إلى CellCipher مع مفتاح مخزّن خارج دليل البيانات، أو تشفير القرص بالكامل. التحكم في الوصول ليس التشفير.",
+    "security_kicker": "حدود الثقة",
+    "security_title": "الحد هو <span class=\"grad\">feature.</span>",
+    "security_lede": "النواة تقرر وتسجل وتقدم التقارير. لا يتظاهر بأنه صندوق حماية لنظام التشغيل.",
+    "sec_honesty_title": "حد الصدق",
+    "sec_honesty_body": "يتم تنفيذ البوابات المحلية ومدعومة بالأدلة. يتم نشر الممرات الأصلية والخارجية غير قيد التشغيل أو معلقة عند فقدان المضيف أو بيانات الاعتماد. لا يتم تقديم أي ادعاء بالتفوق أو التكافؤ الأصلي دون مطابقة الأدلة.",
+    "sec_cap_title": "قرارات القدرة",
+    "sec_cap_body": "ترخيص ثلاثي القيمة، ومنح ACL صريحة، ورموز قدرة HMAC، ونطاقات خاصة منطقية، ومسار قرار قابل للتدقيق. الرفض هو نتيجة من الدرجة الأولى.",
+    "sec_model_title": "لا يوجد رمز نموذجي قيد التشغيل",
+    "sec_model_body": "النواة الحتمية هي stdlib فقط ولا تنفذ مطلقًا لغة Python التي تم إنشاؤها بواسطة النموذج أثناء العملية. LLM عبارة عن رد اتصال قابل للتوصيل، وليس تبعية.",
+    "sec_sandbox_title": "صندوق حماية نظام التشغيل غير متضمن",
+    "sec_sandbox_body": "هذا ليس جهازًا افتراضيًا أو حاوية أو منفذًا عن بعد مقوى. يعود سلم التنفيذ غير متاح حتى يتم تكوين محول حقيقي.",
+    "sec_plain_title": "نص عادي بشكل افتراضي",
+    "sec_plain_body": "لا يتم تشفير التخزين بشكل افتراضي. تحتاج وحدات البايت الحساسة إلى CellCipher مع مخزن مفاتيح خارجي، أو تشفير القرص بالكامل. التحكم في الوصول ليس التشفير.",
+    "sec_vocab_title": "مفردات الحالة المستقرة",
+    "sec_vocab_body": "تظل كلمات الحالة باللغة الإنجليزية بموجب العقد، لذلك تظل الأدلة قابلة للقراءة آليًا عبر المضيفين والتقارير.",
+    "status_vocab_aria": "مفردات الحالة",
+    "sec_vocab_note": "not_run عبارة عن بيان صادق عن مضيف أو مفتاح مفقود، وليس فشلًا متنكرًا في صورة نجاح.",
+    "sec_claims_title": "لم يطالب بها",
+    "sec_claim_1": "لا توجد مطالبة بجاهزية الإنتاج أو وضع الحماية الآمن.",
+    "sec_claim_2": "لا توجد مطالبة لـ Beats-X بدون دليل A/B خارجي.",
+    "sec_claim_3": "لا توجد مطالبة بالتكافؤ الأصلي بدون مضيف مطابق.",
+    "quick_kicker": "تَحَقّق",
+    "quick_title": "تحقق من الحقيقة في <span class=\"grad\">ثلاثة أوامر.</span>",
+    "quick_lede": "وقت التشغيل المعتمد للخطة هو CPython 3.14. يتم نسخ الأوامر الواردة أدناه من الملف README ويتم تشغيلها محليًا.",
+    "cmd_suite_title": "قم بتشغيل مجموعة الاختبار الكاملة",
+    "cmd_suite_hint": "المتوقع: حسنًا، حوالي 2267 اختبارًا، تم تخطي 18 منها. وحدة stdlib فقط.",
+    "cmd_recall_title": "تشغيل معيار الاستدعاء",
+    "cmd_recall_hint": "المتوقع: استدعاء20 20/20، الدقة 1.00.",
+    "cmd_exe_title": "إطلاق البناء الأصلي",
+    "cmd_exe_hint": "Windows، مُوقع مع شهادة موقعة ذاتيًا. لا يتم تشغيل حارة macOS.",
+    "copy": "ينسخ",
+    "copy_aria": "نسخ إلى الحافظة",
+    "copied": "تم النسخ إلى الحافظة.",
+    "copy_failed": "فشل النسخ. تم تحديد النص. اضغط على Ctrl+C.",
+    "quick_cli_kicker": "CLI والتكامل",
+    "integration_title": "نواة محلية واحدة ومحولات صادقة.",
+    "integration_lede": "نواة محلية واحدة والعديد من المحولات الصادقة. وحدات التكامل هي عقود اليوم، وليست جسورًا حية.",
+    "cmd_cli_title": "فحص الحالة من CLI",
+    "cmd_cli_hint": "مفتش للقراءة فقط للذاكرة والأحداث.",
+    "cmd_import_title": "استيراد المكتبة",
+    "cmd_import_hint": "يصدر النواة العامة خمس نقاط دخول.",
+    "integration_stub": "كعب روتين",
+    "integration_adapters": "كلود كود · الدستور الغذائي · OpenClaw",
+    "integration_note": "تعد محولات Claude Code وCodex وOpenClaw بمثابة بذرة عقد فقط في هذا المستودع. لم تتم المطالبة بأي جسر مباشر لـ MCP.",
+    "integration_cli": "noesis-inspect هي نقطة دخول CLI التي تم شحنها.",
+    "quick_links_kicker": "اقرأ التالي",
+    "docs_index_title": "فهرس التوثيق",
+    "docs_index_desc": "الخريطة المنسقة لكل وثيقة عمل.",
+    "docs_arch_title": "بنيان",
+    "docs_arch_desc": "مخزن الأحداث، الذاكرة والتنسيق من أربعة مستويات.",
+    "docs_api_title": "مرجع واجهة برمجة التطبيقات",
+    "docs_api_desc": "تواقيع الطريقة والأمثلة والسطح 0.6.",
+    "docs_kicker": "مصدر الحقيقة",
+    "docs_title": "مصدر الحقيقة، وليس <span class=\"grad\">marketing.</span>",
+    "docs_lede": "كل رقم في هذه الصفحة يأتي من هذه الملفات. افتحها بجانب اللوحة.",
+    "doc_readme_title": "التمهيدي",
+    "doc_readme_desc": "نقطة الدخول والبداية السريعة وحدود الصدق.",
+    "doc_agents_title": "الوكلاء",
+    "doc_agents_desc": "القواعد الصارمة: عدم وجود تبعيات، وحالة الإلحاق فقط، والكتابة العاجزة، والاختبارات مع كل تغيير.",
+    "doc_changelog_title": "سجل التغيير",
+    "doc_changelog_desc": "ما هبط وما أصلح وما بقي مسدودا.",
+    "doc_docs_title": "فهرس التوثيق",
+    "doc_docs_desc": "الحد الأدنى المنسق لتشغيل وتوسيع المشروع.",
+    "doc_third_title": "إشعارات الطرف الثالث",
+    "doc_third_desc": "التراخيص ومصدر العمل المشار إليه.",
+    "docs_more": "مفيدة أيضا",
+    "doc_security_title": "السياسة الأمنية",
+    "doc_security_desc": "كيفية الإبلاغ عن الثغرة الأمنية وما تغطيه الحدود.",
+    "doc_repo_title": "مستودع جيثب",
+    "doc_repo_desc": "مصدر مرخص من معهد ماساتشوستس للتكنولوجيا، والقضايا والإصدارات.",
+    "footer_note": "ترخيص MIT · محلي أولاً · لا يوجد CDN · لا يوجد قياس عن بعد"
+  },
+  "bn": {
+    "page_title": "NOESIS জোতা - এজেন্ট মেমরি",
+    "skip": "বিষয়বস্তু এড়িয়ে যান",
+    "brand_aria": "AMAImedia হোম",
+    "support": "সমর্থন",
+    "lang_aria": "ভাষা",
+    "primary_nav": "প্রাথমিক নেভিগেশন",
+    "theme_toggle": "হালকা বা গাঢ় থিম টগল করুন",
+    "sections_aria": "বিভাগসমূহ",
+    "tab_overview": "ওভারভিউ",
+    "tab_memory": "স্মৃতি",
+    "tab_security": "নিরাপত্তা",
+    "tab_quick": "দ্রুত শুরু",
+    "tab_docs": "ডক্স",
+    "eyebrow_overview": "স্থানীয়-প্রথম এজেন্ট মেমরি",
+    "hero_title": "<span class=\"grad\">receipts.</span> সহ মেমরি",
+    "hero_lede": "এজেন্ট অবস্থার জন্য একটি শূন্য-নির্ভরতা জোতা: শুধুমাত্র-সংযোজিত ইভেন্ট, চার-স্তর প্রত্যাহার এবং TTL সমন্বয়। স্টোরেজ কখনই একটি মডেলকে কল করে না। প্রতিটি দাবি একটি প্রমাণ স্ট্যাটাস নিয়ে আসে — যেগুলি এখনও নিখোঁজ রয়েছে।",
+    "hero_cta1": "মেমরি মডেল অন্বেষণ",
+    "hero_cta2": "README পড়ুন",
+    "hero_panel_kicker": "এক নজরে সিস্টেম",
+    "hero_panel_status": "স্থানীয় কোর",
+    "flow_store": "ইভেন্ট স্টোর",
+    "flow_store_sub": "শুধুমাত্র যুক্ত JSONL · রিপ্লে",
+    "flow_memory": "স্মৃতি",
+    "flow_memory_sub": "4 স্তর · FTS5 · ক্ষয়",
+    "flow_coord": "সমন্বয়",
+    "flow_coord_sub": "ইজারা · সংকেত · DAG",
+    "kpi_tests_label": "স্থানীয় পরীক্ষা",
+    "kpi_tests_sub": "ঠিক আছে · 18 এড়িয়ে গেছে",
+    "kpi_recall_label": "recall20",
+    "kpi_recall_sub": "20 এর মধ্যে 20 · নির্ভুলতা 1.00",
+    "kpi_quality_label": "গুণমান · বহু-সেশন",
+    "kpi_quality_sub": "মানের স্কোর · প্রত্যাহার 0.833",
+    "kpi_gain_label": "লাভ প্রত্যাহার",
+    "kpi_gain_sub": "বেসলাইন → পরবর্তী প্রজন্ম",
+    "kpi_note": "গুণমান 0.979 হল মাল্টি-সেশন স্কোর। প্রতিপক্ষ v3 কর্পাস স্কোর 0.944। রিকল গেইন 1.0 হল বেসলাইন → নেক্সট-জেনের ফলাফল।",
+    "what_kicker": "এটা কি করে",
+    "what_title": "এক কোর, তিনটি টেকসই স্তর।",
+    "what_lede": "ডিটারমিনিস্টিক কোর রাষ্ট্র, মেমরি এবং সমন্বয় পরিচালনা করে। মডেল স্তরটি ঐচ্ছিক এবং সর্বদা স্টোরেজ পাথের বাইরে থাকে।",
+    "feature_store_title": "ঘটনা-উৎস রাষ্ট্র",
+    "feature_store_body": "শুধুমাত্র JSONL, SHA-256 কন্টেন্ট ফিঙ্গারপ্রিন্ট এবং ডিটারমিনিস্টিক রিপ্লে যুক্ত করুন। একটি ডবল-সেন্ড একটি নো-অপ, একটি ডুপ্লিকেট নয়। রাজ্য লগ থেকে পুনর্নির্মিত হয়, জায়গায় প্যাচ করা হয় না.",
+    "feature_memory_title": "চার স্তরের স্মৃতি",
+    "feature_memory_body": "SQLite-এ কাজের পর্যবেক্ষণ, এপিসোডিক সারাংশ, শব্দার্থগত তথ্য এবং পদ্ধতিগত কর্মপ্রবাহ। হাইব্রিড FTS5 রিকল, সাবস্ট্রিং ফলব্যাক এবং ইবিংহাউস ক্ষয় দরকারী তথ্য কাছাকাছি রাখে।",
+    "feature_coord_title": "একটি সার্ভার ছাড়া সমন্বয়",
+    "feature_coord_body": "TTL লিজ এক এজেন্টের সাথে একটি কাজ রাখে। সংকেতগুলি অ্যাসিঙ্ক মেল এবং থ্রেড বহন করে৷ ডিএজি অটো-আনব্লক করে যখন নির্ভরশীলদের প্রয়োজনীয়তা সম্পূর্ণ হয়।",
+    "gates_kicker": "প্রমাণ",
+    "gates_title": "সততা গেটস",
+    "gates_lede": "নয়টি দরজা, স্পষ্ট অবস্থা। একটি অনুপস্থিত হোস্ট বা কী নট_রান হিসাবে রিপোর্ট করা হয়, কখনও সাফল্য হিসাবে সাজানো হয় না।",
+    "gates_source": "সূত্র: README.md. প্রমাণ এই হোস্টে বাইট-স্থিতিশীল।",
+    "gate_local_name": "স্থানীয় গেট",
+    "gate_local_note": "মৃত্যুদন্ডপ্রাপ্ত এবং উত্তীর্ণ; প্রমাণ বাইট-স্থিতিশীল।",
+    "gate_native_name": "দেশীয় শিল্পকর্ম",
+    "gate_native_note": "Windows exe, dev-signed, 11 MB. macOS লেনটি not_run (কোন হোস্ট নেই)।",
+    "gate_external_name": "বাহ্যিক A/B",
+    "gate_external_note": "not_run — ব্যবহারকারীরা রানটাইমে API কী সরবরাহ করে।",
+    "gate_release_name": "রিলিজ পর্যালোচনা",
+    "gate_release_note": "মুলতুবি মানব পর্যালোচনা. কোন মুক্তি দাবি করা হয় না.",
+    "gate_evidence_name": "স্থানীয় প্রমাণ",
+    "gate_evidence_note": "recall20 20/20 · গুণমান 0.979 · recall get 1.0.",
+    "memory_kicker": "মেমরি মডেল",
+    "memory_title": "মনে রাখার জন্য তৈরি করা হয়েছে — এবং <span class=\"grad\">forget.</span>",
+    "memory_lede": "চারটি স্তর, সুস্পষ্ট স্কোপ এবং একটি পুনরুদ্ধারের পথ যা বন্ধ হয়ে যায়। মেমরি হল প্লেইনটেক্সট; গোপনীয়তা একটি পঠন-সময় নিয়ন্ত্রণ, একটি এনক্রিপশন দাবি নয়।",
+    "tiers_title": "চারটি স্তর, একটি প্রত্যাহার পথ",
+    "tiers_lede": "প্রতিটি স্তরের একটি আলাদা ধরে রাখার নিয়ম রয়েছে। প্রত্যাহার তাদের সব থেকে আঁকা এবং এটি স্পর্শ শক্তিশালী.",
+    "tier_col_tier": "স্তর",
+    "tier_col_table": "টেবিল",
+    "tier_col_purpose": "উদ্দেশ্য",
+    "tier_working": "কাজ করছে",
+    "tier_working_p": "কাঁচা অন্তর্মুখী ইভেন্ট, প্রতি সেশনে আবদ্ধ।",
+    "tier_episodic": "এপিসোডিক",
+    "tier_episodic_p": "সেশনের সারাংশ: কি হয়েছে।",
+    "tier_semantic": "শব্দার্থিক",
+    "tier_semantic_p": "আত্মবিশ্বাস এবং ক্ষয় সঙ্গে টেকসই তথ্য.",
+    "tier_procedural": "পদ্ধতিগত",
+    "tier_procedural_p": "ট্রিগার সহ পুনরায় ব্যবহারযোগ্য কর্মপ্রবাহ।",
+    "mem_scopes_title": "সুযোগ এবং সংবেদনশীলতা",
+    "mem_scopes_body": "রেকর্ডগুলি একটি নির্দিষ্ট সেটের বিরুদ্ধে যাচাইকৃত একটি সংবেদনশীলতা লেবেল বহন করে। রিকল এবং প্রোফাইল ডিফল্টরূপে শুধুমাত্র সর্বজনীন এবং অভ্যন্তরীণ ফেরত দেয়। একটি অজানা লেবেল উত্থাপন; এটি কখনই নীরবে অবনমিত হয় না।",
+    "mem_recall_title": "হাইব্রিড রিকল",
+    "mem_recall_body": "FTS5 BM25 প্রাথমিক মিল। একটি সাবস্ট্রিং পাথ CJK এবং camelCase কভার করে। শক্তি এবং Ebbinghaus ক্ষয় র্যাঙ্ক যা বেঁচে আছে; অ্যাক্সেস শক্তিশালী হয়, সময় বিবর্ণ হয়।",
+    "mem_evidence_title": "প্রমাণ, ভাইবস নয়",
+    "mem_evidence_body": "ইভেন্ট লগ শুধুমাত্র সংযুক্ত এবং পুনরায় খেলার যোগ্য। ইডেমপোটেন্সি হল একটি SHA-256 কন্টেন্ট ফিঙ্গারপ্রিন্ট। একটি চাপা ম্যাচ অন্য কেউ পড়তে পারে এমন কাউন্টারকে শক্তিশালী করার আগে ফিল্টার করা হয়।",
+    "mem_fail_title": "ডিফল্টরূপে ব্যর্থ-বন্ধ",
+    "mem_fail_body": "একটি খালি সংবেদনশীলতা সেট কিছুই ফেরত দেয় না। একটি অনুপস্থিত এক্সিকিউশন অ্যাডাপ্টার অনুপলব্ধ রিটার্ন. একটি অনুপস্থিত কী ফিরে আসে not_run. ডিফল্ট কখনই ধরে নেওয়া যায় না এটি কাজ করেছে।",
+    "mem_forget_title": "ভুলে যাওয়া মাপা হয়",
+    "mem_forget_body": "forget.py আটটি স্টোর কভার করে, SQLiteকে শক্ত করে, কাঁচা বাইট স্ক্যান করে এবং একটি রসিদ নির্গত করে। ক্রিপ্টোগ্রাফিক ইরেজার শুধুমাত্র তখনই রিপোর্ট করা হয় যখন কোষগুলি আসলে সিল করা হয়েছিল।",
+    "mem_plain_title": "প্লেইনটেক্সট স্টোরেজ",
+    "mem_plain_body": "মেমরি ডিফল্টরূপে এনক্রিপ্ট করা হয় না। সংবেদনশীল বাইটের জন্য ডেটা ডিরেক্টরির বাইরে সংরক্ষণ করা একটি কী সহ সেলসিফার প্রয়োজন, বা ফুল-ডিস্ক এনক্রিপশন। অ্যাক্সেস নিয়ন্ত্রণ এনক্রিপশন নয়।",
+    "security_kicker": "বিশ্বাসের সীমানা",
+    "security_title": "সীমানা হল <span class=\"grad\">feature.</span>",
+    "security_lede": "মূল সিদ্ধান্ত, রেকর্ড এবং রিপোর্ট. এটি একটি অপারেটিং-সিস্টেম স্যান্ডবক্স হওয়ার ভান করে না।",
+    "sec_honesty_title": "সততার সীমানা",
+    "sec_honesty_body": "স্থানীয় গেট মৃত্যুদন্ড কার্যকর করা হয় এবং প্রমাণ-সমর্থিত. হোস্ট বা শংসাপত্র অনুপস্থিত থাকলে নেটিভ এবং এক্সটার্নাল লেনগুলি না_রান বা মুলতুবি প্রকাশ করে। মিলিত প্রমাণ ছাড়া কোনো শ্রেষ্ঠত্ব বা দেশীয়-সমতা দাবি করা হয় না।",
+    "sec_cap_title": "ক্ষমতার সিদ্ধান্ত",
+    "sec_cap_body": "তিন-মূল্যবান অনুমোদন, সুস্পষ্ট ACL অনুদান, HMAC ক্ষমতা টোকেন, যৌক্তিক ব্যক্তিগত সুযোগ এবং একটি নিরীক্ষণযোগ্য সিদ্ধান্তের পথ। অস্বীকার একটি প্রথম শ্রেণীর ফলাফল.",
+    "sec_model_title": "কোনো ইন-প্রসেস মডেল কোড নেই",
+    "sec_model_body": "ডিটারমিনিস্টিক কোরটি শুধুমাত্র-stdlib এবং কখনই মডেল-জেনারেটেড পাইথন ইন-প্রসেস চালায় না। LLM হল একটি প্লাগেবল কলব্যাক, নির্ভরতা নয়।",
+    "sec_sandbox_title": "OS স্যান্ডবক্স অন্তর্ভুক্ত নয়",
+    "sec_sandbox_body": "এটি একটি VM, ধারক বা শক্ত রিমোট এক্সিকিউটর নয়। একটি বাস্তব অ্যাডাপ্টার কনফিগার না হওয়া পর্যন্ত মৃত্যুদন্ডের মই অনুপলব্ধ ফেরত দেয়।",
+    "sec_plain_title": "ডিফল্টরূপে প্লেইনটেক্সট",
+    "sec_plain_body": "স্টোরেজ ডিফল্টরূপে এনক্রিপ্ট করা হয় না। সংবেদনশীল বাইটগুলির জন্য একটি বহিরাগত কী স্টোর বা ফুল-ডিস্ক এনক্রিপশন সহ সেলসিফার প্রয়োজন৷ অ্যাক্সেস নিয়ন্ত্রণ এনক্রিপশন নয়।",
+    "sec_vocab_title": "স্থিতিশীল স্থিতি শব্দভান্ডার",
+    "sec_vocab_body": "স্ট্যাটাস শব্দগুলি চুক্তি অনুসারে ইংরেজি থাকে, তাই প্রমাণগুলি হোস্ট এবং রিপোর্ট জুড়ে মেশিন-পাঠযোগ্য থাকে।",
+    "status_vocab_aria": "স্থিতি শব্দভান্ডার",
+    "sec_vocab_note": "not_run হল একটি অনুপস্থিত হোস্ট বা কী সম্পর্কে একটি সৎ বিবৃতি, সাফল্যের ছদ্মবেশে কখনও ব্যর্থতা নয়।",
+    "sec_claims_title": "দাবি করা হয়নি",
+    "sec_claim_1": "কোনো উৎপাদন-প্রস্তুত বা নিরাপদ-স্যান্ডবক্স দাবি নেই।",
+    "sec_claim_2": "বাহ্যিক A/B প্রমাণ ছাড়া কোনো beats-X দাবি নেই।",
+    "sec_claim_3": "একটি মিল হোস্ট ছাড়া কোনো স্থানীয় সমতা দাবি.",
+    "quick_kicker": "যাচাইকরণ",
+    "quick_title": "<span class=\"grad\">3 কমান্ডে সত্য পরীক্ষা করুন। </span>",
+    "quick_lede": "পরিকল্পনা-অনুমোদিত রানটাইম হল CPython 3.14। নীচের কমান্ড README থেকে অনুলিপি করা হয় এবং স্থানীয়ভাবে চালানো হয়।",
+    "cmd_suite_title": "সম্পূর্ণ পরীক্ষা স্যুট চালান",
+    "cmd_suite_hint": "প্রত্যাশিত: ঠিক আছে, প্রায় 2267 পরীক্ষা, 18টি এড়িয়ে গেছে। শুধুমাত্র stdlib ইউনিটটেস্ট।",
+    "cmd_recall_title": "রিকল বেঞ্চমার্ক চালান",
+    "cmd_recall_hint": "প্রত্যাশিত: recall20 20/20, নির্ভুলতা 1.00।",
+    "cmd_exe_title": "নেটিভ বিল্ড চালু করুন",
+    "cmd_exe_hint": "Windows, একটি স্ব-স্বাক্ষরিত শংসাপত্রের সাথে dev-স্বাক্ষরিত। macOS লেন not_run.",
+    "copy": "কপি",
+    "copy_aria": "ক্লিপবোর্ডে কপি করুন",
+    "copied": "ক্লিপবোর্ডে কপি করা হয়েছে।",
+    "copy_failed": "অনুলিপি ব্যর্থ হয়েছে. পাঠ্য নির্বাচন করা হয়; Ctrl+C চাপুন।",
+    "quick_cli_kicker": "CLI এবং ইন্টিগ্রেশন",
+    "integration_title": "একটি স্থানীয় কোর, সৎ অ্যাডাপ্টার।",
+    "integration_lede": "একটি স্থানীয় কোর, বেশ কয়েকটি সৎ অ্যাডাপ্টার। ইন্টিগ্রেশন মডিউলগুলি আজ চুক্তি, লাইভ ব্রিজ নয়।",
+    "cmd_cli_title": "CLI থেকে রাজ্য পরিদর্শন করুন",
+    "cmd_cli_hint": "মেমরি এবং ইভেন্টের জন্য শুধুমাত্র পঠন পরিদর্শক।",
+    "cmd_import_title": "লাইব্রেরি আমদানি করুন",
+    "cmd_import_hint": "পাবলিক কোর পাঁচটি এন্ট্রি পয়েন্ট রপ্তানি করে।",
+    "integration_stub": "STUB",
+    "integration_adapters": "ক্লদ কোড · কোডেক্স · OpenClaw",
+    "integration_note": "ক্লাউড কোড, কোডেক্স এবং ওপেনক্লা অ্যাডাপ্টারগুলি এই সংগ্রহস্থলে চুক্তি-শুধু স্টাব। কোন লাইভ MCP সেতু দাবি করা হয় না.",
+    "integration_cli": "noesis-inspect হল পাঠানো CLI এন্ট্রি পয়েন্ট।",
+    "quick_links_kicker": "পরবর্তী পড়ুন",
+    "docs_index_title": "ডকুমেন্টেশন সূচক",
+    "docs_index_desc": "প্রতিটি কাজের নথির কিউরেটেড মানচিত্র।",
+    "docs_arch_title": "স্থাপত্য",
+    "docs_arch_desc": "ইভেন্ট স্টোর, চার-স্তরের মেমরি এবং সমন্বয়।",
+    "docs_api_title": "API রেফারেন্স",
+    "docs_api_desc": "পদ্ধতি স্বাক্ষর, উদাহরণ এবং 0.6 পৃষ্ঠ.",
+    "docs_kicker": "সত্যের উৎস",
+    "docs_title": "সত্যের উৎস, <span class=\"grad\">marketing.</span> নয়",
+    "docs_lede": "এই পৃষ্ঠার প্রতিটি নম্বর এই ফাইল থেকে আসে. প্যানেলের পাশে সেগুলি খুলুন।",
+    "doc_readme_title": "README",
+    "doc_readme_desc": "এন্ট্রি পয়েন্ট, দ্রুত শুরু এবং সততার সীমানা।",
+    "doc_agents_title": "এজেন্ট",
+    "doc_agents_desc": "কঠিন নিয়ম: শূন্য নির্ভরতা, শুধুমাত্র যোগ করার অবস্থা, অদম্য লেখা, প্রতিটি পরিবর্তনের সাথে পরীক্ষা।",
+    "doc_changelog_title": "চেঞ্জলগ",
+    "doc_changelog_desc": "কি অবতরণ, কি স্থির এবং কি অবরুদ্ধ অবশেষ.",
+    "doc_docs_title": "ডকুমেন্টেশন সূচক",
+    "doc_docs_desc": "প্রকল্পটি পরিচালনা এবং প্রসারিত করার জন্য সর্বনিম্ন কিউরেট করা হয়েছে।",
+    "doc_third_title": "তৃতীয় পক্ষের নোটিশ",
+    "doc_third_desc": "রেফারেন্সকৃত কাজের জন্য লাইসেন্স এবং মূলসূত্র।",
+    "docs_more": "এছাড়াও দরকারী",
+    "doc_security_title": "নিরাপত্তা নীতি",
+    "doc_security_desc": "কিভাবে একটি দুর্বলতা রিপোর্ট করতে হয় এবং সীমানা কি কভার করে।",
+    "doc_repo_title": "GitHub সংগ্রহস্থল",
+    "doc_repo_desc": "MIT- লাইসেন্সকৃত উৎস, সমস্যা এবং প্রকাশ।",
+    "footer_note": "MIT লাইসেন্স · স্থানীয়-প্রথম · কোনো CDN · কোনো টেলিমেট্রি নেই"
+  },
+  "ja": {
+    "page_title": "NOESIS ハーネス — エージェント メモリ",
+    "skip": "コンテンツにスキップ",
+    "brand_aria": "AMAIメディア ホーム",
+    "support": "サポート",
+    "lang_aria": "言語",
+    "primary_nav": "プライマリナビゲーション",
+    "theme_toggle": "明るいテーマまたは暗いテーマを切り替える",
+    "sections_aria": "セクション",
+    "tab_overview": "概要",
+    "tab_memory": "メモリ",
+    "tab_security": "安全",
+    "tab_quick": "クイックスタート",
+    "tab_docs": "ドキュメント",
+    "eyebrow_overview": "ローカルファーストエージェントメモリ",
+    "hero_title": "<span class=\"grad\">receipts.</span> のあるメモリ",
+    "hero_lede": "エージェント状態に対する依存関係のないハーネス: 追加専用イベント、4 層リコール、TTL 調整。ストレージがモデルを呼び出すことはありません。すべての申し立ては、まだ行方不明のものを含め、証拠ステータスとともに到着します。",
+    "hero_cta1": "メモリモデルを調べる",
+    "hero_cta2": "READMEを読む",
+    "hero_panel_kicker": "システムの概要",
+    "hero_panel_status": "ローカルコア",
+    "flow_store": "イベントストア",
+    "flow_store_sub": "追加専用の JSONL · リプレイ",
+    "flow_memory": "メモリ",
+    "flow_memory_sub": "4層・FTS5・ディケイ",
+    "flow_coord": "調整",
+    "flow_coord_sub": "リース、シグナル、DAG",
+    "kpi_tests_label": "ローカルテスト",
+    "kpi_tests_sub": "OK · 18 スキップ",
+    "kpi_recall_label": "リコール20",
+    "kpi_recall_sub": "20/20 · 精度 1.00",
+    "kpi_quality_label": "品質・マルチセッション",
+    "kpi_quality_sub": "品質スコア・再現率 0.833",
+    "kpi_gain_label": "リコールゲイン",
+    "kpi_gain_sub": "ベースライン → 次世代",
+    "kpi_note": "品質 0.979 は複数セッションのスコアです。敵対的 v3 コーパスのスコアは 0.944 です。ゲイン 1.0 がベースライン→次世代の結果であることを思い出してください。",
+    "what_kicker": "何をするのか",
+    "what_title": "1 つのコア、3 つの耐久性のある層。",
+    "what_lede": "決定論的コアは状態、メモリ、調整を処理します。モデル層はオプションであり、常にストレージ パスの外側にあります。",
+    "feature_store_title": "イベントソースの状態",
+    "feature_store_body": "追加専用の JSONL、SHA-256 コンテンツのフィンガープリントと決定論的な再生。二重送信は何も行わず、重複ではありません。状態はログから再構築され、適切な場所にパッチが適用されることはありません。",
+    "feature_memory_title": "4層メモリ",
+    "feature_memory_body": "SQLite での作業観察、エピソードの要約、意味論的な事実、および手続き型のワークフロー。ハイブリッド FTS5 リコール、部分文字列フォールバック、エビングハウス減衰により、有用な事実が近くに残ります。",
+    "feature_coord_title": "サーバーレスでの連携",
+    "feature_coord_body": "TTL リースでは、1 つのタスクを 1 つのエージェントで保持します。シグナルは非同期メールとスレッドを伝送します。アクション DAG は、要件が完了すると依存関係のブロックを自動的に解除します。",
+    "gates_kicker": "証拠",
+    "gates_title": "正直ゲート",
+    "gates_lede": "9 つのゲート、明示的なステータス。欠落しているホストまたはキーは not_run として報告され、成功として扱われることはありません。",
+    "gates_source": "出典: README.md。このホストでは証拠はバイト安定です。",
+    "gate_local_name": "ローカルゲート",
+    "gate_local_note": "実行されて合格しました。証拠はバイト安定です。",
+    "gate_native_name": "ネイティブアーティファクト",
+    "gate_native_note": "Windows exe、開発者署名付き、11 MB。 macOS レーンは not_run (ホストなし) です。",
+    "gate_external_name": "外部A/B",
+    "gate_external_note": "not_run — ユーザーは実行時に API キーを指定します。",
+    "gate_release_name": "リリースレビュー",
+    "gate_release_note": "人間によるレビューは保留中。リリースの請求は行われません。",
+    "gate_evidence_name": "現地の証拠",
+    "gate_evidence_note": "リコール20 20/20 · 品質 0.979 · リコールゲイン 1.0。",
+    "memory_kicker": "メモリモデル",
+    "memory_title": "覚えておくために、そして <span class=\"grad\">forget.</span> のために作られています",
+    "memory_lede": "4 つの層、明示的なスコープ、およびフェールクローズされる取得パス。メモリは平文です。プライバシーは読み取り時の制御であり、暗号化の要求ではありません。",
+    "tiers_title": "4 つの階層、1 つのリコール パス",
+    "tiers_lede": "各層には異なる保持ルールがあります。リコールはそれらすべてから引き出し、触れたものを強化します。",
+    "tier_col_tier": "階層",
+    "tier_col_table": "テーブル",
+    "tier_col_purpose": "目的",
+    "tier_working": "働く",
+    "tier_working_p": "セッションごとに制限された生の受信イベント。",
+    "tier_episodic": "エピソード的な",
+    "tier_episodic_p": "セッションの概要: 何が起こったのか。",
+    "tier_semantic": "セマンティック",
+    "tier_semantic_p": "自信と減衰を伴った永続的な事実。",
+    "tier_procedural": "手続き的",
+    "tier_procedural_p": "トリガーを備えた再利用可能なワークフロー。",
+    "mem_scopes_title": "範囲と感度",
+    "mem_scopes_body": "レコードには、固定セットに対して検証された機密ラベルが付けられます。リコールとプロファイルは、デフォルトでパブリックと内部のみを返します。未知のラベルが発生します。黙ってダウングレードされることはありません。",
+    "mem_recall_title": "ハイブリッドリコール",
+    "mem_recall_body": "FTS5 BM25 が主な一致です。部分文字列パスは CJK とキャメルケースをカバーします。強さとエビングハウスの衰退は、生き残るものにランクを付けます。アクセスは強化され、時間は消えていきます。",
+    "mem_evidence_title": "雰囲気ではなく証拠",
+    "mem_evidence_body": "イベント ログは追加専用であり、再生可能です。冪等性は SHA-256 コンテンツのフィンガープリントです。抑制された一致は、他の人が読み取ることができるカウンターを強化する前にフィルターされます。",
+    "mem_fail_title": "デフォルトでフェールクローズされる",
+    "mem_fail_body": "空の感度セットは何も返しません。実行アダプターが見つからない場合は、使用不可が返されます。キーが欠落している場合は not_run が返されます。デフォルトでは、それが機能したとは決して想定されません。",
+    "mem_forget_title": "忘却は測定される",
+    "mem_forget_body": "remember.py は 8 つのストアをカバーし、SQLite を強化し、生のバイトをスキャンしてレシートを発行します。暗号による消去は、セルが実際に密閉された場合にのみ報告されます。",
+    "mem_plain_title": "平文ストレージ",
+    "mem_plain_body": "メモリはデフォルトでは暗号化されません。機密バイトには、データ ディレクトリの外部に保存されたキーを使用した CellCipher またはフルディスク暗号化が必要です。アクセス制御は暗号化ではありません。",
+    "security_kicker": "信頼境界",
+    "security_title": "境界は <span class=\"grad\">feature.</span> です。",
+    "security_lede": "コアは決定し、記録し、報告します。オペレーティング システムのサンドボックスのふりをするものではありません。",
+    "sec_honesty_title": "正直境界線",
+    "sec_honesty_body": "ローカルゲートは実行され、証拠が裏付けられています。ホストまたは資格情報が欠落している場合、ネイティブ レーンと外部レーンは not_run または pending を公開します。一致する証拠がなければ、優位性やネイティブ同等性の主張は行われません。",
+    "sec_cap_title": "能力の決定",
+    "sec_cap_body": "3 つの値の承認、明示的な ACL 付与、HMAC 機能トークン、論理プライベート スコープ、および監査可能な意思決定証跡。拒否は第一級の結果です。",
+    "sec_model_title": "インプロセスモデルコードなし",
+    "sec_model_body": "決定論的コアは stdlib のみであり、モデルで生成された Python をインプロセスで実行することはありません。 LLM はプラグイン可能なコールバックであり、依存関係ではありません。",
+    "sec_sandbox_title": "OSサンドボックスは含まれていません",
+    "sec_sandbox_body": "これは、VM、コンテナ、または強化されたリモート エグゼキュータではありません。実際のアダプタが設定されるまで、実行ラダーは使用できなくなります。",
+    "sec_plain_title": "デフォルトでは平文",
+    "sec_plain_body": "ストレージはデフォルトでは暗号化されません。機密バイトには、外部キー ストアを使用した CellCipher またはフルディスク暗号化が必要です。アクセス制御は暗号化ではありません。",
+    "sec_vocab_title": "安定したステータス語彙",
+    "sec_vocab_body": "契約上、ステータスの単語は英語のままであるため、ホストやレポート全体で証拠が機械可読のままになります。",
+    "status_vocab_aria": "ステータスに関する語彙",
+    "sec_vocab_note": "not_run はホストまたはキーの欠落に関する正直なステートメントであり、成功を装った失敗ではありません。",
+    "sec_claims_title": "請求されていません",
+    "sec_claim_1": "実稼働対応または安全なサンドボックスの主張はありません。",
+    "sec_claim_2": "外部の A/B 証拠がなければ Beats-X の主張はできません。",
+    "sec_claim_3": "一致するホストがなければ、ネイティブ パリティは要求されません。",
+    "quick_kicker": "検証",
+    "quick_title": "<span class=\"grad\">3つのコマンドで真実を確認してください。</span>",
+    "quick_lede": "プラン権限のあるランタイムは CPython 3.14 です。以下のコマンドは README からコピーされ、ローカルで実行されます。",
+    "cmd_suite_title": "完全なテストスイートを実行する",
+    "cmd_suite_hint": "予想: OK、約 2267 件のテスト、18 件がスキップされました。 stdlib 単体テストのみ。",
+    "cmd_recall_title": "リコールベンチマークを実行する",
+    "cmd_recall_hint": "予想: 再現率 20 20/20、精度 1.00。",
+    "cmd_exe_title": "ネイティブ ビルドを起動する",
+    "cmd_exe_hint": "Windows、自己署名証明書を使用して開発者署名。 macOS レーンは not_run です。",
+    "copy": "コピー",
+    "copy_aria": "クリップボードにコピー",
+    "copied": "クリップボードにコピーされました。",
+    "copy_failed": "コピーに失敗しました。テキストが選択されています。 Ctrl+Cを押します。",
+    "quick_cli_kicker": "CLIと統合",
+    "integration_title": "1 つのローカル コア、正直なアダプター。",
+    "integration_lede": "1 つのローカル コア、複数の正直なアダプター。現在、統合モジュールは契約であり、ライブブリッジではありません。",
+    "cmd_cli_title": "CLIから状態を検査する",
+    "cmd_cli_hint": "メモリとイベントの読み取り専用インスペクター。",
+    "cmd_import_title": "ライブラリをインポートする",
+    "cmd_import_hint": "パブリック コアは 5 つのエントリ ポイントをエクスポートします。",
+    "integration_stub": "スタブ",
+    "integration_adapters": "クロード コード · コーデックス · OpenClaw",
+    "integration_note": "Claude Code、Codex、および OpenClaw アダプターは、このリポジトリ内のコントラクト専用のスタブです。ライブ MCP ブリッジは要求されていません。",
+    "integration_cli": "noesis-inspect は、出荷された CLI エントリ ポイントです。",
+    "quick_links_kicker": "次に読む",
+    "docs_index_title": "ドキュメントのインデックス",
+    "docs_index_desc": "あらゆる作業ドキュメントの厳選されたマップ。",
+    "docs_arch_title": "建築",
+    "docs_arch_desc": "イベント ストア、4 層のメモリとコーディネーション。",
+    "docs_api_title": "APIリファレンス",
+    "docs_api_desc": "メソッドのシグネチャ、例、および 0.6 曲面。",
+    "docs_kicker": "真実の情報源",
+    "docs_title": "<span class=\"grad\">marketing.</span> ではなく、真実の情報源",
+    "docs_lede": "このページのすべての番号はこれらのファイルから取得されています。パネルの横にあるそれらを開きます。",
+    "doc_readme_title": "お読みください",
+    "doc_readme_desc": "エントリーポイント、クイックスタート、そして正直さの境界。",
+    "doc_agents_title": "エージェント",
+    "doc_agents_desc": "厳格なルール: 依存関係なし、追加のみの状態、冪等書き込み、すべての変更のテスト。",
+    "doc_changelog_title": "変更履歴",
+    "doc_changelog_desc": "何が着陸し、何が修正され、何がブロックされたままなのか。",
+    "doc_docs_title": "ドキュメントのインデックス",
+    "doc_docs_desc": "プロジェクトの運用と拡張に必要な最小限のものを厳選しました。",
+    "doc_third_title": "第三者からの通知",
+    "doc_third_desc": "参照作品のライセンスと出所。",
+    "docs_more": "こちらも便利",
+    "doc_security_title": "セキュリティポリシー",
+    "doc_security_desc": "脆弱性を報告する方法と境界の範囲。",
+    "doc_repo_title": "GitHubリポジトリ",
+    "doc_repo_desc": "MIT ライセンスのソース、問題、リリース。",
+    "footer_note": "MIT ライセンス · ローカルファースト · CDN なし · テレメトリなし"
+  }
+};
+
+var FALLBACK_LANGS = [];
+for (var fl = 0; fl < FALLBACK_LANGS.length; fl++) {
+  I18N[FALLBACK_LANGS[fl]] = I18N.en;
+}
+
+function t(key) {
+  if (window.NOESIS_SHELL && window.NOESIS_SHELL.t) {
+    return window.NOESIS_SHELL.t(I18N, key);
+  }
+  return (I18N.en && I18N.en[key]) || key;
+}
+
+/* ---------------------------------- tabs ---------------------------------- */
+function initTabs() {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('[role="tabpanel"]'));
+
+  function activate(key, updateHash) {
+    for (var i = 0; i < tabs.length; i++) {
+      var on = tabs[i].getAttribute('data-tab') === key;
+      tabs[i].setAttribute('aria-selected', on ? 'true' : 'false');
+      tabs[i].tabIndex = on ? 0 : -1;
+      if (on) {
+        try { tabs[i].scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* older browsers */ }
+      }
+    }
+    for (var j = 0; j < panels.length; j++) {
+      panels[j].hidden = panels[j].id !== 'panel-' + key;
+    }
+    if (updateHash) {
+      try { history.replaceState(null, '', '#' + key); } catch (e) { /* file:// may refuse */ }
+    }
+  }
+
+  function tabExists(key) {
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].getAttribute('data-tab') === key) return true;
+    }
+    return false;
+  }
+
+  for (var k = 0; k < tabs.length; k++) {
+    (function (tab) {
+      tab.addEventListener('click', function () {
+        activate(tab.getAttribute('data-tab'), true);
+      });
+      tab.addEventListener('keydown', function (event) {
+        var index = tabs.indexOf(tab);
+        var next = -1;
+        if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+        else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = tabs.length - 1;
+        if (next !== -1) {
+          event.preventDefault();
+          tabs[next].focus();
+          activate(tabs[next].getAttribute('data-tab'), true);
+        }
+      });
+    })(tabs[k]);
+  }
+
+  var jumps = document.querySelectorAll('[data-tab-jump]');
+  for (var m = 0; m < jumps.length; m++) {
+    jumps[m].addEventListener('click', function (event) {
+      event.preventDefault();
+      activate(this.getAttribute('data-tab-jump'), true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  window.addEventListener('hashchange', function () {
+    var key = (window.location.hash || '').replace(/^#/, '');
+    if (tabExists(key)) activate(key, false);
+  });
+
+  var initial = (window.location.hash || '').replace(/^#/, '');
+  activate(tabExists(initial) ? initial : 'overview', false);
+}
+
+/* --------------------------------- copy ---------------------------------- */
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) { /* fall through to the legacy path */ }
+  }
+  var area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.top = '0';
+  area.style.left = '0';
+  area.style.width = '1px';
+  area.style.height = '1px';
+  area.style.opacity = '0';
+  area.style.fontSize = '16px';
+  document.body.appendChild(area);
+  area.select();
+  area.setSelectionRange(0, area.value.length);
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  document.body.removeChild(area);
+  return ok;
+}
+
+function selectNodeText(node) {
+  try {
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  } catch (e) { /* selection is best-effort */ }
+}
+
+function showToast(message, kind) {
+  var host = document.getElementById('toastHost');
+  if (!host) return;
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + (kind || '');
+  toast.textContent = message;
+  host.appendChild(toast);
+  window.setTimeout(function () {
+    toast.classList.add('out');
+    window.setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 220);
+  }, 2200);
+}
+
+function initCopy() {
+  var buttons = document.querySelectorAll('.copy-btn[data-copy-target]');
+  for (var i = 0; i < buttons.length; i++) {
+    (function (button) {
+      button.addEventListener('click', function () {
+        var target = document.getElementById(button.getAttribute('data-copy-target'));
+        if (!target) return;
+        var text = target.textContent.replace(/\s+$/g, '').replace(/^\s+/g, '');
+        copyText(text).then(function (ok) {
+          if (ok) {
+            button.classList.add('is-copied');
+            window.setTimeout(function () { button.classList.remove('is-copied'); }, 1600);
+            showToast(t('copied'), 'ok');
+          } else {
+            selectNodeText(target);
+            showToast(t('copy_failed'), 'err');
+          }
+        });
+      });
+    })(buttons[i]);
+  }
+}
+
+/* --------------------------------- boot ---------------------------------- */
+try {
+  if (window.NOESIS_SHELL && window.NOESIS_SHELL.init) {
+    window.NOESIS_SHELL.init(I18N);
+  }
+} catch (err) {
+  if (window.console) window.console.warn('NOESIS shell init skipped:', err);
+}
+initTabs();
+initCopy();
+</script>
+</body>
+</html>
