@@ -1,5 +1,10 @@
-"""Fail-closed tests for the AppContainer backend scaffold."""
-import os
+"""Fail-closed tests for the AppContainer backend scaffold.
+
+The backend gates on its own ``_host_is_windows`` seam, so a Windows host is
+simulated by patching that seam. Patching the global ``os.name`` instead would
+also make pathlib dispatch ``Path`` to ``WindowsPath`` and abort unrelated path
+arithmetic on a POSIX host, which hides what these tests actually prove.
+"""
 import tempfile
 import unittest
 from pathlib import Path
@@ -43,7 +48,7 @@ class AppContainerBackendTests(unittest.TestCase):
             self.assertIs(inventory["capabilities_verified"][name], False)
 
     def test_non_windows_host_blocks_even_full_configuration(self):
-        with patch.object(os, "name", "posix"):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: False):
             backend = AppContainerBackend(
                 profile_name="NoesisModelTask",
                 allowlisted_hosts=("api.model.example",),
@@ -53,19 +58,19 @@ class AppContainerBackendTests(unittest.TestCase):
             self.assertEqual(backend.unavailability_reason(), "not_windows_host")
 
     def test_ctypes_unavailable_blocks_with_machine_readable_reason(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: False):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: False):
             backend = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: True)
             self.assertFalse(backend.available)
             self.assertEqual(backend.unavailability_reason(), "ctypes_unavailable")
 
     def test_verifier_without_profile_stays_unavailable(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: True):
             backend = AppContainerBackend(verify_profile=lambda: True)
             self.assertFalse(backend.available)
             self.assertEqual(backend.unavailability_reason(), "appcontainer_profile_missing")
 
     def test_profile_without_verifier_reports_default_reason(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: True):
             backend = AppContainerBackend(profile_name="NoesisModelTask")
             self.assertFalse(backend.available)
             self.assertEqual(
@@ -74,7 +79,7 @@ class AppContainerBackendTests(unittest.TestCase):
             )
 
     def test_probe_failure_reports_probe_failed_reason(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: True):
             failing = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: False)
             raising = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=_raising_verifier)
             self.assertEqual(failing.unavailability_reason(), "appcontainer_probe_failed")
@@ -83,7 +88,7 @@ class AppContainerBackendTests(unittest.TestCase):
             self.assertFalse(raising.available)
 
     def test_fully_configured_backend_is_available_but_run_stays_blocked(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: True):
             backend = AppContainerBackend(
                 profile_name="NoesisModelTask",
                 allowlisted_hosts=("api.model.example",),
@@ -117,7 +122,7 @@ class AppContainerBackendTests(unittest.TestCase):
             AppContainerBackend(profile_name="NoesisModelTask", allowlisted_hosts=("bad host!",))
 
     def test_blank_profile_name_counts_as_missing(self):
-        with patch.object(os, "name", "nt"):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True):
             backend = AppContainerBackend(profile_name="   ", verify_profile=lambda: True)
             self.assertFalse(backend.available)
             self.assertEqual(backend.unavailability_reason(), "appcontainer_profile_missing")
@@ -126,13 +131,13 @@ class AppContainerBackendTests(unittest.TestCase):
         self.assertNotIn("subprocess", vars(appcontainer_backend))
 
     def test_profile_sid_probe_fails_closed_without_windll(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: False):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: False):
             report = appcontainer_backend.profile_sid_probe()
             self.assertIs(report["available"], False)
             self.assertEqual(report["reason"], appcontainer_backend.REASON_CTYPES_UNAVAILABLE)
 
     def test_profile_sid_probe_fails_closed_on_non_windows(self):
-        with patch.object(os, "name", "posix"):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: False):
             report = appcontainer_backend.profile_sid_probe()
             self.assertIs(report["available"], False)
             self.assertEqual(report["reason"], appcontainer_backend.REASON_NOT_WINDOWS_HOST)
@@ -144,13 +149,13 @@ class AppContainerBackendTests(unittest.TestCase):
         self.assertIsInstance(report["reason"], str)
 
     def test_profile_sid_probe_propagates_derivation_failure(self):
-        with patch.object(appcontainer_backend, "_probe_app_container_sid", lambda: (appcontainer_backend.REASON_SID_DERIVATION_FAILED, "")):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_probe_app_container_sid", lambda: (appcontainer_backend.REASON_SID_DERIVATION_FAILED, "")):
             report = appcontainer_backend.profile_sid_probe()
             self.assertIs(report["available"], False)
             self.assertEqual(report["reason"], appcontainer_backend.REASON_SID_DERIVATION_FAILED)
 
     def test_profile_sid_probe_reports_ok_with_used_export_on_success(self):
-        with patch.object(appcontainer_backend, "_probe_app_container_sid", lambda: ("", "GetAppContainerSid")):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_probe_app_container_sid", lambda: ("", "GetAppContainerSid")):
             report = appcontainer_backend.profile_sid_probe()
             self.assertIs(report["available"], True)
             self.assertEqual(report["reason"], "ok:GetAppContainerSid")
@@ -198,14 +203,14 @@ class AppContainerBackendTests(unittest.TestCase):
         self.assertEqual(report["capabilities"], appcontainer_backend.capability_inventory())
 
     def test_run_probe_non_windows_reports_not_run(self):
-        with patch.object(os, "name", "posix"):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: False):
             backend = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: True)
             report = backend.run_probe()
             self.assertEqual(report["status"], "not_run")
             self.assertEqual(report["reason"], appcontainer_backend.REASON_NOT_WINDOWS_HOST)
 
     def test_run_probe_configured_backend_is_blocked_execution_not_bound(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: True):
             backend = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: True)
             self.assertTrue(backend.available)
             report = backend.run_probe()
@@ -213,7 +218,7 @@ class AppContainerBackendTests(unittest.TestCase):
             self.assertEqual(report["reason"], appcontainer_backend.REASON_EXECUTION_NOT_BOUND)
 
     def test_repeated_inspection_is_deterministic(self):
-        with patch.object(os, "name", "nt"), patch.object(appcontainer_backend, "_has_windll", lambda: True):
+        with patch.object(appcontainer_backend, "_host_is_windows", lambda: True), patch.object(appcontainer_backend, "_has_windll", lambda: True):
             backend = AppContainerBackend(profile_name="NoesisModelTask", verify_profile=lambda: False)
             first = run_conformance(backend, workspace=self.workspace).as_dict()
             second = run_conformance(backend, workspace=self.workspace).as_dict()

@@ -96,7 +96,14 @@ class SigntoolProbeTests(unittest.TestCase):
 
             self.assertEqual(result["status"], "found")
             self.assertEqual(result["source"], "windows_kits")
-            self.assertTrue(result["path"].endswith("10.0.26100.0\\x64\\signtool.exe"))
+            # The probe returns a real host path, so the separator is the host's:
+            # on Windows this suffix is byte-identical to
+            # "10.0.26100.0\x64\signtool.exe". Asserting a literal backslash
+            # would make the version-selection proof fail on POSIX for the wrong
+            # reason (path syntax) even though the tree under test exists there.
+            self.assertTrue(
+                result["path"].endswith(str(Path("10.0.26100.0") / "x64" / "signtool.exe"))
+            )
             self.assertEqual(result["version"], "SignTool 10.0.26100.0")
             self.assertEqual(len(calls), 1)
             command, kwargs = calls[0]
