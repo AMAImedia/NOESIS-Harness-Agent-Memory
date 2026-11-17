@@ -16,17 +16,12 @@ from noesis_harness.skill_manifest import SkillManifest
 # sync with the --ro-bind lines in noesis_harness/sandbox_bwrap.py.
 _SANDBOX_READ_ONLY_ROOTS = ("/usr", "/bin", "/lib", "/lib64")
 
-# bwrap reports an interpreter it cannot execute through one of these strings.
-# Any other non-zero exit means the child did run and the script itself failed,
-# which must surface as a failing assertion, never as a skip.
-_SANDBOX_EXEC_FAILURE_MARKERS = (
-    "No such file or directory",
-    "Permission denied",
-    "Exec format error",
-    "execvp",
-    "execve",
-    "bwrap:",
-)
+# bwrap prefixes every diagnostic of its own with "bwrap:". Only such a line
+# proves that the sandbox could not start the child at all. A child that did run
+# and then failed can also print "No such file or directory" or "Permission
+# denied" in its own traceback, and that must surface as a failing assertion,
+# never as a skip -- which is why a bare substring match is not used here.
+_SANDBOX_DIAGNOSTIC_PREFIX = "bwrap:"
 
 
 def _inside_sandbox_roots(path: Path) -> bool:
@@ -114,7 +109,7 @@ def _bubblewrap_skip_reason(backend: BubblewrapBackend, workspace: Path, argv) -
         return ""
     lines = [line for line in (completed.stderr or completed.stdout or "").strip().splitlines() if line.strip()]
     last_line = lines[-1] if lines else "exit %s" % completed.returncode
-    if any(marker in last_line for marker in _SANDBOX_EXEC_FAILURE_MARKERS):
+    if last_line.startswith(_SANDBOX_DIAGNOSTIC_PREFIX):
         return "bubblewrap cannot execute %s inside the sandbox on this host: %s" % (argv[0], last_line)
     return ""
 
