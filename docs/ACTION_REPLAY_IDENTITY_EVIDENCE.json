@@ -1,0 +1,23 @@
+{
+  "schema_version": "noesis.action-replay-identity-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_operator_action_replay",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "exact_promotion_action_replay_is_idempotent": true,
+    "altered_promotion_action_replay_denied": true,
+    "exact_session_action_replay_is_idempotent": true,
+    "altered_session_action_replay_denied": true,
+    "state_transition_on_conflict": "none",
+    "automatic_activation": false
+  },
+  "focused_tests": {
+    "suite": "tests.test_promotion_integration",
+    "passed": 23,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "Replay identity evidence is local-only and does not prove external identity-provider or native host behavior."
+}

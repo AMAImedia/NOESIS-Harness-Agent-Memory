@@ -39,6 +39,38 @@ python benchmarks/memory_bench.py --n 1000
 
 ---
 
+## Fixed 20-item Gates
+
+Two one-line deterministic gate benches with fixed fixtures (no wall clock,
+no randomness). Each prints exactly one line and uses its exit code for CI.
+
+```bash
+python benchmarks/recall20.py    # -> 'recall20 20/20 acc=1.00'   exit 0 if acc>=0.8 else 1
+python benchmarks/workload20.py  # -> 'workload20 score=...'      exit 0 if score>0 and MA-07 probe passes
+```
+
+### recall20 — public recall bench
+
+Runs the fixed 20-fact / 20-query spec in `recall20.json` through
+`noesis_harness.Memory` in a tempdir and reports hit rate over substring
+matching of expected facts.
+
+Output: `recall20 <hit>/<n> acc=<x.xx>` — exits `0` when `acc >= 0.8`, else `1`.
+
+### workload20 — Gate 4 work-product bench
+
+Scores a fixed deterministic 20-outcome tuple (`w20-01`..`w20-20`, mix of
+correct/delivered/leakage-free/recovered lanes, attempts within [1..4]) through
+`noesis_harness.work_product_benchmark.WorkProductBenchmarkEvaluator`, then
+folds in one tiny live MA-07 runner pass (3 lanes, injected first-attempt crash
+on one lane, `retry_limit=1`) inside a tempdir (~0.15 s; well under any budget).
+
+Output: `workload20 score=<0.xxxx> correctness=<x.xx> leakage_free=<x.xx>
+recovery=<x.xx>` — exits `0` when score > 0 and the MA-07 probe passes, `2`
+when score <= 0, `1` when only the MA-07 probe fails.
+
+---
+
 ## What is Measured
 
 | Component | Metric | Description |

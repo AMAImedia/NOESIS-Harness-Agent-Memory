@@ -1,0 +1,109 @@
+{
+  "child_max_rss_kib": 43156,
+  "in_process_returncode": 0,
+  "in_process_wall_seconds": 19.758539,
+  "peak_tracemalloc_bytes": 3159979,
+  "python": "3.14.7 (main, Aug 17 2026, 14:46:28) [GCC 13.3.0]",
+  "python_executable": "/home/ubuntu/noesis-p3/runtime/python-3.14.7/build/bin/python3.14",
+  "resource_semantics": "KiB on Linux; verify units on other hosts",
+  "returncode": 0,
+  "schema_version": "noesis.test-performance-profile.v2",
+  "stderr_tail": "----------------------------------------------------------------------\nRan 383 tests in 19.302s\n\nOK\n",
+  "stdout_tail": "{\"output\": \"/tmp/tmpzhpsrze0/result.json\", \"execution\": \"started\", \"status\": \"passed\"}\n{\"output\": \"/tmp/tmpb1wlh1wb/plan.json\", \"execution\": \"denied\", \"status\": \"not_run\"}\n",
+  "test_command": [
+    "/home/ubuntu/noesis-p3/runtime/python-3.14.7/build/bin/python3.14",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-q"
+  ],
+  "tests_failed_in_process": 0,
+  "tests_run_in_process": 383,
+  "tests_run_subprocess": 383,
+  "top_slowest_tests": [
+    {
+      "seconds": 6.120936,
+      "test": "test_crash_recovery_is_bounded_and_reuses_no_fixed_port (test_runtime_supervisor.RuntimeSupervisorTests.test_crash_recovery_is_bounded_and_reuses_no_fixed_port)"
+    },
+    {
+      "seconds": 0.521476,
+      "test": "test_missing_deepseek_is_explicitly_unavailable (test_bridge_discovery.BridgeDiscoveryTests.test_missing_deepseek_is_explicitly_unavailable)"
+    },
+    {
+      "seconds": 0.507524,
+      "test": "test_command_route_task_route_and_sse (test_command_api_v1.CommandHTTPTests.test_command_route_task_route_and_sse)"
+    },
+    {
+      "seconds": 0.507493,
+      "test": "test_session_create_message_resume_and_events (test_health_session_api.HealthSessionApiTests.test_session_create_message_resume_and_events)"
+    },
+    {
+      "seconds": 0.505361,
+      "test": "test_hermes_fixture_auth_and_discovery (test_gateway_fixture.GatewayFixtureTests.test_hermes_fixture_auth_and_discovery)"
+    },
+    {
+      "seconds": 0.505289,
+      "test": "test_create_send_resume_uses_versioned_api (test_terminal_client.TerminalClientTests.test_create_send_resume_uses_versioned_api)"
+    },
+    {
+      "seconds": 0.504167,
+      "test": "test_telemetry_snapshot_child_runtime_and_sse_are_read_only (test_ui_contract_health.HealthServerTests.test_telemetry_snapshot_child_runtime_and_sse_are_read_only)"
+    },
+    {
+      "seconds": 0.503985,
+      "test": "test_audit_does_not_cross_agent_leak (test_gateway_fixture.GatewayFixtureTests.test_audit_does_not_cross_agent_leak)"
+    },
+    {
+      "seconds": 0.503966,
+      "test": "test_lan_adapter_authenticates_without_leaking_token (test_health_auth.HealthAuthTests.test_lan_adapter_authenticates_without_leaking_token)"
+    },
+    {
+      "seconds": 0.50366,
+      "test": "test_ui_root_alias_and_post_denial (test_control_plane_ui.ControlPlaneUITests.test_ui_root_alias_and_post_denial)"
+    },
+    {
+      "seconds": 0.503583,
+      "test": "test_deepseek_fixture_is_ready_and_metadata_only (test_gateway_fixture.GatewayFixtureTests.test_deepseek_fixture_is_ready_and_metadata_only)"
+    },
+    {
+      "seconds": 0.503516,
+      "test": "test_ready_hermes_capability_and_matching_model (test_bridge_discovery.BridgeDiscoveryTests.test_ready_hermes_capability_and_matching_model)"
+    },
+    {
+      "seconds": 0.503158,
+      "test": "test_read_only_and_unknown_path_fail_soft (test_ui_contract_health.HealthServerTests.test_read_only_and_unknown_path_fail_soft)"
+    },
+    {
+      "seconds": 0.503149,
+      "test": "test_ready_capability_without_matching_model_is_degraded (test_bridge_discovery.BridgeDiscoveryTests.test_ready_capability_without_matching_model_is_degraded)"
+    },
+    {
+      "seconds": 0.50298,
+      "test": "test_default_server_rejects_command_route (test_command_api_v1.CommandHTTPTests.test_default_server_rejects_command_route)"
+    },
+    {
+      "seconds": 0.502857,
+      "test": "test_models_endpoint_returns_metadata_only (test_provider_registry.ModelsEndpointTests.test_models_endpoint_returns_metadata_only)"
+    },
+    {
+      "seconds": 0.502853,
+      "test": "test_default_server_remains_read_only (test_health_session_api.HealthSessionApiTests.test_default_server_remains_read_only)"
+    },
+    {
+      "seconds": 0.502539,
+      "test": "test_macos_startup_probe_loopback_and_data_preservation (test_macos_portable.MacOSPortableTests.test_macos_startup_probe_loopback_and_data_preservation)"
+    },
+    {
+      "seconds": 0.502515,
+      "test": "test_loopback_health_response_and_clean_shutdown (test_ui_contract_health.HealthServerTests.test_loopback_health_response_and_clean_shutdown)"
+    },
+    {
+      "seconds": 0.502473,
+      "test": "test_loopback_remains_unauthenticated_by_default (test_health_auth.HealthAuthTests.test_loopback_remains_unauthenticated_by_default)"
+    }
+  ],
+  "wall_seconds": 19.465471,
+  "warning_count": 0
+}

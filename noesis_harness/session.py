@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 
 
-_WORD = re.compile(r"[A-Za-zА-Яа-я0-9]{4,}")
+_WORD = re.compile(r"[A-Za-z0-9]{4,}")
 
 
 def extract_session(memory, session_id, limit=5):

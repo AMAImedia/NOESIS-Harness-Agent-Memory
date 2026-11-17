@@ -1,0 +1,17 @@
+{
+  "automatic_execution": false,
+  "claim_boundary": "signed_release_readiness_summary_only",
+  "conformance_digest": "e5e101c21ab3d67034a4d4a85f2421d48cf58c305bef60200e52f72e1acfb0d5",
+  "external_execution_claim": false,
+  "external_lanes_status": "not_run",
+  "gate_artifact_digest": "2118dca79296b8bfab14d3203e5a980b4b7f963608e63cf1095f11a7d6800ac8",
+  "gate_status": "not_run",
+  "native_host_status": "not_run",
+  "python_version": "3.14.7",
+  "readiness_status": "blocked",
+  "receipt_digest": "93c934c5175ad7caf46def3f9718d1af115c3bd3567d80a6df0f832f942157c6",
+  "schema_version": "noesis.signed-release-readiness-receipt.v1",
+  "signature": "6046f4a290fd97808e9ed85bc7719f638813d999b8549717116a69fc415be783",
+  "snapshot_digest": "d3516c51ae1a01dee15c2066ce28996f243894f8dbd122c7a708887ecfe1d21d",
+  "validated_test_count": 1057
+}

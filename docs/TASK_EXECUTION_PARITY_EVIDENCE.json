@@ -1,0 +1,48 @@
+{
+  "backend_inventory": {
+    "linux_bubblewrap": {
+      "available": true,
+      "execution": "not_run"
+    },
+    "macos_sandbox_exec": {
+      "execution": "not_run",
+      "reason": "matching_darwin_host_required"
+    },
+    "windows_native": {
+      "execution": "not_run",
+      "reason": "matching_windows_host_required"
+    }
+  },
+  "evidence_sha256": "b54539868e5307559b1796dd0ef81abd752a639a76a516b05a3cc3cf8d8b42b1",
+  "execution": "completed",
+  "external": {
+    "deepseek_harness": "not_run",
+    "hermes": "not_run",
+    "opencode": "not_run",
+    "reason": "pinned_external_environment_required"
+  },
+  "local": {
+    "bridge_statuses": [
+      "passed"
+    ],
+    "child_backend": "direct-process-group",
+    "child_status": "completed",
+    "event_kinds": [
+      "lane_started",
+      "lane_claimed",
+      "lane_completed",
+      "task_review_ready"
+    ],
+    "recovery_requeued": true,
+    "session_state": "open",
+    "sse_monotonic": true,
+    "sse_reconnect_events": 4,
+    "task_state": "review"
+  },
+  "platform": "linux",
+  "python": "3.14.7",
+  "schema_version": "noesis.task-execution-parity.v1",
+  "scope": "local_only",
+  "sse_sha256": "3cfc421c540b1697ca442796653219e30ce03483f75eee1e23f2b6b72f67ad1d",
+  "status": "passed"
+}

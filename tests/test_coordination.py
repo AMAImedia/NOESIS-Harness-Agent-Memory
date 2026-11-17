@@ -45,8 +45,18 @@ class TestLeases(_Tmp):
         L = Leases(os.path.join(self.dir, "l.db"), ttl=10_000)
         self.assertEqual(L.ttl, L.MAX_TTL)  # 3600 cap
 
+    def test_strict_mode_allows_one_active_lease_per_holder(self):
+        L = Leases(os.path.join(self.dir, "strict.db"), ttl=60, one_lease_per_holder=True)
+        self.assertTrue(L.acquire("task-1", "agent-a")["ok"])
+        blocked = L.acquire("task-2", "agent-a")
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(blocked["reason"], "holder_lease_active")
+        self.assertTrue(L.acquire("task-2", "agent-b")["ok"])
+        self.assertTrue(L.acquire("task-1", "agent-a")["ok"])
+
 
 class TestSignals(_Tmp):
+
     def test_thread_via_reply_to(self):
         S = Signals(os.path.join(self.dir, "s.db"))
         first = S.send("a", "start", to_agent="w")
@@ -86,6 +96,14 @@ class TestActions(_Tmp):
         self.assertTrue(A.claim(a, "worker-1"))
         self.assertFalse(A.claim(a, "worker-2"))
         self.assertFalse(A.claim(a, "worker-1"))  # already active
+
+    def test_requeue_requires_current_owner(self):
+        A = Actions(os.path.join(self.dir, "a.db"))
+        aid = A.create("recoverable")
+        self.assertTrue(A.claim(aid, "agent-a"))
+        self.assertFalse(A.requeue(aid, "agent-b"))
+        self.assertTrue(A.requeue(aid, "agent-a"))
+        self.assertTrue(A.claim(aid, "agent-b"))
 
     def test_complete_idempotent(self):
         A = Actions(os.path.join(self.dir, "a.db"))

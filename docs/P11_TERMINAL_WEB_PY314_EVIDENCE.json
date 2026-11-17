@@ -1,0 +1,45 @@
+{
+  "schema_version": "noesis.p11-terminal-web-python314-evidence.v1",
+  "gate": "P11-01-PY314",
+  "status": "passed_bounded_local",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only": true,
+    "resource_warning_policy": "error"
+  },
+  "focused_suite": [
+    "tests.test_terminal_client",
+    "tests.test_health_session_api",
+    "tests.test_health_auth",
+    "tests.test_ui_contract_health",
+    "tests.test_portable_launcher",
+    "tests.test_session_stream"
+  ],
+  "focused_tests": {
+    "passed": 34,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "full_suite": {
+    "passed": 817,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "verified_contracts": [
+    "read-only health and models contract",
+    "durable session create/resume/message boundary",
+    "bounded SSE stream",
+    "loopback default and LAN authentication warning",
+    "portable launcher wiring",
+    "terminal client create/resume/send path",
+    "no implicit model or tool execution"
+  ],
+  "native_boundary": {
+    "status": "NOT_RUN",
+    "desktop_shell": "NOT_RUN",
+    "native_signing": "NOT_RUN",
+    "native_windows_macos_host": "NOT_RUN",
+    "reason": "Linux local lane verifies the web and terminal contracts only; native desktop shell and host parity require matching environments."
+  },
+  "claim_boundary": "This evidence proves bounded local Python 3.14 terminal/web behavior only; it does not prove native desktop packaging, signing, or Windows/macOS execution."
+}

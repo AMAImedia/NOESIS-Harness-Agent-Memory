@@ -20,6 +20,11 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+
+try:
+    from .nextgen import _ManagedConnection
+except ImportError:
+    from nextgen import _ManagedConnection
 import time
 import uuid
 from typing import Any, Dict, List, Optional
@@ -39,14 +44,15 @@ class Leases:
     DEFAULT_TTL = 10 * 60        # 10 min (agentmemory default)
     MAX_TTL = 60 * 60            # 1 hour cap
 
-    def __init__(self, db_path: str, ttl: int = DEFAULT_TTL):
+    def __init__(self, db_path: str, ttl: int = DEFAULT_TTL, *, one_lease_per_holder: bool = False):
         self.db_path = db_path
         self.ttl = min(int(ttl), self.MAX_TTL)
+        self.one_lease_per_holder = bool(one_lease_per_holder)
         self._lock = threading.Lock()
         self._init()
 
     def _conn(self):
-        c = sqlite3.connect(self.db_path, timeout=10)
+        c = sqlite3.connect(self.db_path, timeout=10, factory=_ManagedConnection)
         c.row_factory = sqlite3.Row
         c.execute("PRAGMA journal_mode=WAL")
         c.execute("PRAGMA busy_timeout=10000")
@@ -66,8 +72,16 @@ class Leases:
         """Try to claim a task. Returns {ok, holder, expires_at}."""
         now = time.time()
         with self._lock, self._conn() as c:
+            if self.one_lease_per_holder:
+                active = c.execute(
+                    "SELECT task_key, expires_at FROM leases WHERE holder=? AND status='active' AND expires_at > ?",
+                    (holder, now),
+                ).fetchone()
+                if active is not None and active[0] != task_key:
+                    return {"ok": False, "holder": holder, "expires_at": active[1], "reason": "holder_lease_active"}
             row = c.execute("SELECT * FROM leases WHERE task_key=?", (task_key,)).fetchone()
             if row:
+
                 if row["status"] == "active" and row["expires_at"] > now:
                     if row["holder"] == holder:
                         return {"ok": True, "holder": holder,
@@ -129,7 +143,7 @@ class Signals:
         self._init()
 
     def _conn(self):
-        c = sqlite3.connect(self.db_path, timeout=10)
+        c = sqlite3.connect(self.db_path, timeout=10, factory=_ManagedConnection)
         c.row_factory = sqlite3.Row
         c.execute("PRAGMA journal_mode=WAL")
         return c
@@ -226,7 +240,7 @@ class Actions:
         self._init()
 
     def _conn(self):
-        c = sqlite3.connect(self.db_path, timeout=10)
+        c = sqlite3.connect(self.db_path, timeout=10, factory=_ManagedConnection)
         c.row_factory = sqlite3.Row
         c.execute("PRAGMA journal_mode=WAL")
         return c
@@ -246,8 +260,10 @@ class Actions:
                 " kind TEXT NOT NULL, PRIMARY KEY(from_id, to_id, kind))")
 
     def create(self, title: str, priority: int = 5,
-               requires: Optional[List[str]] = None) -> str:
-        aid = uuid.uuid4().hex[:12]
+               requires: Optional[List[str]] = None, action_id: str = "") -> str:
+        aid = action_id or uuid.uuid4().hex[:12]
+        if not aid:
+            raise ValueError("action_id required")
         with self._lock, self._conn() as c:
             blocked = bool(requires)
             status = "blocked" if blocked else "pending"
@@ -293,6 +309,14 @@ class Actions:
             cur = c.execute(
                 "UPDATE actions SET status='active', assigned_to=? "
                 "WHERE id=? AND status='pending'", (agent, aid))
+            return cur.rowcount > 0
+
+    def requeue(self, aid: str, agent: str) -> bool:
+        """Return an active action to pending only for its current assignee."""
+        with self._lock, self._conn() as c:
+            cur = c.execute(
+                "UPDATE actions SET status='pending', assigned_to='' "
+                "WHERE id=? AND status='active' AND assigned_to=?", (aid, agent))
             return cur.rowcount > 0
 
     def counts(self) -> Dict[str, int]:

@@ -1,0 +1,191 @@
+import sqlite3
+import tempfile
+import unittest
+from pathlib import Path
+
+from noesis_harness.execution_assurance import AssuranceError, ExecutionReceiptStore, ExecutionRecoveryStore, build_artifact_diff, create_receipt, validate_receipt_chain, validate_receipt_transition, verify_receipt
+
+
+class ExecutionAssuranceTests(unittest.TestCase):
+    def test_receipt_is_deterministic_and_verifiable(self):
+        kwargs = {"request": {"tool": "read"}, "policy": {"capability": "file.read"}, "workspace_before": "sha256:before", "workspace_after": "sha256:after", "outcome": "committed", "rollback_available": True, "side_effects": ("workspace_patch",)}
+        first = create_receipt(**kwargs)
+        second = create_receipt(**kwargs)
+        self.assertEqual(first, second)
+        self.assertTrue(verify_receipt(first))
+
+    def test_artifact_diff_is_deterministic_and_receipt_bound(self):
+        with tempfile.TemporaryDirectory() as directory:
+            before = Path(directory) / "before"
+            after = Path(directory) / "after"
+            before.mkdir()
+            after.mkdir()
+            (before / "same.txt").write_text("same\n", encoding="utf-8")
+            (after / "same.txt").write_text("changed\n", encoding="utf-8")
+            (after / "added.txt").write_text("new\n", encoding="utf-8")
+            diff = build_artifact_diff(str(before), str(after))
+            self.assertEqual(diff["added"], ("added.txt",))
+            self.assertEqual(diff["removed"], ())
+            self.assertEqual(diff["changed"], ("same.txt",))
+            self.assertEqual(diff["digest"], build_artifact_diff(str(before), str(after))["digest"])
+            receipt = create_receipt(request={"tool": "child"}, policy={"capability": "workspace_write"}, workspace_before="sha256:before", workspace_after="sha256:after", outcome="committed", rollback_available=True, artifact_diff=diff, signing_key=b"artifact-diff-signing-key")
+            self.assertTrue(receipt.artifact_diff_digest)
+            self.assertTrue(verify_receipt(receipt, b"artifact-diff-signing-key"))
+            object.__setattr__(receipt, "artifact_diff_digest", "sha256:tampered")
+            self.assertFalse(verify_receipt(receipt, b"artifact-diff-signing-key"))
+
+    def test_artifact_diff_rejects_missing_workspace(self):
+        with self.assertRaisesRegex(AssuranceError, "artifact_workspace_required"):
+            build_artifact_diff("/path/that/does/not/exist", None)
+
+    def test_tampering_is_detected(self):
+        receipt = create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True)
+        object.__setattr__(receipt, "outcome", "committed")
+        self.assertFalse(verify_receipt(receipt))
+
+    def test_signed_receipt_store_is_idempotent_and_restart_safe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"execution-receipt-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            receipt = create_receipt(request={"tool": "read"}, policy={"capability": "file.read"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            self.assertTrue(verify_receipt(receipt, key))
+            self.assertEqual(store.put(receipt), receipt)
+            reopened = ExecutionReceiptStore(path, signing_key=key)
+            self.assertEqual(reopened.get(receipt.receipt_id), receipt)
+            with self.assertRaisesRegex(AssuranceError, "invalid_signed_receipt"):
+                reopened.put(create_receipt(request={"x": 1}, policy={"allow": True}, workspace_before="sha256:b", workspace_after=None, outcome="failed", rollback_available=True))
+
+    def test_persistent_chain_snapshot_reopens_and_rejects_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"chain-snapshot-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            prepared = create_receipt(request={"tool": "snapshot"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+            committed = create_receipt(request={"tool": "snapshot"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            for receipt in (prepared, committed):
+                store.put(receipt)
+            snapshot = store.save_chain_snapshot((prepared.receipt_id, committed.receipt_id))
+            self.assertEqual(store.save_chain_snapshot((prepared.receipt_id, committed.receipt_id)), snapshot)
+            reopened = ExecutionReceiptStore(path, signing_key=key)
+            self.assertEqual(reopened.get_chain_snapshot(snapshot["snapshot_id"]), snapshot)
+            with self.assertRaisesRegex(AssuranceError, "receipt_chain_snapshot_missing"):
+                reopened.get_chain_snapshot("chain-snapshot:missing")
+            conn = sqlite3.connect(path)
+            try:
+                conn.execute("UPDATE receipt_chain_snapshots SET payload = ? WHERE snapshot_id = ?", ("{}", snapshot["snapshot_id"]))
+                conn.commit()
+            finally:
+                conn.close()
+            with self.assertRaisesRegex(AssuranceError, "receipt_chain_snapshot_tampered"):
+                ExecutionReceiptStore(path, signing_key=key).get_chain_snapshot(snapshot["snapshot_id"])
+
+    def test_durable_receipt_chain_reopens_and_rejects_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"durable-chain-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            prepared = create_receipt(request={"tool": "durable-chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+            committed = create_receipt(request={"tool": "durable-chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            rolled_back = create_receipt(request={"tool": "durable-chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:b", outcome="rolled_back", rollback_available=False, signing_key=key)
+            for receipt in (prepared, committed, rolled_back):
+                store.put(receipt)
+            reopened = ExecutionReceiptStore(path, signing_key=key)
+            chain = reopened.audit_chain((prepared.receipt_id, committed.receipt_id, rolled_back.receipt_id))
+            self.assertEqual(chain["status"], "passed")
+            self.assertEqual(chain["count"], 3)
+            with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+                reopened.audit_chain((rolled_back.receipt_id, committed.receipt_id, prepared.receipt_id))
+            with self.assertRaisesRegex(AssuranceError, "receipt_chain_missing"):
+                reopened.audit_chain((prepared.receipt_id, "receipt:missing"))
+
+    def test_receipt_chain_detects_gaps_reorder_forks_and_tampering(self):
+        key = b"receipt-chain-signing-key"
+        prepared = create_receipt(request={"tool": "chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+        committed = create_receipt(request={"tool": "chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+        rolled_back = create_receipt(request={"tool": "chain"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:b", outcome="rolled_back", rollback_available=False, signing_key=key)
+        chain = validate_receipt_chain((prepared, committed, rolled_back), key)
+        self.assertEqual(chain["status"], "passed")
+        self.assertEqual(chain["count"], 3)
+        with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+            validate_receipt_chain((prepared, rolled_back), key)
+        with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+            validate_receipt_chain((committed, prepared, rolled_back), key)
+        with self.assertRaisesRegex(AssuranceError, "receipt_chain_duplicate"):
+            validate_receipt_chain((prepared, committed, committed), key)
+        object.__setattr__(committed, "outcome", "failed")
+        with self.assertRaisesRegex(AssuranceError, "receipt_chain_tampered"):
+            validate_receipt_chain((prepared, committed, rolled_back), key)
+
+    def test_receipt_lifecycle_transitions_are_explicit_and_immutable(self):
+        key = b"receipt-transition-signing-key"
+        prepared = create_receipt(request={"tool": "transition"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after=None, outcome="prepared", rollback_available=True, signing_key=key)
+        committed = create_receipt(request={"tool": "transition"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+        rolled_back = create_receipt(request={"tool": "transition"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:b", outcome="rolled_back", rollback_available=False, signing_key=key)
+        self.assertTrue(validate_receipt_transition(prepared, committed))
+        self.assertTrue(validate_receipt_transition(committed, rolled_back))
+        self.assertTrue(validate_receipt_transition(prepared, prepared))
+        with self.assertRaisesRegex(AssuranceError, "invalid_receipt_transition"):
+            validate_receipt_transition(committed, prepared)
+        different_request = create_receipt(request={"tool": "other"}, policy={"capability": "write"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="rolled_back", rollback_available=False, signing_key=key)
+        with self.assertRaisesRegex(AssuranceError, "identity_mismatch"):
+            validate_receipt_transition(committed, different_request)
+
+    def test_receipt_store_audit_is_deterministic_and_restart_safe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"receipt-audit-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            receipt = create_receipt(request={"tool": "audit"}, policy={"capability": "read"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            store.put(receipt)
+            first = store.audit()
+            second = ExecutionReceiptStore(path, signing_key=key).audit()
+            self.assertEqual(first, second)
+            self.assertEqual(first["count"], 1)
+            self.assertEqual(first["receipt_ids"], (receipt.receipt_id,))
+
+    def test_receipt_store_audit_rejects_stored_corruption(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "receipts.db")
+            key = b"receipt-audit-signing-key"
+            store = ExecutionReceiptStore(path, signing_key=key)
+            receipt = create_receipt(request={"tool": "audit"}, policy={"capability": "read"}, workspace_before="sha256:b", workspace_after="sha256:a", outcome="committed", rollback_available=True, signing_key=key)
+            store.put(receipt)
+            conn = sqlite3.connect(path)
+            try:
+                conn.execute("UPDATE execution_receipts SET payload = ? WHERE receipt_id = ?", ("{}", receipt.receipt_id))
+                conn.commit()
+            finally:
+                conn.close()
+            with self.assertRaisesRegex(AssuranceError, "stored_receipt_tampered"):
+                ExecutionReceiptStore(path, signing_key=key).audit()
+
+    def test_terminal_completion_is_idempotent_but_conflicts_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = ExecutionRecoveryStore(str(Path(directory) / "recovery.db"))
+            store.begin("run-terminal", "sha256:before")
+            first = store.complete("run-terminal", workspace_after="sha256:after", receipt_id="receipt-1", status="completed")
+            duplicate = store.complete("run-terminal", workspace_after="sha256:after", receipt_id="receipt-1", status="completed")
+            self.assertEqual(duplicate["status"], "completed")
+            self.assertEqual(duplicate["receipt_id"], first["receipt_id"])
+            with self.assertRaisesRegex(AssuranceError, "terminal_conflict"):
+                store.complete("run-terminal", workspace_after="sha256:other", receipt_id="receipt-2", status="failed")
+
+    def test_interrupted_recovery_is_explicit_and_never_claims_rollback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / "recovery.db")
+            store = ExecutionRecoveryStore(path)
+            store.begin("run-1", "sha256:before")
+            reopened = ExecutionRecoveryStore(path)
+            state = reopened.recover("run-1")
+            self.assertEqual(state["status"], "interrupted_recovery_required")
+            self.assertFalse(state["rollback_performed"])
+            self.assertEqual(reopened.mark_recovered("run-1")["status"], "recovered")
+
+    def test_invalid_outcome_fails_closed(self):
+        with self.assertRaises(AssuranceError):
+            create_receipt(request={}, policy={}, workspace_before="sha256:b", workspace_after=None, outcome="unknown", rollback_available=False)
+
+
+if __name__ == "__main__":
+    unittest.main()

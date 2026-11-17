@@ -10,6 +10,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from noesis_harness import EventStore
+from noesis_harness.event_store import EventStoreCorrupt
 
 
 class _Tmp(unittest.TestCase):
@@ -67,6 +68,16 @@ class TestCrashTolerance(_Tmp):
         es = EventStore(os.path.join(self.dir, "nope.jsonl"))
         self.assertEqual(es.count(), 0)
         self.assertEqual(es.project(0), 0)
+
+    def test_middle_corruption_fails_closed(self):
+        p = os.path.join(self.dir, "e.jsonl")
+        es = EventStore(p)
+        es.append("a", {"v": 1})
+        with open(p, "a", encoding="utf-8") as fh:
+            fh.write("not-json\n")
+        es.append("a", {"v": 2})
+        with self.assertRaises(EventStoreCorrupt):
+            list(es.iter_events())
 
 
 class TestSeq(_Tmp):

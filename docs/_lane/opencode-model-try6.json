@@ -1,0 +1,6 @@
+{
+  "execution": "denied",
+  "reason": "[Errno 2] No such file or directory: '_temp\\\\placeholder.json'",
+  "schema_version": "noesis.external-lane-plan.v1",
+  "status": "not_run"
+}

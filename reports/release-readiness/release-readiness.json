@@ -1,0 +1,22 @@
+{
+  "automatic_execution": false,
+  "blockers": [
+    "matching_native_windows_macos_hosts_required",
+    "pinned_external_lane_receipts_required"
+  ],
+  "claim_boundary": "release_readiness_summary_only",
+  "claims": {
+    "external_execution": false,
+    "local_evidence_integrity": false,
+    "native_execution": false,
+    "worldwide_superiority": false
+  },
+  "external_lanes_status": "not_run",
+  "native_host_status": "not_run",
+  "overall_status": "blocked",
+  "post_transfer_audit_status": "blocked",
+  "python_version": "3.14.7",
+  "schema_version": "noesis.release-readiness-snapshot.v1",
+  "snapshot_digest": "c5e1f1562d149a4cec0af06b1d184d30d40a6acc9fbf2f5ceba6a47a530906d8",
+  "validated_test_count": 1057
+}

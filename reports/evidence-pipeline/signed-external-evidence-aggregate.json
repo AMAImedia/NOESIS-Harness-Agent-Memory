@@ -1,0 +1,46 @@
+{
+  "aggregate_digest": "49812e352cc95636bd2699f64c4bdd7506434903c4e8632ee1e3d16302f7d95c",
+  "claim_boundary": "signed_evidence_aggregation_only",
+  "comparative_ready": false,
+  "evidence_count": 0,
+  "evidence_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "execution_claim": "not_run",
+  "global_checks": [
+    "comparative_readiness_not_met"
+  ],
+  "lanes": {
+    "deepseek_harness": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "hermes": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "opencode": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    }
+  },
+  "manifest_digest": "25134177edb019fc63a28711eff7d2bc9d04d0bc73a0175e5669bd77e443a700",
+  "matrix_digest": "56c9d39d3cbc9ed3192c75cad787f7c98c64ba5db59efbdd05d2239535770c92",
+  "matrix_schema_version": "noesis.external-evidence-readiness.v1",
+  "native_or_external_execution_claim": false,
+  "overall_status": "not_run",
+  "required_lanes": [
+    "hermes",
+    "opencode",
+    "deepseek_harness"
+  ],
+  "schema_version": "noesis.signed-external-evidence-aggregate.v1",
+  "signature": "32147778c8867a728eacc20fb1fcc684188afa1b61667e31dcdee277f5134585"
+}

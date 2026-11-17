@@ -1,0 +1,651 @@
+{
+  "counts": {
+    "failed": 0,
+    "passed": 91,
+    "timed_out": 0
+  },
+  "module": "tests.test_execution_recovery",
+  "results": [
+    {
+      "duration_ms": 391.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.084s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_atomic_json_replace_preserves_read_only_mode"
+    },
+    {
+      "duration_ms": 625.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.360s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_authenticated_rollback_requires_handler_and_confirms_actual_transition"
+    },
+    {
+      "duration_ms": 1171.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.824s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_catalog_record_digest_substitution_blocks_signed_manifest_then_restores"
+    },
+    {
+      "duration_ms": 563.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.254s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_ignores_orphan_partial_temporary_file"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.224s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_rejects_duplicate_json_keys"
+    },
+    {
+      "duration_ms": 547.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.252s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_rejects_invalid_records_and_duplicate_action_ids"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.230s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_rejects_schema_status_and_count_shape"
+    },
+    {
+      "duration_ms": 562.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.253s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_rejects_unknown_and_missing_canonical_fields"
+    },
+    {
+      "duration_ms": 532.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.237s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_rejects_unknown_record_field"
+    },
+    {
+      "duration_ms": 828.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.547s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_reopens_across_python_process_boundary"
+    },
+    {
+      "duration_ms": 562.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.245s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_replace_interruption_preserves_previous_valid_snapshot"
+    },
+    {
+      "duration_ms": 547.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.259s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completeness_snapshot_rewrite_is_byte_identical_and_reopenable"
+    },
+    {
+      "duration_ms": 1250.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.977s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completion_event_chain_audit_rejects_reorder_and_corruption"
+    },
+    {
+      "duration_ms": 734.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.469s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_completion_snapshot_schema_rotation_and_process_boundary"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.231s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_duplicate_action_id_with_changed_payload_is_rejected"
+    },
+    {
+      "duration_ms": 797.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.536s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_duplicate_catalog_and_completeness_action_ids_fail_before_count_parity"
+    },
+    {
+      "duration_ms": 953.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.668s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_final_manifest_rejects_foreign_verification_readiness_binding"
+    },
+    {
+      "duration_ms": 532.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.251s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_finalization_repair_rejects_corrupt_partial_marker_without_archiving"
+    },
+    {
+      "duration_ms": 593.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.305s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_finalization_repair_rejects_valid_finalized_generation"
+    },
+    {
+      "duration_ms": 1266.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.962s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_finalized_inventory_rejects_orphan_and_substitution"
+    },
+    {
+      "duration_ms": 766.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.493s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_generation_id_rotates_monotonically_and_rejects_stale_receipt"
+    },
+    {
+      "duration_ms": 531.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.269s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_generation_receipt_rejects_drift_missing_and_rewrites_deterministically"
+    },
+    {
+      "duration_ms": 750.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.469s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_generation_receipt_schema_and_process_boundary"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.228s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_interrupted_run_requires_explicit_authenticated_recovery"
+    },
+    {
+      "duration_ms": 922.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.645s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_inventory_verification_receipt_rejects_stale_inventory_binding"
+    },
+    {
+      "duration_ms": 1219.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.913s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_manifest_binding_chain_readiness_rejects_stale_or_writable_snapshot"
+    },
+    {
+      "duration_ms": 1171.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.890s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_manifest_binding_chain_rejects_reorder_and_foreign_receipt"
+    },
+    {
+      "duration_ms": 1188.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.903s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_manifest_binding_receipt_rejects_tamper_and_partial_protection"
+    },
+    {
+      "duration_ms": 812.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.546s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_multi_action_corrupted_catalog_blocks_bundle_then_restores_deterministically"
+    },
+    {
+      "duration_ms": 969.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.705s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_multi_action_corrupted_manifest_blocks_bundle_then_explicit_rebuild_passes"
+    },
+    {
+      "duration_ms": 860.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.594s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_multi_action_snapshot_stale_after_crash_then_finalizes_full_catalog"
+    },
+    {
+      "duration_ms": 1156.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.900s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_partial_finalization_repair_archives_marker_and_refinalizes_deterministically"
+    },
+    {
+      "duration_ms": 984.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.689s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_readiness_snapshot_binds_generation_and_fresh_process_accepts"
+    },
+    {
+      "duration_ms": 547.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.224s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_recovery_evidence_status_preserves_not_run_and_blocked"
+    },
+    {
+      "duration_ms": 828.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.554s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_repair_chain_hardlink_fails_closed"
+    },
+    {
+      "duration_ms": 813.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.547s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_repair_chain_partial_append_fails_closed"
+    },
+    {
+      "duration_ms": 797.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.531s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_repair_chain_readiness_snapshot_reports_state_transitions"
+    },
+    {
+      "duration_ms": 1125.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.862s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_repair_chain_rotates_monotonically_and_rejects_reorder"
+    },
+    {
+      "duration_ms": 1156.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.882s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_repair_receipt_rejects_cross_bundle_archive_substitution"
+    },
+    {
+      "duration_ms": 922.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.655s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_repair_receipt_rejects_signed_finalization_digest_substitution"
+    },
+    {
+      "duration_ms": 718.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.416s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_catalog_rejects_duplicate_action_records"
+    },
+    {
+      "duration_ms": 516.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.242s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_catalog_snapshot_missing_blocks_exact_replay"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.229s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_catalog_snapshot_rejects_signed_drift"
+    },
+    {
+      "duration_ms": 516.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.241s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_catalog_snapshot_rejects_signed_path_mismatch"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.249s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_commit_manifest_missing_blocks_exact_replay"
+    },
+    {
+      "duration_ms": 515.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.245s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_commit_manifest_rejects_event_chain_digest_substitution"
+    },
+    {
+      "duration_ms": 625.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.348s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_commit_manifest_rejects_signed_drift"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.246s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_commit_manifest_rejects_signed_path_mismatch"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.241s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_rejects_bundle_digest_mismatch"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.232s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_rejects_catalog_snapshot_drift"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.230s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_rejects_missing_bundle_path"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.228s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_rejects_missing_manifest"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.234s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_rejects_sidecar_digest_mismatch"
+    },
+    {
+      "duration_ms": 485.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.229s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_rejects_sidecar_signature"
+    },
+    {
+      "duration_ms": 531.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.262s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_snapshot_missing_blocks_exact_replay"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.244s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_snapshot_rejects_signed_drift"
+    },
+    {
+      "duration_ms": 547.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.263s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_completeness_snapshot_rejects_signed_path_mismatch"
+    },
+    {
+      "duration_ms": 890.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.629s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_evidence_finalization_detects_modified_artifact"
+    },
+    {
+      "duration_ms": 594.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.313s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_evidence_promotion_finalizes_generation_and_denies_writes"
+    },
+    {
+      "duration_ms": 547.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.280s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_evidence_promotion_interruption_fails_closed"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.235s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_inventory_snapshot_missing_blocks_exact_replay"
+    },
+    {
+      "duration_ms": 469.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.223s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_inventory_snapshot_rejects_signed_drift"
+    },
+    {
+      "duration_ms": 547.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.264s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_inventory_snapshot_rejects_signed_path_mismatch"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.235s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_outcome_snapshot_rejects_tampering"
+    },
+    {
+      "duration_ms": 515.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.229s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_rejects_completion_event_snapshot_drift"
+    },
+    {
+      "duration_ms": 485.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.237s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_rejects_tampered_completion_receipt_reference"
+    },
+    {
+      "duration_ms": 515.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.231s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_requires_completion_event_snapshot"
+    },
+    {
+      "duration_ms": 797.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.526s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_requires_replay_outcome_snapshot"
+    },
+    {
+      "duration_ms": 547.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.241s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_requires_status_snapshot"
+    },
+    {
+      "duration_ms": 516.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.233s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_snapshot_rejects_duplicate_record_keys"
+    },
+    {
+      "duration_ms": 484.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.232s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_snapshot_rejects_signed_action_identity_confusion"
+    },
+    {
+      "duration_ms": 516.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.226s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_replay_snapshot_rejects_signed_path_mismatch"
+    },
+    {
+      "duration_ms": 406.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.116s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_rollback_rejects_artifact_diff_mismatch"
+    },
+    {
+      "duration_ms": 359.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.096s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_rollback_rejects_unauthorized_stale_or_unapproved_state"
+    },
+    {
+      "duration_ms": 563.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.272s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_rollback_requires_matching_persisted_chain_snapshot"
+    },
+    {
+      "duration_ms": 812.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.547s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_signed_readiness_snapshot_rejects_stale_tip_substitution"
+    },
+    {
+      "duration_ms": 516.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.238s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_audit_rejects_signed_digest_drift"
+    },
+    {
+      "duration_ms": 484.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.225s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_audit_requires_durable_snapshot"
+    },
+    {
+      "duration_ms": 485.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.222s\n\nOK (skipped=1)\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_rejects_canonical_sidecar_symlink_alias"
+    },
+    {
+      "duration_ms": 515.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.248s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_rejects_external_hardlink_sidecar"
+    },
+    {
+      "duration_ms": 860.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.600s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_rejects_manifest_path_collision"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.244s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_rejects_mixed_sidecar_manifest_generation"
+    },
+    {
+      "duration_ms": 500.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.239s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_rejects_orphan_manifest_before_parsing"
+    },
+    {
+      "duration_ms": 515.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.241s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_completeness_rejects_orphan_sidecar_filename"
+    },
+    {
+      "duration_ms": 485.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.223s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_evidence_gate_rejects_missing_snapshot"
+    },
+    {
+      "duration_ms": 593.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.314s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_startup_readiness_rejects_partial_finalization_marker"
+    },
+    {
+      "duration_ms": 485.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.225s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_status_snapshot_rejects_tamper_and_projection_drift"
+    },
+    {
+      "duration_ms": 719.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.458s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_strict_replay_requires_finalization_and_accepts_finalized_generation"
+    },
+    {
+      "duration_ms": 859.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.577s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_verification_run_chain_rejects_reorder_and_foreign_inventory"
+    },
+    {
+      "duration_ms": 1094.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.842s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_verification_run_readiness_reports_missing_partial_and_passed"
+    },
+    {
+      "duration_ms": 1265.0,
+      "output_tail": "----------------------------------------------------------------------\nRan 1 test in 0.974s\n\nOK\n",
+      "returncode": 0,
+      "status": "passed",
+      "test_id": "tests.test_execution_recovery.ExecutionRecoveryTests.test_verification_run_readiness_snapshot_rejects_stale_inventory"
+    }
+  ],
+  "schema_version": "noesis.recovery-discovery.v1",
+  "status": "passed",
+  "test_count": 91,
+  "timeout_seconds": 30.0
+}

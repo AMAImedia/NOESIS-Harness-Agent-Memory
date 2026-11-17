@@ -1,0 +1,40 @@
+{
+  "schema_version": "noesis.learning-promotion-activation-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_human_governed_learning",
+  "runtime": "CPython 3.14.7",
+  "commit_order": [
+    "write_verified_immutable_skill_content",
+    "write_signed_promotion_receipt",
+    "persist_promoted_proposal_state",
+    "atomically_replace_active_pointer"
+  ],
+  "activation_journal": {
+    "schema_version": "noesis.promotion-activation-journal.v1",
+    "states": ["prepared", "activated", "inactive"],
+    "restart_visible": true,
+    "interrupted_activation_is_distinguishable": true,
+    "content_addressed_record": true,
+    "tamper_detection": true,
+    "recovery_projection": "prepared -> recovery_required",
+    "automatic_retry": false
+  },
+  "activation_safety": {
+    "receipt_precedes_activation": true,
+    "activation_failure_preserves_receipt": true,
+    "activation_failure_preserves_old_active_pointer": true,
+    "activation_failure_leaves_prepared_journal": true,
+    "activation_failure_requires_operator_review": true,
+    "automatic_activation": false,
+    "rollback_remains_explicit": true
+  },
+  "focused_tests": {
+    "suite": "tests.test_learning_promotion",
+    "passed": 11,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "Local crash-order evidence proves promotion lifecycle fail-closed behavior only; it does not prove external deployment or platform parity."
+}

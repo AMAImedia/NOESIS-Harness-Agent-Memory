@@ -26,15 +26,17 @@ class DurableRecoveryReport:
     recovery_status: str
     reclaimed_leases: int
     recovery_revision: int
+    requeued_actions: int = 0
 
 
 class RecoveryCoordinator:
     """Join verified state, resumable fibers and lease recovery."""
 
-    def __init__(self, best: BestStateStore, fibers: FiberStore, work: WorkCoordinator):
+    def __init__(self, best: BestStateStore, fibers: FiberStore, work: WorkCoordinator, actions: Optional[Any] = None):
         self.best = best
         self.fibers = fibers
         self.work = work
+        self.actions = actions
 
     def recover_after_crash(
         self,
@@ -43,6 +45,8 @@ class RecoveryCoordinator:
         task_id: Optional[str] = None,
         now: Optional[float] = None,
         reason: str = "crash_or_late_regression",
+        action_id: Optional[str] = None,
+        action_owner: Optional[str] = None,
     ) -> DurableRecoveryReport:
         """Restore best verified state and reclaim expired work leases.
 
@@ -62,6 +66,9 @@ class RecoveryCoordinator:
             except KeyError:
                 fiber = None
         reclaimed = self.work.reclaim_expired(now) if task_id else 0
+        requeued_actions = 0
+        if self.actions is not None and action_id and action_owner:
+            requeued_actions = int(bool(self.actions.requeue(action_id, action_owner)))
         return DurableRecoveryReport(
             run_id=run_id,
             fiber_id=fiber_id,
@@ -73,6 +80,7 @@ class RecoveryCoordinator:
             recovery_status=recovery.status.value,
             reclaimed_leases=reclaimed,
             recovery_revision=recovery.revision,
+            requeued_actions=requeued_actions,
         )
 
 

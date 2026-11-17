@@ -1,0 +1,23 @@
+{
+  "schema_version": "noesis.sqlite-migration-receipt-replay-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_single_store_migration_audit",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "exact_receipt_replay_is_idempotent": true,
+    "valid_signature_changed_receipt_denied": true,
+    "invalid_signature_denied": true,
+    "audit_row_count_unchanged_on_conflict": true,
+    "transactional_persistence": true,
+    "automatic_cutover": false
+  },
+  "focused_tests": {
+    "suites": ["tests.test_admin_state_sqlite", "tests.test_admin_migration"],
+    "passed": 13,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "SQLite/WAL replay evidence is local-only and does not claim native host or external identity-provider execution."
+}

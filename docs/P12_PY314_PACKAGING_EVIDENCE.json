@@ -1,0 +1,35 @@
+{
+  "schema_version": "noesis.p12-python314-packaging-evidence.v1",
+  "gate": "P12-01-PY314",
+  "status": "passed_bounded_local",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only": true,
+    "resource_warning_policy": "error"
+  },
+  "verified_contracts": [
+    "source-portable artifact manifest verification",
+    "SHA-256 artifact inventory",
+    "model and secret exclusion checks",
+    "Python 3.14 interpreter probe",
+    "portable launcher integration"
+  ],
+  "focused_tests": {
+    "suite": "tests.test_portable_artifact_verifier tests.test_native_artifact_evidence tests.test_portable_launcher",
+    "passed": 14,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "python314_probe": {
+    "status": "passed",
+    "version": "3.14.7"
+  },
+  "native_boundary": {
+    "status": "NOT_RUN",
+    "windows_exe": "NOT_RUN",
+    "macos_app": "NOT_RUN",
+    "embedded_runtime_signing": "NOT_RUN",
+    "reason": "The Linux lane cannot establish native packaging, signing, or matching filesystem semantics."
+  },
+  "claim_boundary": "This evidence proves source-portable local artifact and Python 3.14 verification only; it does not prove native Windows/macOS packaging or signing."
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "noesis.skill-runtime-promotion-receipt-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_hardened_skill_execution",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "hardened_runtime_requires_promotion_receipt": true,
+    "promotion_receipt_symlink_denied": true,
+    "backend_precondition_preserved": true,
+    "non_hardened_development_mode_remains_explicit": true,
+    "automatic_activation": false
+  },
+  "focused_tests": {
+    "suite": "tests.test_skill_runtime",
+    "passed": 5,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "Local runtime policy evidence does not prove native host sandbox parity or external deployment readiness."
+}

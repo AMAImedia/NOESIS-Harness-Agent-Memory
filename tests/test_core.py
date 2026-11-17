@@ -9,6 +9,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from noesis_harness import EventStore, Memory, Leases, Signals, Actions
+from noesis_harness.event_store import EventStoreConflict
 
 
 class _Tmp(unittest.TestCase):
@@ -33,6 +34,16 @@ class TestEventStore(_Tmp):
         b = es.append("x", {"v": 1}, event_id="fixed")
         self.assertEqual(a, b)
         self.assertEqual(es.count(), 1)
+
+    def test_event_id_content_conflict_fails_closed(self):
+        es = EventStore(os.path.join(self.dir, "e.jsonl"))
+        es.append("x", {"v": 1}, event_id="fixed")
+        with self.assertRaisesRegex(EventStoreConflict, "different content"):
+            es.append("x", {"v": 2}, event_id="fixed")
+        with open(es.path, "a", encoding="utf-8") as fh:
+            fh.write('{"event_id":"fixed","type":"x","payload":{"v":99},"seq":2}\n')
+        with self.assertRaises(EventStoreConflict):
+            EventStore(es.path)
 
     def test_fingerprint_idempotency(self):
         es = EventStore(os.path.join(self.dir, "e.jsonl"))

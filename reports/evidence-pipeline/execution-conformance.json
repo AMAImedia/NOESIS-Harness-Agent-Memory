@@ -1,0 +1,51 @@
+{
+  "automatic_execution": false,
+  "backend_verification": {
+    "entries": [
+      {
+        "backend": "unconfigured_none",
+        "reason": "backend_not_configured",
+        "status": "not_run"
+      },
+      {
+        "backend": "failing_stub",
+        "reason": "isolation_verification_refused",
+        "status": "blocked"
+      },
+      {
+        "backend": "unavailable_stub",
+        "reason": "backend_runtime_unavailable",
+        "status": "unavailable"
+      }
+    ],
+    "evidence_basis": "local_verify_backend_or_block_contract_projection",
+    "reasons": [],
+    "status": "passed"
+  },
+  "claim_boundary": "execution_conformance_summary_only",
+  "claims": {
+    "external_execution": false,
+    "local_replay": false,
+    "native_execution": false,
+    "worldwide_superiority": false
+  },
+  "conformance_digest": "e5e101c21ab3d67034a4d4a85f2421d48cf58c305bef60200e52f72e1acfb0d5",
+  "execution_claim": "evidence_projection_only",
+  "execution_classes": {
+    "external_lanes": {
+      "evidence_basis": "signed_lane_matrix_and_comparative_receipt_required",
+      "status": "not_run"
+    },
+    "local_replay": {
+      "evidence_basis": "clean_room_replay_and_final_gate",
+      "status": "not_run"
+    },
+    "native_host": {
+      "evidence_basis": "host_bound_readiness_receipt_required",
+      "status": "not_run"
+    }
+  },
+  "overall_status": "not_run",
+  "reasons": [],
+  "schema_version": "noesis.execution-conformance.v1"
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": "noesis.parallel-agent-tracks.v1",
+  "execution_mode": "isolated_local_processes",
+  "network_allowed": false,
+  "credentials_available": false,
+  "external_processes_started": false,
+  "tracks": {
+    "A_reliability_recovery": {
+      "status": "passed",
+      "checks": ["recovery", "chaos"],
+      "test_counts": [7, 4],
+      "note": "Rollback glob had no matching test file and was excluded from final status; no test was marked passed by absence."
+    },
+    "B_security_holdouts": {
+      "status": "passed",
+      "checks": ["security", "holdout", "docs_security"],
+      "note": "Credential and security holdout suites plus documentation security audit passed."
+    },
+    "C_operator_ui_portable": {
+      "status": "passed",
+      "checks": ["ui", "portable", "native_evidence_validator", "build_policy_validator"],
+      "note": "Operator/UI/portable matching suites and both evidence validators passed; target-native claims remain not_run."
+    },
+    "D_release_evidence_docs": {
+      "status": "passed",
+      "checks": ["markdown_links", "json_evidence", "release_metadata", "release_audit_remote"],
+      "note": "Release and documentation audits passed with local/remote parity."
+    }
+  },
+  "claim_boundary": "Parallel local verification does not create native Windows/macOS or external Hermes/OpenCode/DeepSeek Harness execution evidence."
+}

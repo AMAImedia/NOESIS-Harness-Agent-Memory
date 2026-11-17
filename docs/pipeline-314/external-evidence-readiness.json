@@ -1,0 +1,47 @@
+{
+  "comparative_ready": false,
+  "comparative_rule": "all_required_lanes_passed_with_one_protocol_fingerprint",
+  "evidence_count": 3,
+  "execution_claim": "evidence_ingestion_only",
+  "global_checks": [
+    "comparative_readiness_not_met"
+  ],
+  "lanes": {
+    "deepseek_harness": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "hermes": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "opencode": {
+      "checks": [
+        "revision_missing"
+      ],
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    }
+  },
+  "matrix_digest": "56c9d39d3cbc9ed3192c75cad787f7c98c64ba5db59efbdd05d2239535770c92",
+  "native_or_external_execution_claim": false,
+  "overall_status": "not_run",
+  "readiness_vocabulary": [
+    "blocked",
+    "not_run",
+    "passed",
+    "unsupported"
+  ],
+  "required_lanes": [
+    "hermes",
+    "opencode",
+    "deepseek_harness"
+  ],
+  "schema_version": "noesis.external-evidence-readiness.v1"
+}

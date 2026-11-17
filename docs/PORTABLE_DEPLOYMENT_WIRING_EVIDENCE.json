@@ -1,0 +1,24 @@
+{
+  "schema_version": "noesis.portable-deployment-wiring-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_portable_control_plane",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "durable_state_directory_created_before_sqlite": true,
+    "operator_session_action_handler_bound": true,
+    "administrative_policy_handler_bound": true,
+    "coordinated_mutation_journal_bound": true,
+    "promotion_executor_keeps_session_and_reviewer_guards": true,
+    "automatic_activation": false,
+    "non_loopback_default": false
+  },
+  "focused_tests": {
+    "suite": "tests.test_portable_launcher",
+    "passed": 5,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "Portable wiring evidence proves local construction and handler binding only; it does not prove native Windows/macOS execution or external identity-provider behavior."
+}

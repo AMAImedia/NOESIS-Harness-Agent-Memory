@@ -3,13 +3,21 @@ from __future__ import annotations
 
 import hmac
 import json
+from dataclasses import asdict, is_dataclass
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from urllib.parse import parse_qs, urlsplit
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 from .provider_registry import ProviderRegistry
 from .ui_assets import CONTROL_PLANE_HTML
-from .ui_contract import UIEnvelope, failure, health_payload
+from .session_stream import SessionEventBuffer, StreamContractError
+from .task_session_api import TaskSessionError, TaskSessionStore
+from .promotion_integration import OperatorAuthContext, OperatorSessionAction, PromotionApprovalAction
+from .ui_contract import UIEnvelope, failure, health_payload, success
+from .delegated_resume_action import DelegatedResumeAction
+from .report_export_action import ReportExportAction
 
 
 class _HealthHTTPServer(ThreadingHTTPServer):
@@ -20,7 +28,8 @@ class _HealthHTTPServer(ThreadingHTTPServer):
 class HealthServer:
     """Serve only GET /health and /; no model/tool execution is performed."""
 
-    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False):
+    def __init__(self, *, runtime_version: str = "0.1.0", capabilities: Optional[Mapping[str, str]] = None, unavailable_reasons: Sequence[str] = (), provider_registry: Optional[ProviderRegistry] = None, host: str = "127.0.0.1", port: int = 0, max_request_bytes: int = 4096, allow_non_loopback: bool = False, auth_token: Optional[str] = None, acknowledge_lan_warning: bool = False, session_store: Optional[TaskSessionStore] = None, promotion_telemetry: Optional[Any] = None, learning_review_provider: Optional[Callable[[], Mapping[str, Any]]] = None, promotion_action_handler: Optional[Callable[[PromotionApprovalAction, OperatorAuthContext], Mapping[str, Any]]] = None, operator_session_action_handler: Optional[Callable[[OperatorSessionAction, OperatorAuthContext], Mapping[str, Any]]] = None, administrative_policy_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_change_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, migration_mode_source: Optional[Any] = None, migration_audit_provider: Optional[Callable[[], Sequence[Mapping[str, Any]]]] = None, migration_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, import_validation_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_provider: Optional[Callable[[], Mapping[str, Any]]] = None, delegated_resume_action_handler: Optional[Callable[[DelegatedResumeAction, OperatorAuthContext], Mapping[str, Any]]] = None, evidence_aggregate_provider: Optional[Callable[[], Mapping[str, Any]]] = None, report_export_action_handler: Optional[Callable[[ReportExportAction, OperatorAuthContext], Mapping[str, Any]]] = None, report_export_lifecycle_provider: Optional[Callable[[], Mapping[str, Any]]] = None, lifecycle_audit_readiness_provider: Optional[Callable[[], Mapping[str, Any]]] = None, lifecycle_ingestion_status_provider: Optional[Callable[[], Mapping[str, Any]]] = None, lifecycle_ingestion_action_handler: Optional[Callable[[Mapping[str, Any], OperatorAuthContext], Mapping[str, Any]]] = None, operator_id: Optional[str] = None,
+ operator_session_id: Optional[str] = None, operator_scopes: Sequence[str] = ()):
         loopback = host in {"127.0.0.1", "localhost", "::1"}
         if not loopback and not allow_non_loopback:
             raise ValueError("health server defaults to loopback; non-loopback requires allow_non_loopback=True")
@@ -36,6 +45,38 @@ class HealthServer:
         self.capabilities = dict(capabilities or {"ui_contract": "ready", "provider_registry": "unavailable", "hermes_adapter": "unavailable", "deepseek_adapter": "unavailable", "hardened_sandbox": "unavailable"})
         self.unavailable_reasons = tuple(str(item) for item in unavailable_reasons) or tuple(f"{key}_unavailable" for key, value in self.capabilities.items() if value == "unavailable")
         self.provider_registry = provider_registry or ProviderRegistry()
+        self.session_store = session_store
+        self.promotion_telemetry = promotion_telemetry
+        self.learning_review_provider = learning_review_provider
+        self.promotion_action_handler = promotion_action_handler
+        self.operator_session_action_handler = operator_session_action_handler
+        self.administrative_policy_handler = administrative_policy_handler
+        self.migration_mode_change_handler = migration_mode_change_handler
+        self.migration_mode_source = migration_mode_source
+        self.migration_audit_provider = migration_audit_provider
+        self.migration_readiness_provider = migration_readiness_provider
+        self.import_validation_provider = import_validation_provider
+        self.delegated_resume_provider = delegated_resume_provider
+        self.delegated_resume_action_handler = delegated_resume_action_handler
+        self.evidence_aggregate_provider = evidence_aggregate_provider
+        self.report_export_action_handler = report_export_action_handler
+        self.report_export_lifecycle_provider = report_export_lifecycle_provider
+        self.lifecycle_audit_readiness_provider = lifecycle_audit_readiness_provider
+        self.lifecycle_ingestion_status_provider = lifecycle_ingestion_status_provider
+        self.lifecycle_ingestion_action_handler = lifecycle_ingestion_action_handler
+        export_owner = getattr(report_export_action_handler, "__self__", None)
+        if export_owner is not None and callable(getattr(export_owner, "set_event_sink", None)):
+            export_owner.set_event_sink(lambda event: self.publish_session_event(str(event.get("session_id", "")), "report_export_lifecycle", event))
+        self.operator_auth_context = OperatorAuthContext(str(operator_id), str(operator_session_id), tuple(str(item) for item in operator_scopes)) if operator_id and operator_session_id else None
+        self._stream_buffers: dict[str, SessionEventBuffer] = {}
+        self._telemetry_lock = threading.RLock()
+        self._telemetry: dict[str, Any] = {
+            "streams": [],
+            "child_runtimes": [],
+            "counters": {"events": 0, "active_streams": 0, "active_children": 0},
+            "source": "local-control-plane",
+            "updated_at_epoch": 0,
+        }
         self.host = host
         self.port = int(port)
         self.max_request_bytes = int(max_request_bytes)
@@ -45,11 +86,278 @@ class HealthServer:
         self._server: _HealthHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
+    def _migration_readiness_snapshot(self) -> Mapping[str, Any]:
+        if self.migration_readiness_provider is not None:
+            try:
+                value = self.migration_readiness_provider()
+                if not isinstance(value, Mapping):
+                    raise ValueError("migration_readiness_must_be_object")
+                return self._redact_telemetry(dict(value))
+            except Exception as exc:
+                return {"schema_version": "noesis.migration-readiness.v1", "mode": "blocked", "blocked": True, "rollback_available": False, "status": "blocked", "reason": "readiness_provider_error:" + type(exc).__name__, "automatic_cutover": False}
+        if self.migration_mode_source is not None and hasattr(self.migration_mode_source, "readiness"):
+            try:
+                return self._redact_telemetry(dict(self.migration_mode_source.readiness()))
+            except Exception as exc:
+                return {"schema_version": "noesis.migration-readiness.v1", "mode": "blocked", "blocked": True, "rollback_available": False, "status": "blocked", "reason": "mode_source_error:" + type(exc).__name__, "automatic_cutover": False}
+        return {"schema_version": "noesis.migration-readiness.v1", "mode": "legacy", "blocked": False, "rollback_available": False, "status": "legacy", "automatic_cutover": False, "operator_owned": False}
+
+    def _migration_audit_snapshot(self) -> tuple[Mapping[str, Any], ...]:
+        provider = self.migration_audit_provider
+        if provider is None and self.migration_mode_source is not None and hasattr(self.migration_mode_source, "mode_audit"):
+            provider = self.migration_mode_source.mode_audit
+        if provider is None:
+            return ()
+        try:
+            records = provider()
+            if not isinstance(records, Sequence) or isinstance(records, (str, bytes)):
+                raise ValueError("migration_audit_must_be_sequence")
+            return tuple(self._redact_telemetry(dict(item)) for item in records[:50] if isinstance(item, Mapping))
+        except Exception as exc:
+            return ({"status": "blocked", "reason": "migration_audit_provider_error:" + type(exc).__name__},)
+
     def envelope(self) -> UIEnvelope:
-        return health_payload(runtime_version=self.runtime_version, readiness="ready", binding=f"{self.host}:{self.bound_port}", capabilities=self.capabilities, unavailable_reasons=self.unavailable_reasons)
+        readiness = self._migration_readiness_snapshot()
+        return health_payload(runtime_version=self.runtime_version, readiness="unavailable" if readiness.get("blocked") else "ready", binding=f"{self.host}:{self.bound_port}", capabilities=self.capabilities, unavailable_reasons=self.unavailable_reasons + (("migration_readiness_blocked",) if readiness.get("blocked") else ()))
 
     def models_envelope(self) -> UIEnvelope:
         return self.provider_registry.envelope()
+
+    def set_telemetry(self, *, streams: Sequence[Mapping[str, Any]] = (), child_runtimes: Sequence[Mapping[str, Any]] = (), counters: Optional[Mapping[str, Any]] = None) -> None:
+        """Replace the redacted, read-only operator telemetry snapshot."""
+        with self._telemetry_lock:
+            safe_streams = [self._redact_telemetry(dict(item)) for item in streams]
+            safe_children = [self._redact_telemetry(dict(item)) for item in child_runtimes]
+            safe_counters = self._redact_telemetry(dict(counters or {}))
+            safe_counters.setdefault("active_streams", len(safe_streams))
+            safe_counters.setdefault("active_children", len(safe_children))
+            self._telemetry = {
+                "streams": safe_streams,
+                "child_runtimes": safe_children,
+                "counters": safe_counters,
+                "source": "local-control-plane",
+                "updated_at_epoch": int(time.time()),
+            }
+
+    @staticmethod
+    def _redact_telemetry(value: Any) -> Any:
+        secret_names = ("token", "secret", "password", "credential", "authorization", "api_key", "private_key")
+        if isinstance(value, Mapping):
+            return {str(key): ("[REDACTED]" if any(name in str(key).casefold() for name in secret_names) else HealthServer._redact_telemetry(item)) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [HealthServer._redact_telemetry(item) for item in value]
+        return value
+
+    def _import_validation_snapshot(self) -> Mapping[str, Any]:
+        if self.import_validation_provider is None:
+            return {"available": False, "status": "unavailable", "reason": "import_validation_provider_unavailable", "execution_claim": "read_only_import_status"}
+        try:
+            value = self.import_validation_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("import_validation_must_be_object")
+            allowed = {"schema_version", "status", "errors", "score_status", "score_claim", "external_execution_claim", "report_digest"}
+            bounded = {key: value[key] for key in allowed if key in value}
+            errors = bounded.get("errors", ())
+            bounded["errors"] = [str(item)[:256] for item in errors[:32]] if isinstance(errors, Sequence) and not isinstance(errors, (str, bytes)) else []
+            bounded["available"] = True
+            bounded["execution_claim"] = "read_only_import_status"
+            bounded["external_execution_claim"] = False
+            bounded["score_claim"] = False
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"available": False, "status": "unavailable", "reason": "import_validation_provider_error:" + type(exc).__name__, "execution_claim": "read_only_import_status"}
+
+    def _lifecycle_ingestion_status_snapshot(self) -> Mapping[str, Any]:
+        if self.lifecycle_ingestion_status_provider is None:
+            return {"schema_version": "noesis.lifecycle-audit-ingestion.v1", "state": "not_run", "available": False, "reason": "lifecycle_ingestion_status_provider_unavailable", "execution_allowed": False, "automatic_execution": False, "claim": False, "control": "operator_approval_required"}
+        try:
+            value = self.lifecycle_ingestion_status_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("lifecycle_ingestion_status_must_be_object")
+            bounded = dict(value)
+            bounded["execution_allowed"] = False
+            bounded["automatic_execution"] = False
+            bounded["automatic_import"] = False
+            bounded["claim"] = False
+            bounded["control"] = "operator_approval_required"
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"schema_version": "noesis.lifecycle-audit-ingestion.v1", "state": "blocked", "available": False, "reason": "lifecycle_ingestion_status_provider_error:" + type(exc).__name__, "execution_allowed": False, "automatic_execution": False, "claim": False, "control": "operator_approval_required"}
+
+    def _lifecycle_audit_readiness_snapshot(self) -> Mapping[str, Any]:
+        if self.lifecycle_audit_readiness_provider is None:
+            return {"domain": "report_export_lifecycle_audit", "status": "not_run", "reason": "lifecycle_audit_readiness_provider_unavailable", "claim": False, "execution_claim": False, "comparative_claim": False, "execution_lane_satisfied": False, "native_lane_satisfied": False, "external_lane_satisfied": False, "claim_boundary": "audit_only_lifecycle_evidence"}
+        try:
+            value = self.lifecycle_audit_readiness_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("lifecycle_audit_readiness_must_be_object")
+            bounded = dict(value)
+            bounded["domain"] = "report_export_lifecycle_audit"
+            bounded["claim"] = False
+            bounded["execution_claim"] = False
+            bounded["comparative_claim"] = False
+            bounded["execution_lane_satisfied"] = False
+            bounded["native_lane_satisfied"] = False
+            bounded["external_lane_satisfied"] = False
+            bounded["claim_boundary"] = "audit_only_lifecycle_evidence"
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"domain": "report_export_lifecycle_audit", "status": "blocked", "reason": "lifecycle_audit_readiness_provider_error:" + type(exc).__name__, "claim": False, "execution_claim": False, "comparative_claim": False, "execution_lane_satisfied": False, "native_lane_satisfied": False, "external_lane_satisfied": False, "claim_boundary": "audit_only_lifecycle_evidence"}
+
+    def _report_export_lifecycle_snapshot(self) -> Mapping[str, Any]:
+        if self.report_export_lifecycle_provider is None:
+            return {"available": False, "status": "available", "reason": "report_export_lifecycle_provider_unavailable", "automatic_export": False, "control": "read_only"}
+        try:
+            value = self.report_export_lifecycle_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("report_export_lifecycle_snapshot_must_be_object")
+            allowed = {"available", "status", "action_id", "session_id", "output_name", "bundle_digest", "reason", "automatic_export", "control"}
+            bounded = {key: value[key] for key in allowed if key in value}
+            bounded["automatic_export"] = False
+            bounded["control"] = "read_only"
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"available": False, "status": "blocked", "reason": "report_export_lifecycle_provider_error:" + type(exc).__name__, "automatic_export": False, "control": "read_only"}
+
+    def _evidence_aggregate_snapshot(self) -> Mapping[str, Any]:
+        if self.evidence_aggregate_provider is None:
+            return {"available": False, "status": "not_run", "reason": "evidence_aggregate_provider_unavailable", "comparative_claim": False, "execution_claim": False, "claim_boundary": "read_only_evidence_status"}
+        try:
+            value = self.evidence_aggregate_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("evidence_aggregate_snapshot_must_be_object")
+            allowed = {"schema_version", "status", "reason", "evidence_count", "lanes", "aggregate_digest", "comparative_claim", "execution_claim"}
+            bounded = {key: value[key] for key in allowed if key in value}
+            bounded["available"] = True
+            bounded["comparative_claim"] = False
+            bounded["claim_boundary"] = "read_only_evidence_status"
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"available": False, "status": "blocked", "reason": "evidence_aggregate_provider_error:" + type(exc).__name__, "comparative_claim": False, "execution_claim": False, "claim_boundary": "read_only_evidence_status"}
+
+    def _delegated_resume_snapshot(self) -> Mapping[str, Any]:
+        if self.delegated_resume_provider is None:
+            return {"available": False, "status": "unavailable", "reason": "delegated_resume_provider_unavailable", "execution_claim": "read_only_resume_status"}
+        try:
+            value = self.delegated_resume_provider()
+            if not isinstance(value, Mapping):
+                raise ValueError("delegated_resume_snapshot_must_be_object")
+            bounded = dict(value)
+            bounded["available"] = True
+            bounded["execution_claim"] = "read_only_resume_status"
+            bounded["automatic_resume"] = False
+            return self._redact_telemetry(bounded)
+        except Exception as exc:
+            return {"available": False, "status": "blocked", "reason": "delegated_resume_provider_error:" + type(exc).__name__, "execution_claim": "read_only_resume_status", "automatic_resume": False}
+
+    def telemetry_snapshot(self, *, task_id: str = "", receipt_id: str = "") -> Mapping[str, Any]:
+        with self._telemetry_lock:
+            snapshot = self._redact_telemetry(self._telemetry)
+        snapshot = dict(snapshot)
+        snapshot["migration_readiness"] = self._migration_readiness_snapshot()
+        snapshot["migration_audit"] = self._migration_audit_snapshot()
+        snapshot["session_context"] = self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id)
+        snapshot["import_validation"] = self._import_validation_snapshot()
+        snapshot["delegated_resume"] = self._delegated_resume_snapshot()
+        snapshot["evidence_aggregate"] = self._evidence_aggregate_snapshot()
+        snapshot["report_export_lifecycle"] = self._report_export_lifecycle_snapshot()
+        snapshot["lifecycle_audit_readiness"] = self._lifecycle_audit_readiness_snapshot()
+        snapshot["lifecycle_ingestion"] = self._lifecycle_ingestion_status_snapshot()
+        if self.promotion_telemetry is not None and hasattr(self.promotion_telemetry, "snapshot"):
+            snapshot["learning_promotion"] = self._redact_telemetry(self.promotion_telemetry.snapshot())
+        return snapshot
+
+    @staticmethod
+    def _filter_value(value: str, field: str) -> str:
+        value = str(value or "")
+        if len(value) > 128 or any(ord(char) < 32 for char in value):
+            raise ValueError(field + "_filter_invalid")
+        return value
+
+    def _operator_session_snapshot(self, *, task_filter: str = "", receipt_filter: str = "") -> Mapping[str, Any]:
+        context = self.operator_auth_context
+        if self.session_store is None:
+            return {"available": False, "reason": "session_store_unavailable"}
+        if context is None or not context.session_id:
+            return {"available": False, "reason": "operator_context_unavailable"}
+        try:
+            resumed = self.session_store.resume(context.session_id)
+            session = resumed.get("session")
+            tasks = resumed.get("tasks", ())
+            messages = resumed.get("messages", ())
+            evidence = resumed.get("execution_evidence", {})
+            task_filter = self._filter_value(task_filter, "task")
+            receipt_filter = self._filter_value(receipt_filter, "receipt")
+            task_states = []
+            if isinstance(tasks, Sequence):
+                for task in tasks[:50]:
+                    task_id = str(getattr(task, "task_id", ""))
+                    if task_filter and task_id != task_filter:
+                        continue
+                    task_states.append({"task_id": task_id, "state": str(getattr(task, "state", "")), "owner": str(getattr(task, "owner", ""))})
+            execution_evidence = []
+            if isinstance(evidence, Mapping):
+                for task_id, item in list(evidence.items())[:50]:
+                    if isinstance(item, Mapping):
+                        if task_filter and str(task_id) != task_filter:
+                            continue
+                        if receipt_filter and str(item.get("receipt_id", "")) != receipt_filter:
+                            continue
+                        execution_evidence.append({"task_id": str(task_id), "request_id": str(item.get("request_id", "")), "receipt_id": str(item.get("receipt_id", "")), "outcome": str(item.get("outcome", "")), "sandboxed": bool(item.get("sandboxed", False))})
+            lane_counts = {}
+            for item in task_states:
+                state = item["state"]
+                lane_counts[state] = lane_counts.get(state, 0) + 1
+            return {
+                "available": True,
+                "session_id": context.session_id,
+                "state": getattr(session, "state", ""),
+                "task_count": len(tasks) if isinstance(tasks, Sequence) else 0,
+                "message_count": len(messages) if isinstance(messages, Sequence) else 0,
+                "event_count": int(resumed.get("event_count", 0)),
+                "lane_states": task_states,
+                "execution_evidence": execution_evidence,
+                "lane_counts": lane_counts,
+                "filter": {"task_id": task_filter, "receipt_id": receipt_filter},
+            }
+        except Exception as exc:
+            return {"available": False, "session_id": context.session_id, "reason": "session_snapshot_error:" + type(exc).__name__}
+
+    def operator_snapshot(self, *, task_id: str = "", receipt_id: str = "", evidence_projection: Optional[Mapping[str, Any]] = None) -> Mapping[str, Any]:
+        """Return a bounded, read-only operator view with no execution side effects."""
+        context = self.operator_auth_context
+        snapshot = {
+            "schema_version": "noesis.operator-snapshot.v1",
+            "health": self.envelope().to_dict(),
+            "models": self.models_envelope().to_dict(),
+            "telemetry": self.telemetry_snapshot(task_id=task_id, receipt_id=receipt_id),
+            "session_context": self._operator_session_snapshot(task_filter=task_id, receipt_filter=receipt_id),
+            "import_validation": self._import_validation_snapshot(),
+            "delegated_resume": self._delegated_resume_snapshot(),
+            "evidence_aggregate": self._evidence_aggregate_snapshot(),
+            "report_export_lifecycle": self._report_export_lifecycle_snapshot(),
+            "lifecycle_audit_readiness": self._lifecycle_audit_readiness_snapshot(),
+            "lifecycle_ingestion": self._lifecycle_ingestion_status_snapshot(),
+            "operator_context": {
+                "configured": context is not None,
+                "operator_id": context.operator_id if context is not None else "",
+                "session_id": context.session_id if context is not None else "",
+                "scopes": list(context.scopes) if context is not None else [],
+            },
+            "execution_claim": "read_only_snapshot",
+        }
+        if evidence_projection is not None:
+            snapshot["evidence_projection"] = evidence_projection
+        return snapshot
+
+    def publish_session_event(self, session_id: str, kind: str, data: Mapping[str, Any], task_id: Optional[str] = None) -> StreamEvent:
+        if not session_id:
+            raise StreamContractError("session_id_required")
+        buffer = self._stream_buffers.setdefault(session_id, SessionEventBuffer(session_id))
+        bounded = self._redact_telemetry(dict(data))
+        bounded["automatic_export"] = False
+        bounded["control"] = "read_only"
+        return buffer.publish(kind, bounded, task_id=task_id)
 
     @property
     def bound_port(self) -> int:
@@ -103,24 +411,254 @@ class HealthServer:
             def _send_unauthorized(self) -> None:
                 self._send(failure("denied", "authentication_required", "valid bearer authentication is required"), 401)
 
+            def _body(self) -> Mapping[str, Any]:
+                length = int(self.headers.get("Content-Length", "0") or "0")
+                if length < 0 or length > parent.max_request_bytes:
+                    raise TaskSessionError("request_body_too_large")
+                raw = self.rfile.read(length) if length else b"{}"
+                if len(raw) > parent.max_request_bytes:
+                    raise TaskSessionError("request_body_too_large")
+                try:
+                    value = json.loads(raw.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    raise TaskSessionError("invalid_json") from exc
+                if not isinstance(value, Mapping):
+                    raise TaskSessionError("request_object_required")
+                return value
+
+            @staticmethod
+            def _jsonable(value: Any) -> Any:
+                if is_dataclass(value):
+                    return Handler._jsonable(asdict(value))
+                if isinstance(value, Mapping):
+                    return {str(key): Handler._jsonable(item) for key, item in value.items()}
+                if isinstance(value, (list, tuple)):
+                    return [Handler._jsonable(item) for item in value]
+                return value
+
+            def _session_buffer(self, session_id: str) -> SessionEventBuffer:
+                if session_id not in parent._stream_buffers:
+                    parent._stream_buffers[session_id] = SessionEventBuffer(session_id)
+                return parent._stream_buffers[session_id]
+
             def do_GET(self) -> None:  # noqa: N802
                 if not self._authorized():
                     self._send_unauthorized()
                     return
-                if self.path == "/health":
+                parsed = urlsplit(self.path)
+                path = parsed.path
+                query = parse_qs(parsed.query, keep_blank_values=True)
+                task_filter = query.get("task_id", [""])[0]
+                receipt_filter = query.get("receipt_id", [""])[0]
+                if path == "/health":
                     self._send(parent.envelope(), 200)
-                elif self.path == "/models":
+                elif path == "/models":
                     self._send(parent.models_envelope(), 200)
-                elif self.path in {"/", "/ui"}:
+                elif path == "/api/readiness":
+                    self._send(success({"migration_readiness": parent._migration_readiness_snapshot(), "evidence_aggregate": parent._evidence_aggregate_snapshot(), "lifecycle_audit_readiness": parent._lifecycle_audit_readiness_snapshot(), "lifecycle_ingestion": parent._lifecycle_ingestion_status_snapshot()}), 200)
+                elif path == "/api/operator/snapshot":
+                    self._send(success(parent.operator_snapshot(task_id=task_filter, receipt_id=receipt_filter)), 200)
+                elif path == "/api/learning/review":
+                    if parent.learning_review_provider is None:
+                        self._send(failure("unavailable", "learning_review_unavailable", "review provider is not configured"), 503)
+                        return
+                    try:
+                        review = parent.learning_review_provider()
+                        if not isinstance(review, Mapping):
+                            raise ValueError("review_snapshot_must_be_object")
+                        bounded = dict(review)
+                        bounded.setdefault("execution_claim", "read_only_review_metadata")
+                        bounded.setdefault("automatic_activation", False)
+                        self._send(success({"learning_review": parent._redact_telemetry(bounded)}), 200)
+                    except Exception as exc:
+                        self._send(failure("unavailable", "learning_review_failed", "review snapshot unavailable: " + type(exc).__name__), 503)
+                elif path in {"/api/telemetry", "/api/child-runtimes"}:
+                    snapshot = parent.telemetry_snapshot(task_id=task_filter, receipt_id=receipt_filter)
+                    if path == "/api/child-runtimes":
+                        snapshot = {"child_runtimes": snapshot["child_runtimes"], "counters": snapshot["counters"], "updated_at_epoch": snapshot["updated_at_epoch"]}
+                    self._send(success({"telemetry": snapshot}), 200)
+                elif path == "/api/audit/migration":
+                    self._send(success({"migration_audit": parent._migration_audit_snapshot()}), 200)
+                elif path == "/api/telemetry/events":
+                    payload = success({"telemetry": parent.telemetry_snapshot(task_id=task_filter, receipt_id=receipt_filter)}).to_json()
+                    body = ("event: telemetry\ndata: " + payload + "\n\n").encode("utf-8")
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                elif path in {"/", "/ui"}:
                     self._send_html(CONTROL_PLANE_HTML, 200)
+                elif path.startswith("/api/tasks/") and parent.session_store is not None:
+                    task_id = path[len("/api/tasks/"):].rstrip("/")
+                    try:
+                        self._send(success({"task": self._jsonable(parent.session_store.task(task_id))}), 200)
+                    except TaskSessionError as exc:
+                        self._send(failure("invalid_request", "task_unavailable", str(exc)), 404)
+                elif path.startswith("/api/sessions/") and parent.session_store is not None:
+                    suffix = path[len("/api/sessions/"):]
+                    if suffix.endswith("/events"):
+                        session_id = suffix[:-len("/events")].rstrip("/")
+                        last_id = int(self.headers.get("Last-Event-ID", "0") or "0")
+                        body = self._session_buffer(session_id).sse_since(last_id).encode("utf-8")
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                        self.send_header("Cache-Control", "no-store")
+                        self.send_header("Content-Length", str(len(body)))
+                        self.end_headers()
+                        self.wfile.write(body)
+                    else:
+                        try:
+                            self._send(success(self._jsonable(parent.session_store.resume(suffix))), 200)
+                        except TaskSessionError as exc:
+                            self._send(failure("invalid_request", "session_unavailable", str(exc)), 404)
                 else:
-                    self._send(failure("invalid_request", "not_found", "only GET /, /ui, /health and /models are supported"), 404)
+                    self._send(failure("invalid_request", "not_found", "unsupported route or session API unavailable"), 404)
 
             def do_POST(self) -> None:  # noqa: N802
                 if not self._authorized():
                     self._send_unauthorized()
                     return
-                self._send(failure("denied", "read_only", "health endpoint is read-only"), 405)
+                try:
+                    payload = self._body()
+                    if self.path == "/api/lifecycle-audit-ingestion":
+                        if parent.lifecycle_ingestion_action_handler is None:
+                            self._send(failure("denied", "lifecycle_ingestion_actions_unavailable", "lifecycle ingestion action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        if "lifecycle:audit:write" not in parent.operator_auth_context.scopes:
+                            self._send(failure("denied", "scope_required", "lifecycle:audit:write scope is required"), 403)
+                            return
+                        if payload.get("schema_version") != "noesis.lifecycle-audit-ingestion-action.v1" or payload.get("action") not in {"preflight", "approve", "import"}:
+                            raise ValueError("unsupported_lifecycle_ingestion_action")
+                        result = parent.lifecycle_ingestion_action_handler(dict(payload), parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("lifecycle_ingestion_action_handler_must_return_object")
+                        bounded = parent._redact_telemetry(dict(result))
+                        bounded["automatic_import"] = False
+                        bounded["control"] = "operator_approval_required"
+                        self._send(success({"action": {"schema_version": payload.get("schema_version"), "action": payload.get("action"), "record_id": payload.get("record_id", "")}, "result": bounded}), 202)
+                        return
+                    if self.path == "/api/report-export":
+                        if parent.report_export_action_handler is None:
+                            self._send(failure("denied", "report_export_actions_unavailable", "report export action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        action = ReportExportAction.from_mapping(payload)
+                        result = parent.report_export_action_handler(action, parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("report_export_action_handler_must_return_object")
+                        self._send(success({"action": {"schema_version": action.schema_version, "action_id": action.action_id, "session_id": action.session_id}, "result": parent._redact_telemetry(dict(result))}), 202)
+                        return
+                    if self.path == "/api/delegated-resume":
+                        if parent.delegated_resume_action_handler is None:
+                            self._send(failure("denied", "delegated_resume_actions_unavailable", "delegated resume action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        action = DelegatedResumeAction.from_mapping(payload)
+                        result = parent.delegated_resume_action_handler(action, parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("delegated_resume_action_handler_must_return_object")
+                        self._send(success({"action": {"schema_version": action.schema_version, "action_id": action.action_id, "session_id": action.session_id, "task_id": action.task_id}, "result": parent._redact_telemetry(dict(result))}), 202)
+                        return
+                    if self.path == "/api/operator-sessions":
+                        if parent.operator_session_action_handler is None:
+                            self._send(failure("denied", "operator_session_actions_unavailable", "operator session action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        action = OperatorSessionAction.from_mapping(payload)
+                        result = parent.operator_session_action_handler(action, parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("operator_session_action_handler_must_return_object")
+                        self._send(success({"action": action.to_mapping(), "result": dict(result)}), 202)
+                        return
+                    if self.path == "/api/admin/migration-mode":
+                        if parent.migration_mode_change_handler is None:
+                            self._send(failure("denied", "migration_mode_actions_unavailable", "migration mode action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        if payload.get("schema_version") != "noesis.migration-mode-action.v1":
+                            raise ValueError("unsupported_migration_mode_action")
+                        result = parent.migration_mode_change_handler(dict(payload), parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("migration_mode_handler_must_return_object")
+                        self._send(success({"action": {"schema_version": payload.get("schema_version"), "action": payload.get("action"), "mode": payload.get("mode")}, "result": dict(result)}), 202)
+                        return
+                    if self.path == "/api/admin/reviewer-policy":
+                        if parent.administrative_policy_handler is None:
+                            self._send(failure("denied", "administrative_policy_unavailable", "administrative policy handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        if payload.get("schema_version") != "noesis.administrative-policy.v1" or payload.get("action") not in {"grant_reviewer", "revoke_reviewer"}:
+                            raise ValueError("unsupported_administrative_policy_action")
+                        result = parent.administrative_policy_handler(dict(payload), parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("administrative_policy_handler_must_return_object")
+                        self._send(success({"action": {"schema_version": payload.get("schema_version"), "action": payload.get("action")}, "result": dict(result)}), 202)
+                        return
+                    if self.path == "/api/promotion-actions":
+                        if parent.promotion_action_handler is None:
+                            self._send(failure("denied", "promotion_actions_unavailable", "promotion action handler is not enabled"), 405)
+                            return
+                        if parent.operator_auth_context is None:
+                            self._send(failure("denied", "operator_context_unavailable", "operator session context is not configured"), 403)
+                            return
+                        action = PromotionApprovalAction.from_mapping(payload)
+                        result = parent.promotion_action_handler(action, parent.operator_auth_context)
+                        if not isinstance(result, Mapping):
+                            raise TaskSessionError("promotion_action_handler_must_return_object")
+                        self._send(success({"action": action.to_mapping(), "result": dict(result)}), 202)
+                        return
+                    if parent.session_store is None:
+                        self._send(failure("denied", "read_only", "session API is not enabled"), 405)
+                        return
+                    if self.path == "/api/sessions":
+                        record = parent.session_store.create_session(str(payload.get("owner", "")), session_id=payload.get("session_id"))
+                        self._session_buffer(record.session_id).publish("session_started", {"state": record.state})
+                        self._send(success({"session": self._jsonable(record)}), 201)
+                        return
+                    if self.path == "/api/commands":
+                        command = parent.session_store.dispatch(payload)
+                        result = command.get("result")
+                        if hasattr(result, "session_id"):
+                            session_id = result.session_id
+                            task_id = None
+                        elif hasattr(result, "task_id"):
+                            session_id = result.session_id
+                            task_id = result.task_id
+                        else:
+                            session_id = str(result.get("session_id", "")) if isinstance(result, Mapping) else ""
+                            task_id = None
+                        if not session_id:
+                            raise TaskSessionError("command_session_id_required")
+                        event = self._session_buffer(session_id).publish("command", {"command_id": command["command_id"], "command": command["command"], "result": self._jsonable(result)}, task_id=task_id)
+                        self._send(success({"command": self._jsonable(command), "sequence": event.sequence}), 202)
+                        return
+                    prefix = "/api/sessions/"
+                    if self.path.startswith(prefix) and self.path.endswith("/messages"):
+                        session_id = self.path[len(prefix):-len("/messages")].rstrip("/")
+                        event_id = parent.session_store.append_message(session_id, str(payload.get("role", "user")), str(payload.get("content", "")), command_id=payload.get("command_id"))
+                        event = self._session_buffer(session_id).publish("message", {"role": str(payload.get("role", "user")), "event_id": event_id, "content": str(payload.get("content", ""))})
+                        self._send(success({"event_id": event_id, "sequence": event.sequence}), 201)
+                        return
+                except (TaskSessionError, StreamContractError, ValueError) as exc:
+                    self._send(failure("invalid_request", "session_command_rejected", str(exc)), 400)
+                    return
+                self._send(failure("invalid_request", "not_found", "unsupported session command"), 404)
 
             def log_message(self, *_args: Any) -> None:
                 return
@@ -130,6 +668,7 @@ class HealthServer:
     def start(self) -> Tuple[str, int]:
         if self._server is not None:
             return self.address
+        self._migration_readiness_snapshot()
         self._server = _HealthHTTPServer((self.host, self.port), self._handler())
         self.port = int(self._server.server_address[1])
         self._thread = threading.Thread(target=self._server.serve_forever, name="noesis-health", daemon=True)

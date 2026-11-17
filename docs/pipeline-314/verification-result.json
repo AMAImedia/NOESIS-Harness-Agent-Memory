@@ -1,0 +1,61 @@
+{
+  "automatic_execution": false,
+  "checks": {
+    "aggregate": {
+      "aggregate_digest": "2ecbb9ba0b1cc038dcd9a6137025b15937410927e4c4c5e2794ec897850887f1",
+      "comparative_ready": false,
+      "status": "passed"
+    },
+    "committed_evidence": {
+      "artifacts": {
+        "release-audit-evidence": {
+          "artifact_id": "release-audit-evidence",
+          "path": "PARALLEL_RELEASE_AUDIT_EVIDENCE.json",
+          "reason": "",
+          "status": "absent",
+          "verification_method": "structural_check_only"
+        },
+        "workload-evidence": {
+          "artifact_id": "workload-evidence",
+          "path": "MULTI_AGENT_WORKLOAD_EVIDENCE.json",
+          "reason": "",
+          "status": "absent",
+          "verification_method": "recomputed_output_digest"
+        }
+      },
+      "automatic_execution": false,
+      "schema_version": "noesis.committed-evidence-registry.v1",
+      "status": "absent"
+    },
+    "inventory": {
+      "file_count": 2,
+      "inventory_digest": "c0b34e95665df269dfe0500d1557ed6e2505bc82a2b2ed032587cff58004aedb",
+      "status": "passed"
+    },
+    "readiness_matrix": {
+      "reason": "readiness_matrix_not_passed",
+      "status": "blocked"
+    },
+    "transfer_composition": {
+      "automatic_execution": false,
+      "missing": [
+        "chain-summary.json",
+        "reproducibility-receipt.json",
+        "verification-result.json"
+      ],
+      "reason": "transfer_required_artifact_missing",
+      "schema_version": "noesis.operator-transfer-audit.v1",
+      "status": "blocked",
+      "unexpected": []
+    }
+  },
+  "claim_boundary": "offline_artifact_verification_only",
+  "comparative_ready": false,
+  "external_execution_claim": false,
+  "inventory_digest": "c0b34e95665df269dfe0500d1557ed6e2505bc82a2b2ed032587cff58004aedb",
+  "result_digest": "c6825fcdb5ec14431e823ac7c71f0dcac21c2cbec3f4ebdadb430e80f34f750b",
+  "root_digest": "c0b34e95665df269dfe0500d1557ed6e2505bc82a2b2ed032587cff58004aedb",
+  "schema_version": "noesis.signed-operator-artifact-verification.v1",
+  "signature": "158429c0056a68289b9bfca9fa3e0334e31e8eeae1b0f1a1ccd1b6ad894427a1",
+  "verification_status": "blocked"
+}

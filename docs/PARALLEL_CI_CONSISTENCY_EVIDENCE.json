@@ -1,0 +1,72 @@
+{
+  "credentials_available": false,
+  "event_kinds": [
+    "lane_completed",
+    "lane_started"
+  ],
+  "model_generated_code_executed": false,
+  "native_builds_executed": false,
+  "network_allowed": false,
+  "results": [
+    {
+      "agent_id": "ci-markers",
+      "error": "",
+      "output": {
+        "check": "ci_markers",
+        "missing": [],
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "ci-markers",
+      "workspace": "/tmp/parallel_ci_consistency_workspaces/ci-markers"
+    },
+    {
+      "agent_id": "portable-ci",
+      "error": "",
+      "output": {
+        "check": "portable_ci_gate",
+        "file_count": 2,
+        "sha256": "4f5c4b6e0108e4e1618b0851eacc040ca1c381493371ee2a840d24a7a4a0177a",
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "portable-ci-gate",
+      "workspace": "/tmp/parallel_ci_consistency_workspaces/portable-ci-gate"
+    },
+    {
+      "agent_id": "runbook-markers",
+      "error": "",
+      "output": {
+        "check": "runbook_markers",
+        "missing": [],
+        "status": "passed"
+      },
+      "status": "passed",
+      "task_id": "runbook-markers",
+      "workspace": "/tmp/parallel_ci_consistency_workspaces/runbook-markers"
+    },
+    {
+      "agent_id": "target-honesty",
+      "error": "",
+      "output": {
+        "check": "target_honesty_gate",
+        "status": "passed",
+        "targets": {
+          "macos": {
+            "evidence_status": "not_run",
+            "reason": "target_host_or_python_mismatch"
+          },
+          "windows": {
+            "evidence_status": "not_run",
+            "reason": "target_host_or_python_mismatch"
+          }
+        }
+      },
+      "status": "passed",
+      "task_id": "target-honesty-gate",
+      "workspace": "/tmp/parallel_ci_consistency_workspaces/target-honesty-gate"
+    }
+  ],
+  "schema_version": "noesis.parallel-ci-consistency.v1",
+  "workspace_count": 4
+}

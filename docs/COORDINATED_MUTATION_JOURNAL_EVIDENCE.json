@@ -1,0 +1,25 @@
+{
+  "schema_version": "noesis.coordinated-mutation-journal-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_cross_store_coordination",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "exact_prepare_replay_is_idempotent": true,
+    "prepare_drift_is_denied": true,
+    "duplicate_commit_is_idempotent": true,
+    "duplicate_abort_is_idempotent": true,
+    "commit_after_abort_denied": true,
+    "abort_after_commit_denied": true,
+    "incomplete_prepared_state_is_visible": true,
+    "cross_file_atomicity_claim": false
+  },
+  "focused_tests": {
+    "suite": "tests.test_promotion_integration.PromotionIntegrationTests.test_coordinated_mutation_journal_is_fail_closed_for_incomplete_commit",
+    "passed": 1,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "The journal coordinates and exposes recovery state but does not claim cross-file atomicity; native/external execution remains unrun."
+}

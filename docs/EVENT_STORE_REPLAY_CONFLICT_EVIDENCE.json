@@ -1,0 +1,22 @@
+{
+  "schema_version": "noesis.event-store-replay-conflict-evidence.v1",
+  "status": "passed",
+  "scope": "bounded_local_durable_event_store",
+  "runtime": "CPython 3.14.7",
+  "acceptance": {
+    "exact_event_id_replay_is_idempotent": true,
+    "altered_type_or_payload_replay_denied": true,
+    "reopen_detects_duplicate_id_drift": true,
+    "tail_repair_boundary_preserved": true,
+    "middle_corruption_remains_fatal": true
+  },
+  "focused_tests": {
+    "suites": ["tests.test_core", "tests.test_projection"],
+    "passed": 24,
+    "failed": 0,
+    "resource_warning_policy": "error"
+  },
+  "native_execution": "not_run",
+  "external_execution": "not_run",
+  "claim_boundary": "EventStore replay conflict evidence is local-only and does not claim native host or external execution parity."
+}

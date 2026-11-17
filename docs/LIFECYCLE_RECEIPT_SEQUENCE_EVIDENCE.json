@@ -1,0 +1,38 @@
+{
+  "schema_version": "noesis.lifecycle-receipt-sequence-evidence.v1",
+  "gate": "LIFECYCLE-INGESTION-RECEIPT-SEQ-01",
+  "status": "passed_bounded_local",
+  "runtime": {
+    "python": "3.14.7",
+    "stdlib_only": true,
+    "resource_warning_policy": "error"
+  },
+  "implementation": "noesis_harness/lifecycle_audit_ingestion.py",
+  "tests": "tests/test_lifecycle_ingestion_receipt_verifier.py",
+  "verified_contracts": [
+    "exact accepted sequence is preflight, approve, import",
+    "fresh action ID cannot duplicate lifecycle action type",
+    "duplicate action IDs remain rejected",
+    "signature and identity tampering remain rejected",
+    "claim escalation remains rejected",
+    "valid audit remains claim=false and execution_claim=false"
+  ],
+  "focused_tests": {
+    "suite": "tests.test_lifecycle_ingestion_receipt_verifier tests.test_lifecycle_audit_ingestion tests.test_turn_checkpoint tests.test_delegated_bridge_integration",
+    "passed": 12,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "full_suite": {
+    "passed": 816,
+    "failed": 0,
+    "resource_warnings": 0
+  },
+  "external_boundary": {
+    "status": "NOT_RUN",
+    "native_windows_macos": "NOT_RUN",
+    "external_harness": "NOT_RUN",
+    "reason": "Receipt verification is local audit-only evidence and cannot establish native, child-runtime, external, or comparative execution."
+  },
+  "claim_boundary": "This evidence proves only local lifecycle receipt sequence validation; it does not authorize execution or prove external provider or native host behavior."
+}

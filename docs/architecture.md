@@ -255,5 +255,35 @@ signals inbox (closer): 3
 
 ```bash
 python -m unittest discover -s tests -v
-# 67 tests, all passing (stdlib unittest, no deps)
+# 2267 tests, all passing (stdlib unittest, no deps)
 ```
+
+## 0.6 session index and governance modules
+
+The 0.6 integration batch (see
+[SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md)) adds 36
+stdlib-only modules in five layers around the core:
+
+- **Session index and retrieval** (`session_sources`, `inverted_index`,
+  `retrieval_ladder`, `source_refresh`, `sync_watermark`, `parallel_parse`,
+  `tool_dialect`, `untrusted_frame`, `atomic_write`): discover and parse agent
+  session stores as data, index them with a prefix-sharded inverted index, and
+  serve tiered retrieval under an explicit byte budget.
+- **Control and recovery** (`authorization_gate`, `ledger_closure`,
+  `circuit_breaker`, `instruction_layers`, `hook_engine`, `fork_isolation`,
+  `extraction_queue`): three-valued authorization, mandatory ledger closure,
+  bounded recovery ladders, precedence-ordered instructions and isolated forks.
+- **State and knowledge** (`memory_index`, `memory_revisions`, `loop_state`,
+  `loop_contract`, `observation_log`, `shared_board`, `verification_ledger`,
+  `metrics_collector`): typed memory records, compare-and-swap revisions, loop
+  contracts and durable loop state with a separate numeric metrics surface.
+- **Authority and storage** (`scope_id`, `acl_store`, `capability_token`,
+  `leader_lease`, `blob_store`, `namespace_registry`): scope namespaces, explicit
+  grants, HMAC capability tokens, a durable leader lease and content-addressed
+  storage.
+- **Projection and scoring** (`projection_adapters`, `frontmatter`,
+  `composite_score`, `registry_reconcile`, `elo_rank`): one canonical record
+  projected to many consumer formats, with weighted scoring and drift findings.
+
+All of these keep the core contract: stdlib-only, deterministic, append-only
+where durable, idempotent on write paths and fail-closed on missing signals.

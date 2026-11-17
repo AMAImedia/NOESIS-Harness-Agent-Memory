@@ -1,0 +1,86 @@
+{
+  "audit_event_count": 8,
+  "credentials_available": false,
+  "event_kinds": [
+    "lane_completed",
+    "lane_started"
+  ],
+  "max_concurrency": 4,
+  "model_generated_code_executed": false,
+  "network_allowed": false,
+  "results": [
+    {
+      "agent_id": "release-command",
+      "error": "",
+      "output": {
+        "check": "command_contract",
+        "event_count": 4,
+        "status": "passed",
+        "task_state": "waiting_approval"
+      },
+      "status": "passed",
+      "task_id": "command-contract",
+      "workspace": "/tmp/parallel_release_workspaces/command-contract"
+    },
+    {
+      "agent_id": "release-bridge",
+      "error": "",
+      "output": {
+        "action_done": 1,
+        "check": "execution_bridge",
+        "event_kinds": [
+          "lane_claimed",
+          "lane_completed",
+          "lane_started",
+          "task_review_ready"
+        ],
+        "status": "passed",
+        "task_state": "review"
+      },
+      "status": "passed",
+      "task_id": "execution-bridge",
+      "workspace": "/tmp/parallel_release_workspaces/execution-bridge"
+    },
+    {
+      "agent_id": "release-native",
+      "error": "",
+      "output": {
+        "check": "native_target_honesty",
+        "targets": {
+          "macos": {
+            "actual_platform": "linux",
+            "evidence_status": "not_run",
+            "reason": "target_host_or_python_mismatch"
+          },
+          "windows": {
+            "actual_platform": "linux",
+            "evidence_status": "not_run",
+            "reason": "target_host_or_python_mismatch"
+          }
+        }
+      },
+      "status": "passed",
+      "task_id": "native-target-honesty",
+      "workspace": "/tmp/parallel_release_workspaces/native-target-honesty"
+    },
+    {
+      "agent_id": "release-packaging",
+      "error": "",
+      "output": {
+        "check": "packaging_contract",
+        "native_builds_executed": false,
+        "status": "passed",
+        "targets": [
+          "windows",
+          "macos"
+        ]
+      },
+      "status": "passed",
+      "task_id": "packaging-contract",
+      "workspace": "/tmp/parallel_release_workspaces/packaging-contract"
+    }
+  ],
+  "schema_version": "noesis.parallel-release-lanes.v1",
+  "simulation_only": false,
+  "workspace_count": 4
+}

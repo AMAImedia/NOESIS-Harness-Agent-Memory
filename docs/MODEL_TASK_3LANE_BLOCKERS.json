@@ -1,0 +1,50 @@
+{
+  "claim_boundary": "Local deterministic probes only. No external execution occurred while producing this file beyond previously committed signed lanes.",
+  "contract_extension": {
+    "credentials_policy_values": [
+      "absent",
+      "operator_bypass_explicit:<NAMES>"
+    ],
+    "fingerprint_binding": "credentials_env names are part of protocol fingerprint; secret VALUES never enter specs, receipts or logs"
+  },
+  "date": "2026-08-26",
+  "lanes": {
+    "deepseek_harness": {
+      "blockers": [
+        "dsh CLI is a profile booter; no standalone agent-run subcommand without DSH_HOME profile stack",
+        "DeepSeek API key absent"
+      ],
+      "model_task_status": "blocked",
+      "unblock_path": [
+        "configure dsh profile under DSH_HOME",
+        "export DEEPSEEK_API_KEY",
+        "extend runner contract argv for its task entrypoint"
+      ]
+    },
+    "hermes": {
+      "blockers": [
+        "hermes reinstalled (v0.15.2) but no working provider configured",
+        "ANTHROPIC_API_KEY present but credit balance too low",
+        "OPENAI_API_KEY not set",
+        "No other provider keys configured (OpenRouter, DeepSeek, etc.)"
+      ],
+      "model_task_status": "blocked",
+      "unblock_path": [
+        "Add credits to Anthropic account OR set OPENAI_API_KEY",
+        "Run: hermes config set provider <provider>",
+        "Re-run hermes model_task lane with credentials_env"
+      ]
+    },
+    "opencode": {
+      "auth": "runner-internal store (env stays credential-free)",
+      "evidence": "docs/_lane/opencode-model-result.json",
+      "jail_allowlist": [
+        "localhost",
+        "opencode.ai"
+      ],
+      "model_task_status": "passed",
+      "task_success": 1.0
+    }
+  },
+  "schema_version": "noesis.model-task-3lane-blockers.v1"
+}

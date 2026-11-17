@@ -1,0 +1,16 @@
+{
+  "approval_id": "a2b658e8fc3a4f0d78edaa79b868bc62b7ee079239343e985325359d056057a6",
+  "expires_at": 1787699292.2220354,
+  "issued_at": 1787697492.2220354,
+  "nonce": "4902acbdc0f8ff910ad8825dd4ddd92e",
+  "plan_identity": {
+    "command_sha256": "0e67f40b886009d11e5b859ba08d88d4999acdd5c611e17b2742d6bd93237d00",
+    "protocol_fingerprint": "2e6c37baf8f4ff7854bc25ed9fed31281d0be1013f640fd22876eabbc1f294e8",
+    "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+    "system": "deepseek_harness",
+    "task_manifest_sha256": "f128786d04a701a266d02a8a84531156bbee1db2edcbac6de4db351d2fe816b4",
+    "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\lane-ws-deepseek"
+  },
+  "schema_version": "noesis.external-approval.v1",
+  "signature": "hmac-sha256:1a150c8486236721a2808ecbe4fe1f3ebe19c36799ad62b24c7081c0a530e727"
+}

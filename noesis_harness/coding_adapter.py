@@ -59,6 +59,14 @@ PINNED_TASKS: Tuple[PinnedCodingTask, ...] = (
         "canonical-json-v1", "2026-08-17.1", "Serialize JSON deterministically", "canonical_json",
         ("dumps",), ("sort_keys",),
     ),
+    PinnedCodingTask(
+        "parse-csv-v1", "2026-08-17.2", "Parse delimited rows without execution", "parse_rows",
+        ("reader",), ("csv",),
+    ),
+    PinnedCodingTask(
+        "redact-secrets-v1", "2026-08-17.2", "Redact token-shaped text deterministically", "redact_secrets",
+        ("sub",), ("re",),
+    ),
 )
 
 
@@ -66,6 +74,7 @@ _FORBIDDEN_CALLS = frozenset({
     "eval", "exec", "compile", "__import__", "system", "popen",
     "loads", "load", "run", "Popen",
 })
+_FORBIDDEN_IMPORTS = frozenset({"subprocess", "ctypes", "pickle", "marshal", "socket"})
 
 
 class PinnedCodingTaskAdapter:
@@ -94,6 +103,16 @@ class PinnedCodingTaskAdapter:
     @staticmethod
     def _function_names(tree: ast.AST) -> Tuple[str, ...]:
         return tuple(sorted({node.name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}))
+
+    @staticmethod
+    def _import_names(tree: ast.AST) -> Tuple[str, ...]:
+        names = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names.extend(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names.append(node.module.split(".")[0])
+        return tuple(sorted(set(names)))
 
     def verify(self, task_id: str, source: str) -> CodingVerification:
         task = self.tasks.get(task_id)
@@ -126,6 +145,11 @@ class PinnedCodingTaskAdapter:
             failed.append("forbidden_calls:" + ",".join(forbidden))
         else:
             passed.append("no_forbidden_calls")
+        forbidden_imports = sorted(set(self._import_names(tree)) & _FORBIDDEN_IMPORTS)
+        if forbidden_imports:
+            failed.append("forbidden_imports:" + ",".join(forbidden_imports))
+        else:
+            passed.append("no_forbidden_imports")
         status = "passed" if not failed else "failed"
         reason = "static checks passed" if status == "passed" else "static checks failed"
         return CodingVerification(task.task_id, task.revision, digest, status, "unavailable", tuple(passed), tuple(failed), reason)

@@ -1,0 +1,13 @@
+{
+  "aggregate_digest": "2ecbb9ba0b1cc038dcd9a6137025b15937410927e4c4c5e2794ec897850887f1",
+  "automatic_execution": false,
+  "chain_digest": "2766de2ca8b9e4c8d77537a36add96fc578ddf22883798c8202d97922d8b1124",
+  "claim_boundary": "offline_evidence_chain_integrity_only",
+  "comparative_ready": false,
+  "external_execution_claim": false,
+  "inventory_digest": "c0b34e95665df269dfe0500d1557ed6e2505bc82a2b2ed032587cff58004aedb",
+  "schema_version": "noesis.signed-evidence-chain-summary.v1",
+  "signature": "c0972cad73f8cfba09c7c5c71b9c9de00de7ae7cea7ae53cc6e99c33c0103a93",
+  "status": "blocked",
+  "verification_result_digest": "c6825fcdb5ec14431e823ac7c71f0dcac21c2cbec3f4ebdadb430e80f34f750b"
+}

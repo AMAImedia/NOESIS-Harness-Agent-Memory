@@ -72,6 +72,12 @@ class BridgeDiscovery:
             if capability == "ready" and matching == 0:
                 return BridgeStatus(candidate.bridge_id, candidate.kind, "degraded", "capability_ready_but_no_matching_models", str(version), len(records), {candidate.kind: capability})
             return BridgeStatus(candidate.bridge_id, candidate.kind, capability, "verified", str(version), matching, {candidate.kind: capability})
+        except urllib.error.HTTPError as exc:
+            try:
+                exc.read()
+            finally:
+                exc.close()
+            return BridgeStatus(candidate.bridge_id, candidate.kind, "unavailable", f"probe_failed:{type(exc).__name__}", None, 0, {})
         except (OSError, urllib.error.URLError, TimeoutError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
             return BridgeStatus(candidate.bridge_id, candidate.kind, "unavailable", f"probe_failed:{type(exc).__name__}", None, 0, {})
 

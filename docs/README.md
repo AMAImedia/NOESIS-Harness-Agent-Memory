@@ -1,29 +1,57 @@
-# NOESIS-Harness-Agent-Memory documentation
+# NOESIS documentation index
 
-This directory contains the technical documentation for the local-first NOESIS agent kernel.
+This directory holds the technical documentation for the local-first NOESIS agent
+kernel. English is the primary language for code, CLI, API contracts, schemas,
+tests, metadata and code-facing docs. Russian is an additional localized layer
+using the `_RU.md` suffix (see [LANGUAGE_POLICY.md](LANGUAGE_POLICY.md)).
+
+The repository previously accumulated many per-wave decision memos and audit
+reports. Those are preserved under `_archive/` (never deleted); the working set
+below is the curated minimum needed to operate and extend the project.
 
 | Document | Purpose |
 |---|---|
-| [`ARCHITECTURE_1.0_NEXTGEN.md`](ARCHITECTURE_1.0_NEXTGEN.md) | Architecture of run envelopes, capabilities, audit chains, durable fibers, evidence memory, coordination and bounded context. |
-| [`EVALUATION_PROTOCOL.md`](EVALUATION_PROTOCOL.md) | Reproducible criteria for memory, coordination, security, coding tasks and release decisions. |
-| [`IMPLEMENTATION_REPORT_2026-08.md`](IMPLEMENTATION_REPORT_2026-08.md) | Verified local implementation report and benchmark snapshot dated 2026-08-17. |
-| [`PLAN_NOESIS_1.0_MASTER.md`](PLAN_NOESIS_1.0_MASTER.md) | Master implementation plan and phase gates. |
-| [`api.md`](api.md) | Existing API notes for the core package. |
-| [`architecture.md`](architecture.md) | Earlier architecture notes retained for historical context. |
-| [`why.md`](why.md) | Motivation and design rationale. |
-| [`recipes/`](recipes/) | Focused examples for DAG actions, event sourcing, human-in-the-loop governance, memory tiers and multi-agent work. |
+| [README.md](../README.md) | Repo entry point, quick start, honesty boundary. |
+| [AGENTS.md](../AGENTS.md) | Hard rules for AI coding agents (zero-dep core, append-only, idempotent, tests with every change). |
+| [ROADMAP_25_TO_100.md](ROADMAP_25_TO_100.md) | Plan, tracks A/B/C, milestones and landed-evidence log. |
+| [RELEASE_REVIEW_CHECKLIST.md](RELEASE_REVIEW_CHECKLIST.md) | Release review procedure (stages 1-10). |
+| [RELEASE_REVIEW_STATUS_2026-08-27.md](RELEASE_REVIEW_STATUS_2026-08-27.md) | Current per-stage status and honest blockers. |
+| [ADDON_TSEARCH_BRIDGE.md](ADDON_TSEARCH_BRIDGE.md) | Optional t-search-harness retrieval lens over NOESIS memory. |
+| [architecture.md](architecture.md) | Core architecture and event-sourced projection model. |
+| [api.md](api.md) | API notes for the core package. |
+| [LANGUAGE_POLICY.md](LANGUAGE_POLICY.md) | English-primary / Russian-supplemental language rules. |
+| [MODEL_TASK_SANDBOX_DESIGN.md](MODEL_TASK_SANDBOX_DESIGN.md) | Model-task sandbox, proxy-jail and AppContainer design. |
+| [NATIVE_PACKAGING_RUNBOOK.md](NATIVE_PACKAGING_RUNBOOK.md) | Windows/macOS native packaging, signing and target-host evidence runbook. |
+| [SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md) | 0.6 integration batch: 36 session-index/retrieval/governance modules and their upstream provenance. |
+| [HARNESS2_PORT_NOTES.md](HARNESS2_PORT_NOTES.md) | Cue-addressed lessons, per-domain libraries, anonymised selection, before/after contrast, run-identity ledger — ported clean-room from Harness2 (Apache-2.0). |
+| [FORGETING_NOTES.md](FORGETING_NOTES.md) | Erasure that can be proven: `forget.py`, the `forget20` bench, and what it still does not solve. |
+| [RESEARCH_2026_10_FORGETTING.md](RESEARCH_2026_10_FORGETTING.md) | The 2026-10 research round in-repo: sources read, what was implemented, and the two claims that were corrected. |
+| [AEAD.md](AEAD.md) | The RFC 8439 cipher: why it is hand-written, which vectors prove it, and the limits of a Python implementation. |
+| [third_party_provenance.json](third_party_provenance.json) | Machine-readable upstream reference/license/provenance manifest. |
 
-The repository is currently maintained as a **local Git project**. Documentation is written for safe review before any future public publication; no GitHub push is implied by the presence of these files.
+## 0.6 integration batch
+
+The 0.6 line added 36 stdlib-only modules ported as clean-room reimplementations
+from six upstream projects (deja-vu, harness-books, claude-code-book,
+wshobson/agents, qm, AI-Builder-Club/skills). They cover session-source
+indexing, a tiered retrieval ladder, watermarked sync, fork isolation,
+three-valued authorization, a durable leader lease, content-addressed storage,
+ACL grants, capability tokens, memory revisions, loop contracts and metrics.
+See [SESSION_INDEX_AND_GOVERNANCE.md](SESSION_INDEX_AND_GOVERNANCE.md).
 
 ## Security boundary
+The deterministic core is stdlib-only and does not execute model-generated
+Python in-process. It provides capability decisions, auditability, logical
+private scopes and fail-soft execution status. It does NOT replace an OS sandbox,
+VM, container or hardened remote execution service; the execution ladder returns
+`unavailable` when such an adapter is not configured.
 
-The deterministic core is stdlib-only and does not execute model-generated Python in-process. It provides capability decisions, auditability, logical private scopes and fail-soft execution status. It does **not** claim to replace an operating-system sandbox, VM, container or hardened remote execution service. The execution ladder returns `unavailable` when such an adapter is not configured.
+## Honesty gate
+Status vocabulary is stable and English: `passed`, `failed`, `blocked`,
+`not_run`, `not_started`, `unknown`. A `not_run`/`blocked` lane is an honest
+statement of missing host/credentials, never a failure disguised as success.
 
 ## Sources
-
-The design references [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) and [Project Think](https://blog.cloudflare.com/project-think/) for capability-based access, durable execution, sub-agent isolation, persistent sessions and execution ladders. NOESIS implements a local Python/SQLite interpretation of selected principles rather than copying or depending on the Cloudflare runtime. Hermes WebUI, DeepSeek Harness and DSH Desktop are treated similarly: reference implementations and optional adapter targets, not mandatory dependencies of the deterministic core.
-
-| [`ARXIV_2608_13417_DECISION_MEMO.md`](ARXIV_2608_13417_DECISION_MEMO.md) | Decision memo applying the long-horizon process, experience-reuse and harness-evaluation findings from arXiv:2608.13417. |
-| [`PORTABLE_UI_INTEGRATION_ROADMAP.md`](PORTABLE_UI_INTEGRATION_ROADMAP.md) | Verified plan for an optional Windows/macOS Portable Control Plane, model/provider adapters, safe skill bundles and Hermes/DeepSeek bridge boundaries. |
-| [`PROJECT_CHECKLIST_TODO_RU.md`](PROJECT_CHECKLIST_TODO_RU.md) | Shared Russian checklist/TODO with completed work, active tasks, owners, evidence, user approvals and the next action gate. |
-| [`UI_CONTRACT_V1.md`](UI_CONTRACT_V1.md) | Versioned stdlib-only boundary for health, models, errors, redaction and optional Hermes/DeepSeek adapters. |
+Design references Cloudflare OS / Project Think, LoopX, agentmemory, TencentDB,
+deepseek-harness, Hermes and agent-teams as patterns. NOESIS implements a local
+Python/SQLite interpretation of selected principles, not a copy or dependency.

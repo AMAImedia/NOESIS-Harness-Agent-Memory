@@ -30,6 +30,10 @@ class FiberInterrupted(RuntimeError):
     pass
 
 
+class FiberCorrupt(RuntimeError):
+    """A durable checkpoint is unreadable and is quarantined from resume."""
+
+
 class FiberStore:
     """SQLite-backed checkpoint store; a failed step never erases its last checkpoint."""
 
@@ -60,7 +64,18 @@ class FiberStore:
             row = db.execute("SELECT * FROM fibers WHERE fiber_id=?", (fiber_id,)).fetchone()
         if row is None:
             raise KeyError(fiber_id)
-        return FiberRecord(row["fiber_id"], row["name"], row["status"], row["step"], json.loads(row["state"]), json.loads(row["payload"]), row["attempt"], row["error"])
+        try:
+            state = json.loads(row["state"])
+            payload = json.loads(row["payload"])
+            if not isinstance(state, dict) or not isinstance(payload, dict):
+                raise ValueError("checkpoint objects required")
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise FiberCorrupt(f"{fiber_id}: checkpoint_corrupt") from exc
+        return FiberRecord(row["fiber_id"], row["name"], row["status"], row["step"], state, payload, row["attempt"], row["error"])
+
+    def _quarantine_corrupt(self, fiber_id: str) -> None:
+        with self._conn() as db:
+            db.execute("UPDATE fibers SET status='corrupted',error=?,updated_at=? WHERE fiber_id=?", ("checkpoint_corrupt", time.time(), fiber_id))
 
     def get(self, fiber_id: str) -> FiberRecord:
         return self._row(fiber_id)
@@ -101,10 +116,20 @@ class FiberStore:
     def recoverable(self) -> List[FiberRecord]:
         with self._conn() as db:
             ids = [r["fiber_id"] for r in db.execute("SELECT fiber_id FROM fibers WHERE status IN ('running','interrupted','checkpointed') ORDER BY updated_at")]
-        return [self._row(fid) for fid in ids]
+        records = []
+        for fid in ids:
+            try:
+                records.append(self._row(fid))
+            except FiberCorrupt:
+                self._quarantine_corrupt(fid)
+        return records
 
     def resume(self, fiber_id: str, runner: Callable[[int, Dict[str, Any], Dict[str, Any]], Dict[str, Any]]) -> FiberRecord:
-        current = self._row(fiber_id)
+        try:
+            current = self._row(fiber_id)
+        except FiberCorrupt:
+            self._quarantine_corrupt(fiber_id)
+            raise
         if current.status == "completed":
             return current
         with self._conn() as db:
@@ -123,4 +148,4 @@ class FiberStore:
             raise
 
 
-__all__ = ["FiberRecord", "FiberInterrupted", "FiberStore"]
+__all__ = ["FiberRecord", "FiberInterrupted", "FiberCorrupt", "FiberStore"]

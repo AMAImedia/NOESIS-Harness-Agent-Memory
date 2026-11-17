@@ -1,0 +1,309 @@
+{
+  "adapter_inventory": {
+    "deepseek_harness": {
+      "available": false,
+      "capability_preflight": {
+        "credentials": "absent",
+        "network": "deny",
+        "required": [
+          "network_denied",
+          "disposable_workspace",
+          "credential_free"
+        ],
+        "status": "not_run",
+        "workspace": "disposable"
+      },
+      "executable": null,
+      "execution": "not_run",
+      "host": "any",
+      "reason": "exact_revision_and_operator_approval_required",
+      "repository": "https://github.com/deepseek-ai/deepseek-harness",
+      "required_capabilities": [
+        "network_denied",
+        "disposable_workspace",
+        "credential_free"
+      ]
+    },
+    "hermes": {
+      "available": true,
+      "capability_preflight": {
+        "credentials": "absent",
+        "network": "deny",
+        "required": [
+          "network_denied",
+          "disposable_workspace",
+          "credential_free"
+        ],
+        "status": "ready_for_operator_approval",
+        "workspace": "disposable"
+      },
+      "executable": "C:\\Users\\djbionicl\\AppData\\Local\\hermes\\hermes-agent\\bin\\hermes.EXE",
+      "execution": "not_run",
+      "host": "any",
+      "reason": "exact_revision_and_operator_approval_required",
+      "repository": "https://github.com/NousResearch/hermes-agent",
+      "required_capabilities": [
+        "network_denied",
+        "disposable_workspace",
+        "credential_free"
+      ]
+    },
+    "opencode": {
+      "available": true,
+      "capability_preflight": {
+        "credentials": "absent",
+        "network": "deny",
+        "required": [
+          "network_denied",
+          "disposable_workspace",
+          "credential_free"
+        ],
+        "status": "ready_for_operator_approval",
+        "workspace": "disposable"
+      },
+      "executable": "C:\\Users\\djbionicl\\AppData\\Roaming\\npm\\opencode.CMD",
+      "execution": "not_run",
+      "host": "any",
+      "reason": "exact_revision_and_operator_approval_required",
+      "repository": "https://github.com/anomalyco/opencode",
+      "required_capabilities": [
+        "network_denied",
+        "disposable_workspace",
+        "credential_free"
+      ]
+    }
+  },
+  "external_execution": "not_run",
+  "host": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.7",
+    "system": "windows"
+  },
+  "lanes": {
+    "deepseek_harness": {
+      "adapter": {
+        "executable_candidates": [
+          "dsh",
+          "deepseek-harness"
+        ],
+        "host": "any",
+        "repository": "https://github.com/deepseek-ai/deepseek-harness",
+        "required_capabilities": [
+          "network_denied",
+          "disposable_workspace",
+          "credential_free"
+        ]
+      },
+      "available": false,
+      "capability_preflight": "not_run",
+      "execution": "not_started",
+      "plan": {
+        "approval_required": true,
+        "approval_schema": "noesis.external-approval.v1",
+        "argv_length": 4,
+        "command_sha256": "085f8fc6317414ac0b38d658abe6f9407a61c07fd22800577e6d880ac08ad9a0",
+        "environment_keys": [
+          "NOESIS_EXTERNAL_RUNNER",
+          "PATH"
+        ],
+        "execution": "not_started",
+        "protocol_fingerprint": "28648b6086da2664eb61295b2e021400b6cf60f92a678bdd2fb990eb0bf62812",
+        "reason": "dry_run_only",
+        "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+        "schema_version": "noesis.external-lane-plan.v1",
+        "system": "deepseek_harness",
+        "task_manifest_sha256": "5902002a3d6d28ca3ec3cb779c62aeb835c0c24bd56d707e8883d1f40cd3c607",
+        "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\pinned-ws"
+      },
+      "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+      "spec": {
+        "argv": [
+          "dsh",
+          "--no-network",
+          "--workspace",
+          "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\pinned-ws"
+        ],
+        "environment": {
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.14.7"
+        },
+        "execution": "not_started",
+        "model_provider": "pinned-by-run-manifest",
+        "protocol_fingerprint": "28648b6086da2664eb61295b2e021400b6cf60f92a678bdd2fb990eb0bf62812",
+        "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+        "schema_version": "noesis.external-runner.v1",
+        "system": "deepseek_harness",
+        "task_manifest_sha256": "5902002a3d6d28ca3ec3cb779c62aeb835c0c24bd56d707e8883d1f40cd3c607",
+        "workspace": {
+          "credentials": "absent",
+          "mode": "disposable",
+          "outside_access": "deny"
+        }
+      },
+      "status": "not_run"
+    },
+    "hermes": {
+      "execution": "not_run",
+      "reason": "missing_exact_revision",
+      "status": "not_run"
+    },
+    "opencode": {
+      "adapter": {
+        "executable_candidates": [
+          "opencode"
+        ],
+        "host": "any",
+        "repository": "https://github.com/anomalyco/opencode",
+        "required_capabilities": [
+          "network_denied",
+          "disposable_workspace",
+          "credential_free"
+        ]
+      },
+      "available": true,
+      "capability_preflight": "ready_for_operator_approval",
+      "execution": "not_started",
+      "plan": {
+        "approval_required": true,
+        "approval_schema": "noesis.external-approval.v1",
+        "argv_length": 4,
+        "command_sha256": "eb8392f9bb3e4e39444ebceb6bc1f553c44d233f7ee6a9d499c752a6e1b0a3a5",
+        "environment_keys": [
+          "NOESIS_EXTERNAL_RUNNER",
+          "PATH"
+        ],
+        "execution": "not_started",
+        "protocol_fingerprint": "28648b6086da2664eb61295b2e021400b6cf60f92a678bdd2fb990eb0bf62812",
+        "reason": "dry_run_only",
+        "revision": "b72b50006b24666da9f2088dbce907d6b24b6901",
+        "schema_version": "noesis.external-lane-plan.v1",
+        "system": "opencode",
+        "task_manifest_sha256": "5902002a3d6d28ca3ec3cb779c62aeb835c0c24bd56d707e8883d1f40cd3c607",
+        "workspace": "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\pinned-ws"
+      },
+      "revision": "b72b50006b24666da9f2088dbce907d6b24b6901",
+      "spec": {
+        "argv": [
+          "C:\\Users\\djbionicl\\AppData\\Roaming\\npm\\opencode.CMD",
+          "--no-network",
+          "--workspace",
+          "B:\\Downloads\\Portable\\NOESIS-VC-ONE\\models\\llm\\NOESIS-3.5B-A0.5B-DUBBING-FILM\\_research_2026-08\\NOESIS-Harness-Agent-Memory\\_temp\\pinned-ws"
+        ],
+        "environment": {
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.14.7"
+        },
+        "execution": "not_started",
+        "model_provider": "pinned-by-run-manifest",
+        "protocol_fingerprint": "28648b6086da2664eb61295b2e021400b6cf60f92a678bdd2fb990eb0bf62812",
+        "revision": "b72b50006b24666da9f2088dbce907d6b24b6901",
+        "schema_version": "noesis.external-runner.v1",
+        "system": "opencode",
+        "task_manifest_sha256": "5902002a3d6d28ca3ec3cb779c62aeb835c0c24bd56d707e8883d1f40cd3c607",
+        "workspace": {
+          "credentials": "absent",
+          "mode": "disposable",
+          "outside_access": "deny"
+        }
+      },
+      "status": "not_run"
+    }
+  },
+  "manifest_systems": [
+    "noesis",
+    "hermes",
+    "opencode",
+    "deepseek_harness"
+  ],
+  "manifest_validation": {
+    "errors": [],
+    "status": "passed"
+  },
+  "missing_manifest_systems": [],
+  "operator_bundle": {
+    "commands": {
+      "linux": [
+        "runtime/python-3.14.7/build/bin/python3.14",
+        "scripts/run_task_execution_parity.py",
+        "--output",
+        "artifacts/task_execution_parity.json"
+      ],
+      "macos": [
+        "python3.14",
+        "scripts/run_task_execution_parity.py",
+        "--output",
+        "artifacts/task_execution_parity.json"
+      ],
+      "windows": [
+        "py",
+        "-3.14",
+        "scripts\\run_task_execution_parity.py",
+        "--output",
+        "artifacts\\task_execution_parity.json"
+      ]
+    },
+    "current_host_execution": "available",
+    "native_host_required_for": [
+      "macos",
+      "windows"
+    ],
+    "python_policy": "3.14-only",
+    "schema_version": "noesis.parity-operator-bundle.v1"
+  },
+  "ranking": "not_run",
+  "readiness": {
+    "comparative_ready": false,
+    "comparative_rule": "all_required_lanes_passed_with_one_protocol_fingerprint",
+    "evidence_count": 0,
+    "execution_claim": "not_run",
+    "global_checks": [
+      "comparative_readiness_not_met"
+    ],
+    "lanes": {
+      "deepseek_harness": {
+        "checks": [
+          "evidence_missing"
+        ],
+        "reason": "evidence_missing_for_pinned_revision",
+        "status": "blocked"
+      },
+      "hermes": {
+        "checks": [
+          "revision_missing"
+        ],
+        "reason": "missing_exact_revision",
+        "status": "not_run"
+      },
+      "opencode": {
+        "checks": [
+          "evidence_missing"
+        ],
+        "reason": "evidence_missing_for_pinned_revision",
+        "status": "blocked"
+      }
+    },
+    "matrix_digest": "9a4c06ce1ce4b6dc07df26a7ea47da3649bb9116755958328e304c753ecb6d1f",
+    "native_or_external_execution_claim": false,
+    "overall_status": "blocked",
+    "readiness_vocabulary": [
+      "blocked",
+      "not_run",
+      "passed",
+      "unsupported"
+    ],
+    "required_lanes": [
+      "hermes",
+      "opencode",
+      "deepseek_harness"
+    ],
+    "schema_version": "noesis.external-evidence-readiness.v1"
+  },
+  "reason": "pinned_environment_and_explicit_operator_approval_required",
+  "required_systems": [
+    "deepseek_harness",
+    "hermes",
+    "opencode"
+  ],
+  "schema_version": "noesis.pinned-lane-matrix.v1",
+  "scope": "connector_neutral"
+}

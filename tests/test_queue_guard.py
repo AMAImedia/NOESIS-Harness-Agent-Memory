@@ -37,6 +37,19 @@ class TestQueue(unittest.TestCase):
 
 
 class TestLoopGuard(unittest.TestCase):
+    def test_invalid_bounds_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "loop_guard_window_invalid"):
+            LoopGuard(window=0)
+        with self.assertRaisesRegex(ValueError, "loop_guard_window_invalid"):
+            LoopGuard(window=True)
+        with self.assertRaisesRegex(ValueError, "loop_guard_repeats_invalid"):
+            LoopGuard(window=4, max_repeats=0)
+        with self.assertRaisesRegex(ValueError, "loop_guard_repeats_invalid"):
+            LoopGuard(window=2, max_repeats=3)
+
+    def test_mapping_fingerprint_is_key_order_independent(self):
+        self.assertEqual(LoopGuard.fingerprint({"b": 2, "a": 1}), LoopGuard.fingerprint({"a": 1, "b": 2}))
+
     def test_blocks_third_repeat(self):
         g = LoopGuard(window=8, max_repeats=2)
         self.assertTrue(g.check("ping")["ok"])
