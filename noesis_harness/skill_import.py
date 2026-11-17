@@ -7,7 +7,6 @@ executes entrypoints, follows symlinks, or invokes model-generated code.
 """
 
 import json
-import os
 import shutil
 import tempfile
 from dataclasses import dataclass

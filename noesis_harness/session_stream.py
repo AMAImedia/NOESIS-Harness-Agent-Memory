@@ -10,7 +10,7 @@ import json
 import time
 from dataclasses import dataclass
 from threading import Event, Lock
-from typing import Any, Iterable, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 STREAM_SCHEMA = "noesis.session-stream.v1"
 MAX_EVENT_BYTES = 64 * 1024

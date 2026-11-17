@@ -222,6 +222,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import tempfile
-    import shutil
     main()

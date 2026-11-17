@@ -527,7 +527,7 @@ class ExecutionRecoveryExecutor:
         receipt = self._verify_signed_receipt(action.receipt_id)
 
         # 3. Approved patch
-        patch = self._verify_approved_patch(action.proposal_id)
+        self._verify_approved_patch(action.proposal_id)
 
         # 4. Fresh base
         self._verify_fresh_base(action.workspace_id, action.current_base_snapshot_id)

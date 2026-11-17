@@ -52,9 +52,8 @@ import os
 import re
 import sqlite3
 import time
-import uuid
 from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 try:
     from .atomic_write import atomic_append_line

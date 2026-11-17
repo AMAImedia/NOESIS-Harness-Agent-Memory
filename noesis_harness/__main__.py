@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import List, Optional
 
 
 def _build_parser():

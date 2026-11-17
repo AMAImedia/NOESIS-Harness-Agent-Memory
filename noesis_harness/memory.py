@@ -21,7 +21,6 @@ No LLM required for storage/recall (LLM only for compression, optional).
 
 from __future__ import annotations
 
-import json
 import math
 import os
 import sqlite3

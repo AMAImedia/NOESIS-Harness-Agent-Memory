@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence, Tuple
+from typing import Any, Mapping, Sequence
 
 from .child_execution import ChildExecutionRuntime, ExecutionRequest, ExecutionResult
 from .context_firewall import ContextFirewall, ContextItem, ContextDecision

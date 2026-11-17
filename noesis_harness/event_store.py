@@ -20,7 +20,7 @@ import hashlib
 import json
 import os
 import threading
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 
 def _fingerprint(event_type: str, payload: Any) -> str:

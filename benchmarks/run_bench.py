@@ -31,7 +31,7 @@ def main():
     else:
         sizes = [100, 1000, 5000]
 
-    print(f"NOESIS Memory Benchmark Suite")
+    print("NOESIS Memory Benchmark Suite")
     print(f"Testing sizes: {sizes}")
 
     all_results = {}

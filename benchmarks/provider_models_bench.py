@@ -42,7 +42,7 @@ def main():
         url = f'http://{server.address[0]}:{server.address[1]}/models'
         for _ in range(n):
             start = time.perf_counter()
-            payload = registry.envelope().to_json()
+            registry.envelope().to_json()
             serialization.append((time.perf_counter() - start) * 1000)
             start = time.perf_counter()
             try:

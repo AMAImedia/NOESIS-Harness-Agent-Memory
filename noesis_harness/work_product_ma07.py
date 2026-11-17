@@ -18,7 +18,7 @@ import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Any, Dict, Mapping, Sequence, Tuple
 
 from .coordination import Actions
 from .parallel_agent import AgentLane, AgentLaneContext, SafeParallelExecutor

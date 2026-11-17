@@ -4,7 +4,7 @@ Patterns: LoopX adaptive score.
 Stdlib only.
 """
 from __future__ import annotations
-from typing import Dict, List, Tuple
+from typing import Tuple
 
 class AdaptiveScorer:
     def __init__(self, lr: float = 0.1, decay: float = 0.99):

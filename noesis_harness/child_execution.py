@@ -10,7 +10,6 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import replace
-import signal
 import subprocess
 import time
 from dataclasses import dataclass, field

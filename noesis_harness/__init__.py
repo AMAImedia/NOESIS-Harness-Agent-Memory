@@ -81,31 +81,31 @@ __version__ = "0.6.0"
 
 from .nextgen import AuditChain, AgentManifest, CapabilityDenied, CapabilityManifest, ContextManager, DurableCommandLedger, IsolationBroker, ResultEnvelope, RunEnvelope
 from .governance import ActionRequest, DAGPlanner, ExecutionLadder, Gatekeeper, SkillGate, VaultNote, VaultProjector
-__all__.extend(["AuditChain", "AgentManifest", "CapabilityDenied", "CapabilityManifest", "ContextManager", "DurableCommandLedger", "IsolationBroker", "ResultEnvelope", "RunEnvelope", "ActionRequest", "DAGPlanner", "ExecutionLadder", "Gatekeeper", "SkillGate", "VaultNote", "VaultProjector"])
+__all__ += ["AuditChain", "AgentManifest", "CapabilityDenied", "CapabilityManifest", "ContextManager", "DurableCommandLedger", "IsolationBroker", "ResultEnvelope", "RunEnvelope", "ActionRequest", "DAGPlanner", "ExecutionLadder", "Gatekeeper", "SkillGate", "VaultNote", "VaultProjector"]
 
 from .fibers import FiberInterrupted, FiberRecord, FiberStore
 from .evidence import EvidenceFact, EvidenceStore
 from .security import ExecutionPlan, LocalExecutionContract, SecurityFinding, SecurityScanner, safe_path
-__all__.extend(["FiberInterrupted", "FiberRecord", "FiberStore", "EvidenceFact", "EvidenceStore", "ExecutionPlan", "LocalExecutionContract", "SecurityFinding", "SecurityScanner", "safe_path"])
+__all__ += ["FiberInterrupted", "FiberRecord", "FiberStore", "EvidenceFact", "EvidenceStore", "ExecutionPlan", "LocalExecutionContract", "SecurityFinding", "SecurityScanner", "safe_path"]
 
 from .orchestration import WorkClaim, WorkCoordinator
-__all__.extend(["WorkClaim", "WorkCoordinator"])
+__all__ += ["WorkClaim", "WorkCoordinator"]
 
 from .context_engine import ContextAssembly, ContextItem, BudgetedContextAssembler
-__all__.extend(["ContextAssembly", "ContextItem", "BudgetedContextAssembler"])
+__all__ += ["ContextAssembly", "ContextItem", "BudgetedContextAssembler"]
 
 from .best_state import BestStateStore, CandidateDecision, DecisionStatus, RecoveryResult, RecoveryStatus, StateRecord
 from .recovery import DurableRecoveryReport, RecoveryCoordinator
-__all__.extend(["BestStateStore", "CandidateDecision", "DecisionStatus", "RecoveryResult", "RecoveryStatus", "StateRecord", "DurableRecoveryReport", "RecoveryCoordinator"])
+__all__ += ["BestStateStore", "CandidateDecision", "DecisionStatus", "RecoveryResult", "RecoveryStatus", "StateRecord", "DurableRecoveryReport", "RecoveryCoordinator"]
 from .trajectory_eval import TrajectoryCheckpoint, TrajectoryEvaluator, TrajectoryMetrics, peak_retention
-__all__.extend(["TrajectoryCheckpoint", "TrajectoryEvaluator", "TrajectoryMetrics", "peak_retention"])
+__all__ += ["TrajectoryCheckpoint", "TrajectoryEvaluator", "TrajectoryMetrics", "peak_retention"]
 from .memory_ab import ControlledMemoryEvaluator, MemoryABCase, MemoryABOutcome
-__all__.extend(["ControlledMemoryEvaluator", "MemoryABCase", "MemoryABOutcome"])
+__all__ += ["ControlledMemoryEvaluator", "MemoryABCase", "MemoryABOutcome"]
 from .security_holdouts import DEFAULT_HOLDOUTS, SecurityHoldoutCase, SecurityHoldoutResult, SecurityHoldoutSuite
-__all__.extend(["DEFAULT_HOLDOUTS", "SecurityHoldoutCase", "SecurityHoldoutResult", "SecurityHoldoutSuite"])
+__all__ += ["DEFAULT_HOLDOUTS", "SecurityHoldoutCase", "SecurityHoldoutResult", "SecurityHoldoutSuite"]
 from .coding_adapter import CodingSuiteSummary, CodingVerification, PINNED_TASKS, PinnedCodingTask, PinnedCodingTaskAdapter
 from .isolation_holdouts import CrossAgentLeakageSuite, IsolationHoldoutResult
-__all__.extend(["CodingSuiteSummary", "CodingVerification", "PINNED_TASKS", "PinnedCodingTask", "PinnedCodingTaskAdapter", "CrossAgentLeakageSuite", "IsolationHoldoutResult"])
+__all__ += ["CodingSuiteSummary", "CodingVerification", "PINNED_TASKS", "PinnedCodingTask", "PinnedCodingTaskAdapter", "CrossAgentLeakageSuite", "IsolationHoldoutResult"]
 from .ui_contract import CONTRACT_VERSION, UIContractError, UIEnvelope, failure, health_payload, model_payload, new_request_id, success
 from .health_server import HealthServer
 from .provider_registry import CAPABILITY_KEYS, ModelDescriptor, ProviderAdapterSpec, ProviderDescriptor, ProviderRegistry, ProviderRegistryError, SUPPORTED_PROVIDER_KINDS, adapter_spec
@@ -137,8 +137,8 @@ from .sandbox_macos import MacOSSandboxBackend
 from .sandbox_windows import WindowsSandboxBackend
 from .process_control import terminate_process_tree
 from .workspaces import MergeAuthorization, PatchReviewStore
-__all__.extend(["CONTRACT_VERSION", "UIContractError", "UIEnvelope", "failure", "health_payload", "model_payload", "new_request_id", "success", "HealthServer", "CAPABILITY_KEYS", "ModelDescriptor", "ProviderAdapterSpec", "ProviderDescriptor", "ProviderRegistry", "ProviderRegistryError", "SUPPORTED_PROVIDER_KINDS", "adapter_spec", "BridgeCandidate", "BridgeDiscovery", "BridgeStatus", "ChildRuntimeSupervisor", "RuntimeStatus", "UserDataPaths", "user_data_paths", "HERMES_FORBIDDEN_SCOPE_PREFIXES", "HERMES_SUPPORTED_SCOPES", "HermesGatewayAdapter", "HermesGatewayConfig", "HermesGatewayError", "CompatibilityResult", "DEEPSEEK_SUPPORTED_PLUGIN_CAPABILITIES", "DeepSeekHarnessAdapter", "DeepSeekHarnessConfig", "DeepSeekHarnessError", "SelectionResult", "select_model", "ALLOWED_CAPABILITIES", "ALLOWED_PLATFORMS", "MANIFEST_FILENAME", "MANIFEST_FORMAT_VERSION", "SkillManifest", "SkillManifestError", "digest_files", "ImportAssessment", "SafeSkillImport", "SkillImportError", "SkillStore", "SkillStoreError", "SkillDescriptor", "SkillDiscoveryError", "discover_skills", "ExperienceRecord", "ExperienceReuseError", "ExperienceReuseSelector", "ReuseDecision", "ExperienceReceipt", "HoldoutEvaluation", "PromotionProposal", "LearningPromotionError", "DurablePromotionState", "LearningPromotionPipeline", "TURN_CHECKPOINT_SCHEMA", "TurnCheckpoint", "TurnCheckpointError", "DurableTurnCheckpointStore", "DELEGATION_SCHEMA", "DelegationRequest", "DelegationReceipt", "DelegationError", "DelegationCoordinator", "EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "CoordinatedMutationJournal", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "SQLiteAdminStateError", "SQLiteAdministrativeBackend", "MIGRATION_SCHEMA", "AdministrativeMigrationError", "OperatorMigrationModeSource", "verify_signed_mode_change_receipt", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter", "EXTERNAL_IDENTITY_SCHEMA", "ExternalIdentityPreparationError", "PreparedExternalIdentity", "ExternalIdentityPreparation", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration", "ProductionLearningLifecycle", "MetadataTranslationError", "TranslationResult", "translate_metadata", "PortableLayout", "PortableLaunchError", "resolve_layout", "startup_probe", "BridgeIntegrationCoordinator", "BridgeIntegrationError", "IntegrationRecord", "GatewayFixture", "GatewayFixtureError", "MergeAuthorization", "PatchReviewStore", "BackendConformanceResult", "SandboxBackend", "inspect_backend", "run_conformance", "BubblewrapBackend", "SandboxResult", "SandboxUnavailable", "MacOSSandboxBackend", "terminate_process_tree"])
-__all__.extend(["WindowsSandboxBackend"])
+__all__ += ["CONTRACT_VERSION", "UIContractError", "UIEnvelope", "failure", "health_payload", "model_payload", "new_request_id", "success", "HealthServer", "CAPABILITY_KEYS", "ModelDescriptor", "ProviderAdapterSpec", "ProviderDescriptor", "ProviderRegistry", "ProviderRegistryError", "SUPPORTED_PROVIDER_KINDS", "adapter_spec", "BridgeCandidate", "BridgeDiscovery", "BridgeStatus", "ChildRuntimeSupervisor", "RuntimeStatus", "UserDataPaths", "user_data_paths", "HERMES_FORBIDDEN_SCOPE_PREFIXES", "HERMES_SUPPORTED_SCOPES", "HermesGatewayAdapter", "HermesGatewayConfig", "HermesGatewayError", "CompatibilityResult", "DEEPSEEK_SUPPORTED_PLUGIN_CAPABILITIES", "DeepSeekHarnessAdapter", "DeepSeekHarnessConfig", "DeepSeekHarnessError", "SelectionResult", "select_model", "ALLOWED_CAPABILITIES", "ALLOWED_PLATFORMS", "MANIFEST_FILENAME", "MANIFEST_FORMAT_VERSION", "SkillManifest", "SkillManifestError", "digest_files", "ImportAssessment", "SafeSkillImport", "SkillImportError", "SkillStore", "SkillStoreError", "SkillDescriptor", "SkillDiscoveryError", "discover_skills", "ExperienceRecord", "ExperienceReuseError", "ExperienceReuseSelector", "ReuseDecision", "ExperienceReceipt", "HoldoutEvaluation", "PromotionProposal", "LearningPromotionError", "DurablePromotionState", "LearningPromotionPipeline", "TURN_CHECKPOINT_SCHEMA", "TurnCheckpoint", "TurnCheckpointError", "DurableTurnCheckpointStore", "DELEGATION_SCHEMA", "DelegationRequest", "DelegationReceipt", "DelegationError", "DelegationCoordinator", "EvaluatorSpec", "EvaluatorRegistry", "PromotionTelemetry", "RuntimePolicySimulator", "OwnershipPolicySimulator", "OperatorSessionRegistry", "ReviewerAuthorizationStore", "OperatorAuthContext", "PromotionApprovalAction", "PromotionActionReceipt", "PromotionActionExecutor", "SignedMutationReceipt", "verify_signed_mutation_receipt", "CoordinatedMutationJournal", "OperatorSessionAction", "OperatorSessionActionExecutor", "AdministrativePolicyStore", "SQLiteAdminStateError", "SQLiteAdministrativeBackend", "MIGRATION_SCHEMA", "AdministrativeMigrationError", "OperatorMigrationModeSource", "verify_signed_mode_change_receipt", "MigrationCheck", "AdministrativeActionRouter", "AdministrativeMigrationAdapter", "EXTERNAL_IDENTITY_SCHEMA", "ExternalIdentityPreparationError", "PreparedExternalIdentity", "ExternalIdentityPreparation", "PolicySimulation", "PromotionEventBridge", "PromotionIntegration", "ProductionLearningLifecycle", "MetadataTranslationError", "TranslationResult", "translate_metadata", "PortableLayout", "PortableLaunchError", "resolve_layout", "startup_probe", "BridgeIntegrationCoordinator", "BridgeIntegrationError", "IntegrationRecord", "GatewayFixture", "GatewayFixtureError", "MergeAuthorization", "PatchReviewStore", "BackendConformanceResult", "SandboxBackend", "inspect_backend", "run_conformance", "BubblewrapBackend", "SandboxResult", "SandboxUnavailable", "MacOSSandboxBackend", "terminate_process_tree"]
+__all__ += ["WindowsSandboxBackend"]
 
 # 0.6 integration batch: session-source indexing, retrieval, memory records and
 # governance patterns ported from deja-vu (Go), harness-books, claude-code-book,
@@ -164,7 +164,7 @@ from .composite_score import Composite, Confidence, LAYER_BLENDS, Layer, Signal,
 from .registry_reconcile import Finding, Severity, prune_plan, reconcile_directories, reconcile_registry
 from .registry_reconcile import summarize as summarize_findings
 from .scope_id import SCOPE_KINDS, ScopeError, WorkspaceLayer, conversation_scope, format_scope, is_cross_scope, is_entitled, layered_workspace, parse_scope, personal_scope, scope_key
-__all__.extend([
+__all__ += [
     "FileKind", "HarnessSpec", "SessionSourceRegistry", "kind_for_path", "register_harness",
     "InvertedIndex", "decode_postings", "encode_postings", "index_bucket", "index_bm25_score", "index_tokenize",
     "Hit", "SearchTier", "damerau_levenshtein", "freshness_decay", "rank_with_relevance_tail", "search_tiered", "trim_to_budget", "ladder_bm25_score", "query_tokenize",
@@ -177,7 +177,7 @@ __all__.extend([
     "Composite", "Confidence", "LAYER_BLENDS", "Layer", "Signal", "confidence_from_layers", "grade_for", "score_composite",
     "Finding", "Severity", "prune_plan", "reconcile_directories", "reconcile_registry", "summarize_findings",
     "SCOPE_KINDS", "ScopeError", "WorkspaceLayer", "conversation_scope", "format_scope", "is_cross_scope", "is_entitled", "layered_workspace", "parse_scope", "personal_scope", "scope_key",
-])
+]
 
 # 0.6 integration batch, wave 2: loop/knowledge state, session sync, retrieval
 # plumbing, authority and scoring primitives ported from deja-vu, harness-books,
@@ -231,7 +231,7 @@ from .cell_cipher import Cell, CellCipher, CellCipherError, ErasureReceipt, KeyD
 from .cell_cipher import CELL_ERASED, CELL_SEALED, ERASURE_ACCESS_CONTROL, ERASURE_CRYPTOGRAPHIC
 from .cell_cipher import SCHEMA_VERSION as CELL_CIPHER_SCHEMA_VERSION
 from .forget import SCHEMA_VERSION as FORGET_SCHEMA_VERSION
-__all__.extend([
+__all__ += [
     "LOG_PREFIX", "TIMELINE_HEADING", "ObservationLog", "content_key",
     "DONE_SUFFIX", "LEASE_SUFFIX", "READY_SUFFIX", "RESULT_SUFFIX", "ResourceLease", "SentinelTimeout", "StepMarker", "TurnSentinel",
     "MANIFEST_VERSION", "FileState", "ManifestCache", "RefreshPlan", "plan_all", "plan_refresh", "prefix_sample", "observe_file",
@@ -272,4 +272,4 @@ __all__.extend([
     "AuthenticationError", "AeadError", "aead_decrypt", "aead_encrypt", "aead_selftest", "AEAD_SCHEMA_VERSION",
     "Cell", "CellCipher", "CellCipherError", "ErasureReceipt", "KeyDestroyed", "KeyStore", "ReceiptJournal",
     "CELL_ERASED", "CELL_SEALED", "ERASURE_ACCESS_CONTROL", "ERASURE_CRYPTOGRAPHIC", "CELL_CIPHER_SCHEMA_VERSION",
-])
+]

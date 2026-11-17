@@ -4,7 +4,6 @@ Borrowed patterns from:
 - LoopX (deterministic exponential backoff, no random jitter by default).
 """
 
-import math
 
 
 def schedule(attempt, base=0.1, cap=5.0, factor=2.0):

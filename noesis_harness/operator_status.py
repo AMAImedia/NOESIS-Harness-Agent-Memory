@@ -26,7 +26,6 @@ import argparse
 import json
 import os
 import sqlite3
-from typing import Any, Dict, List, Optional
 
 
 def _event_log_stats(path):

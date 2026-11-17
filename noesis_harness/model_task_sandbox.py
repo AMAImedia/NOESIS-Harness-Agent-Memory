@@ -24,7 +24,7 @@ import re
 from pathlib import Path
 from typing import Callable, Optional, Sequence
 
-from .sandbox_bwrap import SandboxResult, SandboxUnavailable
+from .sandbox_bwrap import SandboxResult
 
 BoundaryVerifier = Callable[[], bool]
 

@@ -7,7 +7,7 @@ import math
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from .context_engine import ContextItem
 from .memory_ab import ControlledMemoryEvaluator, MemoryABCase

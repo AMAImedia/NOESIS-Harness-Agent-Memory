@@ -1,7 +1,7 @@
 """Task/evaluator/operator integration for the governed learning pipeline."""
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 import hashlib
 import hmac
 import json

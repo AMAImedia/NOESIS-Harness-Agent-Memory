@@ -4,7 +4,7 @@ Patterns: LoopX trajectory analysis.
 Stdlib only.
 """
 from __future__ import annotations
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 class TrajectoryAnalyzer:
     def __init__(self):

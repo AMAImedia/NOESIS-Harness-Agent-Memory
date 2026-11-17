@@ -1,11 +1,10 @@
 """Deterministic cross-agent leakage and authorization holdouts."""
 from __future__ import annotations
 
-import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Tuple
+from typing import Tuple
 
 from .parallel_agent import AgentLane, SafeParallelExecutor
 

@@ -11,12 +11,12 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--n', type=int, default=100); n=max(3, ap.parse_args().n)
     with tempfile.TemporaryDirectory() as d:
         store=BestStateStore(str(Path(d)/'best.db'))
-        t0=time.perf_counter(); best_score=-1.0; best_id=None; regressions=0
+        t0=time.perf_counter(); best_score=-1.0; regressions=0
         for i in range(n):
             score=0.05 if i == n - 1 else ((i / n) if i % 5 else max(0.0, (i - 4) / n))
             decision=store.record_candidate('bench-run', score, {'step': i})
             if decision.best_score is not None and decision.best_score > best_score:
-                best_score=decision.best_score; best_id=decision.best_state_id
+                best_score=decision.best_score
             if decision.status.value == 'accepted_not_best': regressions += 1
         record_ms=(time.perf_counter()-t0)*1000
         before=store.current('bench-run')

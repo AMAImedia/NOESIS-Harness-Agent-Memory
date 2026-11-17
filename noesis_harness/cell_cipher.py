@@ -60,16 +60,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import secrets
 import time
-from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional
 
 try:
     from .aead import (
         KEY_BYTES,
-        NONCE_BYTES,
-        TAG_BYTES,
         AeadError,
         AuthenticationError,
         aead_decrypt,
@@ -78,13 +75,11 @@ try:
         random_nonce,
         selftest as aead_selftest,
     )
-    from .atomic_write import atomic_append_line, atomic_write_bytes, atomic_write_text
-    from .forget import canonical, content_digest
+    from .atomic_write import atomic_append_line, atomic_write_bytes
+    from .forget import canonical
 except ImportError:  # pragma: no cover - direct script import
     from noesis_harness.aead import (
         KEY_BYTES,
-        NONCE_BYTES,
-        TAG_BYTES,
         AeadError,
         AuthenticationError,
         aead_decrypt,
@@ -93,8 +88,8 @@ except ImportError:  # pragma: no cover - direct script import
         random_nonce,
         selftest as aead_selftest,
     )
-    from noesis_harness.atomic_write import atomic_append_line, atomic_write_bytes, atomic_write_text
-    from noesis_harness.forget import canonical, content_digest
+    from noesis_harness.atomic_write import atomic_append_line, atomic_write_bytes
+    from noesis_harness.forget import canonical
 
 
 SCHEMA_VERSION = "noesis.cell-cipher.v1"

@@ -29,7 +29,7 @@ import hmac
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, Tuple
+from typing import Tuple
 
 __all__ = [
     "TokenError",
