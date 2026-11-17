@@ -30,7 +30,7 @@ Design goals:
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Tuple
 
 SECONDS_PER_DAY = 86400.0
 

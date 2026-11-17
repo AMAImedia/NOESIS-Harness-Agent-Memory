@@ -26,7 +26,6 @@ snippets from the event log, NOT generated text.
 from __future__ import annotations
 
 import argparse
-import sys
 from typing import Callable, List, Optional, Tuple
 
 from .recall_augment import rank_events

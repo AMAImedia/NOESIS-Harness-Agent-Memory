@@ -9,7 +9,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import List, Sequence, Tuple
 
 
 @dataclass(frozen=True)

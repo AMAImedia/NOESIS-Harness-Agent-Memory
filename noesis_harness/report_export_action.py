@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from .report_bundle import build_report_bundle
 
 SCHEMA_VERSION = "noesis.report-export-action.v1"
 RECEIPT_SCHEMA = "noesis.report-export-receipt.v1"

@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from .execution_assurance import ExecutionReceiptStore, ExecutionRecoveryStore, create_receipt, request_fingerprint
-from .workspaces import PatchReviewStore, WorkspaceError
+from .workspaces import PatchReviewStore
 
 RECOVERY_ACTION_SCHEMA = "noesis.execution-recovery-action.v1"
 REPLAY_COMPLETENESS_SNAPSHOT_FIELDS = frozenset({"schema_version", "status", "event_count", "manifest_count", "catalog_count", "records", "completeness_digest", "completeness_path"})
@@ -924,10 +924,9 @@ class ExecutionRecoveryExecutor:
         catalog_record = next((record for record in catalog_snapshot["payload"].get("records", ()) if str(record.get("action_id", "")) == action.action_id), None)
         if catalog_record is None:
             raise ExecutionRecoveryError("recovery_replay_commit_manifest_catalog_record_missing")
-        completeness_snapshot = None
         if os.path.exists(self._replay_completeness_snapshot_path()):
             try:
-                completeness_snapshot = self.verify_replay_evidence_completeness_snapshot()
+                self.verify_replay_evidence_completeness_snapshot()
             except ExecutionRecoveryError as exc:
                 if str(exc) != "recovery_replay_completeness_manifest_missing":
                     raise
@@ -1607,9 +1606,8 @@ class ExecutionRecoveryExecutor:
         manifest_binding_chain = None
         if os.path.exists(self._replay_manifest_binding_chain_path()):
             manifest_binding_chain = self.verify_manifest_binding_chain()
-        manifest_binding_readiness = None
         if os.path.exists(self._replay_manifest_binding_readiness_path()):
-            manifest_binding_readiness = self.verify_manifest_binding_chain_readiness_snapshot()
+            self.verify_manifest_binding_chain_readiness_snapshot()
         return {"status": "passed", "finalized": bool(finalized), "repair_chain": repair_chain, "completeness": completeness, "finalization": finalization, "finalized_inventory": inventory, "inventory_verification": verification, "verification_chain": verification_chain, "verification_chain_readiness": verification_chain_readiness, "verification_chain_readiness_snapshot": verification_chain_readiness_snapshot, "manifest_binding": manifest_binding, "manifest_binding_chain": manifest_binding_chain}
 
     def handle(self, action: ExecutionRecoveryAction, context: Mapping[str, Any]) -> Mapping[str, Any]:

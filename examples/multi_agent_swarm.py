@@ -16,7 +16,7 @@ import random
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from noesis_harness import EventStore, Memory, Leases, Signals, Actions
+from noesis_harness import EventStore, Leases, Signals, Actions
 
 
 def agent_worker(agent_id: str, state_dir: str, shutdown: threading.Event):

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .event_store import EventStore
-from .multi_agent_runtime import MultiAgentCoordinator, MultiAgentError
+from .multi_agent_runtime import MultiAgentCoordinator
 from .work_product_benchmark import WorkProductBenchmarkError, WorkProductCommitMarker, WorkProductCommitMarkerLedger
 from .workspaces import MergeAuthorization, WorkspaceError
 

@@ -196,3 +196,46 @@ Rules that follow:
   checks. A directory-only bind is also insufficient: CPython needs its
   installation prefix for the stdlib, as a bind of just the `bin` dir shows
   with `Fatal Python error: Failed to import encodings module`.
+
+## Known gap: CI lint gate (recorded 2026-11-18)
+
+The `Lint (pyflakes)` job in `.github/workflows/ci.yml` runs exactly
+
+    pyflakes noesis_harness/ examples/ integrations/ benchmarks/
+
+On 2026-11-18 that command reported 619 findings: 602 "imported but unused",
+8 unused locals, 6 f-strings without placeholders, 3 redefinitions, spread over
+63 files. The job was red, so it protected nothing.
+
+**Status: green (2026-11-18).** The same command now prints nothing and exits
+0. Interpreter used: CPython 3.14.4 (`/usr/bin/python3`), pyflakes 4.1.0
+installed into a throwaway venv (`python3 -m venv` + `python -m pip install
+pyflakes`, which is how CI installs it). Nothing was installed system-wide and
+the gate command was not changed.
+
+What was changed, by category:
+
+- **Re-export hub (505 findings, all in `noesis_harness/__init__.py`).** The
+  imports stay; the 13 `__all__.extend([...])` calls became `__all__ += [...]`,
+  the form pyflakes recognises as an export list. Content and order of
+  `__all__` are unchanged (662 names), and the public surface is identical:
+  `dir()` exposes the same 797 non-underscore names before and after.
+- **Real unused imports (97).** Dropped one name at a time. Optional-import
+  blocks keep both branches (`try` / `except ImportError`) in sync, so
+  availability probing still works; no branch was deleted outright.
+- **Unused locals (8).** Bindings removed only where the value was pure. Where
+  the call itself verifies or measures (`verify_replay_evidence_completeness_snapshot`,
+  `verify_manifest_binding_chain_readiness_snapshot`, `_verify_approved_patch`,
+  `EventStore.project`, `ProviderRegistry.envelope().to_json`) the call is
+  kept and only the name dropped, so no verification or timing step is skipped.
+- **f-strings without placeholders (6).** Turned into plain strings.
+- **Redefinitions (3).** `portable_launcher.main` renamed its nested handler to
+  `_administrative_policy_handler` and binds `administrative_policy_handler`
+  explicitly afterwards; `integrations/openclaw.py` dropped the two imports in
+  its `__main__` guard that `main()` already performs itself.
+
+Nothing was silenced with `# noqa` (pyflakes ignores comments, so that would
+have been a lie) and no lint configuration was relaxed. Unused submodule-level
+re-exports were removed only where no module, test, script or example in the
+repository imports them from that module; everything published by the package
+itself still resolves through `noesis_harness`.

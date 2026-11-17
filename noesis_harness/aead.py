@@ -57,10 +57,9 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import os
 import secrets
 import struct
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List
 
 
 SCHEMA_VERSION = "noesis.aead.v1"

@@ -6,7 +6,7 @@ import json
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence
 
 try:
     from .nextgen import AuditChain, _ManagedConnection, canonical_json

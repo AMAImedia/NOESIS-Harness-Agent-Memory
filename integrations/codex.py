@@ -17,7 +17,7 @@ import os
 import sqlite3
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 
 # ---------------------------------------------------------------------------
@@ -207,7 +207,6 @@ class NoesisCodexAdapter:
 def main():
     import tempfile
     import shutil
-    import time
 
     tmp = tempfile.mkdtemp(prefix="codex_adapter_test_")
     try:

@@ -13,7 +13,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from .event_store import EventStore
 

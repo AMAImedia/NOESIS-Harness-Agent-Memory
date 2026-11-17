@@ -13,7 +13,7 @@ from pathlib import Path
 import sqlite3
 import time
 from contextlib import contextmanager
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 SCHEMA = "noesis.turn-checkpoint.v1"
 

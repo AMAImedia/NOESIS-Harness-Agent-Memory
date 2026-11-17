@@ -32,7 +32,7 @@ def bench_event_store(n: int, state_dir: str) -> Dict[str, float]:
 
     # Project benchmark
     start = time.perf_counter()
-    final = es.project(0)
+    es.project(0)
     project_time = time.perf_counter() - start
 
     # Count

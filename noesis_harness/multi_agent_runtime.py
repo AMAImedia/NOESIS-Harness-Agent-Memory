@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
 from .event_store import EventStore
-from .task_session_api import TaskSessionError, TaskSessionStore
+from .task_session_api import TaskSessionStore
 from .workspaces import WorkspaceManager
 
 MULTI_AGENT_SCHEMA = "noesis.multi-agent.v1"

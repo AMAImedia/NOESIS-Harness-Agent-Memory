@@ -7,7 +7,6 @@ hardened sandbox is reported as unavailable rather than disguised as safe.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import tempfile
@@ -18,9 +17,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 try:
-    from .nextgen import AuditChain, CapabilityDenied, CapabilityManifest
+    from .nextgen import AuditChain, CapabilityManifest
 except ImportError:
-    from noesis_nextgen import AuditChain, CapabilityDenied, CapabilityManifest
+    from noesis_nextgen import AuditChain, CapabilityManifest
 
 
 _EFFECTS = {"read", "write", "network_read", "network_write", "secret_use", "irreversible"}

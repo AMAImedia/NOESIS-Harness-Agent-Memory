@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import urllib.request
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
 

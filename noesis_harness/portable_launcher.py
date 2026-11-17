@@ -8,7 +8,6 @@ invoke models, execute skill entrypoints, or require Node/npm.
 
 import argparse
 import os
-import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,7 +17,7 @@ from .admin_migration import OperatorMigrationModeSource
 from .admin_state_sqlite import SQLiteAdministrativeBackend
 from .health_server import HealthServer
 from .learning_promotion import LearningPromotionPipeline
-from .promotion_integration import AdministrativePolicyStore, CoordinatedMutationJournal, EvaluatorRegistry, OperatorSessionAction, OperatorSessionActionExecutor, OperatorAuthContext, OperatorSessionRegistry, OwnershipPolicySimulator, ProductionLearningLifecycle, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
+from .promotion_integration import AdministrativePolicyStore, CoordinatedMutationJournal, EvaluatorRegistry, OperatorSessionActionExecutor, OperatorSessionRegistry, OwnershipPolicySimulator, ProductionLearningLifecycle, PromotionActionExecutor, PromotionEventBridge, PromotionIntegration, ReviewerAuthorizationStore
 from .provider_registry import ProviderRegistry
 from .task_session_api import TaskSessionStore
 from .user_data import user_data_paths
@@ -108,13 +107,14 @@ def main(argv=None) -> int:
         session_action_executor = OperatorSessionActionExecutor(session_registry, str(state_root / "operator_session_actions.jsonl"), signing_key=signing_key, journal=mutation_journal)
         operator_session_action_handler = session_action_executor.handle
         administrative_policy = AdministrativePolicyStore(str(state_root / "admin_policy.jsonl"), reviewer_store, session_registry, admin_ids=(operator_id,) if operator_id else (), signing_key=signing_key, journal=mutation_journal)
-        def administrative_policy_handler(payload, context):
+        def _administrative_policy_handler(payload, context):
             action = str(payload.get("action", "")) if isinstance(payload, Mapping) else ""
             if action == "grant_reviewer":
                 return administrative_policy.grant_reviewer(context, str(payload.get("operator_id", "")), str(payload.get("session_id", "")), tuple(str(item) for item in payload.get("scopes", ())))
             if action == "revoke_reviewer":
                 return administrative_policy.revoke_reviewer(context, str(payload.get("operator_id", "")), str(payload.get("session_id", "")))
             raise PortableLaunchError("unsupported_administrative_policy_action")
+        administrative_policy_handler = _administrative_policy_handler
         action_executor = PromotionActionExecutor(promotion_integration, str(state_root / "promotion_actions.jsonl"), reviewer_store=reviewer_store, session_registry=session_registry)
         runtime_policy = OwnershipPolicySimulator(session_store, lambda task_id: session_store.task(task_id).owner, scope_prefix="session:")
         promotion_lifecycle = ProductionLearningLifecycle(task_store=session_store, event_bridge=PromotionEventBridge(promotion_integration, str(state_root / "promotion_bridge.jsonl")), policy_simulator=runtime_policy.simulate, action_executor=action_executor)

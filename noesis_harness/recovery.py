@@ -7,7 +7,7 @@ and WorkCoordinator reclaims only expired leases after a crash.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .best_state import BestStateStore, RecoveryResult, RecoveryStatus
 from .fibers import FiberRecord, FiberStore

@@ -21,7 +21,7 @@ def print_state(actions: Actions, label: str):
     frontier = actions.frontier(5)
     print(f"\n[{label}]")
     print(f"  counts: {counts}")
-    print(f"  frontier (top 5):")
+    print("  frontier (top 5):")
     for a in frontier:
         print(f"    - {a['id'][:8]}: {a['title']} (pri={a['priority']})")
 
@@ -107,7 +107,7 @@ def main():
 
     # requires (blocking)
     a1 = B.create("step A", priority=5)
-    a2 = B.create("step B (requires A)", priority=5, requires=[a1])
+    B.create("step B (requires A)", priority=5, requires=[a1])
     print(f"\nrequires: A={B.counts()}, B blocked={B.counts().get('blocked', 0)}")
 
 # unlocks (reverse of requires - metadata only)
@@ -118,7 +118,7 @@ def main():
             "INSERT INTO action_edges (from_id, to_id, kind) VALUES (?,?,?)",
             (a3, a4, "unlocks")
         )
-    print(f"unlocks: C done, D still pending (unlocks is metadata)")
+    print("unlocks: C done, D still pending (unlocks is metadata)")
 
     # gated_by (external gate - metadata)
     a5 = B.create("step E (gated by human approval)")
@@ -128,7 +128,7 @@ def main():
             "INSERT INTO action_edges (from_id, to_id, kind) VALUES (?,?,?)",
             (a5, a6, "gated_by")
         )
-    print(f"gated_by: E done, F still pending (gated_by is metadata)")
+    print("gated_by: E done, F still pending (gated_by is metadata)")
 
     # conflicts_with (advisory - don't run simultaneously)
     a7 = B.create("task X (heavy GPU)")
@@ -138,7 +138,7 @@ def main():
             "INSERT INTO action_edges (from_id, to_id, kind) VALUES (?,?,?)",
             (a7, a8, "conflicts_with")
         )
-    print(f"conflicts_with: X and Y marked as conflicting (scheduler hint)")
+    print("conflicts_with: X and Y marked as conflicting (scheduler hint)")
 
     # spawned_by (provenance)
     a9 = B.create("parent task")
@@ -148,7 +148,7 @@ def main():
             "INSERT INTO action_edges (from_id, to_id, kind) VALUES (?,?,?)",
             (a9, a10, "spawned_by")
         )
-    print(f"spawned_by: child task provenance tracked")
+    print("spawned_by: child task provenance tracked")
 
     print("\n" + "=" * 60)
     print("DAG COMPLETE — all patterns demonstrated")

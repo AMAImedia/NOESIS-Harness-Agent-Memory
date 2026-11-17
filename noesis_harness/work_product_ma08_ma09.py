@@ -17,17 +17,15 @@ import statistics
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 
 from .parallel_agent import (
     AgentLane,
     AgentLaneContext,
-    AgentLaneResult,
     ParallelExecutionError,
     SafeParallelExecutor,
 )
-from .isolation_holdouts import ActiveDelegationLeakageSuite, IsolationHoldoutResult
 
 OP_COST_MS = 0.125
 
@@ -233,23 +231,19 @@ class CrashInjectionProber:
             "/absolute/escape.txt" if os.name != "nt" else "C:\\escape.txt",
             "subdir/../../escape.txt",
         ]
-        observed = "contained"
         survived = True
         error = ""
         for attempt in escape_attempts:
             try:
                 context.path(attempt)
-                observed = "allowed:" + attempt
                 survived = False
                 break
             except ParallelExecutionError as exc:
                 if "workspace_escape" in str(exc) or "workspace_relative_path_required" in str(exc):
                     continue
-                observed = "error:" + str(exc)
                 survived = False
                 break
-            except Exception as exc:
-                observed = "exception:" + type(exc).__name__
+            except Exception:
                 survived = False
                 break
         duration_ms = _deterministic_duration_ms(len(escape_attempts))

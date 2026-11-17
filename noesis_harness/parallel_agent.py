@@ -11,7 +11,7 @@ from __future__ import annotations
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, replace
 from pathlib import Path
-from threading import Event, Lock, Timer
+from threading import Event, Lock
 import re
 import time
 from typing import Callable, Iterable, Mapping, Optional, Sequence
